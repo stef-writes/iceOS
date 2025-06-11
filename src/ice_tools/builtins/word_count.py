@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from app.models.node_models import WordCountOutput
+from ice_sdk.models.node_models import WordCountOutput
 from ice_sdk.base_tool import BaseTool
 
 

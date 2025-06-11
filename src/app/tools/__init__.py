@@ -1,21 +1,14 @@
-"""Side-effecting Tools used by iceOS.
+"""Compatibility layer.
 
-This package aggregates *built-in* tools in `app.tools.builtins` and acts as
-public façade so that import paths stay stable even if we later move files.
-
-Example:
-
-```python
-from app.tools import WordCountTool
-```
-
-| Export | Purpose |
-| ------ | ------- |
-| `WordCountTool` | Count words in a text. |
+Importing ``app.tools`` is deprecated.  Use ``ice_tools`` instead.
+This stub re-exports public names from ``ice_tools`` so existing code
+continues to work while we migrate.
 """
 
-from app.tools.builtins.word_count import WordCountTool  # noqa: F401
+from importlib import import_module
+import sys
 
-__all__ = [
-    "WordCountTool",
-]
+_mod = import_module("ice_tools")
+globals().update(_mod.__dict__)
+
+sys.modules.setdefault("app.tools", _mod)
