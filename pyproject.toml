@@ -69,5 +69,5 @@ line_length = 88
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["app"]
+packages = ["app", "ice_sdk"]
 

@@ -33,6 +33,7 @@ class DummyContextManager:
 async def test_translator_empty_output_marks_failure():
     llm_cfg = LLMConfig(model="gpt-4", provider="openai")
     node_cfg = AiNodeConfig(
+        name="translator",  # Added missing required name parameter
         id="translator",
         type="ai",
         model="gpt-4",

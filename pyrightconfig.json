@@ -1,0 +1,17 @@
+{
+  // Tell Pyright / Pylance that project sources live under the "src" folder
+  "executionEnvironments": [
+    {
+      "root": "./",
+      "extraPaths": [
+        "./src",
+        "./src/app",
+        "./src/ice_sdk"
+      ]
+    }
+  ],
+  // Match Python version used in the project (see pyproject.toml)
+  "pythonVersion": "3.10",
+  // Enable basic type-checking rules; feel free to tweak locally.
+  "typeCheckingMode": "basic"
+} 

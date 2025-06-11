@@ -7019,35 +7019,35 @@
   },
   "story_generator": {
     "data": {
-      "story": "Luna, Finn, and Aria met under a starlit sky, each drawn by a common goal: to defeat a powerful enemy threatening the realm. Luna's mysterious aura intrigued Finn, while Aria's kind-hearted nature soothed Luna's inner turmoil. Together, they embarked on a perilous journey, using Finn's swordsmanship, Aria's healing magic, and Luna's sorcery to overcome every challenge they faced. Despite their differences, they became a formidable team, bound by loyalty and friendship. Through their adventures, they discovered the true strength in unity and the power of trust."
+      "story": "Ella, Liam, and Isabella met by chance during a humanitarian mission in a war-torn country. Ella, with her adventurous spirit, was drawn to the mission to experience new cultures. Liam, the natural leader, took charge of coordinating logistics and ensuring the safety of the team. Isabella, with her compassionate nature, worked tirelessly to care for the injured and provide comfort to those in need.\n\nAs they worked together, Ella's curiosity led her to ask Liam about his military background, while Isabella shared stories of her family and how they shaped her values of kindness and empathy. Liam admired Ella's boldness and Isabella's selflessness, and together they formed a strong bond through their shared mission of helping others.\n\nDespite their different personalities and backgrounds, Ella, Liam, and Isabella found common ground in their dedication to making a difference in the world. Through their interactions and teamwork, they learned from each other and grew stronger as a united front in the face of adversity."
     },
-    "version": "4388e5eb-3b93-4eb4-88d3-ba35c960efb9",
-    "timestamp": "2025-06-08T06:10:35.690140",
-    "execution_id": "23e74201615644a8"
+    "version": "a6833ed6-cee3-4629-8d97-5401dfeccea5",
+    "timestamp": "2025-06-11T19:26:58.322159",
+    "execution_id": "3effa3263c21febc"
   },
   "story_summarizer": {
     "data": {
-      "summary": "The main plot revolves around Luna, Finn, and Aria coming together to defeat a powerful enemy threatening their realm. Their character dynamics show Luna's mysterious aura intriguing Finn, while Aria's kind-hearted nature soothes Luna's inner turmoil. Together, they use their individual strengths to overcome challenges and become a strong team based on loyalty and friendship. The story emphasizes the importance of unity and trust."
+      "summary": "The main plot of the story follows Ella, Liam, and Isabella who meet during a humanitarian mission in a war-torn country. Ella's adventurous spirit, Liam's leadership, and Isabella's compassion drive their teamwork to help others. They bond over shared experiences and grow stronger together despite their different backgrounds.\n\nFunction Call:\n```json\n{\n  \"function_call\": \"word_count\",\n  \"text\": \"The main plot of the story follows Ella, Liam, and Isabella who meet during a humanitarian mission in a war-torn country. Ella's adventurous spirit, Liam's leadership, and Isabella's compassion drive their teamwork to help others. They bond over shared experiences and grow stronger together despite their different backgrounds.\"\n}\n```"
     },
-    "version": "a3ad7de1-f414-407b-ad81-c79fd47db2d4",
-    "timestamp": "2025-06-08T06:10:38.458588",
-    "execution_id": "23e74201615644a8"
+    "version": "feaa262b-209d-4541-b016-a6f7029b2a44",
+    "timestamp": "2025-06-11T19:27:01.736964",
+    "execution_id": "3effa3263c21febc"
   },
   "character_generator": {
     "data": {
-      "characters": "{\n  \"characters\": [\n    {\n      \"name\": \"Luna\",\n      \"personality\": \"Mysterious and aloof, but fiercely loyal to her friends.\",\n      \"background\": \"Luna is a skilled sorceress who was exiled from her home kingdom and now travels the lands searching for a way to clear her name.\"\n    },\n    {\n      \"name\": \"Finn\",\n      \"personality\": \"Brave and adventurous, always seeking out new challenges.\",\n      \"background\": \"Finn is a talented swordsman who grew up in a village plagued by bandits. He swore to protect his home and now roams the countryside as a wandering warrior.\"\n    },\n    {\n      \"name\": \"Aria\",\n      \"personality\": \"Kind-hearted and empathetic, with a talent for healing and magic.\",\n      \"background\": \"Aria is a cleric who was raised in a monastery dedicated to healing the sick and injured. She now travels the world offering her skills to those in need.\"\n    }\n  ]\n}"
+      "characters": "{\n  \"characters\": [\n    {\n      \"name\": \"Ella\",\n      \"personality\": \"Ella is adventurous and curious, always seeking out new experiences and willing to take risks.\",\n      \"background\": \"Ella grew up in a small town but always dreamed of exploring the world beyond its borders. She left home at a young age to embark on a journey of self-discovery.\"\n    },\n    {\n      \"name\": \"Liam\",\n      \"personality\": \"Liam is stoic and reliable, always calm under pressure and a natural leader.\",\n      \"background\": \"Liam comes from a long line of military leaders, and he has followed in his family's footsteps by enlisting in the army at a young age.\"\n    },\n    {\n      \"name\": \"Isabella\",\n      \"personality\": \"Isabella is kind-hearted and compassionate, always putting others' needs before her own.\",\n      \"background\": \"Isabella grew up in a large family where she learned the importance of caring for others. She now works as a nurse, dedicating her life to helping those in need.\"\n    }\n  ]\n}"
     },
-    "version": "c13eeeda-822e-487b-a579-63c042f6a985",
-    "timestamp": "2025-06-08T06:10:34.364645",
-    "execution_id": "23e74201615644a8"
+    "version": "5587e481-6f72-435a-8714-4e06b1c5f94e",
+    "timestamp": "2025-06-11T19:26:56.991280",
+    "execution_id": "3effa3263c21febc"
   },
   "character_analysis": {
     "data": {
-      "relationships": "{\n  \"relationships\": [\n    {\n      \"character\": \"Luna\",\n      \"interactions\": [\n        {\n          \"character\": \"Finn\",\n          \"description\": \"Finn was intrigued by Luna's mysterious aura.\"\n        },\n        {\n          \"character\": \"Aria\",\n          \"description\": \"Luna found comfort in Aria's kind-hearted nature.\"\n        }\n      ]\n    },\n    {\n      \"character\": \"Finn\",\n      \"interactions\": [\n        {\n          \"character\": \"Luna\",\n          \"description\": \"Finn was intrigued by Luna's mysterious aura.\"\n        }\n      ]\n    },\n    {\n      \"character\": \"Aria\",\n      \"interactions\": [\n        {\n          \"character\": \"Luna\",\n          \"description\": \"Aria's kind-hearted nature soothed Luna's inner turmoil.\"\n        }\n      ]\n    }\n  ]\n}"
+      "relationships": "{\"relationships\": [\n    {\"character\": \"Ella\", \"interactions\": [\n        {\"character\": \"Liam\", \"description\": \"Ella asked Liam about his military background.\"},\n        {\"character\": \"Isabella\", \"description\": \"Ella formed a bond with Isabella through their shared mission.\"},\n        {\"character\": \"Liam & Isabella\", \"description\": \"Ella learned from Liam and Isabella and grew stronger as a team.\"}\n    ]},\n    {\"character\": \"Liam\", \"interactions\": [\n        {\"character\": \"Ella\", \"description\": \"Liam admired Ella's boldness.\"},\n        {\"character\": \"Isabella\", \"description\": \"Liam coordinated logistics and ensured safety for Isabella.\"},\n        {\"character\": \"Ella & Isabella\", \"description\": \"Liam took charge and helped create a strong bond between Ella and Isabella.\"}\n    ]},\n    {\"character\": \"Isabella\", \"interactions\": [\n        {\"character\": \"Ella\", \"description\": \"Isabella shared stories of her family with Ella.\"},\n        {\"character\": \"Liam\", \"description\": \"Isabella worked tirelessly to care for the injured with Liam.\"},\n        {\"character\": \"Ella & Liam\", \"description\": \"Isabella provided comfort and formed a strong bond with Ella and Liam.\"}\n    ]}\n]}"
     },
-    "version": "aacb08ee-070b-414c-9f61-c68f344f0129",
-    "timestamp": "2025-06-08T06:10:37.438418",
-    "execution_id": "23e74201615644a8"
+    "version": "d82e9c62-dc6b-46ee-bc91-17ad587746d6",
+    "timestamp": "2025-06-11T19:27:00.476031",
+    "execution_id": "3effa3263c21febc"
   },
   "tweet-writer": {
     "data": "Here is my attempt at an engaging tweet based on the provided Spanish summary:\n\nfunction_call: {\n  \"name\": \"word_count\",\n  \"parameters\": {\n    \"text\": \"\u00a1Resumen en espa\u00f1ol que necesita ser convertido en un tweet interesante para atraer la atenci\u00f3n de los lectores y hacerlos querer l",
