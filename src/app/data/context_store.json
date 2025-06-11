@@ -7019,35 +7019,35 @@
   },
   "story_generator": {
     "data": {
-      "story": "Ella, Liam, and Isabella met by chance during a humanitarian mission in a war-torn country. Ella, with her adventurous spirit, was drawn to the mission to experience new cultures. Liam, the natural leader, took charge of coordinating logistics and ensuring the safety of the team. Isabella, with her compassionate nature, worked tirelessly to care for the injured and provide comfort to those in need.\n\nAs they worked together, Ella's curiosity led her to ask Liam about his military background, while Isabella shared stories of her family and how they shaped her values of kindness and empathy. Liam admired Ella's boldness and Isabella's selflessness, and together they formed a strong bond through their shared mission of helping others.\n\nDespite their different personalities and backgrounds, Ella, Liam, and Isabella found common ground in their dedication to making a difference in the world. Through their interactions and teamwork, they learned from each other and grew stronger as a united front in the face of adversity."
+      "story": "Evelyn, Xander, and Zara met by chance on a hiking trail in the mountains. Evelyn immediately took charge, mapping out the best route and leading the group with her survival skills. Xander offered encouraging words and support along the way, always making sure everyone was feeling okay. Zara suggested taking a detour to explore a hidden waterfall, and the group eagerly followed her adventurous lead. As they sat by the waterfall, sharing stories and laughter, it became clear that despite their different backgrounds, they all shared a love for exploration and discovery. In that moment, Evelyn, Xander, and Zara formed a bond that would last a lifetime."
     },
-    "version": "a6833ed6-cee3-4629-8d97-5401dfeccea5",
-    "timestamp": "2025-06-11T19:26:58.322159",
-    "execution_id": "3effa3263c21febc"
+    "version": "a02d10c7-aff2-40b4-9e26-47d1e1109e1c",
+    "timestamp": "2025-06-11T22:06:29.227633",
+    "execution_id": "fbd92c928b2455e6"
   },
   "story_summarizer": {
     "data": {
-      "summary": "The main plot of the story follows Ella, Liam, and Isabella who meet during a humanitarian mission in a war-torn country. Ella's adventurous spirit, Liam's leadership, and Isabella's compassion drive their teamwork to help others. They bond over shared experiences and grow stronger together despite their different backgrounds.\n\nFunction Call:\n```json\n{\n  \"function_call\": \"word_count\",\n  \"text\": \"The main plot of the story follows Ella, Liam, and Isabella who meet during a humanitarian mission in a war-torn country. Ella's adventurous spirit, Liam's leadership, and Isabella's compassion drive their teamwork to help others. They bond over shared experiences and grow stronger together despite their different backgrounds.\"\n}\n```"
+      "summary": "The main plot of the story involves Evelyn, Xander, and Zara meeting on a hiking trail, where they bond over exploration and discovery. Evelyn takes charge with her survival skills, Xander offers support, and Zara suggests an adventurous detour to a hidden waterfall. The character dynamics show how they each contribute to the group and form lasting bonds."
     },
-    "version": "feaa262b-209d-4541-b016-a6f7029b2a44",
-    "timestamp": "2025-06-11T19:27:01.736964",
-    "execution_id": "3effa3263c21febc"
+    "version": "f980aa71-b6ed-4428-b8e0-a1a9b94bd325",
+    "timestamp": "2025-06-11T22:06:31.720408",
+    "execution_id": "fbd92c928b2455e6"
   },
   "character_generator": {
     "data": {
-      "characters": "{\n  \"characters\": [\n    {\n      \"name\": \"Ella\",\n      \"personality\": \"Ella is adventurous and curious, always seeking out new experiences and willing to take risks.\",\n      \"background\": \"Ella grew up in a small town but always dreamed of exploring the world beyond its borders. She left home at a young age to embark on a journey of self-discovery.\"\n    },\n    {\n      \"name\": \"Liam\",\n      \"personality\": \"Liam is stoic and reliable, always calm under pressure and a natural leader.\",\n      \"background\": \"Liam comes from a long line of military leaders, and he has followed in his family's footsteps by enlisting in the army at a young age.\"\n    },\n    {\n      \"name\": \"Isabella\",\n      \"personality\": \"Isabella is kind-hearted and compassionate, always putting others' needs before her own.\",\n      \"background\": \"Isabella grew up in a large family where she learned the importance of caring for others. She now works as a nurse, dedicating her life to helping those in need.\"\n    }\n  ]\n}"
+      "characters": "{\n  \"characters\": [\n    {\n      \"name\": \"Evelyn\",\n      \"personality\": \"Evelyn is a fierce and independent woman who is always up for a challenge. She is determined, resourceful, and quick-witted.\",\n      \"background\": \"Evelyn grew up in a small town where she learned survival skills from her father, who was a hunter. She left home at a young age to explore the world on her own.\"\n    },\n    {\n      \"name\": \"Xander\",\n      \"personality\": \"Xander is a gentle and caring soul who always puts others before himself. He is empathetic, patient, and a great listener.\",\n      \"background\": \"Xander was raised in a big family where he learned the importance of community and helping others. He now works as a counselor, providing support to those in need.\"\n    },\n    {\n      \"name\": \"Zara\",\n      \"personality\": \"Zara is a bold and adventurous spirit who loves taking risks and seeking out new experiences. She is outgoing, charismatic, and loves to explore.\",\n      \"background\": \"Zara grew up traveling with her parents, who were explorers. She inherited their love for adventure and now works as a travel blogger, sharing her experiences with the world.\"\n    }\n  ]\n}"
     },
-    "version": "5587e481-6f72-435a-8714-4e06b1c5f94e",
-    "timestamp": "2025-06-11T19:26:56.991280",
-    "execution_id": "3effa3263c21febc"
+    "version": "bd2a8cba-8ebf-4946-b03c-3cc7a492582a",
+    "timestamp": "2025-06-11T22:06:27.561683",
+    "execution_id": "fbd92c928b2455e6"
   },
   "character_analysis": {
     "data": {
-      "relationships": "{\"relationships\": [\n    {\"character\": \"Ella\", \"interactions\": [\n        {\"character\": \"Liam\", \"description\": \"Ella asked Liam about his military background.\"},\n        {\"character\": \"Isabella\", \"description\": \"Ella formed a bond with Isabella through their shared mission.\"},\n        {\"character\": \"Liam & Isabella\", \"description\": \"Ella learned from Liam and Isabella and grew stronger as a team.\"}\n    ]},\n    {\"character\": \"Liam\", \"interactions\": [\n        {\"character\": \"Ella\", \"description\": \"Liam admired Ella's boldness.\"},\n        {\"character\": \"Isabella\", \"description\": \"Liam coordinated logistics and ensured safety for Isabella.\"},\n        {\"character\": \"Ella & Isabella\", \"description\": \"Liam took charge and helped create a strong bond between Ella and Isabella.\"}\n    ]},\n    {\"character\": \"Isabella\", \"interactions\": [\n        {\"character\": \"Ella\", \"description\": \"Isabella shared stories of her family with Ella.\"},\n        {\"character\": \"Liam\", \"description\": \"Isabella worked tirelessly to care for the injured with Liam.\"},\n        {\"character\": \"Ella & Liam\", \"description\": \"Isabella provided comfort and formed a strong bond with Ella and Liam.\"}\n    ]}\n]}"
+      "relationships": "{\"relationships\": [\n    {\n        \"character\": \"Evelyn\",\n        \"interactions\": [\n            {\n                \"character\": \"Xander\",\n                \"description\": \"Took charge and led the group with survival skills\"\n            },\n            {\n                \"character\": \"Zara\",\n                \"description\": \"Formed a bond over love for exploration and discovery\"\n            }\n        ]\n    },\n    {\n        \"character\": \"Xander\",\n        \"interactions\": [\n            {\n                \"character\": \"Evelyn\",\n                \"description\": \"Offered encouraging words and support\"\n            }\n        ]\n    },\n    {\n        \"character\": \"Zara\",\n        \"interactions\": [\n            {\n                \"character\": \"Evelyn\",\n                \"description\": \"Suggested taking a detour to explore a hidden waterfall\"\n            }\n        ]\n    }\n]}"
     },
-    "version": "d82e9c62-dc6b-46ee-bc91-17ad587746d6",
-    "timestamp": "2025-06-11T19:27:00.476031",
-    "execution_id": "3effa3263c21febc"
+    "version": "3b61fc6c-03a9-4c97-9371-a8bd03a824a9",
+    "timestamp": "2025-06-11T22:06:30.632813",
+    "execution_id": "fbd92c928b2455e6"
   },
   "tweet-writer": {
     "data": "Here is my attempt at an engaging tweet based on the provided Spanish summary:\n\nfunction_call: {\n  \"name\": \"word_count\",\n  \"parameters\": {\n    \"text\": \"\u00a1Resumen en espa\u00f1ol que necesita ser convertido en un tweet interesante para atraer la atenci\u00f3n de los lectores y hacerlos querer l",

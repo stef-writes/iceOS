@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List
 
-from app.models.node_models import NodeConfig, NodeExecutionResult
+from ice_sdk.models.node_models import NodeConfig, NodeExecutionResult
 from app.utils.callbacks import ScriptChainCallback
 
 logger = logging.getLogger(__name__)

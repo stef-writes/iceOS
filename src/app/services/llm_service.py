@@ -8,7 +8,7 @@ from app.llm_providers.anthropic_handler import AnthropicHandler
 from app.llm_providers.deepseek_handler import DeepSeekHandler
 from app.llm_providers.google_gemini_handler import GoogleGeminiHandler
 from app.llm_providers.openai_handler import OpenAIHandler
-from app.models.config import LLMConfig, ModelProvider
+from ice_sdk.models.config import LLMConfig, ModelProvider
 
 try:
     from openai import error as openai_error

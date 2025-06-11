@@ -3,8 +3,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from app.models.config import LLMConfig
-from app.models.node_models import (
+from ice_sdk.models.config import LLMConfig
+from ice_sdk.models.node_models import (
     NodeConfig,
     NodeExecutionResult,
     NodeMetadata,

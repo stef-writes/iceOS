@@ -2,8 +2,8 @@
 import logging
 from typing import Optional
 
-from app.models.config import LLMConfig
-from app.models.node_models import NodeConfig
+from ice_sdk.models.config import LLMConfig
+from ice_sdk.models.node_models import NodeConfig
 from app.nodes.constants import TOOL_INSTRUCTION
 from app.utils.token_counter import TokenCounter
 

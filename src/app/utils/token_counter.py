@@ -6,7 +6,7 @@ from typing import Dict, List
 
 import tiktoken
 
-from app.models.config import ModelProvider
+from ice_sdk.models.config import ModelProvider
 
 
 class TokenCounter:

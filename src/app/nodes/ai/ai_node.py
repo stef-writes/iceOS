@@ -5,11 +5,11 @@ Concrete node implementations using the data models
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from app.models.config import LLMConfig, MessageTemplate
+from ice_sdk.models.config import LLMConfig, MessageTemplate
 
 # Existing imports
 # This is a test comment to trigger reload
-from app.models.node_models import NodeConfig, NodeExecutionResult, NodeMetadata
+from ice_sdk.models.node_models import NodeConfig, NodeExecutionResult, NodeMetadata
 from app.nodes.ai.llm_executor import llm_execute
 from app.nodes.utils.error_handling import OpenAIErrorHandler
 

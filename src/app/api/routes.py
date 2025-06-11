@@ -9,12 +9,12 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ValidationError
 
-from app.chains.chain_errors import CircularDependencyError
-from app.chains.orchestration import LevelBasedScriptChain
+from ice_orchestrator.chain_errors import CircularDependencyError
+from ice_orchestrator import LevelBasedScriptChain
 
 # Dependency injection functions from app.dependencies
 from app.dependencies import get_context_manager, get_tool_service
-from app.models.node_models import (
+from ice_sdk.models.node_models import (
     ChainExecutionResult,
     NodeConfig,
     NodeExecutionResult,

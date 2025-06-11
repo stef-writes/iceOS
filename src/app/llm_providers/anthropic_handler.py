@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from anthropic import AsyncAnthropic  # Ensure this matches your installed package
 
-from app.models.config import LLMConfig, ModelProvider
+from ice_sdk.models.config import LLMConfig, ModelProvider
 
 from .base_handler import BaseLLMHandler
 

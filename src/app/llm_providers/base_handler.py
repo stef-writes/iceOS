@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Tuple
 
-from app.models.config import LLMConfig
+from ice_sdk.models.config import LLMConfig
 
 
 class BaseLLMHandler(ABC):

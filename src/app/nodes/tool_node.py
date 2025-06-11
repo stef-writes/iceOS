@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from app.models.node_models import NodeExecutionResult, NodeMetadata
+from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
 from ice_sdk import ToolService
 from ice_sdk.base_node import BaseNode
 

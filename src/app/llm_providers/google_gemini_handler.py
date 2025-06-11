@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional, Tuple
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
 
-from app.models.config import LLMConfig
+from ice_sdk.models.config import LLMConfig
 
 from .base_handler import BaseLLMHandler
 

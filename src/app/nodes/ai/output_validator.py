@@ -30,7 +30,7 @@ class OutputValidator:
             A tuple containing the coerced output, a success flag, and an error message.
         """
         try:
-            from app.models.node_models import BaseNodeConfig
+            from ice_sdk.models.node_models import BaseNodeConfig
 
             # Handle JSON output
             if output_format == "json":

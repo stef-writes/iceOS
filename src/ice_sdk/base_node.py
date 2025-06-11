@@ -11,7 +11,7 @@ from typing import Any, Dict
 
 from pydantic import ValidationError, create_model
 
-from app.models.node_models import NodeConfig, NodeExecutionResult
+from ice_sdk.models.node_models import NodeConfig, NodeExecutionResult
 
 
 class BaseNode(ABC):

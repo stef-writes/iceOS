@@ -1,6 +1,6 @@
 from typing import Any, Callable, Dict, List, Optional
 
-from app.models.node_models import ContextFormat
+from ice_sdk.models.node_models import ContextFormat
 
 
 class BaseContextFormatter:

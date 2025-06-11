@@ -13,11 +13,11 @@ from typing import Any, Dict
 
 # Import the default LevelBasedScriptChain implementation under a generic
 # alias so that the factory can expose a stable *ScriptChain* name.
-from app.chains.orchestration import LevelBasedScriptChain as ScriptChain
-from app.models.config import LLMConfig, MessageTemplate
+from ice_orchestrator import LevelBasedScriptChain as ScriptChain
+from ice_sdk.models.config import LLMConfig, MessageTemplate
 
 # Corrected import paths -----------------------------------------------------
-from app.models.node_models import NodeConfig, NodeMetadata
+from ice_sdk.models.node_models import NodeConfig, NodeMetadata
 
 # Callback implementations ----------------------------------------------------
 from app.utils.callbacks import LoggingCallback, MetricsCallback
