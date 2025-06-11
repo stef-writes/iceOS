@@ -3,22 +3,29 @@ requires = ["setuptools>=45", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gaffer"
+name = "ice-os"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
-    "fastapi>=0.104.0",
-    "uvicorn>=0.24.0",
-    "python-dotenv>=1.0.0",
-    "pydantic>=2.4.2",
-    "openai>=1.0.0",
-    "networkx>=3.1",
-    "sqlalchemy>=2.0.23",
+    "aiohttp>=3.8.0",
     "alembic>=1.12.1",
-    "structlog>=24.1.0",
+    "anthropic",
+    "fastapi>=0.104.0",
+    "google-generativeai>=0.3.0",
+    "httpx>=0.27.0",
+    "networkx>=3.1",
+    "openai>=1.0.0",
     "opentelemetry-api>=1.23.0",
     "opentelemetry-sdk>=1.23.0",
-    "httpx>=0.27.0",
+    "packaging>=23.2",
+    "pydantic>=2.4.2",
+    "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.6",
+    "sqlalchemy>=2.0.23",
+    "structlog>=24.1.0",
+    "tenacity>=8.2.3",
+    "tiktoken>=0.5.1",
+    "uvicorn>=0.24.0",
 ]
 
 [project.optional-dependencies]
@@ -69,5 +76,24 @@ line_length = 88
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-packages = ["app", "ice_sdk"]
+packages = ["app", "ice_sdk", "ice_tools", "ice_agents", "ice_orchestrator"]
+
+[tool.poetry.group.test.dependencies]
+coverage = "^7.2.0"
+pytest = "^7.0.0"
+pytest-asyncio = "^0.21.0"
+pytest-benchmark = "^4.0.0"
+pytest-cov = "^4.1.0"
+pytest-html = "^4.1.1"
+pytest-metadata = "^3.0.0"
+pytest-mock = "^3.12.0"
+pytest-randomly = "^3.15.0"
+pytest-timeout = "^2.2.0"
+pytest-xdist = "^3.3.1"
+
+[tool.poetry.group.lint.dependencies]
+black = "^23.10.1"
+flake8 = "^6.1.0"
+isort = "^5.12.0"
+mypy = "^1.5.0"
 
