@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NodeMetadata",
+  "type": "object",
+  "properties": {
+    "node_id": {"type": "string", "description": "Unique node identifier"},
+    "node_type": {"type": "string", "description": "Type of node (ai)"},
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0",
+      "description": "Semantic version of node configuration"
+    },
+    "owner": {"type": ["string", "null"], "description": "Node owner/maintainer"},
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creation timestamp"
+    },
+    "modified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last modification timestamp"
+    },
+    "description": {"type": ["string", "null"], "description": "Description of the node"},
+    "error_type": {"type": ["string", "null"], "description": "Type of error if execution failed"},
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Execution timestamp"
+    },
+    "start_time": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Execution start time"
+    },
+    "end_time": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Execution end time"
+    },
+    "duration": {
+      "type": ["number", "null"],
+      "description": "Execution duration in seconds"
+    },
+    "provider": {
+      "type": ["string", "null"],
+      "enum": ["openai", "anthropic", "google", "deepseek"],
+      "description": "Model provider used by the node"
+    }
+  },
+  "required": ["node_id", "node_type"],
+  "additionalProperties": true
+} 

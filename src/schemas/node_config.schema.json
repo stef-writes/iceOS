@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NodeConfig",
+  "type": "object",
+  "properties": {
+    "id": {"type": "string", "description": "Unique identifier for the node"},
+    "type": {"type": "string", "enum": ["ai"], "description": "Type of node (e.g., 'ai')"},
+    "model": {"type": "string", "description": "Model to use for the node"},
+    "prompt": {"type": "string", "description": "Prompt template for the node"},
+    "name": {"type": ["string", "null"], "description": "Human-readable name for the node"},
+    "level": {"type": "integer", "default": 0, "description": "Execution level for parallel processing"},
+    "dependencies": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": [],
+      "description": "List of node IDs this node depends on"
+    },
+    "timeout": {"type": ["number", "null"], "description": "Optional timeout in seconds"},
+    "templates": {
+      "type": "object",
+      "default": {},
+      "description": "Message templates for the node (system/user prompts)"
+    },
+    "llm_config": {
+      "type": ["object", "null"],
+      "description": "LLM configuration for the node (API key, advanced params, etc.)"
+    },
+    "metadata": {"$ref": "node_metadata.schema.json"},
+    "input_schema": {
+      "type": "object",
+      "default": {},
+      "description": "Input schema for the node"
+    },
+    "output_schema": {
+      "type": "object",
+      "default": {},
+      "description": "Output schema for the node"
+    },
+    "input_mappings": {
+      "type": "object",
+      "default": {},
+      "description": "Input mappings for the node's prompt placeholders",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "source_node_id": {"type": "string"},
+          "source_output_key": {"type": "string"},
+          "rules": {"type": "object"}
+        }
+      }
+    },
+    "input_selection": {
+      "type": ["array", "null"],
+      "items": {"type": "string"},
+      "description": "Optional list of input fields to select"
+    },
+    "context_rules": {
+      "type": "object",
+      "default": {},
+      "description": "Context rules for the node",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "include": {"type": "boolean"},
+          "format": {"type": "string", "enum": ["text", "json", "markdown", "code", "custom"]},
+          "required": {"type": "boolean"},
+          "max_tokens": {"type": ["integer", "null"]},
+          "truncate": {"type": "boolean"}
+        }
+      }
+    },
+    "max_tokens": {"type": ["integer", "null"], "description": "Maximum tokens for the node"},
+    "temperature": {"type": "number", "default": 0.7, "description": "Sampling temperature for the model"},
+    "format_specifications": {
+      "type": "object",
+      "default": {},
+      "description": "Format specifications for the node"
+    },
+    "provider": {
+      "type": "string",
+      "enum": ["openai", "anthropic", "google", "deepseek"],
+      "default": "openai",
+      "description": "Model provider for the node"
+    },
+    "token_management": {
+      "type": "object",
+      "default": {
+        "truncate": true,
+        "preserve_sentences": true,
+        "max_context_tokens": 4096,
+        "max_completion_tokens": 1024
+      },
+      "description": "Token management configuration",
+      "properties": {
+        "truncate": {"type": "boolean"},
+        "preserve_sentences": {"type": "boolean"},
+        "max_context_tokens": {"type": "integer"},
+        "max_completion_tokens": {"type": "integer"}
+      }
+    },
+    "tools": {
+      "type": ["array", "null"],
+      "description": "List of tools/functions available to the LLM for function calling",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Name of the tool/function" },
+          "description": { "type": "string", "description": "What the tool/function does" },
+          "parameters": {
+            "type": "object",
+            "description": "JSON schema for the tool/function parameters"
+          }
+        },
+        "required": ["name", "parameters"]
+      }
+    }
+  },
+  "required": ["id", "type", "model", "prompt"],
+  "additionalProperties": true
+} 

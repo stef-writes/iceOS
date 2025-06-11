@@ -1,0 +1,70 @@
+# Environment variables
+config/.env
+config/.env.*
+!config/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+.env
+.venv
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+tests/output/
+
+# Logs
+logs/
+*.log
+
+# Project specific
+.benchmarks/
+gaffer.egg-info/
+
+# Database
+*.db
+*.sqlite3
+
+# API keys and secrets
+config/api_keys.json
+.env
+
+# Tool caches
++.mypy_cache/
++.ruff_cache/ 
