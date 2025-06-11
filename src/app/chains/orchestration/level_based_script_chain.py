@@ -360,6 +360,7 @@ class NodeExecutor:
                         + "\n".join(validation_errors)
                     )
                     logger.error(error_msg)
+                    await self._trigger_callbacks("node_error", node_id, error_msg)
                     return node_id, NodeExecutionResult(
                         success=False,
                         error=error_msg,
@@ -367,6 +368,11 @@ class NodeExecutor:
                             node, start_time, "ContextValidationError"
                         ),
                     )
+
+                # -----------------------------------------------------------------
+                # Notify callbacks – node_start
+                # -----------------------------------------------------------------
+                await self._trigger_callbacks("node_start", node_id, context)
 
                 # -----------------------------------------------------------------
                 # Cache lookup -----------------------------------------------------
@@ -400,6 +406,7 @@ class NodeExecutor:
                     error_msg = f"Node '{node.id}' timed out after {timeout_s} seconds"
                     logger.error(error_msg)
                     span.set_status(Status(StatusCode.ERROR, error_msg))
+                    await self._trigger_callbacks("node_error", node_id, error_msg)
                     return node_id, NodeExecutionResult(
                         success=False,
                         error=error_msg,
@@ -457,7 +464,10 @@ class NodeExecutor:
                     self.context_manager.update_context(
                         node_id, payload, execution_id=self.chain_id
                     )
-                await self._trigger_callbacks("node_end", result)
+
+                # Callback for node_end will be triggered once below after all
+                # post-processing (schema validation etc.) is complete to avoid
+                # duplicate invocations.
 
                 # Optional: enforce output schema post-execution -----------------
                 if self.enforce_output_schema and result.success:
@@ -480,7 +490,13 @@ class NodeExecutor:
                             )
 
                 span.set_attribute("success", result.success)
-                if not result.success:
+                if result.success:
+                    # Successful execution – trigger end callbacks
+                    await self._trigger_callbacks("node_end", node_id, result.output)
+                else:
+                    await self._trigger_callbacks(
+                        "node_error", node_id, result.error or "unknown"
+                    )
                     span.set_status(Status(StatusCode.ERROR, result.error or "unknown"))
 
                 return node_id, result
@@ -492,6 +508,7 @@ class NodeExecutor:
                     error=str(exc),
                     exc_info=True,
                 )
+                await self._trigger_callbacks("node_error", node_id, exc)
                 return node_id, NodeExecutionResult(
                     success=False,
                     error=str(exc),
@@ -514,17 +531,47 @@ class NodeExecutor:
             provider=getattr(node, "provider", None),
         )
 
-    async def _trigger_callbacks(self, event: str, data: Any) -> None:
+    async def _trigger_callbacks(
+        self, event: str, node_id: str, payload: Any | None = None
+    ) -> None:
+        """Dispatch *event* to all registered callbacks.
+
+        The local *ScriptChainCallback* interface expects three positional
+        arguments for node-level events: ``chain_id``, ``node_id`` and a third
+        value carrying either *inputs*, *outputs* or the *error* instance.  We
+        forward the correct signature and transparently handle both synchronous
+        and ``async`` callback implementations.
+        """
+
+        import inspect
+
         for callback in self.callbacks:
             try:
                 if event == "node_start":
-                    await callback.on_node_start(data)
+                    fn = getattr(callback, "on_node_start", None)
+                    args = (self.chain_id, node_id, payload)
                 elif event == "node_end":
-                    await callback.on_node_end(data)
+                    fn = getattr(callback, "on_node_end", None)
+                    args = (self.chain_id, node_id, payload)
                 elif event == "node_error":
-                    await callback.on_node_error(data)
-            except Exception as exc:
-                logger.error(f"Error in callback {callback.__class__.__name__}: {exc}")
+                    fn = getattr(callback, "on_node_error", None)
+                    args = (self.chain_id, node_id, payload)
+                else:
+                    fn = None
+
+                if fn is None:
+                    continue
+
+                result = fn(*args)  # type: ignore[misc]
+                if inspect.isawaitable(result):
+                    await result
+            except Exception as exc:  # pragma: no cover – callback failures shouldn't crash nodes
+                logger.error(
+                    "Error in callback %s during %s: %s",
+                    callback.__class__.__name__,
+                    event,
+                    exc,
+                )
 
     @staticmethod
     def resolve_nested_path(data: Any, path: str) -> Any:

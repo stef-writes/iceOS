@@ -44,6 +44,11 @@ class AiNode(BaseNode):
         self.llm_service = llm_service or LLMService()
         self.tool_service = tool_service or ToolService()
         self.workflow_context = workflow_context
+        # Execution statistics (token usage, cost, …) aggregated across calls
+        self.metrics: Dict[str, Any] = {
+            "total_tokens": 0,
+            "token_usage": {},
+        }
 
     def __getattr__(self, name: str) -> Any:
         """Allow direct access to config attributes."""
