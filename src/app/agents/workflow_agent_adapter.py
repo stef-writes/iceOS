@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from app.chains.orchestration.level_based_script_chain import LevelBasedScriptChain
+from app.chains.orchestration import LevelBasedScriptChain
 from app.models.node_models import (
     ChainExecutionResult,
     NodeExecutionResult,

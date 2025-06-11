@@ -1,10 +1,13 @@
-from app.chains.orchestration.level_based_script_chain import LevelBasedScriptChain
+"""Orchestration sub-package public interface."""
+
 from app.chains.orchestration.node_dependency_graph import DependencyGraph
 from app.chains.orchestration.path_utils import resolve_nested_path
 
-from .level_based_script_chain import NodeExecutor
+# Re-export the refactored executor classes located under *executors/* --------
+from .executors.node_executor import NodeExecutor  # noqa: F401 – re-export
+from .executors.level_based import LevelBasedScriptChain  # noqa: F401 – re-export
 
-__all__ = [
+__all__: list[str] = [
     "DependencyGraph",
     "NodeExecutor",
     "LevelBasedScriptChain",

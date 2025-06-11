@@ -14,7 +14,7 @@ from app.agents import (
     RouterAgent,
     WorkflowAgentAdapter,
 )
-from app.chains.orchestration.level_based_script_chain import LevelBasedScriptChain
+from app.chains.orchestration import LevelBasedScriptChain
 from app.models.config import LLMConfig, ModelProvider
 from app.models.node_models import (
     AiNodeConfig,

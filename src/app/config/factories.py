@@ -13,9 +13,7 @@ from typing import Any, Dict
 
 # Import the default LevelBasedScriptChain implementation under a generic
 # alias so that the factory can expose a stable *ScriptChain* name.
-from app.chains.orchestration.level_based_script_chain import (
-    LevelBasedScriptChain as ScriptChain,
-)
+from app.chains.orchestration import LevelBasedScriptChain as ScriptChain
 from app.models.config import LLMConfig, MessageTemplate
 
 # Corrected import paths -----------------------------------------------------
