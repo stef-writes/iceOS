@@ -90,9 +90,3 @@ ruff = "^0.1.7"
 pyright = "^1.1.402"
 import-linter = "^2.3.0"
 
-[project.optional-dependencies]
-dev = [
-  "ruff>=0.1.7",
-  "mypy>=1.5.0"
-]
-

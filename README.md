@@ -23,26 +23,3 @@ iceOS bundles a pluggable SDK (`ice_sdk`) and a reference application (`app`) so
 > For a per-package bird's-eye view see `docs/codebase_overview.md`.
 
 ---
-
-### Get started
-
-```bash
-# create virtual env
-python -m venv .venv && source .venv/bin/activate
-
-# install core deps
-pip install -r requirements.txt
-
-# run reference app
-python src/app/main.py
-```
-
-### Refresh generated docs
-
-```bash
-make refresh-docs
-```
-
----
-
-© 2025 iceOS contributors – MIT License 
