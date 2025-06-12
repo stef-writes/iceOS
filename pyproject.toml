@@ -87,7 +87,7 @@ flake8 = "^6.1.0"
 isort = "^5.12.0"
 mypy = "^1.5.0"
 ruff = "^0.1.7"
-pyright = "^1.1.0"
+pyright = "^1.1.402"
 import-linter = "^2.3.0"
 
 [project.optional-dependencies]
