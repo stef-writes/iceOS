@@ -15,7 +15,7 @@ from ice_orchestrator.nodes.utils.error_handling import OpenAIErrorHandler
 
 # Local imports --------------------------------------------------------------
 from ice_orchestrator.nodes.utils.prompt_builder import build_tool_preamble, prepare_prompt
-from ice_orchestrator.services.llm_service import LLMService
+from ice_tools.llm_service import LLMService
 from ice_orchestrator.callbacks import ScriptChainCallback
 from ice_sdk.context.manager import GraphContextManager
 from ice_sdk.utils.logging import logger

@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 from ice_agents.registry import AgentRegistry
 from ice_sdk.models.config import LLMConfig, ModelProvider
 from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
-from ice_orchestrator.services.llm_service import LLMService
+from ice_tools.llm_service import LLMService
 from ice_sdk.context.session_state import SessionState
 
 

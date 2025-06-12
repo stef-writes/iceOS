@@ -1,6 +1,9 @@
 [importlinter]
 root_packages=
     ice_sdk
+    ice_agents
+    ice_tools
+    ice_orchestrator
     app
 
 [importlinter:contract:ice-sdk-no-app]
@@ -11,3 +14,15 @@ source_modules=
     ice_sdk
 forbidden_modules=
     app 
+
+[importlinter:contract:onion-layer-architecture]
+name=Packages must respect onion-layer architecture
+# Inner layers must not depend on outer layers. Earlier layers in the list below
+# cannot import later layers, but later layers may import earlier layers.
+type=layers
+layers=
+    app
+    ice_agents
+    ice_orchestrator
+    ice_tools
+    ice_sdk 
