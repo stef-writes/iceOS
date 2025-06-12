@@ -31,7 +31,7 @@ jobs:
         run: poetry run ruff check src
 
       - name: Run Pyright
-        run: poetry run pyright --project config/pyrightconfig.jsonc
+        run: poetry run pyright --project config
 
       - name: Run Import-Linter contracts
         run: poetry run lint-imports --config config/.importlinter

@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 """Callback implementations used by the orchestration engine."""
+from __future__ import annotations
 
 from ice_orchestrator.callbacks.callbacks import (
     ScriptChainCallback,

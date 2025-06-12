@@ -1,6 +1,7 @@
 import sys
 import types
 from typing import Any, Optional
+from importlib import import_module as _import_module
 
 # ---------------------------------------------------------------------------
 # Minimal *opentelemetry* shim for test/dev environments.
@@ -54,7 +55,6 @@ _trace_mod.StatusCode = _StatusCode  # type: ignore[assignment]
 sys.modules[__name__ + ".trace"] = _trace_mod
 
 # Re-export to consumers of `import opentelemetry.trace as trace`
-from importlib import import_module as _import_module
 trace = _import_module(__name__ + ".trace")  # type: ignore[invalid-name]
 
 __all__ = [
