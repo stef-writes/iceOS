@@ -25,6 +25,17 @@ import structlog as _structlog
 from ice_sdk.base_node import BaseNode
 from ice_sdk.base_tool import BaseTool
 
+# Data models that are part of the public surface --------------------------
+from ice_sdk.models.node_models import (
+    NodeConfig,
+    NodeExecutionResult,
+    NodeMetadata,
+)
+from ice_sdk.models.config import LLMConfig, MessageTemplate
+
+# Context manager abstraction
+from ice_sdk.context.manager import GraphContextManager
+
 # Public interfaces -------------------------------------------------------
 
 
@@ -32,6 +43,14 @@ __all__ = [
     "BaseNode",
     "BaseTool",
     "ToolService",
+    # Data models
+    "NodeConfig",
+    "NodeExecutionResult",
+    "NodeMetadata",
+    "LLMConfig",
+    "MessageTemplate",
+    # Context
+    "GraphContextManager",
 ]
 
 # The SDK also exposes registries for plugins (tools, nodes, etc.)
