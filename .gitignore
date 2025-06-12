@@ -57,6 +57,9 @@ logs/
 .benchmarks/
 gaffer.egg-info/
 
+# Runtime data
+data/
+
 # Database
 *.db
 *.sqlite3

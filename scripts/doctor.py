@@ -55,7 +55,7 @@ CHECKS: List[Check] = [
     Check("Security audit", "pip-audit"),
     Check("Imports sorted", "isort --check-only src"),
     Check("Docstyle", "pydocstyle src"),
-    Check("JSON/YAML validity", "python -m scripts.check_json_yaml"),
+    Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),
     Check("CLI help", "python src/app/main.py --help"),
     Check("Performance smoke", "pytest --benchmark-only -q", perf_only=True),
     Check(
@@ -66,7 +66,7 @@ CHECKS: List[Check] = [
         "Gen-doc freshness",
         "bash -c 'make refresh-docs && git diff --exit-code'",
     ),
-    Check("Licensing headers", "python scripts/check_license.py"),
+    Check("Licensing headers", "python -m scripts.cli.check_license"),
 ]
 
 

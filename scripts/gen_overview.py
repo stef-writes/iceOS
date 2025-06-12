@@ -2,6 +2,8 @@ from __future__ import annotations
 
 """Generate CODEBASE_OVERVIEW.md with a simple package + class map.
 
+This now writes to docs/codebase_overview.md to keep the project root tidy.
+
 The script intentionally keeps output *brief* – one screen – so that Cursor
 loads it entirely in context. For deeper docs use dedicated README files next
 to the code.
@@ -15,7 +17,7 @@ from typing import Iterable, List
 
 from pydantic import BaseModel
 
-OUTPUT_FILE = Path("CODEBASE_OVERVIEW.md")
+OUTPUT_FILE = Path("docs") / "codebase_overview.md"
 SRC_DIR = Path("src")
 MAX_DEPTH = 2  # Only list packages up to this depth relative to src/
 
@@ -97,7 +99,7 @@ def build_markdown(pkgs: list[PackageInfo]) -> str:
     )
     md_lines.append("")
     md_lines.append(
-        "See also `CAPABILITY_CATALOG.json` for a machine-readable registry."
+        "See also `docs/capability_catalog.json` for a machine-readable registry."
     )
 
     return "\n".join(md_lines) + "\n"
@@ -111,6 +113,7 @@ def build_markdown(pkgs: list[PackageInfo]) -> str:
 def main() -> None:  # noqa: D401 (imperative mood ok)
     pkgs = gather_packages()
     markdown = build_markdown(pkgs)
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_FILE.write_text(markdown, encoding="utf-8")
     print(f"[gen_overview] Wrote {len(pkgs)} package entries to {OUTPUT_FILE}")
 

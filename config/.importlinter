@@ -1,0 +1,13 @@
+[importlinter]
+root_packages=
+    ice_sdk
+    app
+
+[importlinter:contract:ice-sdk-no-app]
+name=ice_sdk must not depend on app
+# Forbid any import from ice_sdk -> app
+type=forbidden
+source_modules=
+    ice_sdk
+forbidden_modules=
+    app 

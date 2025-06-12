@@ -35,7 +35,7 @@ class ContextStore(BaseContextStore):
                 os.path.join(os.path.dirname(__file__), "..", "..", "..")
             )
             self.context_store_path = os.path.join(
-                default_workspace_root, "app", "data", "context_store.json"
+                default_workspace_root, "data", "context_store.json"
             )
         os.makedirs(os.path.dirname(self.context_store_path), exist_ok=True)
         if not os.path.exists(self.context_store_path):

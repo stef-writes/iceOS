@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies (poetry)
+        run: poetry install --with dev --no-interaction --no-root
+
+      - name: Run Ruff
+        run: poetry run ruff check src
+
+      - name: Run Pyright
+        run: poetry run pyright --project config/pyrightconfig.jsonc
+
+      - name: Run Import-Linter contracts
+        run: poetry run lint-imports --config config/.importlinter
+
+      - name: Run unit tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: poetry run pytest -q
+
+      - name: CLI help sanity check
+        run: poetry run python src/app/main.py --help 

@@ -9,4 +9,4 @@ To implement your own Tool:
 2. Define `name`, `description`, `parameters_schema`, and `output_schema`.
 3. Implement async `run()` with side-effects isolated inside.
 
-After adding a new Tool, run `make refresh-docs` so it appears in `CAPABILITY_CATALOG.json`. 
+After adding a new Tool, run `make refresh-docs` so it appears in `docs/capability_catalog.json`. 

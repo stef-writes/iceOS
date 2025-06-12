@@ -20,7 +20,7 @@ iceOS bundles a pluggable SDK (`ice_sdk`) and a reference application (`app`) so
 | `docs/` | User-facing guides & ADRs. |
 | `tests/` | Pytest suites and health checks. |
 
-> For a per-package bird's-eye view see `CODEBASE_OVERVIEW.md`.
+> For a per-package bird's-eye view see `docs/codebase_overview.md`.
 
 ---
 

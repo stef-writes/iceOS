@@ -11,9 +11,7 @@ import httpx
 
 async def run_character_story():
     # Load the template
-    template_path = (
-        Path(__file__).parent.parent / "templates" / "character_story_chain.json"
-    )
+    template_path = Path(__file__).parent / "templates" / "character_story_chain.json"
     with open(template_path) as f:
         chain_config = json.load(f)
 

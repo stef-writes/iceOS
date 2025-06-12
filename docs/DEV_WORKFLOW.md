@@ -17,7 +17,7 @@ $ git clone https://github.com/stef-writes/iceOSv1-A-.git && cd iceOSv1-A-
 $ make install
 
 # enable pre-commit hooks
-$ pre-commit install
+$ pre-commit install -c config/.pre-commit-config.yaml
 ```
 
 > The hooks will auto-format/lint each commit; CI enforces the same checks.
@@ -44,7 +44,7 @@ $ make doctor                         # run full healthchecks locally
 • Added a Tool / Node / Agent / Chain?  Run:
 
 ```bash
-$ make refresh-docs   # regenerates CAPABILITY_CATALOG & CODEBASE_OVERVIEW
+$ make refresh-docs   # regenerates docs/capability_catalog.json & docs/codebase_overview.md
 ```
 
 ---
@@ -101,7 +101,7 @@ $ git branch -d feat/<slug>
 ## 7. FYI: where artifacts live & what's ignored
 
 Tracked in Git:
-• Top-level generated docs (`CODEBASE_OVERVIEW.md`, `CAPABILITY_CATALOG.json`) – they feed Cursor context.
+• Generated docs (`docs/codebase_overview.md`, `docs/capability_catalog.json`) – they feed Cursor context.
 
 Ignored via `.gitignore`:
 • Virtual envs (`.venv/`, `venv/`, `.env/`).  

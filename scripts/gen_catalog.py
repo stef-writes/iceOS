@@ -6,6 +6,10 @@ This script is intentionally *import-side-effect free*: it relies on the standar
 library (ast / pathlib / json) so it can run in any environment without needing
 third-party packages and without importing the application itself – thereby
 avoiding execution of user code while we are merely inspecting it.
+
+This now writes to docs/capability_catalog.json so that generated
+artifacts live alongside other documentation instead of cluttering
+the project root.
 """
 
 import ast
@@ -34,7 +38,7 @@ SUFFIX_KIND_MAP: dict[str, str] = {
 }
 
 #: Name of the output JSON file (relative to repo root)
-OUTPUT_FILE = Path("CAPABILITY_CATALOG.json")
+OUTPUT_FILE = Path("docs") / "capability_catalog.json"
 
 # ---------------------------------------------------------------------------
 # Models
@@ -141,6 +145,7 @@ def main() -> None:  # noqa: D401 (imperative mood is fine)
 
     catalog = Catalog(generated_at=datetime.utcnow(), capabilities=all_caps)
 
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_FILE.write_text(catalog.model_dump_json(indent=2) + "\n", encoding="utf-8")
     print(
         f"[gen_catalog] Wrote {len(all_caps)} capabilities to {OUTPUT_FILE}",
