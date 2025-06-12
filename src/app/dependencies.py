@@ -1,6 +1,6 @@
 from fastapi import Request
 
-from app.utils.context.manager import GraphContextManager
+from ice_sdk.context.manager import GraphContextManager
 from ice_sdk import ToolService
 
 

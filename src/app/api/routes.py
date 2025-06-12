@@ -20,8 +20,8 @@ from ice_sdk.models.node_models import (
     NodeExecutionResult,
     NodeMetadata,
 )
-from app.nodes.factory import node_factory
-from app.utils.logging import logger
+from ice_orchestrator.nodes.factory import node_factory
+from ice_sdk.utils.logging import logger
 from ice_sdk import ToolService
 
 router = APIRouter(prefix="/api/v1")

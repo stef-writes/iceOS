@@ -1,6 +1,6 @@
 """Common abstract base class for all node implementations.
 
-This is an *identical* copy of the legacy ``app.nodes.base.BaseNode`` but now
+This is an *identical* copy of the legacy ``ice_orchestrator.nodes.base.BaseNode`` but now
 lives inside ``ice_sdk`` so that external packages can depend on a stable path.
 """
 

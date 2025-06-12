@@ -1,8 +1,8 @@
 import pytest
 
-from app.models.config import LLMConfig
-from app.models.node_models import AiNodeConfig
-from app.nodes.ai.llm_executor import llm_execute
+from ice_sdk.models.config import LLMConfig
+from ice_sdk.models.node_models import AiNodeConfig
+from ice_orchestrator.nodes.ai.llm_executor import llm_execute
 
 
 class DummyLLMService:

@@ -1,8 +1,8 @@
 import json
 import pathlib
 
-from app.models.config import AppConfig, LLMConfig, MessageTemplate
-from app.models.node_models import (  # type: ignore
+from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
+from ice_sdk.models.node_models import (  # type: ignore
     AiNodeConfig,
     NodeConfig,
     ToolConfig,

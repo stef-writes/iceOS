@@ -66,7 +66,7 @@ def iter_tool_classes():
                 continue
 
     # -----------------------------------------------------------------
-    # Fallback: ensure built-in tools packaged in `app.tools.builtins` are
+    # Fallback: ensure built-in tools packaged in `ice_tools.builtins` are
     # available even when entry points are not configured (e.g., in a dev
     # checkout).  This keeps backward-compatibility while encouraging
     # external packages to rely on entry-points in production.
@@ -76,10 +76,10 @@ def iter_tool_classes():
             import pkgutil
             from importlib import import_module
 
-            builtins_pkg = import_module("app.tools.builtins")
+            builtins_pkg = import_module("ice_tools.builtins")
             for _, mod_name, _ in pkgutil.iter_modules(builtins_pkg.__path__):
                 try:
-                    mod = import_module(f"app.tools.builtins.{mod_name}")
+                    mod = import_module(f"ice_tools.builtins.{mod_name}")
                     for attr in mod.__dict__.values():
                         if (
                             isinstance(attr, type)

@@ -1,4 +1,4 @@
-from app.nodes.ai.output_validator import OutputValidator
+from ice_orchestrator.nodes.ai.output_validator import OutputValidator
 
 
 def test_empty_plain_output_fails():

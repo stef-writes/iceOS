@@ -19,7 +19,7 @@ TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "src" / "app" / "templa
 if not hasattr(app.state, "tool_service"):
     try:
         from ice_sdk import ToolService
-        from app.utils.context.manager import GraphContextManager
+        from ice_sdk.context.manager import GraphContextManager
 
         app.state.tool_service = ToolService()  # type: ignore[attr-defined]
         app.state.context_manager = GraphContextManager()  # type: ignore[attr-defined]

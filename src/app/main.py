@@ -11,9 +11,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
-from app.core.errors import add_exception_handlers
-from app.utils.context.manager import GraphContextManager
-from app.utils.logging import setup_logger
+from ice_sdk.utils.errors import add_exception_handlers
+from ice_sdk.context.manager import GraphContextManager
+from ice_sdk.utils.logging import setup_logger
 from ice_sdk import ToolService
 
 # Setup logging

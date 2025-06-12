@@ -8,23 +8,23 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 from datetime import datetime
 from typing import List
 
-from app.agents import (
+from ice_agents import (
     AgentRegistry,
     NodeAgentAdapter,
     RouterAgent,
     WorkflowAgentAdapter,
 )
-from app.chains.orchestration import LevelBasedScriptChain
-from app.models.config import LLMConfig, ModelProvider
-from app.models.node_models import (
+from ice_orchestrator import LevelBasedScriptChain
+from ice_sdk.models.config import LLMConfig, ModelProvider
+from ice_sdk.models.node_models import (
     AiNodeConfig,
     InputMapping,
     NodeConfig,
     NodeMetadata,
     ToolNodeConfig,
 )
-from app.nodes.factory import node_factory
-from app.utils.context import GraphContextManager, SessionState
+from ice_orchestrator.nodes.factory import node_factory
+from ice_sdk.context import GraphContextManager, SessionState
 
 # Ensure ENV keys exist; warn user otherwise
 for env_key in [
