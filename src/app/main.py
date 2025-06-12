@@ -26,8 +26,14 @@ async def lifespan(app: FastAPI):
     # Startup
     # Get the project root directory (where .env should be)
     project_root = Path(__file__).parent.parent.parent
-    env_path = project_root / ".env"
-    load_dotenv(dotenv_path=env_path)
+
+    # Load environment variables from the first existing candidate file.
+    # Priority: .env.local (developer-specific) > .env (default) > .env.example (template)
+    for candidate in (".env.local", ".env", ".env.example"):
+        env_path = project_root / candidate
+        if env_path.exists():
+            load_dotenv(dotenv_path=env_path)
+            break
 
     # Create singleton services and attach to app state so they can be injected elsewhere.
     app.state.tool_service = ToolService()  # type: ignore[attr-defined]
@@ -37,11 +43,13 @@ async def lifespan(app: FastAPI):
     # The actual key used by an LLM call will be the one specified in the Node's LLMConfig.
     # This step ensures that if SDKs implicitly look for env vars, they might be found.
 
-    api_keys_to_load = {
-        "OPENAI_API_KEY": None,
-        "ANTHROPIC_API_KEY": None,
-        "GOOGLE_API_KEY": None,  # For Gemini
-        "DEEPSEEK_API_KEY": None,
+    # Track presence of optional API keys.  Use explicit ``bool`` values so
+    # static type checkers understand what the dictionary will hold.
+    api_keys_to_load: dict[str, bool] = {
+        "OPENAI_API_KEY": False,
+        "ANTHROPIC_API_KEY": False,
+        "GOOGLE_API_KEY": False,  # For Gemini
+        "DEEPSEEK_API_KEY": False,
     }
 
     for key_name in api_keys_to_load:

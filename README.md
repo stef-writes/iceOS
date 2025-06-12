@@ -1,5 +1,5 @@
 # iceOS v1
-[![CI](https://github.com/your-org/iceOS/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/iceOS/actions/workflows/ci.yml)
+[![CI](https://github.com/stef-writes/iceOSv1-A-/actions/workflows/ci.yml/badge.svg)](https://github.com/stef-writes/iceOSv1-A-/actions/workflows/ci.yml)
 
 The open-source **Intelligent Composable Environment** for building agentic workflows on top of your data, services, and events.
 

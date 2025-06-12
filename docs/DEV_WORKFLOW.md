@@ -11,7 +11,7 @@ It mirrors what was explained in chat so nobody has to scroll through history.
 
 ```bash
 # clone & enter repo
-$ git clone https://github.com/your-org/iceOS.git && cd iceOS
+$ git clone https://github.com/stef-writes/iceOSv1-A-.git && cd iceOSv1-A-
 
 # install core + dev dependencies
 $ make install

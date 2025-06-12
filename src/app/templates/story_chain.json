@@ -1,0 +1,37 @@
+{
+    "name": "story_generation_chain",
+    "description": "A chain that generates a story and then summarizes it",
+    "nodes": [
+        {
+            "id": "story_generator",
+            "type": "ai",
+            "model": "gpt-3.5-turbo",
+            "prompt": "Write a short story about a robot learning to paint",
+            "llm_config": {
+                "provider": "openai",
+                "model": "gpt-3.5-turbo"
+            },
+            "output_schema": {
+                "story": "str"
+            }
+        },
+        {
+            "id": "story_summarizer",
+            "type": "ai",
+            "model": "gpt-3.5-turbo",
+            "prompt": "Summarize this story in one sentence: {story}",
+            "llm_config": {
+                "provider": "openai",
+                "model": "gpt-3.5-turbo"
+            },
+            "dependencies": ["story_generator"],
+            "input_mappings": {
+                "story": {
+                    "source_node_id": "story_generator",
+                    "source_output_key": "story"
+                }
+            }
+        }
+    ],
+    "persist_intermediate_outputs": true
+} 

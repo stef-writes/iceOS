@@ -1,11 +1,15 @@
 import json
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 import pytest
 from httpx import AsyncClient, ASGITransport
 
 from app.main import app
+
+# Ensure environment variables from .env/.env.local are loaded before skip evaluation
+load_dotenv()
 
 # Skip the entire module if no OpenAI key (prevents failing CI when creds are absent)
 pytestmark = pytest.mark.skipif(
