@@ -1,10 +1,9 @@
-from __future__ import annotations
-
 """Ensure every Python source file contains the required license header.
 
 By default the script looks for the string "MIT License" within the first
 10 lines of each ``*.py`` file.
 """
+from __future__ import annotations
 
 import argparse
 import sys

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Generate CODEBASE_OVERVIEW.md with a simple package + class map.
 
 This now writes to docs/codebase_overview.md to keep the project root tidy.
@@ -8,12 +6,12 @@ The script intentionally keeps output *brief* – one screen – so that Cursor
 loads it entirely in context. For deeper docs use dedicated README files next
 to the code.
 """
+from __future__ import annotations
 
 import ast
-import textwrap
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, List
+from typing import List
 
 from pydantic import BaseModel
 

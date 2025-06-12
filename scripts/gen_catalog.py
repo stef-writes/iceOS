@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Generate CAPABILITY_CATALOG.json by statically analysing the codebase.
 
 This script is intentionally *import-side-effect free*: it relies on the standard
@@ -11,10 +9,9 @@ This now writes to docs/capability_catalog.json so that generated
 artifacts live alongside other documentation instead of cluttering
 the project root.
 """
+from __future__ import annotations
 
 import ast
-import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path

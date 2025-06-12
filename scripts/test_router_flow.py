@@ -1,15 +1,15 @@
+"""Quick router flow test leveraging a single word-count agent."""
 import asyncio
+from datetime import datetime
 import pathlib
 import sys
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
-from datetime import datetime
-
-from ice_agents import AgentRegistry, NodeAgentAdapter, RouterAgent
-from ice_sdk.models.node_models import NodeMetadata, ToolNodeConfig
-from ice_orchestrator.nodes.factory import node_factory
-from ice_sdk.context import GraphContextManager, SessionState
+from ice_agents import AgentRegistry, NodeAgentAdapter, RouterAgent  # noqa: E402
+from ice_sdk.models.node_models import NodeMetadata, ToolNodeConfig  # noqa: E402
+from ice_orchestrator.nodes.factory import node_factory  # noqa: E402
+from ice_sdk.context import GraphContextManager, SessionState  # noqa: E402
 
 
 def build_word_count_agent():

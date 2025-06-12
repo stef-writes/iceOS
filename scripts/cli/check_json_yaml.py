@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 """Validate JSON/YAML syntax across the repository.
 
 Run via::
 
     python -m scripts.cli.check_json_yaml
 """
+from __future__ import annotations
 
 import argparse
 import json

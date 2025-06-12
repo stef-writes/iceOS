@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Comprehensive health-check runner for the iceOS repo.
 
 Usage
@@ -10,6 +8,7 @@ $ python scripts/doctor.py --perf     # include performance smoke tests
 It mirrors the list in HEALTHCHECKS.md. Each check returning a non-zero exit
 status is considered *failure* and aborts the run (unless --keep-going is set).
 """
+from __future__ import annotations
 
 import argparse
 import shlex

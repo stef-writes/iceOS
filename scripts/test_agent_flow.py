@@ -1,14 +1,16 @@
+"""Smoke-test standalone Agent execution via NodeAgentAdapter."""
+import asyncio
+from datetime import datetime
 import pathlib
 import sys
 
+# Add src to sys.path for script execution without installation.
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
-import asyncio
-from datetime import datetime
 
-from ice_agents import AgentRegistry, NodeAgentAdapter
-from ice_sdk.models.node_models import NodeMetadata, ToolNodeConfig
-from ice_orchestrator.nodes.factory import node_factory
-from ice_sdk.context import (  # GraphContextManager already exists
+from ice_agents import AgentRegistry, NodeAgentAdapter  # noqa: E402
+from ice_sdk.models.node_models import NodeMetadata, ToolNodeConfig  # noqa: E402
+from ice_orchestrator.nodes.factory import node_factory  # noqa: E402
+from ice_sdk.context import (  # noqa: E402
     GraphContextManager,
     SessionState,
 )

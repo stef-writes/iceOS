@@ -1,9 +1,8 @@
-from __future__ import annotations
-
 """CLI entrypoint for codebase overview generation.
 
 Delegates to the legacy :pyfile:`scripts/gen_overview.py` implementation.
 """
+from __future__ import annotations
 
 from pathlib import Path
 import runpy

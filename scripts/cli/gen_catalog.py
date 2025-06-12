@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """CLI entrypoint for capability catalog generation.
 
 This is a thin wrapper around :pyfile:`scripts/gen_catalog.py` so that
@@ -8,6 +6,7 @@ breaking existing imports.
 
 In a follow-up release the legacy module will be removed.
 """
+from __future__ import annotations
 
 from pathlib import Path
 import runpy

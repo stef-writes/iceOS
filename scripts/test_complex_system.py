@@ -1,30 +1,34 @@
+"""Interactive test that spins up multiple agents and a workflow to validate
+complex orchestration flows end-to-end.
+"""
 import asyncio
 import os
 import pathlib
 import sys
+from datetime import datetime
 
+# Add src to import path so scripts work without installation
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 
-from datetime import datetime
-from typing import List
+from typing import List  # noqa: E402
 
-from ice_agents import (
+from ice_agents import (  # noqa: E402
     AgentRegistry,
     NodeAgentAdapter,
     RouterAgent,
     WorkflowAgentAdapter,
 )
-from ice_orchestrator import LevelBasedScriptChain
-from ice_sdk.models.config import LLMConfig, ModelProvider
-from ice_sdk.models.node_models import (
+from ice_orchestrator import LevelBasedScriptChain  # noqa: E402
+from ice_sdk.models.config import LLMConfig, ModelProvider  # noqa: E402
+from ice_sdk.models.node_models import (  # noqa: E402
     AiNodeConfig,
     InputMapping,
     NodeConfig,
     NodeMetadata,
     ToolNodeConfig,
 )
-from ice_orchestrator.nodes.factory import node_factory
-from ice_sdk.context import GraphContextManager, SessionState
+from ice_orchestrator.nodes.factory import node_factory  # noqa: E402
+from ice_sdk.context import GraphContextManager, SessionState  # noqa: E402
 
 # Ensure ENV keys exist; warn user otherwise
 for env_key in [

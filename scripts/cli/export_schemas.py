@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Export JSON schemas for public Pydantic models.
 
 This CLI replaces the legacy :pyfile:`scripts/export_schemas.py` script.
@@ -16,6 +14,7 @@ Key differences to the legacy implementation:
   ``mode`` parameter for :pyfunc:`~pydantic.BaseModel.model_json_schema` is not
   available (pre-v2.6) the call silently falls back to the legacy signature.
 """
+from __future__ import annotations
 
 import argparse
 import json
