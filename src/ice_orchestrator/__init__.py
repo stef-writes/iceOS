@@ -1,15 +1,18 @@
-"""Orchestration sub-package public interface."""
+"""Ice Orchestrator package.
 
-from ice_orchestrator.node_dependency_graph import DependencyGraph
-from ice_orchestrator.path_utils import resolve_nested_path
+This package provides workflow orchestration capabilities for iceOS.
+"""
+from .base_script_chain import BaseScriptChain, FailurePolicy
+from .chain_errors import ScriptChainError as ChainError
+from .node_dependency_graph import DependencyGraph
+from .script_chain import ScriptChain  # noqa: F401 – re-export
+from .workflow_execution_context import WorkflowExecutionContext
 
-# Re-export the refactored executor classes located under *executors/* --------
-from .executors.node_executor import NodeExecutor  # noqa: F401 – re-export
-from .executors.level_based import LevelBasedScriptChain  # noqa: F401 – re-export
-
-__all__: list[str] = [
+__all__ = [
+    "BaseScriptChain",
+    "ScriptChain",
+    "FailurePolicy",
+    "ChainError",
     "DependencyGraph",
-    "NodeExecutor",
-    "LevelBasedScriptChain",
-    "resolve_nested_path",
+    "WorkflowExecutionContext",
 ]

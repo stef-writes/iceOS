@@ -8,9 +8,9 @@ In a follow-up release the legacy module will be removed.
 """
 from __future__ import annotations
 
-from pathlib import Path
 import runpy
 import sys
+from pathlib import Path
 
 # Make sure we execute the *source* file so that relative imports & paths
 # inside it continue to resolve correctly.

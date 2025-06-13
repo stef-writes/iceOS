@@ -1,0 +1,352 @@
+{
+  "$defs": {
+    "InputMapping": {
+      "description": "Mapping configuration for node inputs",
+      "properties": {
+        "source_node_id": {
+          "description": "Source node ID (UUID of the dependency)",
+          "title": "Source Node Id",
+          "type": "string"
+        },
+        "source_output_key": {
+          "description": "Key from the source node's output object to use (e.g., 'text', 'result', 'data.items.0')",
+          "title": "Source Output Key",
+          "type": "string"
+        },
+        "rules": {
+          "additionalProperties": true,
+          "description": "Optional mapping/transformation rules (currently unused)",
+          "title": "Rules",
+          "type": "object"
+        }
+      },
+      "required": [
+        "source_node_id",
+        "source_output_key"
+      ],
+      "title": "InputMapping",
+      "type": "object"
+    },
+    "ModelProvider": {
+      "description": "Supported model providers",
+      "enum": [
+        "openai",
+        "anthropic",
+        "google",
+        "deepseek",
+        "custom"
+      ],
+      "title": "ModelProvider",
+      "type": "string"
+    },
+    "NodeMetadata": {
+      "description": "Metadata model for node versioning and ownership",
+      "properties": {
+        "node_id": {
+          "description": "Unique node identifier",
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_type": {
+          "description": "Type of node (ai)",
+          "title": "Node Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "version": {
+          "default": "1.0.0",
+          "description": "Semantic version of node configuration",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Version",
+          "type": "string"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Node owner/maintainer",
+          "title": "Owner"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created At"
+        },
+        "modified_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Modified At"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Description of the node",
+          "title": "Description"
+        },
+        "error_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type of error if execution failed",
+          "title": "Error Type"
+        },
+        "timestamp": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamp"
+        },
+        "start_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution start time",
+          "title": "Start Time"
+        },
+        "end_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution end time",
+          "title": "End Time"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution duration in seconds",
+          "title": "Duration"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelProvider"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model provider used by the node"
+        }
+      },
+      "required": [
+        "node_id",
+        "node_type"
+      ],
+      "title": "NodeMetadata",
+      "type": "object"
+    }
+  },
+  "description": "Configuration for a deterministic tool execution.",
+  "properties": {
+    "id": {
+      "description": "Unique identifier for the node",
+      "title": "Id",
+      "type": "string"
+    },
+    "type": {
+      "const": "tool",
+      "default": "tool",
+      "title": "Type",
+      "type": "string"
+    },
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Human-readable name",
+      "title": "Name"
+    },
+    "dependencies": {
+      "description": "IDs of prerequisite nodes",
+      "items": {
+        "type": "string"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "level": {
+      "default": 0,
+      "description": "Execution level for parallelism",
+      "title": "Level",
+      "type": "integer"
+    },
+    "metadata": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NodeMetadata"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "provider": {
+      "$ref": "#/$defs/ModelProvider",
+      "default": "openai",
+      "description": "Model provider for the node"
+    },
+    "timeout_seconds": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Hard timeout for node execution in seconds (None = no timeout)",
+      "title": "Timeout Seconds"
+    },
+    "input_schema": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {}
+      ],
+      "title": "Input Schema"
+    },
+    "output_schema": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {}
+      ],
+      "title": "Output Schema"
+    },
+    "input_mappings": {
+      "additionalProperties": {
+        "$ref": "#/$defs/InputMapping"
+      },
+      "title": "Input Mappings",
+      "type": "object"
+    },
+    "use_cache": {
+      "default": true,
+      "description": "Whether the orchestrator should reuse cached results when the context & config are unchanged.",
+      "title": "Use Cache",
+      "type": "boolean"
+    },
+    "input_selection": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "List of input keys to include in the prompt (order preserved). If None, include all inputs.",
+      "title": "Input Selection"
+    },
+    "tool_name": {
+      "description": "Registered name of the tool to invoke",
+      "title": "Tool Name",
+      "type": "string"
+    },
+    "tool_args": {
+      "additionalProperties": true,
+      "description": "Arguments to forward to the tool",
+      "title": "Tool Args",
+      "type": "object"
+    }
+  },
+  "required": [
+    "id",
+    "tool_name"
+  ],
+  "title": "ToolNodeConfig",
+  "type": "object",
+  "$comment": "generated from ice_sdk.models.node_models:ToolNodeConfig"
+}

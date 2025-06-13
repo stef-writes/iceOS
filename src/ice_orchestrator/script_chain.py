@@ -1,0 +1,511 @@
+"""Core script chain implementation for workflow orchestration.
+
+This module provides a simplified but powerful implementation of workflow orchestration
+that integrates with the new agent system while preserving all key functionality:
+- Level-based parallel execution
+- Robust error handling
+- Context & state management
+- Performance features
+- Observability
+"""
+from __future__ import annotations
+
+import asyncio
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from pydantic import BaseModel, Field
+
+import ice_sdk.executors  # noqa: F401 – side-effect import registers built-in executors
+import structlog
+from ice_orchestrator.base_script_chain import BaseScriptChain, FailurePolicy
+from ice_orchestrator.chain_errors import ChainError
+from ice_orchestrator.node_dependency_graph import DependencyGraph
+from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
+from ice_sdk.agents.agent_node import AgentNode
+from ice_sdk.context.manager import GraphContextManager
+from ice_sdk.models.agent_models import AgentConfig, ModelSettings
+from ice_sdk.models.node_models import (
+    AiNodeConfig,
+    ChainExecutionResult,
+    NodeConfig,
+    NodeExecutionResult,
+    NodeMetadata,
+)
+from ice_sdk.node_registry import get_executor
+from ice_sdk.tools.base import BaseTool
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
+
+# ---------------------------------------------------------------------------
+# Tracing & logging setup ----------------------------------------------------
+# ---------------------------------------------------------------------------
+tracer = trace.get_tracer(__name__)
+logger = structlog.get_logger(__name__)
+
+
+class ChainMetrics(BaseModel):
+    """Metrics for chain execution."""
+    total_tokens: int = 0
+    total_cost: float = 0.0
+    node_metrics: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+
+    def update(self, node_id: str, result: NodeExecutionResult) -> None:
+        """Update metrics with node execution result."""
+        if result.usage:
+            self.total_tokens += getattr(result.usage, "total_tokens", 0)
+            # Support both *cost* and *total_cost* naming variants --------
+            self.total_cost += getattr(result.usage, "total_cost", getattr(result.usage, "cost", 0.0))
+            self.node_metrics[node_id] = result.usage.model_dump()
+
+    def as_dict(self) -> Dict[str, Any]:
+        """Convert metrics to dictionary."""
+        return {
+            "total_tokens": self.total_tokens,
+            "total_cost": self.total_cost,
+            "node_metrics": self.node_metrics,
+        }
+
+
+class ScriptChain(BaseScriptChain):
+    """Execute a directed acyclic workflow using level-based parallelism.
+
+    Nodes at the same topological level (i.e. depth in the dependency DAG)
+    are executed concurrently up to the configured max_parallel limit.
+
+    Features:
+    - Level-based parallel execution
+    - Robust error handling with configurable policies
+    - Context & state management
+    - Performance features (caching, large output handling)
+    - Observability (metrics, tracing, callbacks)
+    """
+
+    def __init__(
+        self,
+        nodes: List[NodeConfig],
+        name: Optional[str] = None,
+        *,
+        context_manager: Optional[GraphContextManager] = None,
+        callbacks: Optional[List[Any]] = None,
+        max_parallel: int = 5,
+        persist_intermediate_outputs: bool = True,
+        tools: Optional[List[BaseTool]] = None,
+        initial_context: Optional[Dict[str, Any]] = None,
+        workflow_context: Optional[WorkflowExecutionContext] = None,
+        chain_id: Optional[str] = None,
+        failure_policy: FailurePolicy = FailurePolicy.CONTINUE_POSSIBLE,
+        validate_outputs: bool = True,
+    ) -> None:
+        """Initialize script chain.
+        
+        Args:
+            nodes: List of node configurations
+            name: Chain name
+            context_manager: Context manager
+            callbacks: List of callbacks
+            max_parallel: Maximum parallel executions
+            persist_intermediate_outputs: Whether to persist outputs
+            tools: List of tools available to nodes
+            initial_context: Initial execution context
+            workflow_context: Workflow execution context
+            chain_id: Unique chain identifier
+            failure_policy: Failure handling policy
+            validate_outputs: Whether to validate node outputs
+        """
+        self.chain_id = chain_id or f"chain_{datetime.utcnow().isoformat()}"
+        super().__init__(
+            nodes,
+            name,
+            context_manager,
+            callbacks,
+            max_parallel,
+            persist_intermediate_outputs,
+            tools,
+            initial_context,
+            workflow_context,
+            failure_policy,
+        )
+        self.validate_outputs = validate_outputs
+
+        # Build dependency graph
+        self.graph = DependencyGraph(nodes)
+        self.graph.validate_schema_alignment(nodes)
+        self.levels = self.graph.get_level_nodes()
+
+        # Metrics & events
+        self.metrics = ChainMetrics()
+        # Agent instance cache -------------------------------------------
+        self._agent_cache: Dict[str, AgentNode] = {}
+        # Retain reference to chain-level tools ---------------------------
+        self._chain_tools: List[BaseTool] = tools or []
+
+        logger.info(
+            "Initialized ScriptChain with %d nodes across %d levels",
+            len(nodes),
+            len(self.levels),
+        )
+
+    async def execute(self) -> ChainExecutionResult:
+        """Execute the workflow and return a ChainExecutionResult."""
+        start_time = datetime.utcnow()
+        results: Dict[str, NodeExecutionResult] = {}
+        errors: List[str] = []
+
+        logger.info("Starting execution of chain '%s' (ID: %s)", self.name, self.chain_id)
+
+        with tracer.start_as_current_span(
+            "chain.execute",
+            attributes={
+                "chain_id": self.chain_id,
+                "chain_name": self.name,
+                "node_count": len(self.nodes),
+            },
+        ) as chain_span:
+            for level_num in sorted(self.levels.keys()):
+                level_node_ids = self.levels[level_num]
+                level_nodes = [self.nodes[node_id] for node_id in level_node_ids]
+
+                level_results = await self._execute_level(level_nodes, results)
+
+                for node_id, result in level_results.items():
+                    results[node_id] = result
+
+                    if result.success:
+                        if hasattr(result, "usage") and result.usage:
+                            self.metrics.update(node_id, result)
+                    else:
+                        errors.append(f"Node {node_id} failed: {result.error}")
+
+                if errors and not self._should_continue(errors):
+                    break
+
+            end_time = datetime.utcnow()
+            duration = (end_time - start_time).total_seconds()
+            logger.info(
+                "Completed chain execution", chain=self.name, chain_id=self.chain_id, duration=duration
+            )
+
+            chain_span.set_attribute("success", len(errors) == 0)
+            if errors:
+                chain_span.set_status(Status(StatusCode.ERROR, ";".join(errors)))
+            chain_span.end()
+
+        final_node_id = self.graph.get_leaf_nodes()[0]
+
+        return ChainExecutionResult(
+            success=len(errors) == 0,
+            output=results,
+            error="\n".join(errors) if errors else None,
+            metadata=NodeMetadata(
+                node_id=final_node_id,
+                node_type="script_chain",
+                name=self.name,
+                version="1.0.0",
+                start_time=start_time,
+                end_time=end_time,
+                duration=duration,
+            ),
+            execution_time=duration,
+            token_stats=self.metrics.as_dict(),
+        )
+
+    async def _execute_level(
+        self,
+        level_nodes: List[NodeConfig],
+        accumulated_results: Dict[str, NodeExecutionResult],
+    ) -> Dict[str, NodeExecutionResult]:
+        """Execute all nodes at a given level in parallel."""
+        semaphore = asyncio.Semaphore(self.max_parallel)
+
+        async def process_node(node: NodeConfig) -> Tuple[str, NodeExecutionResult]:
+            async with semaphore:
+                result = await self.execute_node(
+                    node.id,
+                    self._build_node_context(node, accumulated_results),
+                )
+                return node.id, result
+
+        tasks = [process_node(node) for node in level_nodes]
+        results = await asyncio.gather(*tasks)
+        return dict(results)
+
+    def _build_node_context(
+        self,
+        node: NodeConfig,
+        accumulated_results: Dict[str, NodeExecutionResult],
+    ) -> Dict[str, Any]:
+        """Build execution context for a node."""
+        context: Dict[str, Any] = {}
+        validation_errors: List[str] = []
+
+        if getattr(node, "input_mappings", None):
+            for placeholder, mapping in node.input_mappings.items():
+                if isinstance(mapping, dict) and "source_node_id" in mapping:
+                    dep_id = mapping["source_node_id"]
+                    output_key = mapping["source_output_key"]
+                    dep_result = accumulated_results.get(dep_id)
+
+                    if not dep_result or not dep_result.success:
+                        validation_errors.append(f"Dependency '{dep_id}' failed or did not run.")
+                        continue
+
+                    try:
+                        value = self._resolve_nested_path(dep_result.output, output_key)
+                        context[placeholder] = value
+                    except (KeyError, IndexError, TypeError) as exc:
+                        validation_errors.append(
+                            f"Failed to resolve path '{output_key}' in dependency '{dep_id}': {exc}"
+                        )
+                else:
+                    context[placeholder] = mapping
+
+        if validation_errors:
+            raise ChainError(
+                f"Node '{node.id}' context validation failed:\n" + "\n".join(validation_errors)
+            )
+
+        return context
+
+    def _should_continue(self, errors: List[str]) -> bool:
+        """Determine whether chain execution should proceed after errors."""
+        if not errors:
+            return True
+
+        if self.failure_policy == FailurePolicy.HALT:
+            return False
+        if self.failure_policy == FailurePolicy.ALWAYS:
+            return True
+
+        # CONTINUE_POSSIBLE
+        failed_nodes: Set[str] = set()
+        for error in errors:
+            if "Node " in error and " failed:" in error:
+                try:
+                    node_id = error.split("Node ")[1].split(" failed:")[0]
+                    failed_nodes.add(node_id)
+                except (IndexError, AttributeError):
+                    continue
+
+        for level_num in sorted(self.levels.keys()):
+            for node_id in self.levels[level_num]:
+                node = self.nodes[node_id]
+                if node_id in failed_nodes:
+                    continue
+                depends_on_failed_node = any(dep in failed_nodes for dep in getattr(node, "dependencies", []))
+                if not depends_on_failed_node:
+                    logger.info(
+                        "Chain execution continuing: Node '%s' can still execute independently",
+                        node_id,
+                    )
+                    return True
+
+        logger.warning(
+            "Chain execution stopping: All remaining nodes depend on failed nodes: %s",
+            failed_nodes,
+        )
+        return False
+
+    @staticmethod
+    def _resolve_nested_path(data: Any, path: str) -> Any:
+        """Resolve a dot-separated path in a nested data structure."""
+        if not path:
+            return data
+        for key in path.split("."):
+            if isinstance(data, dict):
+                data = data[key]
+            elif isinstance(data, list):
+                data = data[int(key)]
+            else:
+                raise TypeError(f"Cannot resolve path '{path}' in {type(data)}")
+        return data
+
+    # ---------------------------------------------------------------------
+    # Graph inspection public API -----------------------------------------
+    # ---------------------------------------------------------------------
+
+    def get_node_dependencies(self, node_id: str) -> List[str]:
+        """Get dependencies for a node."""
+        return self.graph.get_node_dependencies(node_id)
+
+    def get_node_dependents(self, node_id: str) -> List[str]:
+        """Get dependents for a node."""
+        return self.graph.get_node_dependents(node_id)
+
+    def get_node_level(self, node_id: str) -> int:
+        """Get execution level for a node."""
+        return self.graph.get_node_level(node_id)
+
+    def get_level_nodes(self, level: int) -> List[str]:
+        """Get nodes at a specific level."""
+        return self.levels.get(level, [])
+
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get execution metrics."""
+        return self.metrics.as_dict()
+
+    async def execute_node(self, node_id: str, input_data: Dict[str, Any]) -> NodeExecutionResult:
+        """Execute a single node using agent/tool wrappers (overrides BaseScriptChain)."""
+        node = self.nodes.get(node_id)
+        if node is None:
+            raise ValueError(f"Node '{node_id}' not found in chain configuration")
+
+        # ------------------------------------------------------------------
+        # Persist *input_data* to the context store ------------------------
+        # ------------------------------------------------------------------
+        self.context_manager.update_node_context(
+            node_id=node_id,
+            content=input_data,
+            execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
+        )
+
+        try:
+            # --------------------------------------------------------------
+            # Dispatch via the *Node Registry* -----------------------------
+            # --------------------------------------------------------------
+            executor = get_executor(getattr(node, "type", None))
+            result = await executor(self, node, input_data)
+
+            # Persist *output* to the context store if configured ----------
+            if self.persist_intermediate_outputs and result.output is not None:
+                self.context_manager.update_node_context(
+                    node_id=node_id,
+                    content=result.output,
+                    execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
+                )
+
+            # ------------------------------------------------------------------
+            # 3. Optional output validation ------------------------------------
+            # ------------------------------------------------------------------
+            if self.validate_outputs and getattr(node, "output_schema", None):
+                if not self._is_output_valid(node, result.output):
+                    result.success = False
+                    err_msg = (
+                        f"Output validation failed for node '{node_id}' against declared schema"
+                    )
+                    result.error = err_msg if result.error is None else result.error + "; " + err_msg
+
+            return result
+
+        except Exception as e:  # pylint: disable=broad-except
+            # --------------------------------------------------------------
+            # Error handling respects the chain-level *failure_policy* -----
+            # --------------------------------------------------------------
+            from datetime import datetime
+            error_meta = NodeMetadata(
+                node_id=node_id,
+                node_type=getattr(node, "type", "unknown"),
+                name=getattr(node, "name", None),
+                start_time=datetime.utcnow(),
+                end_time=datetime.utcnow(),
+            )
+            failure_result = NodeExecutionResult(success=False, error=str(e), metadata=error_meta)
+
+            if self.failure_policy == FailurePolicy.HALT:
+                raise
+            return failure_result
+
+    # ---------------------------------------------------------------------
+    # Internal helpers -----------------------------------------------------
+    # ---------------------------------------------------------------------
+
+    def _make_agent(self, node: AiNodeConfig) -> AgentNode:
+        """Convert an *AiNodeConfig* into a fully-initialised :class:`AgentNode`."""
+        # Gather tools: global + context-registered + node-specific --------
+        registered_tools: Dict[str, BaseTool] = self.context_manager.get_all_tools()
+        tools: List[BaseTool] = list(registered_tools.values())  # copy
+
+        if getattr(node, "tools", None):
+            for cfg in node.tools:  # type: ignore[attr-defined]
+                t_obj = self.context_manager.get_tool(cfg.name)
+                if t_obj and t_obj.name not in {t.name for t in tools}:  # deduplicate by name
+                    tools.append(t_obj)
+
+        # Ensure chain-level tools are included ---------------------------
+        for t in self._chain_tools:
+            if t.name not in {tool.name for tool in tools}:
+                tools.append(t)
+
+        # Build AgentConfig ----------------------------------------------
+        model_settings = ModelSettings(
+            model=node.model,
+            temperature=getattr(node, "temperature", 0.7),
+            max_tokens=getattr(node, "max_tokens", None),
+            provider=str(getattr(node.provider, "value", node.provider)),
+        )
+
+        agent_cfg = AgentConfig(
+            name=node.name or node.id,
+            instructions=node.prompt,
+            model=node.model,
+            model_settings=model_settings,
+            tools=tools,
+        )
+
+        agent = AgentNode(config=agent_cfg, context_manager=self.context_manager)
+        agent.tools = tools  # expose on instance (used by AgentNode.execute)
+
+        # ------------------------------------------------------------------
+        # Register agent & tools with the ContextManager -------------------
+        # ------------------------------------------------------------------
+        try:
+            self.context_manager.register_agent(agent)
+        except ValueError:
+            # Already registered – ignore duplicate
+            pass
+
+        for tool in tools:
+            try:
+                self.context_manager.register_tool(tool)
+            except ValueError:
+                # Possible duplicate registration – safe to ignore
+                continue
+
+        return agent
+
+    @staticmethod
+    def _is_output_valid(node: NodeConfig, output: Any) -> bool:  # noqa: D401
+        """Validate *output* against ``node.output_schema``.  Returns *True* when
+        validation succeeds or no schema declared.
+
+        Supports both *dict*-based schemas and Pydantic ``BaseModel`` subclasses to
+        stay in sync with the flexible input validation strategy.
+        """
+        schema = getattr(node, "output_schema", None)
+        if not schema:
+            return True
+
+        # ------------------------------------------------------------------
+        # 1. Pydantic model --------------------------------------------------
+        # ------------------------------------------------------------------
+        try:
+            from pydantic import BaseModel, ValidationError
+
+            if isinstance(schema, type) and issubclass(schema, BaseModel):
+                try:
+                    schema.model_validate(output)  # type: ignore[arg-type]
+                    return True
+                except ValidationError:
+                    return False
+        except Exception:
+            # Pydantic may not be importable in constrained envs – fall back.
+            pass
+
+        # ------------------------------------------------------------------
+        # 2. dict schema {key: type_str} ------------------------------------
+        # ------------------------------------------------------------------
+        if isinstance(schema, dict):
+            for key, type_str in schema.items():
+                if key not in output:
+                    return False
+                try:
+                    expected_type = eval(type_str)
+                except Exception:  # noqa: S110
+                    # Unsafe eval on trusted config; if fails assume pass-through.
+                    continue
+                if not isinstance(output[key], expected_type):
+                    return False
+            return True
+
+        # Unknown schema format – consider valid to avoid false negatives
+        return True 

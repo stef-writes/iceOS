@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from pydantic import BaseModel, ValidationError
 
 
@@ -40,7 +42,7 @@ def coerce_value(value, target_type):
         raise ValueError(f"Could not coerce value '{value}' to {target_type.__name__}")
 
 
-def coerce_types(output: dict, schema: any) -> dict:
+def coerce_types(output: Dict[str, Any], schema: Any) -> Dict[str, Any]:
     """
     Coerces an output dictionary to conform to a given schema, which can be a
     Pydantic model or a simple type dictionary.

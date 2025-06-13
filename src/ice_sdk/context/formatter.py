@@ -1,13 +1,18 @@
+from __future__ import annotations
+
 from typing import Any, Callable, Dict, List, Optional
 
-from ice_sdk.models.node_models import ContextFormat
+from ice_sdk.models.node_models import ContextFormat, ContextRule
 
 
 class BaseContextFormatter:
     """Abstract base class for context formatters."""
 
     def format(
-        self, content: Any, rule, format_specs: Optional[Dict[str, Any]] = None
+        self,
+        content: Any,
+        rule: ContextRule | Any,  # 'Any' fallback for non-standard rule types
+        format_specs: Optional[Dict[str, Any]] = None,
     ) -> str:
         raise NotImplementedError
 
@@ -60,7 +65,10 @@ class ContextFormatter(BaseContextFormatter):
         return str(content)
 
     def format(
-        self, content: Any, rule, format_specs: Optional[Dict[str, Any]] = None
+        self,
+        content: Any,
+        rule: ContextRule | Any,
+        format_specs: Optional[Dict[str, Any]] = None,
     ) -> str:
         format_type = getattr(rule, "format", None)
         self._run_hooks(str(format_type), content)

@@ -13,9 +13,12 @@ addopts = """
     --verbose
     --tb=short
     --strict-markers
+    --cov=ice_sdk
+    --cov=ice_orchestrator
     --cov=app
     --cov-report=html
     --cov-report=term-missing
+    --cov-fail-under=54
     --junitxml=tests/output/test-results.xml
     --html=tests/output/test-report.html
     --self-contained-html
@@ -43,8 +46,6 @@ readme = "README.md"
 packages = [
   { include = "app", from = "src" },
   { include = "ice_sdk", from = "src" },
-  { include = "ice_tools", from = "src" },
-  { include = "ice_agents", from = "src" },
   { include = "ice_orchestrator", from = "src" }
 ]
 

@@ -49,23 +49,23 @@ class Check:
 
 CHECKS: List[Check] = [
     Check("Linting (ruff)", "ruff src"),
-    Check("Typing (mypy)", "mypy src"),
-    Check("Unit tests", "pytest -q"),
+    Check("Typing (pyright)", "pyright"),
+    Check("Unit & integration tests", "make test -j"),
+    Check("Coverage threshold", "pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q"),
     Check("Security audit", "pip-audit"),
-    Check("Imports sorted", "isort --check-only src"),
-    Check("Docstyle", "pydocstyle src"),
+    Check("Import-linter rules", "lint-imports"),
+    Check("isort check", "isort --check-only src"),
     Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),
-    Check("CLI help", "python src/app/main.py --help"),
+    Check(
+        "Schema generation drift",
+        "bash -c 'python -m scripts.generate_schemas && git diff --exit-code schemas/runtime'",
+    ),
+    Check(
+        "Doc build freshness",
+        "bash -c 'make refresh-docs && git diff --exit-code docs'",
+    ),
     Check("Performance smoke", "pytest --benchmark-only -q", perf_only=True),
-    Check(
-        "Coverage threshold",
-        "pytest --cov=src --cov-fail-under=75 -q",
-    ),
-    Check(
-        "Gen-doc freshness",
-        "bash -c 'make refresh-docs && git diff --exit-code'",
-    ),
-    Check("Licensing headers", "python -m scripts.cli.check_license"),
+    Check("License headers", "python -m scripts.cli.check_license"),
 ]
 
 

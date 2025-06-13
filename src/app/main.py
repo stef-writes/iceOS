@@ -11,10 +11,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
-from ice_sdk.utils.errors import add_exception_handlers
-from ice_sdk.context.manager import GraphContextManager
-from ice_sdk.utils.logging import setup_logger
 from ice_sdk import ToolService
+from ice_sdk.context.manager import GraphContextManager
+from ice_sdk.utils.errors import add_exception_handlers
+from ice_sdk.utils.logging import setup_logger
 
 # Setup logging
 logger = setup_logger()

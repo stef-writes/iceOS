@@ -64,3 +64,12 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+## Deprecation notice for `ice_tools`
+
+`ice_tools` currently exists as a *shim* that re-exports classes from
+`ice_sdk.tools` and `ice_sdk.providers`.
+
+* The shim raises `DeprecationWarning` at import time.
+* It will be **removed in v0.4** of the SDK.  Down-stream code should migrate
+  to `ice_sdk.tools` and `ice_sdk.providers` immediately.

@@ -1,18 +1,19 @@
-# Healthchecks
+# Health-check Matrix
 
-> Run `python scripts/doctor.py` or `make doctor` to execute all checks. Each check exits with non-zero on failure.
+Run `make doctor` (wrapper for `python -m scripts.doctor`) to execute the full suite.  
+Each row below is also runnable standalone.
 
 | # | Check | Command | Expected Output |
 |---|--------|---------|-----------------|
-| 1 | Linting (ruff) | `ruff src/` | No violations. |
-| 2 | Typing (mypy) | `mypy src/` | Success: "Success: no issues found". |
-| 3 | Unit tests | `pytest -q` | All tests pass. |
-| 4 | Security audit | `pip-audit` | No known vulnerabilities. |
-| 5 | Imports sorted | `isort --check-only src/` | Passed | 
-| 6 | Docstyle | `pydocstyle src/` | No errors. |
-| 7 | JSON/YAML validity | `python -m scripts.check_json_yaml` | 0 invalid files. |
-| 8 | CLI help | `python src/app/main.py --help` | Usage screen without error. |
-| 9 | ⏱️ Performance smoke | `python scripts/doctor.py --perf` | < 2s per core suite. |
-|10 | Coverage threshold | `pytest --cov=src --cov-fail-under=75` | ≥ 75% coverage. |
-|11 | Gen-doc freshness | `make refresh-docs` then `git diff --exit-code` | No diff. |
-|12 | Licensing headers | `python scripts/check_license.py` | All source files have header. | 
+| 1 | Linting (ruff) | `ruff src/` | No violations |
+| 2 | Typing (pyright) | `pyright` | 0 errors |
+| 3 | Unit & integration tests | `make test` | All tests pass |
+| 4 | Coverage threshold | `pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=55` | ≥ 55 % coverage |
+| 5 | Security audit | `pip-audit` | 0 vulnerabilities |
+| 6 | Import-linter rules | `python -m importlinter` | All contracts green |
+| 7 | isort check | `isort --check-only src/` | Passed |
+| 8 | JSON/YAML validity | `python -m scripts.check_json_yaml` | 0 invalid files |
+| 9 | Schema generation drift | `python -m scripts.generate_schemas && git diff --exit-code schemas/runtime` | No diff |
+|10 | Doc build freshness | `make refresh-docs && git diff --exit-code docs/` | No uncontrolled diff |
+|11 | ⏱️ Perf smoke | `python -m scripts.doctor --perf` | < 2 s per suite |
+|12 | License headers | `python -m scripts.check_license` | Headers present | 

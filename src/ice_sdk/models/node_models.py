@@ -6,15 +6,7 @@ from datetime import datetime
 from enum import Enum
 
 # Standard library -----------------------------------------------------------------
-from typing import (
-    Annotated,
-    Any,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Type,
-)
+from typing import Annotated, Any, Dict, List, Literal, Optional, Type
 from typing import Union
 from typing import Union as _UnionAlias
 
@@ -184,12 +176,13 @@ class BaseNodeConfig(BaseModel):
     @model_validator(mode="after")
     def _ensure_metadata(self) -> "BaseNodeConfig":
         if self.metadata is None:
-            self.metadata = NodeMetadata(
+            self.metadata = NodeMetadata(  # type: ignore[call-arg]
                 node_id=self.id,
                 node_type=self.type,
                 version="1.0.0",
                 description=f"Node {self.id} (type={self.type})",
             )
+            # Note: Pydantic model init static typing may not match runtime.
         return self
 
     # ------------------------------------------------------------------
@@ -216,11 +209,27 @@ class BaseNodeConfig(BaseModel):
 
     def process_input(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and coerce *input_data* according to *input_schema*."""
+        # ``input_schema`` can be either a plain ``dict`` or a ``BaseModel`` subclass. The
+        # latter does **not** implement ``items()`` which confuses static analysis and
+        # would raise at runtime.  Iterate only when a real mapping was provided.
+
         if not self.input_schema:
             return input_data
 
+        schema_items: list[tuple[str, Any]]
+        if isinstance(self.input_schema, dict):
+            schema_items = list(self.input_schema.items())
+            if not schema_items:  # empty dict – nothing to validate
+                return input_data
+        else:
+            # When a Pydantic ``BaseModel`` is supplied, we assume full validation is
+            # handled elsewhere (e.g., orchestrator).  Return the data unchanged so we
+            # don't raise false-positives at runtime.
+            return input_data
+
         result: Dict[str, Any] = {}
-        for key, expected_type in self.input_schema.items():
+
+        for key, expected_type in schema_items:
             if key not in input_data:
                 raise ValueError(f"Missing required input field: {key}")
 
@@ -391,19 +400,9 @@ class NodeExecutionResult(BaseModel):
     # TODO: Refactor or remove json_encoders for Pydantic v2 compatibility
 
 
-# --- Pydantic Schemas for Node Outputs ---
-class CatFactOutput(BaseModel):
-    fact: str
-    length: int
-
-
-class WordCountOutput(BaseModel):
-    word_count: int
-    text: str
-
-
-class TweetOutput(BaseModel):
-    tweet: str
+# NOTE: Demo output schemas removed during repository clean-up.  If
+# application-specific output models are required, declare them in the
+# respective domain package instead of the shared SDK.
 
 
 class ChainExecutionResult(BaseModel):

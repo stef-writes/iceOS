@@ -12,7 +12,8 @@ class DependencyGraph:
 
     def __init__(self, nodes: List[Any]):
         self.graph = nx.DiGraph()
-        self.node_levels = {}
+        # Mapping of node_id -> topological level (depth) ------------------
+        self.node_levels: Dict[str, int] = {}
         self._build_graph(nodes)
         self._assign_levels(nodes)
 
@@ -49,7 +50,7 @@ class DependencyGraph:
             self.node_levels[node_id] = node.level
 
     def get_level_nodes(self) -> Dict[int, List[str]]:
-        levels = {}
+        levels: Dict[int, List[str]] = {}
         for node_id, level in self.node_levels.items():
             if level not in levels:
                 levels[level] = []

@@ -2,9 +2,12 @@
 Gaffer - AI Workflow Orchestration System
 """
 
-from ice_orchestrator import LevelBasedScriptChain
-from app.main import app
+from fastapi import FastAPI
+
+from ice_orchestrator import ScriptChain
+
+app = FastAPI(title="IceOS API")
 
 __version__ = "0.1.0"
 
-__all__ = ["app", "LevelBasedScriptChain"]
+__all__ = ["app", "ScriptChain"]

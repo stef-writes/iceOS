@@ -1,6 +1,7 @@
 # iceOS Codebase Overview
 
-> Last updated: 2024-03-26
+> Last updated: 2025-06-13
+> Last updated: 2025-06-14
 
 ## Project Overview
 
@@ -17,18 +18,18 @@ The codebase follows a layered architecture:
 
 2. **Core SDK** (`ice_sdk/`)
    - Base abstractions and interfaces
+   - `ice_sdk.interfaces/` – lightweight `Protocol` contracts (e.g., `ScriptChainLike`) that let SDK reference outer layers without violating boundaries
    - Type-safe data models using Pydantic
    - Context management and utilities
 
-3. **Tool Layer** (`ice_tools/`)
-   - Side-effecting operations and integrations
-   - LLM provider implementations
-   - Built-in tool implementations
+3. **Executor & Tool Layer** (`ice_sdk/tools/` + `ice_sdk/executors/`)
+   - Deterministic tool implementations
+   - Node-executor registry (mode → executor)
+   - Built-in web/file search tools, etc.
 
-4. **Agent Layer** (`ice_agents/`)
-   - Agent orchestration and coordination
-   - Chain and Node implementations
-   - Agent-specific utilities
+4. **Agent Layer** (`ice_sdk/agents/`)
+   - AgentNode runtime for LLM reasoning
+   - Planner/Verifier agents (future)
 
 5. **Orchestration Engine** (`ice_orchestrator/`)
    - Workflow execution and management
@@ -69,6 +70,7 @@ The codebase follows a layered architecture:
 - Poetry for dependency management
 - Black and isort for formatting
 - Ruff for linting
+- Pyright (basic mode) and MyPy for static type checking — strictness will be increased incrementally
 - Import-linter for dependency rules
 
 ### Documentation
@@ -82,15 +84,14 @@ The codebase follows a layered architecture:
 .
 ├── src/                    # Source code
 │   ├── app/               # Application layer
-│   ├── ice_sdk/           # Core SDK
-│   ├── ice_tools/         # Tool implementations
-│   ├── ice_agents/        # Agent orchestration
+│   ├── ice_sdk/           # Core SDK (+ tools, agents, executors)
 │   └── ice_orchestrator/  # Workflow engine
 ├── tests/                 # Test suite
 ├── docs/                  # Documentation
 ├── examples/              # Example implementations
 ├── config/               # Configuration files
-├── schemas/              # JSON schemas
+├── htmlcov/               # Local coverage reports (git-ignored)
+├── schemas/               # JSON schemas (auto-generated)
 └── scripts/              # Utility scripts
 ```
 
@@ -99,6 +100,4 @@ The codebase follows a layered architecture:
 1. Install dependencies: `poetry install`
 2. Run tests: `make test`
 3. Start development server: `make dev`
-4. Check code quality: `make lint`
-
-For detailed information about specific components, refer to their respective README files and the `CAPABILITY_CATALOG.json` for available features. 
+4. Check code quality: `

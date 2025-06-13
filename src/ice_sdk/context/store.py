@@ -41,7 +41,7 @@ class ContextStore(BaseContextStore):
         if not os.path.exists(self.context_store_path):
             with open(self.context_store_path, "w") as f:
                 json.dump({}, f)
-        self.context_cache = {}
+        self.context_cache: Dict[str, Dict[str, Any]] = {}
         self._load_context()
         self.hooks: List[Callable[[str, str, Any], None]] = (
             []

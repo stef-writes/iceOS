@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+"""Utility script to generate JSON-Schema files from Pydantic models.
+
+Run with::
+
+    python -m scripts.generate_schemas
+
+The script writes schema files into ``schemas/runtime`` relative to the
+repository root.
+"""
+
+import json
+from pathlib import Path
+
+from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
+from ice_sdk.models.node_models import (
+    AiNodeConfig,
+    ChainExecutionResult,
+    NodeExecutionResult,
+    NodeMetadata,
+    ToolNodeConfig,
+)
+
+TARGET_DIR = Path(__file__).resolve().parent.parent / "schemas" / "runtime"
+TARGET_DIR.mkdir(parents=True, exist_ok=True)
+
+# Map descriptive filename → Pydantic model -----------------------------------
+MODELS = {
+    "AiNodeConfig.json": AiNodeConfig,
+    "ToolNodeConfig.json": ToolNodeConfig,
+    "NodeMetadata.json": NodeMetadata,
+    "NodeExecutionResult.json": NodeExecutionResult,
+    "ChainExecutionResult.json": ChainExecutionResult,
+    "LLMConfig.json": LLMConfig,
+    "AppConfig.json": AppConfig,
+    "MessageTemplate.json": MessageTemplate,
+}
+
+
+def main() -> None:  # noqa: D401
+    """Generate schema files under *TARGET_DIR*."""
+    for filename, model in MODELS.items():
+        schema = model.model_json_schema()  # type: ignore[attr-defined]
+        # Embedd provenance ---------------------------------------------------
+        schema.setdefault("$comment", f"generated from {model.__module__}:{model.__name__}")
+        (TARGET_DIR / filename).write_text(json.dumps(schema, indent=2, ensure_ascii=False))
+        print(f"✅  wrote {filename}")
+
+
+if __name__ == "__main__":
+    main() 

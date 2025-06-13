@@ -59,6 +59,7 @@ gaffer.egg-info/
 
 # Runtime data
 data/
+data/context_store.json
 
 # Database
 *.db

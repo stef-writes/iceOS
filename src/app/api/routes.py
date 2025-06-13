@@ -9,20 +9,19 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ValidationError
 
-from ice_orchestrator.chain_errors import CircularDependencyError
-from ice_orchestrator import LevelBasedScriptChain
-
 # Dependency injection functions from app.dependencies
 from app.dependencies import get_context_manager, get_tool_service
+from ice_orchestrator import ScriptChain
+from ice_sdk import ToolService
+from ice_sdk.agents.agent_node import AgentNode
+from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 from ice_sdk.models.node_models import (
     ChainExecutionResult,
     NodeConfig,
     NodeExecutionResult,
     NodeMetadata,
 )
-from ice_orchestrator.nodes.factory import node_factory
 from ice_sdk.utils.logging import logger
-from ice_sdk import ToolService
 
 router = APIRouter(prefix="/api/v1")
 
@@ -34,12 +33,13 @@ class NodeRequest(BaseModel):
     context: Optional[Dict[str, Any]] = None
 
 
-class ChainRequest(BaseModel):
-    """Request model for chain operations"""
-
+class WorkflowRequest(BaseModel):
+    """Workflow execution request."""
     nodes: List[NodeConfig]
-    context: Optional[Dict[str, Any]] = None
+    name: Optional[str] = None
+    max_parallel: int = 5
     persist_intermediate_outputs: bool = True
+    initial_context: Optional[Dict[str, Any]] = None
 
 
 @router.post("/nodes/text-generation", response_model=NodeExecutionResult)
@@ -50,27 +50,23 @@ async def create_text_generation_node(
 ):
     """Create and execute a text generation node"""
     try:
-        # Extract llm_config from the config object
-        llm_config = request.config.llm_config
-
-        # Validate and process input
-        try:
-            processed_context = request.config.process_input(request.context or {})
-        except ValueError as e:
-            return NodeExecutionResult(
-                success=False,
-                error=str(e),
-                metadata=NodeMetadata(
-                    node_id=request.config.id,
-                    node_type=request.config.type,
-                    error_type="validation_error",
-                ),
-            )
-
-        node = node_factory(
-            request.config, context_manager, llm_config, tool_service=tool_service
+        # Create agent config from node config
+        agent_config = AgentConfig(
+            id=request.config.id,
+            name=request.config.name,
+            description=request.config.description,
+            model_settings=ModelSettings(
+                provider=request.config.llm_config.provider,
+                model=request.config.llm_config.model,
+                temperature=request.config.llm_config.temperature,
+                max_tokens=request.config.llm_config.max_tokens,
+            ),
+            tools=request.config.tools if hasattr(request.config, 'tools') else [],
         )
-        result = await node.execute(processed_context)
+
+        # Create and execute agent
+        agent = AgentNode(agent_config, context_manager, tool_service)
+        result = await agent.execute(request.context or {})
 
         # If execution was successful, update the context manager with its output
         if result.success and result.output:
@@ -110,51 +106,21 @@ async def create_text_generation_node(
         )
 
 
-@router.post("/chains/execute", response_model=ChainExecutionResult)
-async def execute_chain(
-    request: ChainRequest,
-    tool_service: ToolService = Depends(get_tool_service),
-    context_manager=Depends(get_context_manager),
-):
-    """Execute a chain of nodes"""
+@router.post("/workflow")
+async def execute_workflow(request: WorkflowRequest) -> Dict[str, Any]:
+    """Execute a workflow."""
     try:
-        # Create chain with nodes, passing the shared context_manager and initial_context
-        chain = LevelBasedScriptChain(
+        chain = ScriptChain(
             nodes=request.nodes,
-            context_manager=context_manager,
+            name=request.name,
+            max_parallel=request.max_parallel,
             persist_intermediate_outputs=request.persist_intermediate_outputs,
-            tool_service=tool_service,
-            initial_context=request.context or {},
+            initial_context=request.initial_context,
         )
-
-        # Execute chain
         result = await chain.execute()
-        return result
-    except CircularDependencyError as e:
-        return ChainExecutionResult(
-            success=False,
-            error=str(e),
-            metadata=NodeMetadata(
-                node_id="chain", node_type="chain", error_type="circular_dependency"
-            ),
-        )
-    except ValueError as e:
-        return ChainExecutionResult(
-            success=False,
-            error=str(e),
-            metadata=NodeMetadata(
-                node_id="chain", node_type="chain", error_type="value_error"
-            ),
-        )
+        return result.model_dump()
     except Exception as e:
-        logger.error(f"Error executing chain: {str(e)}")
-        return ChainExecutionResult(
-            success=False,
-            error="Internal server error",
-            metadata=NodeMetadata(
-                node_id="chain", node_type="chain", error_type="internal_error"
-            ),
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/nodes/{node_id}/context")
@@ -225,9 +191,9 @@ async def execute_node(
 
 @router.post("/execute/chain", response_model=ChainExecutionResult)
 async def execute_chain_alias(
-    request: ChainRequest,
+    request: WorkflowRequest,
     tool_service: ToolService = Depends(get_tool_service),
     context_manager=Depends(get_context_manager),
 ):
     """Alias for executing a chain (generic path)."""
-    return await execute_chain(request, tool_service, context_manager)
+    return await execute_workflow(request)

@@ -1,7 +1,7 @@
 from fastapi import Request
 
-from ice_sdk.context.manager import GraphContextManager
 from ice_sdk import ToolService
+from ice_sdk.context.manager import GraphContextManager
 
 
 def get_tool_service(request: Request) -> ToolService:

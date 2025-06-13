@@ -1,7 +1,7 @@
 import sys
 import types
-from typing import Any, Optional
 from importlib import import_module as _import_module
+from typing import Any, Literal
 
 # ---------------------------------------------------------------------------
 # Minimal *opentelemetry* shim for test/dev environments.
@@ -12,8 +12,9 @@ class _Span:
     def __enter__(self) -> "_Span":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> Optional[bool]:  # noqa: ANN001
-        return False  # do not suppress exceptions
+    def __exit__(self, exc_type, exc_val, exc_tb) -> Literal[False]:  # noqa: ANN001
+        # `False` signals the context manager should *not* suppress exceptions.
+        return False
 
     # API compatibility helpers -------------------------------------------------
     def set_attribute(self, *_args: Any, **_kwargs: Any) -> None:  # noqa: D401
@@ -47,9 +48,9 @@ class _Status:  # pylint: disable=too-few-public-methods
 # ----------------------------------------------------------------------------
 
 _trace_mod = types.ModuleType("opentelemetry.trace")
-_trace_mod.get_tracer = lambda _name=None: _Tracer()  # type: ignore[assignment]
-_trace_mod.Status = _Status  # type: ignore[assignment]
-_trace_mod.StatusCode = _StatusCode  # type: ignore[assignment]
+_trace_mod.get_tracer = lambda _name=None: _Tracer()  # type: ignore[attr-defined,assignment]
+_trace_mod.Status = _Status  # type: ignore[attr-defined,assignment]
+_trace_mod.StatusCode = _StatusCode  # type: ignore[attr-defined,assignment]
 
 # Expose the sub-module so `from opentelemetry import trace` works
 sys.modules[__name__ + ".trace"] = _trace_mod

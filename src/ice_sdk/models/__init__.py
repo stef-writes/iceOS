@@ -21,8 +21,8 @@ import sys
 # ---------------------------------------------------------------------------
 # Canonical model modules live locally in this package
 # ---------------------------------------------------------------------------
-from . import node_models as _node_models  # noqa: F401 (re-export)
 from . import config as _config  # noqa: F401 (re-export)
+from . import node_models as _node_models  # noqa: F401 (re-export)
 
 # Re-export their public symbols at package top-level so that
 # ``from ice_sdk.models import NodeConfig`` keeps working.
@@ -37,28 +37,4 @@ globals().update(_config.__dict__)
 # ---------------------------------------------------------------------------
 
 sys.modules.setdefault("ice_sdk.models.node_models", _node_models)
-sys.modules.setdefault("ice_sdk.models.config", _config)
-
-# Legacy paths (from the reference application) – point them to the same
-# modules so that old imports resolve but emit a runtime warning to prompt
-# migration.
-try:
-    import warnings
-
-    warnings.filterwarnings(
-        "always", category=DeprecationWarning, module=r"^app\.models(\.|$)"
-    )
-
-    def _register_legacy(path: str, target_module):  # noqa: D401 (helper)
-        sys.modules.setdefault(path, target_module)
-        warnings.warn(
-            f"Importing '{path}' is deprecated.  Use 'ice_sdk.models' instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    _register_legacy("app.models.node_models", _node_models)
-    _register_legacy("app.models.config", _config)
-except Exception:  # pragma: no cover – defensive; warn filters might fail
-    sys.modules.setdefault("app.models.node_models", _node_models)
-    sys.modules.setdefault("app.models.config", _config) 
+sys.modules.setdefault("ice_sdk.models.config", _config) 

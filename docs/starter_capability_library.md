@@ -21,6 +21,28 @@
 * **Frosty / other agents** — need deterministic utilities for planning.
 * **SRE** — want observable, well-guarded defaults.
 
+### 2.1 User-Defined Context Blocks
+*Give domain experts fine-grained control over what data/outputs flow into subsequent reasoning steps.*
+
+| Facet | Detail |
+|-------|--------|
+| **What** | A *Context Block* is a named collection of nodes (or sub-graphs) whose **outputs + metadata** are aggregated into a single object available to later nodes via the path `context.<blockName>` |  
+| **Why** | • User can freeze intermediate insight (“sales_Q2”), compare branches, or feed a custom summary into an LLM prompt.<br>• Enables AB testing & iterative refinement without re-wiring entire DAGs. |  
+| **UI Flow** | Canvas → user selects nodes → Right-click **➜ Create Context Block…** → Modal: name, colour, *aggregation policy* (raw, last N, summarise LLM, reduce function). |  
+| **Spec Impact** | `IceWorkflowSpec` gains optional `context_blocks` section:  
+```json
+"context_blocks": {
+  "sales_Q2": {
+    "nodes": ["load_sales", "aggregate_metrics"],
+    "aggregation": "summarize",
+    "visibility": "public"
+  }
+}
+``` |  
+| **Execution** | Orchestrator collects designated node outputs in `NodeExecutor` post-run hook, stores under `GraphContextManager`. Input mappings can reference placeholders inside the block. |  
+| **Guardrails** | Each block inherits depth/token budgets; can override via `max_tokens`, `retention_policy` fields. |  
+| **Moat Boost** | Increases *customisation* and *governance* differentiation vs. crewAI; context blocks can be versioned & shared → ecosystem lock-in. |
+
 ---
 
 ## 3  High-Level Feature List
@@ -107,5 +129,14 @@
 | **Entry-point group for nodes** | `"ice.nodes"`                                                                                                                                         |
 | **Versioning**                  | SemVer; breaking changes bump major.                                                                                                                  |
 | **Card Generation**             | Each new capability automatically registered in the **Capability Catalog** with default card fields populated from `setup.cfg` metadata or `__doc__`. |
+
+---
+
+## 7  Roadmap & Milestones
+
+### Phase 1 (2 → 6 wks) – Autonomous ≤ 30-Node Flows
+| Capability | Exit Criteria |
+|------------|--------------|
+| PlannerAgent, ToolSelector, Verifier, automatic DAG assembly **+ Context Blocks** | Frosty completes "research → summarise → publish" unassisted **and** user defines & reuses at least one Context Block in the flow |
 
 ---

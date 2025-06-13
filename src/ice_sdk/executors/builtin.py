@@ -1,0 +1,136 @@
+# ruff: noqa: E402
+from __future__ import annotations
+
+"""Built-in node executors for *ice_sdk*.
+
+The module is imported for its side-effects by :pymod:`ice_sdk.executors`.
+It registers executors for the two node modes that ship with the SDK:
+
+* ``ai``   – LLM-powered agent node
+* ``tool`` – deterministic tool invocation
+"""
+
+from datetime import datetime
+from typing import Any, Dict, TypeAlias
+
+from ice_sdk.agents.agent_node import AgentNode
+from ice_sdk.interfaces.chain import ScriptChainLike
+from ice_sdk.models.agent_models import AgentConfig, ModelSettings
+from ice_sdk.models.node_models import (
+    AiNodeConfig,
+    NodeConfig,
+    NodeExecutionResult,
+    NodeMetadata,
+)
+from ice_sdk.node_registry import register_node
+from ice_sdk.tools.base import BaseTool
+
+# Alias used in annotations locally ------------------------------------------
+ScriptChain: TypeAlias = ScriptChainLike
+
+# ---------------------------------------------------------------------------
+# Helper – build AgentNode from AiNodeConfig (duplicated from ScriptChain._make_agent)
+# ---------------------------------------------------------------------------
+
+def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
+    """Build or fetch a cached AgentNode instance for *node*."""
+    agent_cache: Dict[str, AgentNode] = getattr(chain, "_agent_cache")
+    existing = agent_cache.get(node.id)
+    if existing is not None:
+        return existing
+
+    # Collect tools ------------------------------------------------------
+    registered_tools: Dict[str, BaseTool] = chain.context_manager.get_all_tools()
+    tools: list[BaseTool] = list(registered_tools.values())
+
+    # Node-specific tools -------------------------------------------------
+    if node.tools:
+        for cfg in node.tools:  # type: ignore[attr-defined]
+            t_obj = chain.context_manager.get_tool(cfg.name)
+            if t_obj and t_obj.name not in {t.name for t in tools}:
+                tools.append(t_obj)
+
+    # Chain-level tools ---------------------------------------------------
+    for t in getattr(chain, "_chain_tools", []):
+        if t.name not in {tool.name for tool in tools}:
+            tools.append(t)
+
+    model_settings = ModelSettings(
+        model=node.model,
+        temperature=getattr(node, "temperature", 0.7),
+        max_tokens=getattr(node, "max_tokens", None),
+        provider=str(getattr(node.provider, "value", node.provider)),
+    )
+
+    agent_cfg = AgentConfig(
+        name=node.name or node.id,
+        instructions=node.prompt,
+        model=node.model,
+        model_settings=model_settings,
+        tools=tools,
+    )
+
+    agent = AgentNode(config=agent_cfg, context_manager=chain.context_manager)
+    agent.tools = tools
+
+    # Register with context manager
+    try:
+        chain.context_manager.register_agent(agent)
+    except ValueError:
+        pass
+
+    for tool in tools:
+        try:
+            chain.context_manager.register_tool(tool)
+        except ValueError:
+            continue
+
+    agent_cache[node.id] = agent
+    return agent
+
+
+# ---------------------------------------------------------------------------
+# "ai" executor ------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@register_node("ai")
+async def ai_executor(chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]) -> NodeExecutionResult:
+    """Executor for LLM-powered *ai* nodes."""
+
+    if not isinstance(cfg, AiNodeConfig):
+        raise TypeError("ai_executor received incompatible cfg type")
+
+    agent = _build_agent(chain, cfg)
+    return await agent.execute(ctx)
+
+
+# ---------------------------------------------------------------------------
+# "tool" executor ----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@register_node("tool")
+async def tool_executor(chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]) -> NodeExecutionResult:
+    """Executor for deterministic tool nodes."""
+
+    from ice_sdk.models.node_models import ToolNodeConfig
+
+    if not isinstance(cfg, ToolNodeConfig):
+        raise TypeError("tool_executor received incompatible cfg type")
+
+    tool_name = cfg.tool_name
+    tool_args = cfg.tool_args or {}
+    output = await chain.context_manager.execute_tool(tool_name, **tool_args)
+
+    result = NodeExecutionResult(
+        success=True,
+        output=output,
+        metadata=NodeMetadata(
+            node_id=cfg.id,
+            node_type="tool",
+            name=cfg.name,
+            start_time=datetime.utcnow(),
+            end_time=datetime.utcnow(),
+        ),
+        execution_time=0.0,
+    )
+    return result 

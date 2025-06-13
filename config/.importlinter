@@ -1,8 +1,6 @@
 [importlinter]
 root_packages=
     ice_sdk
-    ice_agents
-    ice_tools
     ice_orchestrator
     app
 
@@ -22,7 +20,5 @@ name=Packages must respect onion-layer architecture
 type=layers
 layers=
     app
-    ice_agents
     ice_orchestrator
-    ice_tools
     ice_sdk 

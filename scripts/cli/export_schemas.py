@@ -24,11 +24,7 @@ from typing import Dict, Type
 from pydantic import BaseModel  # type: ignore
 
 from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
-from ice_sdk.models.node_models import (
-    AiNodeConfig,
-    ToolConfig,
-    ToolNodeConfig,
-)
+from ice_sdk.models.node_models import AiNodeConfig, ToolConfig, ToolNodeConfig
 
 # ---------------------------------------------------------------------------
 # Configuration
