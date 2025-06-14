@@ -1,0 +1,80 @@
+"""
+iceos meta-package
+==================
+A *convenience wrapper* that bundles the primary iceOS building blocks under a
+single import namespace.  Installing `iceos` pulls in the following
+sub-packages as dependencies (declared in *pyproject.toml*):
+
+    • `ice_sdk`          – Core abstractions & runtime helpers
+    • `ice_orchestrator` – Workflow engine for distributed execution
+    • `app`              – Reference application implementation
+
+Importing `iceos` re-exports those modules so they are available as:
+
+```python
+import iceos
+
+iceos.sdk           # the `ice_sdk` package
+iceos.orchestrator  # the `ice_orchestrator` package
+iceos.app           # the `app` package
+```
+
+For quick scripts the meta-package also surfaces commonly used classes:
+
+```python
+from iceos import BaseNode, BaseTool
+```
+
+The module carries **no side-effects** other than importing the underlying
+packages; therefore it does not violate the layer boundaries defined in
+`ADR` docs (SDK never imports App, etc.).
+"""
+
+from __future__ import annotations
+
+import importlib
+import sys
+from types import ModuleType
+from typing import Final
+
+# Map canonical upstream package names to the alias under the `iceos` namespace
+_PACKAGES: Final[dict[str, str]] = {
+    "ice_sdk": "sdk",
+    "ice_orchestrator": "orchestrator",
+    "app": "app",
+}
+
+for _pkg, _alias in _PACKAGES.items():
+    try:
+        _module: ModuleType = importlib.import_module(_pkg)
+    except ModuleNotFoundError:
+        # The sub-package may be intentionally omitted in minimal installs
+        continue
+
+    # Register as submodule so `import iceos.<alias>` works
+    sys.modules[f"{__name__}.{_alias}"] = _module
+    # And expose on the `iceos` global namespace (e.g., `iceos.sdk`)
+    globals()[_alias] = _module
+
+# Surface key symbols for convenience, if `ice_sdk` is present
+try:
+    from ice_sdk.base_node import BaseNode as BaseNode  # type: ignore
+    from ice_sdk.tools.base import BaseTool as BaseTool  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover – optional dependency missing
+    # Keep placeholders to avoid AttributeError; real code should depend on
+    # `ice_sdk` being installed if it needs these classes.
+    class _Missing:  # type: ignore
+        def __getattr__(self, name: str) -> None:  # noqa: D401
+            raise ModuleNotFoundError(
+                "ice_sdk not installed – install the full `iceos` bundle or "
+                "add `ice_sdk` to your dependencies"
+            )
+
+    BaseNode = BaseTool = _Missing()  # type: ignore
+
+# Public API of the meta-package
+__all__: Final[list[str]] = [
+    *_PACKAGES.values(),  # ["sdk", "orchestrator", "app"]
+    "BaseNode",
+    "BaseTool",
+] 

@@ -35,7 +35,7 @@ multi_line_output = 3
 line_length = 88
 
 [tool.poetry]
-name = "ice-os"
+name = "iceos"
 version = "0.1.0"
 description = "iceOS – Intelligent Composable Environment platform"
 license = "MIT"
@@ -46,7 +46,8 @@ readme = "README.md"
 packages = [
   { include = "app", from = "src" },
   { include = "ice_sdk", from = "src" },
-  { include = "ice_orchestrator", from = "src" }
+  { include = "ice_orchestrator", from = "src" },
+  { include = "iceos", from = "src" }
 ]
 
 [tool.poetry.dependencies]
