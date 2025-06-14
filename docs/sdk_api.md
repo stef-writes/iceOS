@@ -6,8 +6,8 @@ change without notice**.
 
 ## Promise
 
-* The identifiers listed below are exported via `ice_sdk.__all__` and will not
-  be removed or receive breaking signature changes in a **minor** version.
+* The identifiers listed below are exported via `ice_sdk.__all__` **and re-exported unmodified under `iceos.sdk`**.
+* They will not be removed or receive breaking signature changes in a **minor** version.
 * Deprecations are announced at least **one minor version** in advance via
   `DeprecationWarning`.
 * Breaking removals are only allowed in a **major** version bump.
@@ -21,14 +21,18 @@ change without notice**.
 |          | `LLMConfig` · `MessageTemplate` |
 | Context  | `GraphContextManager` |
 
-*(See `ice_sdk/__init__.py::__all__` for the single source of truth.)*
+*(See `ice_sdk/__init__.py::__all__` — or `iceos.sdk.__all__` — for the single source of truth.)*
 
 ## Extending the SDK
 
 ### 1. Custom deterministic **Tool**
 
 ```python
+# Either import directly from the SDK …
 from ice_sdk.tools.base import function_tool
+
+# … or use the meta-package convenience alias
+from iceos.sdk.tools.base import function_tool  # identical symbol
 
 @function_tool()
 async def multiply(a: int, b: int) -> int:
@@ -65,5 +69,12 @@ it to an `AgentNode` under the hood.
 
 ---
 
-Last updated: 2025-06-13
-+Last updated: 2025-06-14 
+Last updated: 2025-06-14
+
+```python
+# Convenience import via meta-package
+from iceos import BaseNode
+
+# Or the canonical path
+from ice_sdk.base_node import BaseNode
+``` 
