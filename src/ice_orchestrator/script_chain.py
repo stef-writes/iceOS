@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
@@ -34,8 +34,8 @@ from ice_sdk.models.node_models import (
 )
 from ice_sdk.node_registry import get_executor
 from ice_sdk.tools.base import BaseTool
-from opentelemetry import trace
-from opentelemetry.trace import Status, StatusCode
+from opentelemetry import trace  # type: ignore[import-not-found]
+from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
 # ---------------------------------------------------------------------------
 # Tracing & logging setup ----------------------------------------------------
@@ -96,6 +96,10 @@ class ScriptChain(BaseScriptChain):
         chain_id: Optional[str] = None,
         failure_policy: FailurePolicy = FailurePolicy.CONTINUE_POSSIBLE,
         validate_outputs: bool = True,
+        token_ceiling: int | None = None,
+        depth_ceiling: int | None = None,
+        token_guard: TokenGuard | None = None,
+        depth_guard: DepthGuard | None = None,
     ) -> None:
         """Initialize script chain.
         
@@ -112,6 +116,10 @@ class ScriptChain(BaseScriptChain):
             chain_id: Unique chain identifier
             failure_policy: Failure handling policy
             validate_outputs: Whether to validate node outputs
+            token_ceiling: Token ceiling for chain execution
+            depth_ceiling: Depth ceiling for chain execution
+            token_guard: Token guard for chain execution
+            depth_guard: Depth guard for chain execution
         """
         self.chain_id = chain_id or f"chain_{datetime.utcnow().isoformat()}"
         super().__init__(
@@ -127,6 +135,11 @@ class ScriptChain(BaseScriptChain):
             failure_policy,
         )
         self.validate_outputs = validate_outputs
+        self.token_ceiling = token_ceiling
+        self.depth_ceiling = depth_ceiling
+        # External guard callbacks --------------------------------------
+        self._token_guard = token_guard
+        self._depth_guard = depth_guard
 
         # Build dependency graph
         self.graph = DependencyGraph(nodes)
@@ -162,7 +175,18 @@ class ScriptChain(BaseScriptChain):
                 "node_count": len(self.nodes),
             },
         ) as chain_span:
-            for level_num in sorted(self.levels.keys()):
+            for level_idx, level_num in enumerate(sorted(self.levels.keys()), start=1):
+
+                # External depth guard takes priority --------------------
+                if self._depth_guard and not self._depth_guard(level_idx, self.depth_ceiling):
+                    errors.append("Depth guard aborted execution")
+                    break
+
+                if self.depth_ceiling is not None and level_idx > self.depth_ceiling:
+                    logger.warning("Depth ceiling reached (%s); aborting further levels.", self.depth_ceiling)
+                    errors.append("Depth ceiling reached")
+                    break
+
                 level_node_ids = self.levels[level_num]
                 level_nodes = [self.nodes[node_id] for node_id in level_node_ids]
 
@@ -174,6 +198,25 @@ class ScriptChain(BaseScriptChain):
                     if result.success:
                         if hasattr(result, "usage") and result.usage:
                             self.metrics.update(node_id, result)
+
+                            # External token guard hook -------------------
+                            if self._token_guard and not self._token_guard(
+                                self.metrics.total_tokens, self.token_ceiling
+                            ):
+                                errors.append("Token guard aborted execution")
+                                break
+
+                            # Token ceiling enforcement ----------------------
+                            if (
+                                self.token_ceiling is not None
+                                and self.metrics.total_tokens > self.token_ceiling
+                            ):
+                                logger.warning(
+                                    "Token ceiling exceeded (%s); aborting chain.",
+                                    self.token_ceiling,
+                                )
+                                errors.append("Token ceiling exceeded")
+                                break
                     else:
                         errors.append(f"Node {node_id} failed: {result.error}")
 
@@ -205,7 +248,7 @@ class ScriptChain(BaseScriptChain):
                 start_time=start_time,
                 end_time=end_time,
                 duration=duration,
-            ),
+            ),  # type: ignore[call-arg]
             execution_time=duration,
             token_stats=self.metrics.as_dict(),
         )
@@ -363,7 +406,7 @@ class ScriptChain(BaseScriptChain):
             # --------------------------------------------------------------
             # Dispatch via the *Node Registry* -----------------------------
             # --------------------------------------------------------------
-            executor = get_executor(getattr(node, "type", None))
+            executor = get_executor(str(getattr(node, "type", "")))  # type: ignore[arg-type]
             result = await executor(self, node, input_data)
 
             # Persist *output* to the context store if configured ----------
@@ -398,8 +441,10 @@ class ScriptChain(BaseScriptChain):
                 name=getattr(node, "name", None),
                 start_time=datetime.utcnow(),
                 end_time=datetime.utcnow(),
+            )  # type: ignore[arg-type]
+            failure_result = NodeExecutionResult(  # type: ignore[call-arg]
+                success=False, error=str(e), metadata=error_meta
             )
-            failure_result = NodeExecutionResult(success=False, error=str(e), metadata=error_meta)
 
             if self.failure_policy == FailurePolicy.HALT:
                 raise
@@ -440,7 +485,7 @@ class ScriptChain(BaseScriptChain):
             model=node.model,
             model_settings=model_settings,
             tools=tools,
-        )
+        )  # type: ignore[call-arg]
 
         agent = AgentNode(config=agent_cfg, context_manager=self.context_manager)
         agent.tools = tools  # expose on instance (used by AgentNode.execute)
@@ -508,4 +553,10 @@ class ScriptChain(BaseScriptChain):
             return True
 
         # Unknown schema format – consider valid to avoid false negatives
-        return True 
+        return True
+
+if TYPE_CHECKING:  # pragma: no cover
+    from ice_sdk.interfaces.guardrails import TokenGuard, DepthGuard
+else:  # Runtime no-op fallbacks
+    from typing import Any as TokenGuard  # type: ignore
+    from typing import Any as DepthGuard  # type: ignore 

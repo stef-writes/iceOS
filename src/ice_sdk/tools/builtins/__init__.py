@@ -9,4 +9,11 @@ without breaking downstream integrations.  It will be removed entirely in the
 next major version.
 """
 
-__all__: list[str] = [] 
+from .deterministic import HttpRequestTool, SleepTool, SumTool
+
+# Public re-export for convenience -------------------------------------------------
+__all__: list[str] = [
+    "SleepTool",
+    "HttpRequestTool",
+    "SumTool",
+] 

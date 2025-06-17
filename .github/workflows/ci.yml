@@ -41,5 +41,10 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: poetry run pytest -q
 
+      - name: Run full health-check matrix (make doctor)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: poetry run make doctor
+
       - name: CLI help sanity check
         run: poetry run python src/app/main.py --help 

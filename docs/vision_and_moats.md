@@ -25,8 +25,8 @@ copilot UI.  This document separates **what is available now** from
 | **FastAPI Application** (`src/app`) | • Root health-check `/`  • V1 API endpoints for executing a single node or a full chain |
 | **Orchestration Engine** (`ice_orchestrator`) | • Async `ScriptChain` executes `AiNode` & `ToolNode` DAGs  • Basic dependency graph |
 | **Core SDK** (`ice_sdk`) | • Pydantic node / tool configs  • `AgentNode` wrapper for LLM calls  • `LLMService` with OpenAI, Anthropic, Gemini & DeepSeek handlers  • `GraphContextManager`  • **New** `ice_sdk.interfaces` module that exposes lightweight `Protocol`s (e.g. `ScriptChainLike`) so inner layers never import outer ones |
-| **Tools** (`ice_sdk.tools`) | • `BaseTool` abstraction  • Example stubs: `WebSearchTool`, `FileSearchTool`, `ComputerTool` |
-| **Quality Tooling** | • Ruff & isort  • Black  • MyPy (strict)  • Pyright (basic mode)  • Import-linter contracts  • Unit & integration tests (coverage ≥55 %) |
+| **Tools** (`ice_sdk.tools`) | • `BaseTool` abstraction  • Hosted: `WebSearchTool`, `FileSearchTool`, `ComputerTool`  • Deterministic: `SleepTool`, `HttpRequestTool`, `SumTool` |
+| **Quality Tooling** | • Ruff & isort  • Black  • MyPy (strict)  • Pyright (basic mode)  • Import-linter contracts  • Pre-commit with auto-format  • Unit & integration tests (coverage ≥56 %) |
 
 **Not implemented yet**  
 Planner / Verifier / Ensemble agents • Depth/Token/Semantic guardrails •

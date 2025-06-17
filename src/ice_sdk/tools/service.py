@@ -63,8 +63,16 @@ class ToolService:  # noqa: D101 – simple façade
         # Import *inside* the method to avoid potential circular imports if
         # user code also imports from `ice_sdk` at module top-level.
         from .hosted import ComputerTool, FileSearchTool, WebSearchTool  # noqa: WPS433
+        from .builtins import SleepTool, HttpRequestTool, SumTool  # noqa: WPS433
 
-        for tool_cls in (WebSearchTool, FileSearchTool, ComputerTool):
+        for tool_cls in (
+            WebSearchTool,
+            FileSearchTool,
+            ComputerTool,
+            SleepTool,
+            HttpRequestTool,
+            SumTool,
+        ):
             try:
                 self.register(tool_cls)
             except Exception:  # noqa: BLE001 – best-effort registration
