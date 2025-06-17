@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 99
+src = ["src", "tests", "scripts"]
+
+# Ignore vendored / generated / env directories
+extend-exclude = [
+    ".venv",
+    "dist",
+    "build",
+    "htmlcov",
+] 

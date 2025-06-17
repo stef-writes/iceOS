@@ -136,6 +136,7 @@ class GraphContextManager:
             import json
 
             from ice_sdk.utils.token_counter import TokenCounter
+            from ice_sdk.models.config import ModelProvider
 
             if isinstance(content, str):
                 serialised = content
@@ -145,7 +146,7 @@ class GraphContextManager:
                 except TypeError:
                     serialised = str(content)
 
-            current_tokens = TokenCounter.estimate_tokens(serialised, model="", provider="custom")
+            current_tokens = TokenCounter.estimate_tokens(serialised, model="", provider=ModelProvider.CUSTOM)
 
             if self.max_tokens and current_tokens > self.max_tokens:
                 # Truncate string representation to fit token budget (≈4 chars/token)

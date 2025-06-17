@@ -4,6 +4,8 @@ from ..context.manager import GraphContextManager
 from ..models.agent_models import AgentConfig
 from ..models.node_models import NodeExecutionResult
 from ..tools.base import BaseTool
+from ..models.config import LLMConfig, ModelProvider
+from ..providers.costs import calculate_cost
 
 
 class AgentNode:
@@ -74,7 +76,6 @@ class AgentNode:
             SchemaValidationError,
             validate_or_raise,
         )
-        from ..models.config import LLMConfig, ModelProvider
         from ..models.node_models import NodeMetadata, UsageMetadata
 
         logger = logging.getLogger(__name__)
@@ -220,7 +221,14 @@ class AgentNode:
             prompt_tokens=aggregate_usage["prompt_tokens"],
             completion_tokens=aggregate_usage["completion_tokens"],
             total_tokens=aggregate_usage["total_tokens"],
-            cost=0.0,  # TODO: wire cost calculation per provider
+            cost=float(
+                calculate_cost(
+                    provider=ModelProvider(llm_config.provider or "openai"),
+                    model=llm_config.model or "unknown",
+                    prompt_tokens=aggregate_usage["prompt_tokens"],
+                    completion_tokens=aggregate_usage["completion_tokens"],
+                )
+            ),
             api_calls=min(round_idx + 1, MAX_ROUNDS),
             model=llm_config.model or "unknown",
             node_id=self.config.name,

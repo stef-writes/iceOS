@@ -36,8 +36,20 @@ async def lifespan(app: FastAPI):
             break
 
     # Create singleton services and attach to app state so they can be injected elsewhere.
-    app.state.tool_service = ToolService()  # type: ignore[attr-defined]
-    app.state.context_manager = GraphContextManager()  # type: ignore[attr-defined]
+    tool_service = ToolService()
+    ctx_manager = GraphContextManager()
+
+    # Register built-in tools (best-effort) -----------------------------
+    for tool_name in tool_service.available_tools():
+        try:
+            tool_obj = tool_service.get(tool_name)
+            ctx_manager.register_tool(tool_obj)
+            logger.info("Tool '%s' registered with context manager", tool_name)
+        except Exception as exc:  # pragma: no cover – missing deps etc.
+            logger.warning("Tool '%s' could not be registered: %s", tool_name, exc)
+
+    app.state.tool_service = tool_service  # type: ignore[attr-defined]
+    app.state.context_manager = ctx_manager  # type: ignore[attr-defined]
 
     # Load all relevant API keys from environment and make them available if needed by SDKs
     # The actual key used by an LLM call will be the one specified in the Node's LLMConfig.

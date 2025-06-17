@@ -29,8 +29,8 @@ class BaseTool(BaseModel):
     # Tool metadata ----------------------------------------------------------------
     name: ClassVar[str] = ""
     description: ClassVar[str] = ""
-    parameters_schema: ClassVar[Optional[Dict[str, Any]]] = None
-    output_schema: ClassVar[Optional[Dict[str, Any]]] = None
+    parameters_schema: ClassVar[Dict[str, Any] | None] = None
+    output_schema: ClassVar[Dict[str, Any] | None] = None
 
     async def run(self, **kwargs) -> Any:
         """Execute the tool with the given arguments."""
