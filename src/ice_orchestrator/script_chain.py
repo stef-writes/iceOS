@@ -135,6 +135,7 @@ class ScriptChain(BaseScriptChain):
             failure_policy,
         )
         self.validate_outputs = validate_outputs
+        self.use_cache = True  # chain-level toggle, may be exposed later
         self.token_ceiling = token_ceiling
         self.depth_ceiling = depth_ceiling
         # External guard callbacks --------------------------------------
@@ -152,6 +153,9 @@ class ScriptChain(BaseScriptChain):
         self._agent_cache: Dict[str, AgentNode] = {}
         # Retain reference to chain-level tools ---------------------------
         self._chain_tools: List[BaseTool] = tools or []
+
+        from ice_sdk.cache import global_cache  # local import to avoid cycles
+        self._cache = global_cache()
 
         logger.info(
             "Initialized ScriptChain with %d nodes across %d levels",
@@ -410,11 +414,34 @@ class ScriptChain(BaseScriptChain):
 
         while attempt <= max_retries:
             try:
+                # ------------------------------------------------------
+                # Cache lookup (opt-in) --------------------------------
+                # ------------------------------------------------------
+                import json, hashlib
+
+                cache_key: str | None = None
+                if self.use_cache and getattr(node, "use_cache", True):
+                    try:
+                        payload = {
+                            "node_id": node_id,
+                            "input": input_data,
+                        }
+                        serialized = json.dumps(payload, sort_keys=True, default=str)
+                        cache_key = hashlib.sha256(serialized.encode()).hexdigest()
+                        cached = self._cache.get(cache_key)
+                        if cached is not None:
+                            return cached
+                    except Exception:
+                        # Fall back – never fail due to cache issues
+                        cache_key = None
                 # ----------------------------------------------------------
                 # Dispatch via the *Node Registry* -------------------------
                 # ----------------------------------------------------------
                 executor = get_executor(str(getattr(node, "type", "")))  # type: ignore[arg-type]
                 result = await executor(self, node, input_data)
+                # Store in cache if enabled & succeeded ------------------
+                if cache_key and result.success:
+                    self._cache.set(cache_key, result)
 
                 # Attach retry metadata -----------------------------------
                 if result.metadata:
