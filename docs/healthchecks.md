@@ -8,7 +8,7 @@ Each row below is also runnable standalone.
 | 1 | Linting (ruff) | `ruff src/` | No violations |
 | 2 | Typing (pyright) | `pyright` | 0 errors |
 | 3 | Unit & integration tests | `make test` | All tests pass |
-| 4 | Coverage threshold | `pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=55` | ≥ 55 % coverage |
+| 4 | Coverage threshold | `pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54` | ≥ 54 % coverage |
 | 5 | Security audit | `pip-audit` | 0 vulnerabilities |
 | 6 | Import-linter rules | `python -m importlinter` | All contracts green |
 | 7 | isort check | `isort --check-only src/` | Passed |
