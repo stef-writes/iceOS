@@ -68,13 +68,15 @@ class BaseScriptChain(ABC):
             for tool in tools:
                 self.context_manager.register_tool(tool)
         
-        # Set initial context
-        if initial_context:
-            self.context_manager.set_context(GraphContext(
+        # Set initial context – always create a workflow-scoped context
+        context_metadata = initial_context or {}
+        self.context_manager.set_context(
+            GraphContext(
                 session_id=self.name,
-                metadata=initial_context,
-                execution_id=f"{self.name}_{datetime.utcnow().isoformat()}"
-            ))
+                metadata=context_metadata,
+                execution_id=f"{self.name}_{datetime.utcnow().isoformat()}",
+            )
+        )
 
     @abstractmethod
     async def execute(self) -> NodeExecutionResult:

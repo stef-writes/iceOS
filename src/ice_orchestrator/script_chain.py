@@ -402,53 +402,86 @@ class ScriptChain(BaseScriptChain):
             execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
         )
 
-        try:
-            # --------------------------------------------------------------
-            # Dispatch via the *Node Registry* -----------------------------
-            # --------------------------------------------------------------
-            executor = get_executor(str(getattr(node, "type", "")))  # type: ignore[arg-type]
-            result = await executor(self, node, input_data)
+        max_retries: int = int(getattr(node, "retries", 0))
+        base_backoff: float = float(getattr(node, "backoff_seconds", 0.0))
 
-            # Persist *output* to the context store if configured ----------
-            if self.persist_intermediate_outputs and result.output is not None:
-                self.context_manager.update_node_context(
-                    node_id=node_id,
-                    content=result.output,
-                    execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
-                )
+        attempt = 0
+        last_error: Exception | None = None
 
-            # ------------------------------------------------------------------
-            # 3. Optional output validation ------------------------------------
-            # ------------------------------------------------------------------
-            if self.validate_outputs and getattr(node, "output_schema", None):
-                if not self._is_output_valid(node, result.output):
-                    result.success = False
-                    err_msg = (
-                        f"Output validation failed for node '{node_id}' against declared schema"
+        while attempt <= max_retries:
+            try:
+                # ----------------------------------------------------------
+                # Dispatch via the *Node Registry* -------------------------
+                # ----------------------------------------------------------
+                executor = get_executor(str(getattr(node, "type", "")))  # type: ignore[arg-type]
+                result = await executor(self, node, input_data)
+
+                # Attach retry metadata -----------------------------------
+                if result.metadata:
+                    result.metadata.retry_count = attempt
+
+                # Persist *output* to the context store if configured ------
+                if self.persist_intermediate_outputs and result.output is not None:
+                    self.context_manager.update_node_context(
+                        node_id=node_id,
+                        content=result.output,
+                        execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
                     )
-                    result.error = err_msg if result.error is None else result.error + "; " + err_msg
 
-            return result
+                # ----------------------------------------------------------
+                # Optional output validation -------------------------------
+                # ----------------------------------------------------------
+                if self.validate_outputs and getattr(node, "output_schema", None):
+                    if not self._is_output_valid(node, result.output):
+                        result.success = False
+                        err_msg = (
+                            f"Output validation failed for node '{node_id}' against declared schema"
+                        )
+                        result.error = (
+                            err_msg if result.error is None else result.error + "; " + err_msg
+                        )
 
-        except Exception as e:  # pylint: disable=broad-except
-            # --------------------------------------------------------------
-            # Error handling respects the chain-level *failure_policy* -----
-            # --------------------------------------------------------------
-            from datetime import datetime
-            error_meta = NodeMetadata(
-                node_id=node_id,
-                node_type=getattr(node, "type", "unknown"),
-                name=getattr(node, "name", None),
-                start_time=datetime.utcnow(),
-                end_time=datetime.utcnow(),
-            )  # type: ignore[arg-type]
-            failure_result = NodeExecutionResult(  # type: ignore[call-arg]
-                success=False, error=str(e), metadata=error_meta
-            )
+                return result
 
-            if self.failure_policy == FailurePolicy.HALT:
-                raise
-            return failure_result
+            except Exception as e:  # pylint: disable=broad-except
+                last_error = e
+                if attempt >= max_retries:
+                    break
+
+                # ------------------------------------------------------
+                # Exponential backoff before next retry ---------------
+                # ------------------------------------------------------
+                wait_seconds = base_backoff * (2 ** attempt) if base_backoff > 0 else 0
+                if wait_seconds > 0:
+                    await asyncio.sleep(wait_seconds)
+
+                attempt += 1
+
+        # ------------------------------------------------------------------
+        # All retries exhausted – return failure result ---------------------
+        # ------------------------------------------------------------------
+        from datetime import datetime
+
+        error_meta = NodeMetadata(
+            node_id=node_id,
+            node_type=str(getattr(node, "type", "")),
+            name=getattr(node, "name", None),
+            version="1.0.0",
+            start_time=datetime.utcnow(),
+            end_time=datetime.utcnow(),
+            duration=0.0,
+            error_type=type(last_error).__name__ if last_error else "UnknownError",
+            retry_count=attempt,
+        )  # type: ignore[call-arg]
+
+        if self.failure_policy == FailurePolicy.HALT:
+            raise last_error if last_error else Exception("Unknown error")
+
+        return NodeExecutionResult(  # type: ignore[call-arg]
+            success=False,
+            error=f"Retry limit exceeded ({max_retries}) – last error: {last_error}",
+            metadata=error_meta,
+        )
 
     # ---------------------------------------------------------------------
     # Internal helpers -----------------------------------------------------
