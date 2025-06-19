@@ -100,6 +100,8 @@ class ScriptChain(BaseScriptChain):
         depth_ceiling: int | None = None,
         token_guard: TokenGuard | None = None,
         depth_guard: DepthGuard | None = None,
+        session_id: Optional[str] = None,
+        use_cache: bool = True,
     ) -> None:
         """Initialize script chain.
         
@@ -120,6 +122,8 @@ class ScriptChain(BaseScriptChain):
             depth_ceiling: Depth ceiling for chain execution
             token_guard: Token guard for chain execution
             depth_guard: Depth guard for chain execution
+            session_id: Session identifier
+            use_cache: Chain-level cache toggle
         """
         self.chain_id = chain_id or f"chain_{datetime.utcnow().isoformat()}"
         super().__init__(
@@ -133,9 +137,11 @@ class ScriptChain(BaseScriptChain):
             initial_context,
             workflow_context,
             failure_policy,
+            session_id=session_id,
+            use_cache=use_cache,
         )
         self.validate_outputs = validate_outputs
-        self.use_cache = True  # chain-level toggle, may be exposed later
+        self.use_cache = use_cache
         self.token_ceiling = token_ceiling
         self.depth_ceiling = depth_ceiling
         # External guard callbacks --------------------------------------
@@ -438,7 +444,24 @@ class ScriptChain(BaseScriptChain):
                 # Dispatch via the *Node Registry* -------------------------
                 # ----------------------------------------------------------
                 executor = get_executor(str(getattr(node, "type", "")))  # type: ignore[arg-type]
-                result = await executor(self, node, input_data)
+                # ------------------------------------------------------
+                # Per-node tracing span --------------------------------
+                # ------------------------------------------------------
+                with tracer.start_as_current_span(
+                    "node.execute",
+                    attributes={
+                        "node_id": node_id,
+                        "node_type": str(getattr(node, "type", "")),
+                    },
+                ) as node_span:
+                    result = await executor(self, node, input_data)
+
+                    # Attach outcome metadata to the span ---------------
+                    node_span.set_attribute("success", result.success)
+                    node_span.set_attribute("retry_count", attempt)
+                    if not result.success:
+                        node_span.set_status(Status(StatusCode.ERROR, result.error or ""))
+
                 # Store in cache if enabled & succeeded ------------------
                 if cache_key and result.success:
                     self._cache.set(cache_key, result)
