@@ -1,0 +1,113 @@
+Here’s a tight “pre-demo hardening” checklist that will take the current engine from “works in tests” to “robust enough to show a multi-node chain to an external audience.”  Nothing here requires re-thinking the architecture—each item is incremental, well-scoped and testable.
+
+--------------------------------------------------------------------
+1. Per-node retry & circuit-breaker
+--------------------------------------------------------------------
+• What to do  
+  – Add `retries` and `backoff` fields to `BaseNodeConfig` (default = 0).  
+  – In `ScriptChain.execute_node`, wrap the executor in a retry loop with exponential back-off.  
+  – Emit `retry_count` in `NodeExecutionResult.metadata`.  
+
+• Acceptance criteria  
+  ✅ Unit test proves that a flaky tool (raises once, then succeeds) yields `result.success is True`.  
+  ✅ A node that exceeds its retry budget surfaces `error="Retry limit exceeded"`.
+
+--------------------------------------------------------------------
+2. Workflow-scoped GraphContext
+--------------------------------------------------------------------
+• What to do  
+  – Change `GraphContextManager` so `get_context()` returns a _new_ context object when `session_id` changes (pass `session_id` into `ScriptChain`).  
+  – Ensure every chain instantiation sets `session_id=uuid4()` unless provided.  
+
+• Acceptance criteria  
+  ✅ Two chains invoked concurrently do not share keys (`pytest` with `asyncio.gather`).  
+  ✅ Old session data is GC-able (hold at most N recent contexts or expose `clear()`).
+
+--------------------------------------------------------------------
+3. Output caching toggle
+--------------------------------------------------------------------
+• What to do  
+  – Create `ice_sdk.cache.in_memory.LRUCache` (simple `functools.lru_cache` wrapper).  
+  – Respect `node.use_cache` flag: before calling the executor, check cache key `(node.id, hash(input_data))`.  
+  – Store the full `NodeExecutionResult` on success.  
+
+• Acceptance criteria  
+  ✅ Integration test shows second run of the same chain hits cache (spy on tool to assert it wasn’t called).  
+  ✅ Cache can be disabled globally via `ScriptChain(use_cache=False)`.
+
+--------------------------------------------------------------------
+4. Minimal Observability Hook-up
+--------------------------------------------------------------------
+• What to do  
+  – Add an OTLP exporter config (env variables) and ship one example in `docker-compose` (`tempo`, `jaeger`, or `zipkin`).  
+  – Ensure every node span includes `node_id`, `node_type`, `success`, `duration_ms`, `retry_count`.  
+
+• Acceptance criteria  
+  ☐ `docker compose up` + running `tests/chain/test_script_chain.py` shows traces in UI.  
+  ☐ Docs page in `docs/observability.md` explains how to tail spans locally.
+
+--------------------------------------------------------------------
+5. Safe-mode for “dangerous” tools
+--------------------------------------------------------------------
+• What to do  
+  – Add `requires_trust: bool` to `BaseTool`.  
+  – In FastAPI layer, default `trust_level="untrusted"`; orchestrator refuses to run tools flagged `requires_trust=True` unless caller sets `trust_level="trusted"`.  
+
+• Acceptance criteria  
+  ☐ Calling `/v1/execute` with a chain containing `ComputerTool` without `trust_level=trusted` returns HTTP 403.  
+  ☐ Unit test ensures safe tools still run.
+
+--------------------------------------------------------------------
+Nice-to-have (skip if time is tight)
+--------------------------------------------------------------------
+• Token cost table upgrade + unit tests for new models.  
+• CLI command `ice run my_chain.yaml` that serialises node configs and prints a live progress bar.
+
+--------------------------------------------------------------------
+Suggested order & effort
+1. Per-node retry (½ day)  
+2. Context isolation (½ day)  
+3. Caching (¾ day)  
+4. Observability (½ day)  
+5. Safe-mode tools (½ day)  
+
+≈ 3 developer-days total.  Knock these out and you can confidently demo a 10-node Tool→AI→Tool chain with live telemetry and error resilience.
+
+--------------------------------------------------------------------
+Game Plan to Finish Checklist (2024-06-18)
+--------------------------------------------------------------------
+0. Rule of thumb  
+   • One PR per checklist item; extend matching tests and run `make test`.  
+   • Async-first, type-hinted; do not import `app.*` inside `ice_sdk.*`.  
+   • Side-effects live in Tool implementations; commit only incremental changes.
+
+1. Finish workflow-scoped GraphContext (½ day)  
+   • Add optional `session_id` param to `ScriptChain`; default to `uuid4().hex`.  
+   • `GraphContextManager.get_context()` returns a new context when `session_id` changes.  
+   • Add `max_sessions` LRU eviction to `ContextStore`.  
+   • Tests: concurrent chains get distinct contexts; GC evicts old sessions.
+
+2. Expose global cache toggle (¼ day)  
+   • Add `use_cache: bool` arg to `ScriptChain.__init__` → wire to `self.use_cache`.  
+   • Tests: identical chain executed twice with `use_cache=False` runs tool twice.
+
+3. Minimal observability hook-up (1 day)  
+   • Add env-driven OTLP exporter util and `docker-compose.observability.yml` (Tempo/Jaeger).  
+   • Wrap every `execute_node` in a span `node.execute` with attrs `node_id`, `node_type`, `success`, `duration_ms`, `retry_count`.  
+   • Docs `docs/observability.md` walk-through.  
+   • Test with in-memory OTLP exporter that spans are emitted.
+
+4. Safe-mode for dangerous tools (½ day)  
+   • Add `requires_trust: ClassVar[bool] = False` to `BaseTool`.  
+   • FastAPI `/v1/execute` denies tools needing trust when caller is untrusted (403).  
+   • Tests for both deny & allow paths.
+
+5. Nice-to-haves (as time allows)  
+   • Token cost table + unit tests.  
+   • `ice run my_chain.yaml` CLI with `rich` progress bar.
+
+Timeline  
+Day 1 am – Context isolation; Day 1 pm – Cache toggle + node spans.  
+Day 2 am – OTLP exporter + docs; Day 2 pm – Safe-mode guard, final sweep.
+
+--------------------------------------------------------------------

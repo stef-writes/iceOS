@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from uuid import uuid4
 
 from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 from ice_sdk.context.manager import GraphContext, GraphContextManager
@@ -39,6 +40,9 @@ class BaseScriptChain(ABC):
         initial_context: Optional[Dict[str, Any]] = None,
         workflow_context: Optional[WorkflowExecutionContext] = None,
         failure_policy: FailurePolicy = FailurePolicy.CONTINUE_POSSIBLE,
+        *,
+        session_id: Optional[str] = None,
+        use_cache: bool = True,
     ):
         """Initialize script chain.
         
@@ -53,7 +57,12 @@ class BaseScriptChain(ABC):
             initial_context: Initial execution context
             workflow_context: Workflow execution context
             failure_policy: Failure handling policy
+            session_id: Optional session ID
+            use_cache: Whether to use cache
         """
+        self.session_id = session_id or uuid4().hex
+        self.use_cache = use_cache
+
         self.nodes = {node.id: node for node in nodes}
         self.name = name or "script_chain"
         self.context_manager = context_manager or GraphContextManager()
@@ -68,13 +77,15 @@ class BaseScriptChain(ABC):
             for tool in tools:
                 self.context_manager.register_tool(tool)
         
-        # Set initial context
-        if initial_context:
-            self.context_manager.set_context(GraphContext(
-                session_id=self.name,
-                metadata=initial_context,
-                execution_id=f"{self.name}_{datetime.utcnow().isoformat()}"
-            ))
+        # Set initial context – always create a workflow-scoped context
+        context_metadata = initial_context or {}
+        self.context_manager.set_context(
+            GraphContext(
+                session_id=self.session_id,
+                metadata=context_metadata,
+                execution_id=f"{self.session_id}_{datetime.utcnow().isoformat()}",
+            )
+        )
 
     @abstractmethod
     async def execute(self) -> NodeExecutionResult:

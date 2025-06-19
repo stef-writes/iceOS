@@ -82,7 +82,12 @@ class NodeMetadata(BaseModel):
     end_time: Optional[datetime] = Field(None, description="Execution end time")
     duration: Optional[float] = Field(None, description="Execution duration in seconds")
     provider: Optional[ModelProvider] = Field(
-        None, description="Model provider used by the node"
+        None, description="LLM provider used for execution"
+    )
+    retry_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of retry attempts performed during node execution",
     )
 
     @model_validator(mode="before")
@@ -147,6 +152,16 @@ class BaseNodeConfig(BaseModel):
         ge=1,
         description="Hard timeout for node execution in seconds (None = no timeout)",
     )
+    retries: int = Field(
+        default=0,
+        ge=0,
+        description="Maximum number of retries if the node execution fails",
+    )
+    backoff_seconds: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Base backoff seconds used for exponential backoff between retries (0 disables sleep)",
+    )
 
     # IO schemas are optional and can be provided as loose dicts or Pydantic models.
     input_schema: Union[Dict[str, Any], Type[BaseModel]] = Field(default_factory=dict)
@@ -174,7 +189,7 @@ class BaseNodeConfig(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def _ensure_metadata(self) -> "BaseNodeConfig":
+    def _ensure_metadata(self) -> "BaseNodeConfig":  # type: ignore[override]
         if self.metadata is None:
             self.metadata = NodeMetadata(  # type: ignore[call-arg]
                 node_id=self.id,

@@ -33,16 +33,31 @@ class GraphContextManager:
     def __init__(
         self,
         max_tokens: int = 4000,
+        *,
+        max_sessions: int = 10,
         graph: Optional[nx.DiGraph] = None,
         store: Optional[ContextStore] = None,
         formatter: Optional[ContextFormatter] = None,
     ):
+        """Create a ``GraphContextManager``.
+
+        Args:
+            max_tokens: Soft token window enforced when persisting context.
+            max_sessions: Number of distinct *session_id*s to keep in memory
+                before evicting the least-recently-used.  Old sessions can still
+                be re-created on demand but any cached context is dropped.
+        """
+        from collections import OrderedDict
+
         self.max_tokens = max_tokens
+        self.max_sessions = max_sessions
         self.graph = graph or nx.DiGraph()
         self.store = store or ContextStore()
         self.formatter = formatter or ContextFormatter()
         self._agents: Dict[str, 'AgentNode'] = {}
         self._tools: Dict[str, BaseTool] = {}
+        # Map of session_id -> GraphContext (acts as LRU cache) --------------
+        self._contexts: 'OrderedDict[str, GraphContext]' = OrderedDict()
         self._context: Optional[GraphContext] = None
 
     def register_agent(self, agent: 'AgentNode') -> None:
@@ -77,13 +92,29 @@ class GraphContextManager:
         """Get all registered tools."""
         return dict(self._tools)
 
-    def get_context(self) -> Optional[GraphContext]:
-        """Get current execution context."""
+    def get_context(self, session_id: Optional[str] = None) -> Optional[GraphContext]:
+        """Return the current :class:`GraphContext`.
+
+        When *session_id* is provided, the manager ensures that the returned
+        context matches that ID—creating a **new** context if necessary.  This
+        prevents different chains sharing a manager from leaking data into one
+        another.
+        """
+        # No special handling requested – maintain legacy behaviour ----------
+        if session_id is None:
+            return self._context
+
+        # No context yet or session mismatch → start/rotate ------------------
+        if self._context is None or self._context.session_id != session_id:
+            self._context = GraphContext(session_id=session_id)
+            self._register_context(self._context)
+
         return self._context
 
     def set_context(self, context: GraphContext) -> None:
         """Set execution context."""
         self._context = context
+        self._register_context(context)
 
     async def execute_tool(
         self,
@@ -211,3 +242,22 @@ class GraphContextManager:
     def list_tools(self) -> List[str]:
         """List registered tool names."""
         return list(self._tools.keys())
+
+    # ------------------------------------------------------------------
+    # Internal helpers ---------------------------------------------------
+    # ------------------------------------------------------------------
+    def _register_context(self, ctx: GraphContext) -> None:
+        """Insert *ctx* into the LRU map and evict when necessary."""
+        # Pop existing entry so we can push it to the right end (most recent)
+        self._contexts.pop(ctx.session_id, None)
+        self._contexts[ctx.session_id] = ctx
+
+        # Evict oldest sessions above limit --------------------------------
+        while len(self._contexts) > self.max_sessions:
+            old_sess, _ = self._contexts.popitem(last=False)
+            # Purge persisted node-context data for the evicted session -----
+            # We assume node_ids are prefixed with session_id or otherwise
+            # unique; if not, users can still call ContextStore.clear().
+            # Here we only drop the in-memory reference.
+            if self._context and self._context.session_id == old_sess:
+                self._context = None

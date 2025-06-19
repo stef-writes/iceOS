@@ -100,6 +100,8 @@ class ScriptChain(BaseScriptChain):
         depth_ceiling: int | None = None,
         token_guard: TokenGuard | None = None,
         depth_guard: DepthGuard | None = None,
+        session_id: Optional[str] = None,
+        use_cache: bool = True,
     ) -> None:
         """Initialize script chain.
         
@@ -120,6 +122,8 @@ class ScriptChain(BaseScriptChain):
             depth_ceiling: Depth ceiling for chain execution
             token_guard: Token guard for chain execution
             depth_guard: Depth guard for chain execution
+            session_id: Session identifier
+            use_cache: Chain-level cache toggle
         """
         self.chain_id = chain_id or f"chain_{datetime.utcnow().isoformat()}"
         super().__init__(
@@ -133,8 +137,11 @@ class ScriptChain(BaseScriptChain):
             initial_context,
             workflow_context,
             failure_policy,
+            session_id=session_id,
+            use_cache=use_cache,
         )
         self.validate_outputs = validate_outputs
+        self.use_cache = use_cache
         self.token_ceiling = token_ceiling
         self.depth_ceiling = depth_ceiling
         # External guard callbacks --------------------------------------
@@ -152,6 +159,9 @@ class ScriptChain(BaseScriptChain):
         self._agent_cache: Dict[str, AgentNode] = {}
         # Retain reference to chain-level tools ---------------------------
         self._chain_tools: List[BaseTool] = tools or []
+
+        from ice_sdk.cache import global_cache  # local import to avoid cycles
+        self._cache = global_cache()
 
         logger.info(
             "Initialized ScriptChain with %d nodes across %d levels",
@@ -402,53 +412,126 @@ class ScriptChain(BaseScriptChain):
             execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
         )
 
-        try:
-            # --------------------------------------------------------------
-            # Dispatch via the *Node Registry* -----------------------------
-            # --------------------------------------------------------------
-            executor = get_executor(str(getattr(node, "type", "")))  # type: ignore[arg-type]
-            result = await executor(self, node, input_data)
+        max_retries: int = int(getattr(node, "retries", 0))
+        base_backoff: float = float(getattr(node, "backoff_seconds", 0.0))
 
-            # Persist *output* to the context store if configured ----------
-            if self.persist_intermediate_outputs and result.output is not None:
-                self.context_manager.update_node_context(
-                    node_id=node_id,
-                    content=result.output,
-                    execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
-                )
+        attempt = 0
+        last_error: Exception | None = None
 
-            # ------------------------------------------------------------------
-            # 3. Optional output validation ------------------------------------
-            # ------------------------------------------------------------------
-            if self.validate_outputs and getattr(node, "output_schema", None):
-                if not self._is_output_valid(node, result.output):
-                    result.success = False
-                    err_msg = (
-                        f"Output validation failed for node '{node_id}' against declared schema"
+        while attempt <= max_retries:
+            try:
+                # ------------------------------------------------------
+                # Cache lookup (opt-in) --------------------------------
+                # ------------------------------------------------------
+                import json, hashlib
+
+                cache_key: str | None = None
+                if self.use_cache and getattr(node, "use_cache", True):
+                    try:
+                        payload = {
+                            "node_id": node_id,
+                            "input": input_data,
+                        }
+                        serialized = json.dumps(payload, sort_keys=True, default=str)
+                        cache_key = hashlib.sha256(serialized.encode()).hexdigest()
+                        cached = self._cache.get(cache_key)
+                        if cached is not None:
+                            return cached
+                    except Exception:
+                        # Fall back – never fail due to cache issues
+                        cache_key = None
+                # ----------------------------------------------------------
+                # Dispatch via the *Node Registry* -------------------------
+                # ----------------------------------------------------------
+                executor = get_executor(str(getattr(node, "type", "")))  # type: ignore[arg-type]
+                # ------------------------------------------------------
+                # Per-node tracing span --------------------------------
+                # ------------------------------------------------------
+                with tracer.start_as_current_span(
+                    "node.execute",
+                    attributes={
+                        "node_id": node_id,
+                        "node_type": str(getattr(node, "type", "")),
+                    },
+                ) as node_span:
+                    result = await executor(self, node, input_data)
+
+                    # Attach outcome metadata to the span ---------------
+                    node_span.set_attribute("success", result.success)
+                    node_span.set_attribute("retry_count", attempt)
+                    if not result.success:
+                        node_span.set_status(Status(StatusCode.ERROR, result.error or ""))
+
+                # Store in cache if enabled & succeeded ------------------
+                if cache_key and result.success:
+                    self._cache.set(cache_key, result)
+
+                # Attach retry metadata -----------------------------------
+                if result.metadata:
+                    result.metadata.retry_count = attempt
+
+                # Persist *output* to the context store if configured ------
+                if self.persist_intermediate_outputs and result.output is not None:
+                    self.context_manager.update_node_context(
+                        node_id=node_id,
+                        content=result.output,
+                        execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
                     )
-                    result.error = err_msg if result.error is None else result.error + "; " + err_msg
 
-            return result
+                # ----------------------------------------------------------
+                # Optional output validation -------------------------------
+                # ----------------------------------------------------------
+                if self.validate_outputs and getattr(node, "output_schema", None):
+                    if not self._is_output_valid(node, result.output):
+                        result.success = False
+                        err_msg = (
+                            f"Output validation failed for node '{node_id}' against declared schema"
+                        )
+                        result.error = (
+                            err_msg if result.error is None else result.error + "; " + err_msg
+                        )
 
-        except Exception as e:  # pylint: disable=broad-except
-            # --------------------------------------------------------------
-            # Error handling respects the chain-level *failure_policy* -----
-            # --------------------------------------------------------------
-            from datetime import datetime
-            error_meta = NodeMetadata(
-                node_id=node_id,
-                node_type=getattr(node, "type", "unknown"),
-                name=getattr(node, "name", None),
-                start_time=datetime.utcnow(),
-                end_time=datetime.utcnow(),
-            )  # type: ignore[arg-type]
-            failure_result = NodeExecutionResult(  # type: ignore[call-arg]
-                success=False, error=str(e), metadata=error_meta
-            )
+                return result
 
-            if self.failure_policy == FailurePolicy.HALT:
-                raise
-            return failure_result
+            except Exception as e:  # pylint: disable=broad-except
+                last_error = e
+                if attempt >= max_retries:
+                    break
+
+                # ------------------------------------------------------
+                # Exponential backoff before next retry ---------------
+                # ------------------------------------------------------
+                wait_seconds = base_backoff * (2 ** attempt) if base_backoff > 0 else 0
+                if wait_seconds > 0:
+                    await asyncio.sleep(wait_seconds)
+
+                attempt += 1
+
+        # ------------------------------------------------------------------
+        # All retries exhausted – return failure result ---------------------
+        # ------------------------------------------------------------------
+        from datetime import datetime
+
+        error_meta = NodeMetadata(
+            node_id=node_id,
+            node_type=str(getattr(node, "type", "")),
+            name=getattr(node, "name", None),
+            version="1.0.0",
+            start_time=datetime.utcnow(),
+            end_time=datetime.utcnow(),
+            duration=0.0,
+            error_type=type(last_error).__name__ if last_error else "UnknownError",
+            retry_count=attempt,
+        )  # type: ignore[call-arg]
+
+        if self.failure_policy == FailurePolicy.HALT:
+            raise last_error if last_error else Exception("Unknown error")
+
+        return NodeExecutionResult(  # type: ignore[call-arg]
+            success=False,
+            error=f"Retry limit exceeded ({max_retries}) – last error: {last_error}",
+            metadata=error_meta,
+        )
 
     # ---------------------------------------------------------------------
     # Internal helpers -----------------------------------------------------
