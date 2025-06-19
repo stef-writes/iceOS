@@ -55,7 +55,8 @@ python = "^3.10"
 aiohttp = "^3.8.0"
 alembic = "^1.12.1"
 anthropic = "0.19.0"
-fastapi = ">=0.104,<0.200"
+# Patched versions resolving CVE-2024-24762 (FastAPI) and CVE-2024-24762 (python-multipart)
+fastapi = ">=0.109.1,<0.200"
 google-generativeai = "0.4.0"
 httpx = "^0.27.0"
 networkx = "^3.1"
@@ -65,12 +66,19 @@ opentelemetry-sdk = "^1.23.0"
 packaging = "^23.2"
 pydantic = "^2.4.2"
 python-dotenv = "^1.0.0"
-python-multipart = "^0.0.6"
+# Ensure build tooling is on a safe version (PYSEC-2025-49)
+setuptools = ">=78.1.1"
+# Ensure build tooling is on a safe version (PYSEC-2025-49)
 sqlalchemy = "^2.0.23"
 structlog = "^24.1.0"
 tenacity = "^8.2.3"
 tiktoken = "^0.5.1"
 uvicorn = "^0.24.0"
+# Ensure build tooling is on a safe version (PYSEC-2025-49)
+python-multipart = "^0.0.18"
+
+# Ensure pip patched
+pip = ">=23.3"
 
 [tool.poetry.dev-dependencies]
 coverage = "^7.2.0"
@@ -84,7 +92,8 @@ pytest-mock = "^3.12.0"
 pytest-randomly = "^3.15.0"
 pytest-timeout = "^2.2.0"
 pytest-xdist = "^3.3.1"
-black = "^23.10.1"
+# Upgrade black to patched release (PYSEC-2024-48)
+black = "^24.4.0"
 flake8 = "^6.1.0"
 isort = "^5.12.0"
 mypy = "^1.5.0"

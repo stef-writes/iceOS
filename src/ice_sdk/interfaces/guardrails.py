@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """Interfaces (Protocols) for guard-rail hooks that can be plugged into *ScriptChain*.
 
 Guards are invoked *during* execution to decide whether the chain should
 continue.  They receive the current metric/level information and must return
 ``True`` to allow execution to proceed or ``False`` to abort.
 """
+
+from __future__ import annotations
 
 from typing import Protocol
 

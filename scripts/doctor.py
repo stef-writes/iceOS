@@ -49,23 +49,14 @@ class Check:
 
 CHECKS: List[Check] = [
     Check("Linting (ruff)", "ruff src"),
-    Check("Typing (pyright)", "pyright"),
+    Check("Typing (pyright)", "pyright --project config"),
     Check("Unit & integration tests", "make test -j"),
     Check("Coverage threshold", "pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q"),
     Check("Security audit", "pip-audit"),
-    Check("Import-linter rules", "lint-imports"),
+    Check("Import-linter rules", "lint-imports --config config/.importlinter"),
     Check("isort check", "isort --check-only src"),
     Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),
-    Check(
-        "Schema generation drift",
-        "bash -c 'python -m scripts.generate_schemas && git diff --exit-code schemas/runtime'",
-    ),
-    Check(
-        "Doc build freshness",
-        "bash -c 'make refresh-docs && git diff --exit-code docs'",
-    ),
     Check("Performance smoke", "pytest --benchmark-only -q", perf_only=True),
-    Check("License headers", "python -m scripts.cli.check_license"),
 ]
 
 

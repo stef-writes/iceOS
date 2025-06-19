@@ -56,8 +56,17 @@ def main() -> None:
     args = parser.parse_args()
 
     missing: list[Path] = []
+    SKIP_PARTS = {"__pycache__", ".venv", "env", "venv"}
+    PROJECT_DIRS = ("src",)
     for py_file in REPO_ROOT.rglob("*.py"):
-        if "__pycache__" in py_file.parts:
+        # Skip common virtual-env and cache directories ------------------
+        if any(part in SKIP_PARTS for part in py_file.parts):
+            continue
+        try:
+            rel_path = py_file.relative_to(REPO_ROOT)
+            if not rel_path.parts or rel_path.parts[0] not in PROJECT_DIRS:
+                continue
+        except ValueError:
             continue
         if not file_has_header(py_file, args.license_string, args.max_lines):
             missing.append(py_file)

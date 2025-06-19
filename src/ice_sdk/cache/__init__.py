@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from threading import Lock
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 __all__ = [
     "LRUCache",

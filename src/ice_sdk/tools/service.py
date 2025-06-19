@@ -62,8 +62,8 @@ class ToolService:  # noqa: D101 – simple façade
         """Register built-in tools shipped with *ice_sdk*."""
         # Import *inside* the method to avoid potential circular imports if
         # user code also imports from `ice_sdk` at module top-level.
+        from .builtins import HttpRequestTool, SleepTool, SumTool  # noqa: WPS433
         from .hosted import ComputerTool, FileSearchTool, WebSearchTool  # noqa: WPS433
-        from .builtins import SleepTool, HttpRequestTool, SumTool  # noqa: WPS433
 
         for tool_cls in (
             WebSearchTool,

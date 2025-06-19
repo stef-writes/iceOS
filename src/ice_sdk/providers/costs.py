@@ -1,4 +1,7 @@
-from __future__ import annotations  # ruff: noqa: E402 – ensure future import remains first
+# ruff: noqa: E402  # allow imports after module docstring
+from __future__ import (  # ruff: noqa: E402 – ensure future import remains first
+    annotations,
+)
 
 """Utility for looking-up model pricing and computing cost of a completion.
 
@@ -9,7 +12,7 @@ simple data-edit, not a code change elsewhere in the SDK.
 Price data taken from public pricing pages (May 2025).  Feel free to update.
 """
 
-from decimal import Decimal
+from decimal import Decimal  # ruff: noqa: E402
 from typing import Dict, Tuple
 
 from ice_sdk.models.config import ModelProvider

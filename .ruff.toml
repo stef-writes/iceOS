@@ -1,4 +1,3 @@
-[tool.ruff]
 line-length = 99
 src = ["src", "tests", "scripts"]
 
@@ -8,4 +7,4 @@ extend-exclude = [
     "dist",
     "build",
     "htmlcov",
-] 
+]

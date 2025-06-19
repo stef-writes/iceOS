@@ -69,6 +69,7 @@ def discover_py_files() -> Iterable[Path]:
 
     for root in SEARCH_ROOTS:
         for path in Path(root).rglob("*.py"):
+            path = path.resolve()
             # Skip common virtual-env / cache folders.
             if any(part.startswith("__pycache__") for part in path.parts):
                 continue
@@ -103,7 +104,8 @@ class ClassCollector(ast.NodeVisitor):
 def analyse_file(path: Path, project_root: Path) -> list[Capability]:
     """Return Capability entries for given Python *path*."""
 
-    rel_path = path.relative_to(project_root).as_posix()
+    abs_path = path.resolve()
+    rel_path = abs_path.relative_to(project_root).as_posix()
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(path))
 
@@ -140,10 +142,10 @@ def main() -> None:  # noqa: D401 (imperative mood is fine)
     # Sort for deterministic output.
     all_caps.sort(key=lambda c: c.id)
 
-    catalog = Catalog(generated_at=datetime.utcnow(), capabilities=all_caps)
+    catalog = Catalog(generated_at=datetime.utcfromtimestamp(0), capabilities=all_caps)  # fixed epoch for deterministic output
 
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_FILE.write_text(catalog.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    OUTPUT_FILE.write_text(catalog.model_dump_json(indent=2, exclude={"generated_at"}) + "\n", encoding="utf-8")
     print(
         f"[gen_catalog] Wrote {len(all_caps)} capabilities to {OUTPUT_FILE}",
         file=sys.stderr,

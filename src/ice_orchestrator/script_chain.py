@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
 from pydantic import BaseModel, Field
 
@@ -423,7 +423,8 @@ class ScriptChain(BaseScriptChain):
                 # ------------------------------------------------------
                 # Cache lookup (opt-in) --------------------------------
                 # ------------------------------------------------------
-                import json, hashlib
+                import hashlib
+                import json
 
                 cache_key: str | None = None
                 if self.use_cache and getattr(node, "use_cache", True):
@@ -639,7 +640,7 @@ class ScriptChain(BaseScriptChain):
         return True
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_sdk.interfaces.guardrails import TokenGuard, DepthGuard
+    from ice_sdk.interfaces.guardrails import DepthGuard, TokenGuard
 else:  # Runtime no-op fallbacks
-    from typing import Any as TokenGuard  # type: ignore
-    from typing import Any as DepthGuard  # type: ignore 
+    from typing import Any as DepthGuard  # type: ignore
+    from typing import Any as TokenGuard 

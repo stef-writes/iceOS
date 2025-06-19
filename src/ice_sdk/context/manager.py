@@ -166,8 +166,8 @@ class GraphContextManager:
             # still meaningful.
             import json
 
-            from ice_sdk.utils.token_counter import TokenCounter
             from ice_sdk.models.config import ModelProvider
+            from ice_sdk.utils.token_counter import TokenCounter
 
             if isinstance(content, str):
                 serialised = content

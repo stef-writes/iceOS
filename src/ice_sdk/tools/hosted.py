@@ -1,8 +1,10 @@
 """Hosted tools implementation."""
-from typing import Any, ClassVar, Dict, List, TypedDict
-import os
 import asyncio
+import os
+from typing import Any, ClassVar, Dict, List, TypedDict
+
 import httpx
+from pydantic import ConfigDict
 
 from .base import BaseTool, ToolError
 
@@ -184,9 +186,6 @@ class FileSearchTool(BaseTool):
         if include_results:
             return {"results": aggregate_matches[:max_num_results]}
         return {"ids": [m["id"] for m in aggregate_matches[:max_num_results]]}
-
-from pydantic import ConfigDict
-
 
 class ComputerTool(BaseTool):
     """Tool for controlling a virtual computer."""

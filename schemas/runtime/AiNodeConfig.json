@@ -391,7 +391,14 @@
             }
           ],
           "default": null,
-          "description": "Model provider used by the node"
+          "description": "LLM provider used for execution"
+        },
+        "retry_count": {
+          "default": 0,
+          "description": "Number of retry attempts performed during node execution",
+          "minimum": 0,
+          "title": "Retry Count",
+          "type": "integer"
         }
       },
       "required": [
@@ -502,6 +509,20 @@
       "default": null,
       "description": "Hard timeout for node execution in seconds (None = no timeout)",
       "title": "Timeout Seconds"
+    },
+    "retries": {
+      "default": 0,
+      "description": "Maximum number of retries if the node execution fails",
+      "minimum": 0,
+      "title": "Retries",
+      "type": "integer"
+    },
+    "backoff_seconds": {
+      "default": 0.0,
+      "description": "Base backoff seconds used for exponential backoff between retries (0 disables sleep)",
+      "minimum": 0.0,
+      "title": "Backoff Seconds",
+      "type": "number"
     },
     "input_schema": {
       "anyOf": [

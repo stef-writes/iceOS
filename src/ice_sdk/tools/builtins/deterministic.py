@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Deterministic utility tools that have no external side-effects
 (other than optional network I/O for *HttpRequestTool*).
 
 These are lightweight examples used in documentation, tests and examples.
 """
+
+from __future__ import annotations
 
 import asyncio
 import base64

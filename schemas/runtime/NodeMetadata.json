@@ -173,7 +173,14 @@
         }
       ],
       "default": null,
-      "description": "Model provider used by the node"
+      "description": "LLM provider used for execution"
+    },
+    "retry_count": {
+      "default": 0,
+      "description": "Number of retry attempts performed during node execution",
+      "minimum": 0,
+      "title": "Retry Count",
+      "type": "integer"
     }
   },
   "required": [
