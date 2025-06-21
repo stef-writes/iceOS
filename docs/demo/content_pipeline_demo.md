@@ -1,4 +1,6 @@
 # Content Pipeline Demo – **Curate → Adapt → Publish**
+# Content Pipeline Demo – **Discover → Analyze → Adapt → Publish**
+# Content Pipeline Demo – **Discover → Analyze → Adapt → Publish**
 
 _Last updated: 2025-06-19_
 
@@ -21,15 +23,14 @@ Show a non-technical content creator how iceOS turns a raw topic into a multi-pl
 
 | # | Node ID | Type | Description | Key Settings |
 |---|---------|------|-------------|--------------|
-| 1 | `discover_links` | ToolNode → `WebSearchTool` | Fetch top 8 fresh links for the topic. | `retries=1`, `use_cache=True` |
-| 2 | `curate_summaries` | AiNode | Summarise each link ≤60 words, add relevance score 1-5. | — |
-| 3 | `hero_assets` | ToolNode → `UnsplashSearchTool` | Retrieve image URLs for the most relevant links. | `requires_trust=True` |
-| 4 | `platform_adapter` | CompositeNode | Generate channel-specific content (Twitter, LinkedIn, Instagram, Blog). | Each sub-node has `output_schema` validation |
-| 5 | `post_plan` | AiNode | Build JSON schedule (platform, timestamp, content_id). | — |
-| 6 | `live_post` | ToolNode → `SocialPosterTool` | Optionally publish according to schedule. | `requires_trust=True` |
-| 7 | `package_content` | ToolNode | Zip all artefacts into a downloadable archive. | — |
+| 1 | `discover_links` | ToolNode → `WebSearchTool` | Fetch top 10 fresh links for the topic. | `retries=1`, `use_cache=True` |
+| 2 | `browse_pages` | ToolNode → `BrowserTool` | Download HTML, extract title & main text for each link. | `concurrency=4` |
+| 3 | `analyze_content` | AiNode | Detect common themes and interesting stats across pages. | — |
+| 4 | `aggregate_summary` | AiNode | Produce 300-word executive summary of findings. | — |
+| 5 | `author_angle` | AiNode | Write our unique point-of-view & key take-aways. | `temperature=0.8` |
+| 6 | `platform_adapter` | CompositeNode | Generate channel-specific content (Tweets ×5, LinkedIn post, 1-2 Blog drafts). | Each sub-node has `output_schema` validation |
 
-Graph view: `discover_links → curate_summaries → hero_assets → platform_adapter → post_plan → live_post → package_content`.
+Graph view: `discover_links → browse_pages → analyze_content → aggregate_summary → author_angle → platform_adapter`.
 
 ---
 
@@ -40,6 +41,7 @@ Graph view: `discover_links → curate_summaries → hero_assets → platform_ad
 3. **LRU output cache** – second run of same topic hits cache in node 1.
 4. **Tracing** – each node produces `node.execute` span with attrs `node_id`, `success`, `retry_count`.
 5. **Safe-mode tools** – `hero_assets` & `live_post` execute only when API request sets `trust_level="trusted"`.
+6. **Schema validation** – every Ai node declares an `output_schema`; invalid outputs fail fast.
 
 ---
 
@@ -59,21 +61,80 @@ Graph view: `discover_links → curate_summaries → hero_assets → platform_ad
 
 ### 6.1 Tools & Nodes
 
-- [ ] Implement `UnsplashSearchTool` (requires_trust=True).
-- [ ] Implement `SocialPosterTool` (requires_trust=True, side-effect posting disabled in tests).
-- [ ] Add `CompositeNode` YAML for `platform_adapter` with four Ai sub-nodes.
+- [ ] **BrowserTool**  
+  - Location: `src/ice_sdk/tools/browser.py`  
+  - Parameters: `url` (str).  
+  - External call: HTTP GET to fetch page; use `trafilatura` to extract readable text.  
+  - Caching: memoise responses for 24 h using `ice_sdk.cache.global_cache()`.  
+  - Supports parallel execution with `max_concurrency=4`.
+
+- [ ] **platform_adapter** CompositeNode  
+  - File: `examples/platform_adapt.yaml`.  
+  - Contains 3 Ai sub-nodes (`twitter_adapter`, `linkedin_adapter`, `blog_adapter`).  
+  - Each sub-node declares `output_schema` pointing to models in `schemas/social.py` (see §6.2).  
+  - Shared prompt fragment: _"You are a social media copywriter …"_.  
+  - `temperature=0.7`, `max_tokens=300`.
+
+- [ ] **schema models**  
+  - File: `schemas/social.py`.  
+  - `class TwitterPost(BaseModel)`, `LinkedInPost`, `BlogPost`.  
+  - Used for runtime validation and docs generation.
 
 ### 6.2 Engine & API Gaps
 
-- [ ] Finish FastAPI safe-mode guard (HTTP 403 on untrusted calls).
-- [ ] Add OTLP exporter config to `docker-compose.observability.yml`.
-- [ ] Write `docs/observability.md` walk-through referencing this demo.
+- [ ] **Safe-mode guard** — FastAPI route `POST /v1/workflows/{id}/execute` returns **HTTP 403** if request header `X-Trust-Level != "trusted"` AND any node/tool declares `requires_trust=True`.  
+- [ ] **Observability compose** — Add OTLP exporter to `docker-compose.observability.yml`; expose Jaeger at :16686.  
+- [ ] **Docs** — write `docs/observability.md` including screenshot `docs/images/jaeger_content_demo.png`.
 
 ### 6.3 Quality Gates
 
-- [ ] Unit tests for new tools + retry, cache and trust-level paths.
-- [ ] Integration test `tests/demo/test_platform_adapt.py` runs the full chain against stubbed external APIs.
-- [ ] Update coverage target if lines increase.
+- [ ] Unit tests: `tests/tools/test_unsplash.py`, `tests/tools/test_social_poster.py` cover happy path, retry path, trust-level rejection.  
+- [ ] Integration test `tests/demo/test_platform_adapt.py` runs the full 7-node chain against stubbed APIs and asserts cache hit on second run.  
+- [ ] Unit tests: `tests/tools/test_browser.py` cover error handling & caching logic.  
+- [ ] Integration test `tests/demo/test_content_pipeline.py` runs the full 6-node chain against stubbed Web & asserts cache hit on second run.  
+- [ ] Update coverage threshold in `pyproject.toml` if LOC increases.
+
+---
+
+## 10. External Services & Secrets
+
+| Purpose | Endpoint | Env Var(s) | Notes |
+|---------|----------|------------|-------|
+| Web search | SerpAPI | `SERPAPI_KEY` | already used by `WebSearchTool`. |
+| Image search | Unsplash | `UNSPLASH_ACCESS_KEY` | public access key is enough. |
+| Social posting | Buffer API | `BUFFER_ACCESS_TOKEN` | optional — demo works without live posting. |
+| Tracing | Jaeger OTLP | `OTEL_EXPORTER_OTLP_ENDPOINT` | set by docker-compose.
+
+Set `ICE_TEST_MODE=1` during **all** automated tests to stub external calls.
+
+---
+
+## 11. Recommended Dev Workflow (≈1 day)
+
+1. **Branch & scaffolding**  
+   `git switch -c feat/unsplash-social-tools` and create stub files/tests.
+2. **UnsplashSearchTool**  
+   Implement class → write unit test → pass `make test`.
+3. **SocialPosterTool**  
+   Implement with Buffer API stub → write tests.
+4. **Composite workflow & schemas**  
+   Write `schemas/social.py` models, `examples/platform_adapt.yaml` and basic prompts.
+1. **Branch & scaffolding**  
+   `git switch -c feat/content-pipeline` and create stub files/tests.
+2. **BrowserTool**  
+   Implement class → write unit test → pass `make test`.
+3. **Composite workflow & schemas**  
+   Write `schemas/social.py` models, `examples/content_pipeline.yaml` and prompts.
+5. **Safe-mode FastAPI guard**  
+   Enforce `X-Trust-Level` header, add tests for 200 vs 403.
+6. **Observability compose & docs**  
+   Add OTLP exporter, document in `docs/observability.md`.
+7. **Full integration test**  
+   `tests/demo/test_content_pipeline.py` exercises LRU cache + retry.
+8. **Polish & merge**  
+   `make format lint test`, update coverage target, open PR.
+
+_Use `UNSPLASH_ACCESS_KEY` and `SERPAPI_KEY` locally; Buffer token only if you plan to actually publish._
 
 ---
 
