@@ -50,36 +50,18 @@ layered guardrails, ecosystem lock-in and data network effects.
 
 ---
 
-## 3. Roadmap
+## 3. Roadmap (Q3 2025 — agility-first)
 
-### Phase 0 — Hardening (now → 2 weeks)
-* Release v0.2 with green CI (ruff, isort, mypy, pyright-basic, tests, coverage ≥55 %).
-* Flesh-out deterministic tool examples (`sleep`, `http_request`, `sum`).
-* Add `pyrightconfig.json` & developer docs.
+The long-term vision (copilot UI, marketplace, self-improving engine) remains. The short-term priority is to make iceOS **immediately useful and reusable**.
 
-### Phase 1 — Guardrails & Composite Nodes (2 → 6 weeks)
-| Deliverable | Notes |
-|-------------|-------|
-| Depth & token ceilings in `ScriptChain` | Configurable, enforced at runtime |
-| `CompositeNode` | Allows nested chains as a single node |
-| Context Block MVP | DAG annotation & storage API (no UI yet) |
-| Raise coverage to 60 % | Focus on tools & context modules |
+| Week | Focus | Outcome |
+|------|-------|---------|
+| **1** | v0.2 minimal release | Safe-mode guard, PyPI wheel, example chain |
+| **2** | Developer CLI | `ice new`, `ice run --watch`, auto-registration |
+| **3** | API freeze & packaging | Stable SDK exports, generated docs, optional extras, manylinux wheel |
+| **4** | Examples & community | Reusable workflow recipes, Discussions board, Slack channel |
 
-### Phase 2 — Planner & Verifier Agents (6 → 12 weeks)
-| Deliverable | Notes |
-|-------------|-------|
-| `PlannerAgent` | NL → DAG generation using tool metadata |
-| `VerifierAgent` | Post-run quality checks; auto-retry |
-| Frosty CLI prototype | Chat-based CLI that scaffolds chains |
-| Import-linter contracts extended | New layers `ice_agents` & `ice_tools` |
-
-### Phase 3 — Frosty UI & Marketplace (12 → 24 weeks)
-| Deliverable | Notes |
-|-------------|-------|
-| Infinite-canvas web UI | React/TS front-end consuming FastAPI backend |
-| Tool Marketplace backend | Signed uploads, versioning, search |
-| WASM tool runner PoC | Deterministic tools compiled to WASM |
-| Telemetry pipeline | Persist `NodeExecutionResult` with usage metrics |
+Details live in [`docs/roadmap_agile.md`](roadmap_agile.md).
 
 ---
 

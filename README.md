@@ -26,6 +26,7 @@
 11. [Contributing](#contributing)
 12. [License](#license)
 13. [Deprecation Notices](#deprecation-notices)
+14. [Common Tasks](#common-tasks)
 
 ---
 
@@ -158,9 +159,6 @@ Expected output:
 > 🧊 iceOS booting…
 > ⛓️  Running ExampleChain …
 Hello, world! I am an iceOS Agent.
-```
-
-For more demos see [`docs/QUICK_GUIDE.md`](docs/QUICK_GUIDE.md).
 
 ---
 
@@ -254,13 +252,15 @@ CI runs the same commands on every pull request.
 
 ---
 
-## Roadmap
+## Roadmap (next 2 weeks — agility-first)
 
-- [ ] ✨ *v0.3* – Plugin system for hot-swappable Nodes/Tools.
-- [ ] ⚡ *v0.4* – Remove legacy `ice_tools` shim (see below).
-- [ ] 🌐 *v1.0* – Web dashboard & live-view of agent runs.
+- [ ] 🏁 *v0.2* – Minimal-Viable Release (safe-mode + PyPI wheel)
+- [ ] 🛠️ Developer CLI & hot-reload (`ice new`, `ice run --watch`)
+- [ ] 📚 Public API freeze & generated docs
+- [ ] 📦 Packaging hygiene (optional extras, manylinux wheel)
+- [ ] 💡 Reusable examples library
 
-Full plan lives in [`ADR/`](ADR/) and GitHub Projects.
+Full granular checklist lives in [`docs/roadmap_agile.md`](docs/roadmap_agile.md).
 
 ---
 
@@ -289,5 +289,19 @@ iceOS is released under the [MIT License](LICENSE).
 
 * A `DeprecationWarning` is raised at import-time.
 * The shim will be **removed in v0.4** – update your imports today.
+
+---
+
+## Common Tasks
+
+| Task | Command | Notes |
+|------|---------|-------|
+| Run a Chain | `python scripts/demo_run_chain.py` | Minimal DAG execution *(see scripts folder)* |
+| Start API Server | `uvicorn app.api.routes:router --reload` | Local development server |
+| Run Tests | `pytest -q` | Quick test execution |
+| Health Check | `make doctor` | System diagnostics – detailed matrix in [`docs/healthchecks.md`](docs/healthchecks.md) |
+| Update Docs | `make refresh-docs` | Regenerate documentation |
+| Start REPL | `python -m ice_sdk.repl` | Interactive SDK shell |
+| Deploy API | `docker compose up api` | Production deployment |
 
 ---

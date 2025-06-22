@@ -71,4 +71,7 @@ config/api_keys.json
 
 # Tool caches
 +.mypy_cache/
-+.ruff_cache/ 
++.ruff_cache/
+
+# Generated docs
+docs/generated/ 
