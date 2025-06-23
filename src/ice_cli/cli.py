@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """`ice` – developer command-line interface for iceOS.
 
 Usage (installed as console_script entry-point)::
@@ -14,12 +12,14 @@ functions so it remains fast to import – an important property for file
 watchers that may need to reload commands many times per second.
 """
 
+from __future__ import annotations
+
 import asyncio
 import importlib
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Optional
+from typing import Any
 
 import typer
 from rich import print as rprint
