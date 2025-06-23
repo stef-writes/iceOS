@@ -280,8 +280,61 @@ class ScriptChain(BaseScriptChain):
                 return node.id, result
 
         tasks = [process_node(node) for node in level_nodes]
-        results = await asyncio.gather(*tasks)
-        return dict(results)
+        # Gather with *return_exceptions* so that a single node failure does not
+        # crash the entire level when *failure_policy* allows continuation.  Any
+        # exception is immediately converted into a failed *NodeExecutionResult*
+        # so downstream bookkeeping remains consistent.
+        gathered = await asyncio.gather(*tasks, return_exceptions=True)
+
+        level_results: Dict[str, NodeExecutionResult] = {}
+        for item in gathered:
+            if isinstance(item, tuple) and len(item) == 2:
+                node_id, result_or_exc = item
+
+                if isinstance(result_or_exc, Exception):
+                    # Convert the exception into a generic failure result so the
+                    # orchestrator can apply failure policies without blowing up.
+                    from datetime import datetime
+                    from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
+
+                    failure_meta = NodeMetadata(  # type: ignore[call-arg]
+                        node_id=node_id,
+                        node_type="unknown",
+                        name=node_id,
+                        start_time=datetime.utcnow(),
+                        end_time=datetime.utcnow(),
+                        duration=0.0,
+                        error_type=type(result_or_exc).__name__,
+                    )
+
+                    level_results[node_id] = NodeExecutionResult(  # type: ignore[call-arg]
+                        success=False,
+                        error=str(result_or_exc),
+                        metadata=failure_meta,
+                    )
+                else:
+                    level_results[node_id] = result_or_exc
+            else:
+                # Defensive branch — should not happen but avoid silent loss.
+                import reprlib
+                from datetime import datetime
+                from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
+
+                node_id = "unknown" if not item else str(item)
+                level_results[node_id] = NodeExecutionResult(  # type: ignore[call-arg]
+                    success=False,
+                    error=f"Unexpected gather payload: {reprlib.repr(item)}",
+                    metadata=NodeMetadata(  # type: ignore[call-arg]
+                        node_id=node_id,
+                        node_type="unknown",
+                        name=node_id,
+                        start_time=datetime.utcnow(),
+                        end_time=datetime.utcnow(),
+                        duration=0.0,
+                        error_type="GatherPayloadError",
+                    ),
+                )
+        return level_results
 
     def _build_node_context(
         self,
@@ -365,8 +418,13 @@ class ScriptChain(BaseScriptChain):
 
     @staticmethod
     def _resolve_nested_path(data: Any, path: str) -> Any:
-        """Resolve a dot-separated path in a nested data structure."""
-        if not path:
+        """Resolve a dot-separated *path* in *data*.
+
+        Special cases
+        -------------
+        * ``path == ""`` or ``path == "."``  → return *data* unchanged.
+        """
+        if not path or path == ".":
             return data
         for key in path.split("."):
             if isinstance(data, dict):
