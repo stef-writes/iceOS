@@ -19,4 +19,10 @@ This design keeps *ScriptChain* agnostic of concrete node types.
 from importlib import import_module
 
 # Importing the module triggers decorator registration.
-import_module("ice_sdk.executors.builtin") 
+import_module("ice_sdk.executors.builtin")
+
+# Register *condition* node executor ----------------------------------------
+try:
+    import_module("ice_sdk.executors.condition")
+except ModuleNotFoundError:  # pragma: no cover – defender when file missing in older envs
+    pass 
