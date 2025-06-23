@@ -294,9 +294,13 @@ class ScriptChain(BaseScriptChain):
 
         if getattr(node, "input_mappings", None):
             for placeholder, mapping in node.input_mappings.items():
-                if isinstance(mapping, dict) and "source_node_id" in mapping:
-                    dep_id = mapping["source_node_id"]
-                    output_key = mapping["source_output_key"]
+                # Support either raw dicts *or* InputMapping instances ----------------
+                if (
+                    (isinstance(mapping, dict) and "source_node_id" in mapping)
+                    or hasattr(mapping, "source_node_id")
+                ):
+                    dep_id = mapping["source_node_id"] if isinstance(mapping, dict) else mapping.source_node_id  # type: ignore[index]
+                    output_key = mapping["source_output_key"] if isinstance(mapping, dict) else mapping.source_output_key  # type: ignore[index]
                     dep_result = accumulated_results.get(dep_id)
 
                     if not dep_result or not dep_result.success:
@@ -311,7 +315,7 @@ class ScriptChain(BaseScriptChain):
                             f"Failed to resolve path '{output_key}' in dependency '{dep_id}': {exc}"
                         )
                 else:
-                    context[placeholder] = mapping
+                    context[placeholder] = mapping  # fall back to raw value
 
         if validation_errors:
             raise ChainError(

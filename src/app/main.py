@@ -48,6 +48,12 @@ async def lifespan(app: FastAPI):
         except Exception as exc:  # pragma: no cover – missing deps etc.
             logger.warning("Tool '%s' could not be registered: %s", tool_name, exc)
 
+    # Auto-discover additional `*.tool.py` modules in the repository ---------
+    try:
+        tool_service.discover_and_register(project_root)
+    except Exception as exc:  # noqa: BLE001 – best-effort discovery
+        logger.warning("Tool auto-discovery failed: %s", exc)
+
     app.state.tool_service = tool_service  # type: ignore[attr-defined]
     app.state.context_manager = ctx_manager  # type: ignore[attr-defined]
 

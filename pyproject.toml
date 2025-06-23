@@ -71,11 +71,14 @@ setuptools = ">=78.1.1"
 # Ensure build tooling is on a safe version (PYSEC-2025-49)
 sqlalchemy = "^2.0.23"
 structlog = "^24.1.0"
+typer = "^0.12.1"
+watchdog = "^4.0.0"
 tenacity = "^8.2.3"
 tiktoken = "^0.5.1"
 uvicorn = "^0.24.0"
 # Ensure build tooling is on a safe version (PYSEC-2025-49)
 python-multipart = "^0.0.18"
+rich = "^13.6.0"
 
 # Ensure pip patched
 pip = ">=23.3"
@@ -100,4 +103,7 @@ mypy = "^1.5.0"
 ruff = "^0.1.7"
 pyright = "^1.1.402"
 import-linter = "^2.3.0"
+
+[tool.poetry.scripts]
+ice = "ice_cli.cli:app"
 
