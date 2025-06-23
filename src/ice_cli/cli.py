@@ -23,6 +23,7 @@ from typing import Any
 
 import typer
 from rich import print as rprint
+
 # Watchdog is optional: CLI still works sans --watch ----------------------
 try:
     from watchdog.events import FileSystemEventHandler  # type: ignore
@@ -53,7 +54,9 @@ except ModuleNotFoundError:  # pragma: no cover
         def join(self):
             pass
 
-from ice_sdk.tools.service import ToolService  # noqa: F401 – side-effect import makes built-ins discoverable
+from ice_sdk.tools.service import (  # noqa: F401 – side-effect import makes built-ins discoverable
+    ToolService,
+)
 from ice_sdk.utils.logging import setup_logger
 
 # ---------------------------------------------------------------------------
@@ -220,6 +223,7 @@ def tool_test(
     """
 
     import json
+
     from ice_sdk.tools.base import ToolContext
 
     try:
@@ -234,8 +238,12 @@ def tool_test(
     try:
         tool_obj = svc.get(name)
     except KeyError:
-        rprint(f"[red]Tool '{name}' not found.[/]")
-        raise typer.Exit(code=1)
+        svc = _get_tool_service(refresh=True)
+        try:
+            tool_obj = svc.get(name)
+        except KeyError:
+            rprint(f"[red]Tool '{name}' not found.[/]")
+            raise typer.Exit(code=1)
 
     async def _run_tool() -> Any:  # type: ignore[override]
         return await tool_obj.run(ctx=ToolContext(agent_id="cli", session_id="cli"), **kwargs)
@@ -271,7 +279,9 @@ def _load_module_from_path(path: Path) -> ModuleType:
 async def _execute_chain(entry: ModuleType) -> None:
     """Look for a ScriptChain instance or factory function and run it."""
 
-    from ice_orchestrator.script_chain import ScriptChain  # local import to avoid cycles
+    from ice_orchestrator.script_chain import (
+        ScriptChain,  # local import to avoid cycles
+    )
 
     chain: Any | None = None
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Simple registry & utility service for working with :pyclass:`~ice_sdk.tools.base.BaseTool` instances.
 
 The implementation purposefully remains *minimal*.  The public surface exposed
@@ -9,9 +7,12 @@ methods).  More sophisticated lifecycle management can be added later without
 breaking the stable API.
 """
 
-from typing import Any, Dict, Iterable, Type  # noqa: E402
+from __future__ import annotations
 
-from .base import BaseTool  # noqa: E402
+from pathlib import Path
+from typing import Any, Dict, Iterable, Type
+
+from .base import BaseTool
 
 __all__ = ["ToolService"]
 
@@ -19,6 +20,9 @@ __all__ = ["ToolService"]
 class ToolService:  # noqa: D101 – simple façade
     _registry: Dict[str, Type[BaseTool]]
 
+    # ------------------------------------------------------------------
+    # Construction & discovery -----------------------------------------
+    # ------------------------------------------------------------------
     def __init__(self, auto_register_builtins: bool = True) -> None:
         """Create a new *ToolService* instance.
 
@@ -31,6 +35,68 @@ class ToolService:  # noqa: D101 – simple façade
         self._registry = {}
         if auto_register_builtins:
             self._register_default_tools()
+
+    # ------------------------------------------------------------------
+    # New feature: file-system discovery of ``*.tool.py`` ----------------
+    # ------------------------------------------------------------------
+
+    def discover_and_register(self, directory: str | Path = ".", pattern: str = "*.tool.py") -> None:
+        """Recursively import and register any *tool* modules found under *directory*.
+
+        This implements the Day-3 "auto-registration of `*.tool.py` files" milestone.
+
+        The function is *idempotent*: re-discovering the same directory twice
+        will not raise – duplicate tool names are ignored with a warning.
+        """
+
+        import importlib
+        import inspect
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        base_path = Path(directory).resolve()
+
+        import sys
+        if str(base_path) not in sys.path:
+            sys.path.insert(0, str(base_path))
+
+        for py_file in base_path.rglob(pattern):
+            # Compute importable module path (assuming it is on sys.path)
+            try:
+                rel_path = py_file.relative_to(base_path)
+            except ValueError:
+                rel_path = py_file.name  # fallback to filename only
+
+            module_name = Path(str(rel_path)).with_suffix("").as_posix().replace("/", ".")
+
+            try:
+                # Attempt normal import first --------------------------------
+                try:
+                    module = importlib.import_module(module_name)
+                except ModuleNotFoundError:
+                    # Fall back to loading directly from file path ----------
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location(module_name.replace(".", "_"), py_file)
+                    if spec and spec.loader:
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)  # type: ignore[reportGeneralTypeIssues]
+                    else:
+                        raise
+            except Exception as exc:
+                logger.warning("Could not import %s: %s", module_name, exc)
+                continue
+
+            # Inspect module attributes for *tool* subclasses -------------
+            for obj in module.__dict__.values():
+                if inspect.isclass(obj) and issubclass(obj, BaseTool):
+                    tool_name = getattr(obj, "name", None)
+                    try:
+                        self.register(obj)
+                        logger.info("Registered tool '%s' from %s", tool_name, module_name)
+                    except ValueError:
+                        # Duplicate registration – ignore silently so repeated scans are safe.
+                        continue
 
     # ---------------------------------------------------------------------
     # Public API
