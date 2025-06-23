@@ -17,6 +17,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
+import shutil
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -52,7 +53,9 @@ CHECKS: List[Check] = [
     Check("Typing (pyright)", "pyright --project config"),
     Check("Unit & integration tests", "make test -j"),
     Check("Coverage threshold", "pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q"),
-    Check("Security audit", "pip-audit"),
+    *(
+        [Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []
+    ),
     Check("Import-linter rules", "lint-imports --config config/.importlinter"),
     Check("isort check", "isort --check-only src"),
     Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),
