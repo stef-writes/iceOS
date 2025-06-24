@@ -21,6 +21,7 @@ install:
 lint:
 	ruff check src
 	isort --check-only src
+	mypy src
 
 format:
 	black src scripts tests
@@ -41,4 +42,5 @@ doctor:
 
 clean:
 	rm -rf .pytest_cache dist build *.egg-info
+	rm -rf .coverage htmlcov .ruff_cache .mypy_cache .benchmarks .import_linter_cache
 	find . -name "__pycache__" -type d -exec rm -rf {} + 

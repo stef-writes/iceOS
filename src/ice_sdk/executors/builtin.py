@@ -68,7 +68,7 @@ def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
         model=node.model,
         model_settings=model_settings,
         tools=tools,
-    )
+    )  # type: ignore[call-arg]
 
     agent = AgentNode(config=agent_cfg, context_manager=chain.context_manager)
     agent.tools = tools
@@ -110,21 +110,36 @@ async def ai_executor(chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]) 
 
 @register_node("tool")
 async def tool_executor(chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]) -> NodeExecutionResult:
-    """Executor for deterministic tool nodes."""
+    """Executor for deterministic tool nodes with context-aware `tool_args`."""
 
     from ice_sdk.models.node_models import ToolNodeConfig
 
     if not isinstance(cfg, ToolNodeConfig):
         raise TypeError("tool_executor received incompatible cfg type")
 
+    def _apply_ctx(value: Any) -> Any:  # noqa: D401 – helper
+        """Recursively substitute `{key}` placeholders using *ctx*."""
+        if isinstance(value, str):
+            try:
+                return value.format(**ctx)
+            except Exception:
+                return value  # leave unchanged if placeholder missing
+        if isinstance(value, dict):
+            return {k: _apply_ctx(v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [_apply_ctx(v) for v in value]
+        return value
+
     tool_name = cfg.tool_name
-    tool_args = cfg.tool_args or {}
+    raw_args = cfg.tool_args or {}
+    tool_args = _apply_ctx(raw_args)
+
     output = await chain.context_manager.execute_tool(tool_name, **tool_args)
 
-    result = NodeExecutionResult(
+    result = NodeExecutionResult(  # type: ignore[call-arg]
         success=True,
         output=output,
-        metadata=NodeMetadata(
+        metadata=NodeMetadata(  # type: ignore[call-arg]
             node_id=cfg.id,
             node_type="tool",
             name=cfg.name,

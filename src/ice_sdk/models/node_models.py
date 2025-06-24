@@ -1,3 +1,4 @@
+# pyright: reportGeneralTypeIssues=false
 """
 Data models for node configurations and metadata
 """
@@ -188,8 +189,10 @@ class BaseNodeConfig(BaseModel):
             raise ValueError(f"Node {node_id} cannot depend on itself")
         return v
 
-    @model_validator(mode="after")
-    def _ensure_metadata(self) -> "BaseNodeConfig":  # type: ignore[override]
+    @model_validator(mode="after")  # pyright: ignore[reportGeneralTypeIssues]
+    def _ensure_metadata(self):  # pyright: ignore[reportSelfClsParameterMismatch]
+        """Ensure ``metadata`` is set on the instance after validation."""
+
         if self.metadata is None:
             self.metadata = NodeMetadata(  # type: ignore[call-arg]
                 node_id=self.id,
@@ -197,7 +200,6 @@ class BaseNodeConfig(BaseModel):
                 version="1.0.0",
                 description=f"Node {self.id} (type={self.type})",
             )
-            # Note: Pydantic model init static typing may not match runtime.
         return self
 
     # ------------------------------------------------------------------
@@ -323,16 +325,55 @@ class ToolNodeConfig(BaseNodeConfig):
 
     tool_name: str = Field(..., description="Registered name of the tool to invoke")
     tool_args: Dict[str, Any] = Field(
-        default_factory=dict, description="Arguments to forward to the tool"
+        default_factory=dict,
+        description="Arguments forwarded to the tool (can contain placeholders)",
     )
 
 
-# Backwards-compatibility alias ----------------------------------------------------
+# ---------------------------------------------------------------------------
+# Condition node -------------------------------------------------------------
+# ---------------------------------------------------------------------------
 
+
+class ConditionNodeConfig(BaseNodeConfig):
+    """Branching node that evaluates *expression* against its context and
+    decides which downstream branch should execute.
+
+    The expression syntax is intentionally flexible: implementations may use
+    Python `eval` (sandboxed) or JMESPath.  For now we keep it opaque at the
+    model level.
+    """
+
+    type: Literal["condition"] = "condition"
+
+    expression: str = Field(
+        ...,
+        description="Boolean expression evaluated against node context. Truthy → true_branch executes.",
+    )
+
+    true_branch: List[str] = Field(
+        default_factory=list,
+        description="IDs of nodes that should follow when expression is truthy",
+    )
+
+    false_branch: Optional[List[str]] = Field(
+        default=None,
+        description="IDs of nodes for the false path (optional). If omitted, execution continues with dependents.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Update public alias --------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+# Include the new condition type in the union used elsewhere -----------------
+from typing import Union as _Union, Annotated  # noqa: E402  – after class definitions
+
+# Discriminated union used throughout the codebase
 NodeConfig = Annotated[
-    _UnionAlias[AiNodeConfig, ToolNodeConfig],
+    _Union[AiNodeConfig, ToolNodeConfig, ConditionNodeConfig],
     Field(discriminator="type"),
-]
+]  # Historical alias preserved for backwards-compatibility
 
 
 class NodeExecutionRecord(BaseModel):

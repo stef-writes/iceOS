@@ -30,6 +30,9 @@ jobs:
       - name: Run Ruff
         run: poetry run ruff check src
 
+      - name: Run Mypy
+        run: poetry run mypy src
+
       - name: Run Pyright
         run: poetry run pyright --project config
 

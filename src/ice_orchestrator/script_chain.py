@@ -31,6 +31,7 @@ from ice_sdk.models.node_models import (
     NodeConfig,
     NodeExecutionResult,
     NodeMetadata,
+    ConditionNodeConfig,
 )
 from ice_sdk.node_registry import get_executor
 from ice_sdk.tools.base import BaseTool
@@ -157,6 +158,8 @@ class ScriptChain(BaseScriptChain):
         self.metrics = ChainMetrics()
         # Agent instance cache -------------------------------------------
         self._agent_cache: Dict[str, AgentNode] = {}
+        # Track decisions made by *condition* nodes -----------------------
+        self._branch_decisions: Dict[str, bool] = {}
         # Retain reference to chain-level tools ---------------------------
         self._chain_tools: List[BaseTool] = tools or []
 
@@ -198,7 +201,9 @@ class ScriptChain(BaseScriptChain):
                     break
 
                 level_node_ids = self.levels[level_num]
-                level_nodes = [self.nodes[node_id] for node_id in level_node_ids]
+                # Filter nodes by branch decisions (condition gating) -----
+                active_node_ids = [nid for nid in level_node_ids if self._is_node_active(nid)]
+                level_nodes = [self.nodes[node_id] for node_id in active_node_ids]
 
                 level_results = await self._execute_level(level_nodes, results)
 
@@ -227,6 +232,19 @@ class ScriptChain(BaseScriptChain):
                                 )
                                 errors.append("Token ceiling exceeded")
                                 break
+
+                            # Record branch decision for condition nodes ----------
+                            node_cfg = self.nodes[node_id]
+                            if (
+                                isinstance(node_cfg, ConditionNodeConfig)
+                                and result.success
+                                and isinstance(result.output, dict)
+                                and "result" in result.output
+                            ):
+                                try:
+                                    self._branch_decisions[node_id] = bool(result.output["result"])
+                                except Exception:
+                                    pass
                     else:
                         errors.append(f"Node {node_id} failed: {result.error}")
 
@@ -699,6 +717,32 @@ class ScriptChain(BaseScriptChain):
             return True
 
         # Unknown schema format – consider valid to avoid false negatives
+        return True
+
+    # ---------------------------------------------------------------------
+    # Branch gating helpers -------------------------------------------------
+    # ---------------------------------------------------------------------
+
+    def _is_node_active(self, node_id: str) -> bool:  # noqa: D401
+        """Return *False* when any evaluated ConditionNode explicitly excludes
+        *node_id* from execution based on its *true_branch* / *false_branch* lists.
+        """
+
+        from ice_sdk.models.node_models import ConditionNodeConfig  # local import
+
+        for cond_id, decision in self._branch_decisions.items():
+            cond_cfg = self.nodes.get(cond_id)
+            if not isinstance(cond_cfg, ConditionNodeConfig):
+                continue
+
+            # Outcome TRUE → false_branch nodes are disabled --------------
+            if decision and cond_cfg.false_branch and node_id in cond_cfg.false_branch:
+                return False
+
+            # Outcome FALSE → true_branch nodes are disabled --------------
+            if not decision and cond_cfg.true_branch and node_id in cond_cfg.true_branch:
+                return False
+
         return True
 
 if TYPE_CHECKING:  # pragma: no cover
