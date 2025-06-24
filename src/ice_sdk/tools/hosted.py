@@ -75,7 +75,11 @@ class WebSearchTool(BaseTool):
 
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.get("https://serpapi.com/search.json", params=params)
+                # *params* includes booleans & ints – acceptable to httpx but mypy's narrow type
+                res = await client.get(
+                    "https://serpapi.com/search.json",
+                    params=params,  # type: ignore[arg-type]
+                )
                 res.raise_for_status()
                 payload = res.json()
         except Exception as exc:  # pragma: no cover – network issues, etc.
@@ -166,9 +170,9 @@ class FileSearchTool(BaseTool):
             except Exception as exc:  # pragma: no cover – collection issues
                 raise ToolError(f"Vector store query failed for collection '{cid}': {exc}") from exc
 
-            ids = res.get("ids", [[]])[0]
-            dists = res.get("distances", [[]])[0]
-            metas = res.get("metadatas", [[]])[0]
+            ids = res.get("ids", [[]])[0]  # type: ignore[index]
+            dists = res.get("distances", [[]])[0]  # type: ignore[index]
+            metas = res.get("metadatas", [[]])[0]  # type: ignore[index]
 
             for idx, _id in enumerate(ids):
                 aggregate_matches.append(

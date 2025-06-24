@@ -1,18 +1,18 @@
-from __future__ import annotations
-
 """Executor for *condition* nodes that decide control-flow based on a boolean
 expression evaluated against the assembled input context.
 """
+
+from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Dict, TypeAlias
 
 from ice_sdk.interfaces.chain import ScriptChainLike
 from ice_sdk.models.node_models import (
+    ConditionNodeConfig,
     NodeConfig,
     NodeExecutionResult,
     NodeMetadata,
-    ConditionNodeConfig,
 )
 from ice_sdk.node_registry import register_node
 

@@ -7,9 +7,7 @@ from datetime import datetime
 from enum import Enum
 
 # Standard library -----------------------------------------------------------------
-from typing import Annotated, Any, Dict, List, Literal, Optional, Type
-from typing import Union
-from typing import Union as _UnionAlias
+from typing import Annotated, Any, Dict, List, Literal, Optional, Type, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -366,12 +364,9 @@ class ConditionNodeConfig(BaseNodeConfig):
 # Update public alias --------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-# Include the new condition type in the union used elsewhere -----------------
-from typing import Union as _Union, Annotated  # noqa: E402  – after class definitions
-
 # Discriminated union used throughout the codebase
 NodeConfig = Annotated[
-    _Union[AiNodeConfig, ToolNodeConfig, ConditionNodeConfig],
+    Union[AiNodeConfig, ToolNodeConfig, ConditionNodeConfig],
     Field(discriminator="type"),
 ]  # Historical alias preserved for backwards-compatibility
 

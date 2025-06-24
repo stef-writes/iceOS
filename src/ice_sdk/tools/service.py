@@ -10,12 +10,14 @@ breaking the stable API.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Iterable, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Type
 
 from .base import BaseTool
 
 if TYPE_CHECKING:  # pragma: no cover – for type checkers only
-    from ice_sdk.capabilities.card import CapabilityCard  # noqa: WPS433 – optional import
+    from ice_sdk.capabilities.card import (  # noqa: WPS433 – optional import
+        CapabilityCard,
+    )
 
 __all__ = ["ToolService"]
 
@@ -69,7 +71,7 @@ class ToolService:  # noqa: D101 – simple façade
             try:
                 rel_path = py_file.relative_to(base_path)
             except ValueError:
-                rel_path = py_file.name  # fallback to filename only
+                rel_path = py_file.name  # type: ignore[assignment]
 
             module_name = Path(str(rel_path)).with_suffix("").as_posix().replace("/", ".")
 

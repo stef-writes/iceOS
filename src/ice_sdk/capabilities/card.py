@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Unified metadata representation for discoverable *capabilities* (tools, agents, ai-nodes, …).
 
 The initial implementation focuses on *tool* classes because they already expose
@@ -15,6 +13,8 @@ Why introduce this module now?
 3. Keeps **all** metadata in code — no duplication between runtime structs and
    documentation specs.
 """
+
+from __future__ import annotations
 
 from typing import Any, Dict, Literal, Type
 

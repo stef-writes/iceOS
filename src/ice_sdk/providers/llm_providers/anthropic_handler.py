@@ -42,8 +42,8 @@ class AnthropicHandler(BaseLLMHandler):
         messages = [{"role": "user", "content": prompt}]
         try:
             async with client:
-                response = await client.messages.create(  # type: ignore[arg-type]
-                    model=llm_config.model,
+                response = await client.messages.create(  # type: ignore[call-overload,arg-type]
+                    model=str(llm_config.model),
                     system=system_param,  # type: ignore[arg-type]
                     messages=messages,  # type: ignore[arg-type]
                     max_tokens=llm_config.max_tokens or 256,

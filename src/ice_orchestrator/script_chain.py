@@ -28,10 +28,10 @@ from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 from ice_sdk.models.node_models import (
     AiNodeConfig,
     ChainExecutionResult,
+    ConditionNodeConfig,
     NodeConfig,
     NodeExecutionResult,
     NodeMetadata,
-    ConditionNodeConfig,
 )
 from ice_sdk.node_registry import get_executor
 from ice_sdk.tools.base import BaseTool
@@ -313,7 +313,11 @@ class ScriptChain(BaseScriptChain):
                     # Convert the exception into a generic failure result so the
                     # orchestrator can apply failure policies without blowing up.
                     from datetime import datetime
-                    from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
+
+                    from ice_sdk.models.node_models import (
+                        NodeExecutionResult,
+                        NodeMetadata,
+                    )
 
                     failure_meta = NodeMetadata(  # type: ignore[call-arg]
                         node_id=node_id,
@@ -336,6 +340,7 @@ class ScriptChain(BaseScriptChain):
                 # Defensive branch — should not happen but avoid silent loss.
                 import reprlib
                 from datetime import datetime
+
                 from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
 
                 node_id = "unknown" if not item else str(item)
