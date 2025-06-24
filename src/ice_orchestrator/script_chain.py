@@ -233,19 +233,23 @@ class ScriptChain(BaseScriptChain):
                                 errors.append("Token ceiling exceeded")
                                 break
 
-                            # Record branch decision for condition nodes ----------
-                            node_cfg = self.nodes[node_id]
-                            if (
-                                isinstance(node_cfg, ConditionNodeConfig)
-                                and result.success
-                                and isinstance(result.output, dict)
-                                and "result" in result.output
-                            ):
-                                try:
-                                    self._branch_decisions[node_id] = bool(result.output["result"])
-                                except Exception:
-                                    pass
-                    else:
+                    # ----------------------------------------------------------------------
+                    # Record branch decision for *condition* nodes (always, not usage-only)
+                    # ----------------------------------------------------------------------
+                    node_cfg = self.nodes[node_id]
+                    if (
+                        isinstance(node_cfg, ConditionNodeConfig)
+                        and isinstance(result.output, dict)
+                        and "result" in result.output
+                    ):
+                        try:
+                            self._branch_decisions[node_id] = bool(result.output["result"])
+                        except Exception:
+                            # Defensive fallback – ignore unexpected conversion issues
+                            pass
+
+                    # When the node execution failed, collect error information
+                    if not result.success:
                         errors.append(f"Node {node_id} failed: {result.error}")
 
                 if errors and not self._should_continue(errors):
