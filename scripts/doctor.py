@@ -59,6 +59,7 @@ CHECKS: List[Check] = [
     Check("Import-linter rules", "lint-imports --config config/.importlinter"),
     Check("isort check", "isort --check-only src"),
     Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),
+    Check("FlowSpec examples schema", "python scripts/check_flow_spec.py"),
     Check("Performance smoke", "pytest --benchmark-only -q", perf_only=True),
 ]
 

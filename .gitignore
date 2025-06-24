@@ -70,8 +70,9 @@ config/api_keys.json
 .env
 
 # Tool caches
-+.mypy_cache/
-+.ruff_cache/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
 
 # Generated docs
 docs/generated/ 

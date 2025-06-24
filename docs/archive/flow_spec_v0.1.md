@@ -1,3 +1,11 @@
+# FlowSpec v0.1 – Draft (Archived)
+
+> This document has been moved to `docs/archive/` to reduce surface area of the active documentation set. It remains here for historical reference only.
+
+---
+
+<!-- Original content below -->
+
 # FlowSpec v0.1 – Draft
 
 > Canonical JSON representation of an iceOS workflow (single-file, portable).

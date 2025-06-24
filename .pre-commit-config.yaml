@@ -16,4 +16,9 @@ repos:
     rev: v0.1.12
     hooks:
       - id: pyright
-        args: ["--warnings"] 
+        args: ["--warnings"]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        args: ["--strict", "src"] 

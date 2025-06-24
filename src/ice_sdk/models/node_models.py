@@ -190,18 +190,17 @@ class BaseNodeConfig(BaseModel):
         return v
 
     @model_validator(mode="after")  # pyright: ignore[reportGeneralTypeIssues]
-    @classmethod
-    def _ensure_metadata(cls, values: Dict[str, Any]) -> Dict[str, Any]:  # noqa: D401
-        """Ensure metadata field exists in *values* dict."""
+    def _ensure_metadata(self):  # pyright: ignore[reportSelfClsParameterMismatch]
+        """Ensure ``metadata`` is set on the instance after validation."""
 
-        if values.get("metadata") is None:
-            values["metadata"] = NodeMetadata(  # type: ignore[call-arg]
-                node_id=values["id"],
-                node_type=values["type"],
+        if self.metadata is None:
+            self.metadata = NodeMetadata(  # type: ignore[call-arg]
+                node_id=self.id,
+                node_type=self.type,
                 version="1.0.0",
-                description=f"Node {values['id']} (type={values['type']})",
+                description=f"Node {self.id} (type={self.type})",
             )
-        return values
+        return self
 
     # ------------------------------------------------------------------
     # Common helpers preserved from the legacy implementation

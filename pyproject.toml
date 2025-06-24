@@ -63,6 +63,7 @@ networkx = "^3.1"
 openai = "1.14.1"
 opentelemetry-api = "^1.23.0"
 opentelemetry-sdk = "^1.23.0"
+jsonschema = "^4.22.0"
 packaging = "^23.2"
 pydantic = "^2.4.2"
 python-dotenv = "^1.0.0"
@@ -106,4 +107,9 @@ import-linter = "^2.3.0"
 
 [tool.poetry.scripts]
 ice = "ice_cli.cli:app"
+
+[tool.poetry.extras]
+llm_openai = ["openai", "tiktoken"]
+llm_anthropic = ["anthropic"]
+llm_gemini = ["google-generativeai"]
 

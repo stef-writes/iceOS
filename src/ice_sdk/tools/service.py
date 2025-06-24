@@ -10,9 +10,12 @@ breaking the stable API.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Iterable, Type
+from typing import Any, Dict, Iterable, Type, TYPE_CHECKING
 
 from .base import BaseTool
+
+if TYPE_CHECKING:  # pragma: no cover – for type checkers only
+    from ice_sdk.capabilities.card import CapabilityCard  # noqa: WPS433 – optional import
 
 __all__ = ["ToolService"]
 
@@ -120,6 +123,24 @@ class ToolService:  # noqa: D101 – simple façade
     def available_tools(self) -> Iterable[str]:  # noqa: D401
         """Return an *iterator* over the names of registered tools."""
         return self._registry.keys()
+
+    # ------------------------------------------------------------------
+    # Capability cards --------------------------------------------------
+    # ------------------------------------------------------------------
+
+    def cards(self) -> Iterable["CapabilityCard"]:  # noqa: D401
+        """Yield :class:`~ice_sdk.capabilities.card.CapabilityCard` for every registered tool.
+
+        The method is intentionally *lazy* (uses a generator) so callers can
+        iterate without materialising the full list.
+        """
+
+        # Local import to avoid an *optional* dependency when callers never
+        # request capability cards.
+        from ice_sdk.capabilities.card import CapabilityCard
+
+        for tool_cls in self._registry.values():
+            yield CapabilityCard.from_tool_cls(tool_cls)
 
     # ------------------------------------------------------------------
     # Internals
