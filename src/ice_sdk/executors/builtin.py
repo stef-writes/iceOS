@@ -39,21 +39,25 @@ def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
     if existing is not None:
         return existing
 
-    # Collect tools ------------------------------------------------------
-    registered_tools: Dict[str, BaseTool] = chain.context_manager.get_all_tools()
-    tools: list[BaseTool] = list(registered_tools.values())
+    # Build precedence-aware tool map ------------------------------------
+    tool_map: Dict[str, BaseTool] = {}
 
-    # Node-specific tools -------------------------------------------------
+    # 1. Globally registered tools (lowest precedence) -------------------
+    for name, tool in chain.context_manager.get_all_tools().items():
+        tool_map[name] = tool
+
+    # 2. Chain-level tools — override when name clashes ------------------
+    for t in getattr(chain, "_chain_tools", []):
+        tool_map[t.name] = t
+
+    # 3. Node-specific tool references — highest precedence -------------
     if node.tools:
         for cfg in node.tools:  # type: ignore[attr-defined]
             t_obj = chain.context_manager.get_tool(cfg.name)
-            if t_obj and t_obj.name not in {t.name for t in tools}:
-                tools.append(t_obj)
+            if t_obj is not None:
+                tool_map[t_obj.name] = t_obj
 
-    # Chain-level tools ---------------------------------------------------
-    for t in getattr(chain, "_chain_tools", []):
-        if t.name not in {tool.name for tool in tools}:
-            tools.append(t)
+    tools: list[BaseTool] = list(tool_map.values())
 
     model_settings = ModelSettings(
         model=node.model,

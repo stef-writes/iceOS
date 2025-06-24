@@ -629,20 +629,25 @@ class ScriptChain(BaseScriptChain):
 
     def _make_agent(self, node: AiNodeConfig) -> AgentNode:
         """Convert an *AiNodeConfig* into a fully-initialised :class:`AgentNode`."""
-        # Gather tools: global + context-registered + node-specific --------
-        registered_tools: Dict[str, BaseTool] = self.context_manager.get_all_tools()
-        tools: List[BaseTool] = list(registered_tools.values())  # copy
+        # Build tool map so later inserts override earlier ones (priority)
+        tool_map: Dict[str, BaseTool] = {}
 
+        # 1. Globally registered tools (lowest precedence) --------------
+        for name, tool in self.context_manager.get_all_tools().items():
+            tool_map[name] = tool
+
+        # 2. Chain-level tools – override globals when name clashes ------
+        for t in self._chain_tools:
+            tool_map[t.name] = t
+
+        # 3. Node-specific tool refs override everything else -----------
         if getattr(node, "tools", None):
             for cfg in node.tools:  # type: ignore[attr-defined]
                 t_obj = self.context_manager.get_tool(cfg.name)
-                if t_obj and t_obj.name not in {t.name for t in tools}:  # deduplicate by name
-                    tools.append(t_obj)
+                if t_obj is not None:
+                    tool_map[t_obj.name] = t_obj
 
-        # Ensure chain-level tools are included ---------------------------
-        for t in self._chain_tools:
-            if t.name not in {tool.name for tool in tools}:
-                tools.append(t)
+        tools: List[BaseTool] = list(tool_map.values())
 
         # Build AgentConfig ----------------------------------------------
         model_settings = ModelSettings(
