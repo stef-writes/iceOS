@@ -244,6 +244,94 @@ class GraphContextManager:
         return list(self._tools.keys())
 
     # ------------------------------------------------------------------
+    # Experimental helpers ---------------------------------------------
+    # ------------------------------------------------------------------
+
+    def smart_context_compression(
+        self,
+        content: Any,
+        *,
+        schema: Optional[Dict[str, Any]] = None,
+        strategy: str = "summarize",
+        max_tokens: Optional[int] = None,
+    ) -> Any:
+        """Return a compressed variant of *content* according to *strategy*.
+
+        This helper is **best-effort** and deliberately side-effect-free; it is
+        safe to call within hot code-paths (e.g. during context updates).
+
+        Parameters
+        ----------
+        content
+            Arbitrary serialisable payload to compress.
+        schema
+            Optional type/schema information that can guide the compression
+            algorithm (e.g. know which keys are essential).
+        strategy
+            Supported values:
+            ``"summarize"``  – Short text summary (default)
+            ``"truncate"``   – Hard trim to *max_tokens* (or manager-level limit)
+            ``"embed"``      – Placeholder for embedding-based selection
+        max_tokens
+            Optional override for the *GraphContextManager.max_tokens* limit.
+        """
+
+        # Fallback defaults --------------------------------------------
+        effective_max_tokens = max_tokens or self.max_tokens
+
+        # Import token counter lazily to avoid heavy startup costs
+        from ice_sdk.utils.token_counter import TokenCounter
+        from ice_sdk.models.config import ModelProvider
+
+        def _estimate_tokens(text: str) -> int:
+            return TokenCounter.estimate_tokens(text, model="", provider=ModelProvider.CUSTOM)
+
+        # ------------------------------------------------------------------
+        # Strategy: truncate (cheap) ---------------------------------------
+        # ------------------------------------------------------------------
+        if strategy == "truncate":
+            if isinstance(content, str):
+                tokens = _estimate_tokens(content)
+                if effective_max_tokens and tokens > effective_max_tokens:
+                    char_budget = effective_max_tokens * 4  # ≈4 chars/token
+                    return content[:char_budget]
+            return content  # nothing to do or non-str payload
+
+        # ------------------------------------------------------------------
+        # Strategy: summarize (LLM heavy) ----------------------------------
+        # ------------------------------------------------------------------
+        if strategy == "summarize":
+            try:
+                # Defer import – summariser is optional dependency
+                from ice_sdk.tools.builtins.deterministic import deterministic_summariser  # type: ignore
+
+                summary = deterministic_summariser(content, schema=schema, max_tokens=effective_max_tokens)
+                return summary
+            except Exception:  # noqa: BLE001
+                # Fall back to plain truncation when summarisation unavailable
+                return self.smart_context_compression(
+                    content,
+                    schema=schema,
+                    strategy="truncate",
+                    max_tokens=effective_max_tokens,
+                )
+
+        # ------------------------------------------------------------------
+        # Strategy: embed (TODO) -------------------------------------------
+        # ------------------------------------------------------------------
+        if strategy == "embed":
+            # Placeholder – will be implemented when embedding service lands
+            return self.smart_context_compression(
+                content,
+                schema=schema,
+                strategy="truncate",
+                max_tokens=effective_max_tokens,
+            )
+
+        # Unknown strategy → pass through unchanged ------------------------
+        return content
+
+    # ------------------------------------------------------------------
     # Internal helpers ---------------------------------------------------
     # ------------------------------------------------------------------
     def _register_context(self, ctx: GraphContext) -> None:

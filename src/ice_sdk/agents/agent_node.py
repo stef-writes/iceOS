@@ -6,7 +6,12 @@ from ..models.config import LLMConfig, ModelProvider
 from ..models.node_models import NodeExecutionResult
 from ..providers.costs import calculate_cost
 from ..tools.base import BaseTool
+from ..exceptions import CycleDetectionError
 
+from contextvars import ContextVar  # Track agent call stack across coroutines
+
+# Context-local stack of agent names to detect cycles -------------------------
+_AGENT_CALL_STACK: ContextVar[list[str]] = ContextVar("_AGENT_CALL_STACK", default=[])
 
 class AgentNode:
     """Agent node that can execute tools and generate responses."""
@@ -53,8 +58,31 @@ class AgentNode:
             agent: Optional["AgentNode"] = None  # type: ignore[assignment]
 
             async def run(self, input: Dict[str, Any], **_kwargs: Any) -> Any:  # type: ignore[override]
+                """Execute the underlying agent while guarding against cycles."""
                 assert self.agent is not None
-                result = await self.agent.execute(input)
+
+                # ----------------------------------------------------------
+                # Cycle detection using a context-local call stack
+                # ----------------------------------------------------------
+                stack = _AGENT_CALL_STACK.get().copy()
+                current_agent_id = self.agent.config.name
+
+                if current_agent_id in stack:
+                    # Cycle detected → raise immediately to avoid infinite loop
+                    cycle_path = " -> ".join(stack + [current_agent_id])
+                    raise CycleDetectionError(cycle_path)
+
+                # Push current agent on the stack and execute ----------------
+                stack.append(current_agent_id)
+                _AGENT_CALL_STACK.set(stack)
+
+                try:
+                    result = await self.agent.execute(input)
+                finally:
+                    # Pop after execution regardless of success/failure
+                    stack.pop()
+                    _AGENT_CALL_STACK.set(stack)
+
                 return result.output
 
         tool = AgentTool()
@@ -142,7 +170,7 @@ class AgentNode:
         for round_idx in range(MAX_ROUNDS):
             prompt = "\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in conversation])
 
-            text, usage, error = await self.llm_service.generate(
+            text, usage, error = await self.llm_service.generate(  # type: ignore[attr-defined]
                 llm_config=llm_config,
                 prompt=prompt,
                 context={},

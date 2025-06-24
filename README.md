@@ -42,3 +42,26 @@ The extended architecture overview, feature list, and roadmap have moved to:
 ---
 
 This trimmed README keeps the surface light and forward-looking while detailed design docs live under `docs/`. 🎉
+
+## 🔐 Security
+`ice_sdk.tools.mcp` now supports optional Fernet-encrypted transport. To enable, pass an `encryption_key` (32-byte URL-safe base64) in the MCP server parameters:
+
+```python
+server = MCPServerStdio({
+    "command": "myserver",
+    "args": ["--stdio"],
+    "encryption_key": os.environ["MCP_FERNET_KEY"],
+})
+```
+
+If `cryptography` is not installed the call silently falls back to plaintext. Install the extra via Poetry or pip:
+
+```bash
+# Poetry
+poetry add cryptography
+
+# pip
+pip install cryptography
+```
+
+❗  For production environments we strongly recommend supplying a key and confirming that the dependency is available to ensure confidentiality.

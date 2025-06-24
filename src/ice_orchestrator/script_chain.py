@@ -37,6 +37,7 @@ from ice_sdk.node_registry import get_executor
 from ice_sdk.tools.base import BaseTool
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
+from ice_sdk.utils.perf import estimate_complexity, WeightedSemaphore
 
 # ---------------------------------------------------------------------------
 # Tracing & logging setup ----------------------------------------------------
@@ -294,7 +295,8 @@ class ScriptChain(BaseScriptChain):
         semaphore = asyncio.Semaphore(self.max_parallel)
 
         async def process_node(node: NodeConfig) -> Tuple[str, NodeExecutionResult]:
-            async with semaphore:
+            weight = max(1, estimate_complexity(node))
+            async with WeightedSemaphore(semaphore, weight):
                 result = await self.execute_node(
                     node.id,
                     self._build_node_context(node, accumulated_results),
@@ -738,25 +740,56 @@ class ScriptChain(BaseScriptChain):
     # ---------------------------------------------------------------------
 
     def _is_node_active(self, node_id: str) -> bool:  # noqa: D401
-        """Return *False* when any evaluated ConditionNode explicitly excludes
-        *node_id* from execution based on its *true_branch* / *false_branch* lists.
+        """Determine whether *node_id* should run in the current execution.
+
+        The logic combines two independent gating mechanisms:
+
+        1. **Branch-based gating** – Nodes explicitly listed in a *Condition* node's
+           ``true_branch`` / ``false_branch`` lists are enabled or disabled based
+           on that condition's runtime decision.
+        2. **Dependency propagation** – If *any* direct or transitive dependency
+           has been disabled by step (1) (or by further propagation), the current
+           node is implicitly disabled as well.  This prevents nodes from running
+           with missing upstream context and avoids spurious validation errors
+           later in the pipeline.
         """
 
+        # ------------------------------------------------------------------
+        # 1. Explicit branch gating ----------------------------------------
+        # ------------------------------------------------------------------
         from ice_sdk.models.node_models import ConditionNodeConfig  # local import
 
         for cond_id, decision in self._branch_decisions.items():
-            cond_cfg = self.nodes.get(cond_id)
+            cond_id_str = str(cond_id)
+            cond_cfg = self.nodes.get(cond_id_str)
             if not isinstance(cond_cfg, ConditionNodeConfig):
                 continue
 
-            # Outcome TRUE → false_branch nodes are disabled --------------
+            # Outcome TRUE → *false_branch* nodes are disabled -------------
             if decision and cond_cfg.false_branch and node_id in cond_cfg.false_branch:
                 return False
 
-            # Outcome FALSE → true_branch nodes are disabled --------------
+            # Outcome FALSE → *true_branch* nodes are disabled -------------
             if not decision and cond_cfg.true_branch and node_id in cond_cfg.true_branch:
                 return False
 
+        # ------------------------------------------------------------------
+        # 2. Implicit propagation through dependencies ---------------------
+        # ------------------------------------------------------------------
+        # Cache already-computed decisions to avoid exponential recursion
+        if not hasattr(self, "_active_cache"):
+            self._active_cache: Dict[str, bool] = {}
+
+        if node_id in self._active_cache:
+            return self._active_cache[node_id]
+
+        deps = self.graph.get_node_dependencies(node_id)
+        for dep_id in deps:
+            if not self._is_node_active(dep_id):
+                self._active_cache[node_id] = False
+                return False
+
+        self._active_cache[node_id] = True
         return True
 
 if TYPE_CHECKING:  # pragma: no cover

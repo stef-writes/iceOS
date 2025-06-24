@@ -3,9 +3,16 @@ import asyncio
 import json
 from typing import Any, Dict, List, Optional
 
+# Optional transport encryption --------------------------------------------
+try:
+    from cryptography.fernet import Fernet  # type: ignore
+except ImportError:  # pragma: no cover
+    Fernet = None  # type: ignore
+
 from pydantic import BaseModel
 
 from .base import BaseTool, ToolContext
+from ..exceptions import MCPTransportError
 
 
 class MCPServer(BaseModel):
@@ -23,7 +30,21 @@ class MCPServerStdio:
         Args:
             params: Server parameters including command and args
         """
+        # Extract *encryption_key* (optional) before Pydantic validation ------
+        encryption_key = params.pop("encryption_key", None)
+
+        # Build server config (ignore unknown encryption param) --------------
         self.server = MCPServer(**params)
+
+        # Prepare optional Fernet cipher ------------------------------------
+        self._cipher = None
+        if encryption_key and Fernet is not None:
+            try:
+                key_bytes = encryption_key.encode() if isinstance(encryption_key, str) else encryption_key  # type: ignore[arg-type]
+                self._cipher = Fernet(key_bytes)  # type: ignore[arg-type]
+            except Exception:
+                # Fallback – disable encryption on invalid key
+                self._cipher = None
         self.process: Optional[asyncio.subprocess.Process] = None
         self.tools: List[BaseTool] = []
 
@@ -79,16 +100,32 @@ class MCPServerStdio:
         # that we are no longer dealing with an ``Optional``.
         assert self.process is not None
 
-        # Send message
-        message_str = json.dumps(message) + "\n"
+        # Serialize & optionally encrypt -------------------------------------
+        raw_payload = json.dumps(message)
+        if self._cipher:
+            payload_bytes = self._cipher.encrypt(raw_payload.encode())
+        else:
+            payload_bytes = raw_payload.encode()
+
+        # Append newline delimiter ------------------------------------------
+        payload_bytes += b"\n"
+
         assert self.process.stdin is not None  # for static analysis
-        self.process.stdin.write(message_str.encode())
+        self.process.stdin.write(payload_bytes)
         await self.process.stdin.drain()
 
         # Read response
         assert self.process.stdout is not None
-        response = await self.process.stdout.readline()
-        return json.loads(response.decode())
+        response_bytes = await self.process.stdout.readline()
+
+        # Decrypt if enabled -------------------------------------------------
+        if self._cipher:
+            try:
+                response_bytes = self._cipher.decrypt(response_bytes.strip())
+            except Exception:
+                raise MCPTransportError(Exception("Decryption failed"))
+
+        return json.loads(response_bytes.decode())
 
 class MCPTool(BaseTool):
     """Base class for MCP tools."""
