@@ -84,7 +84,7 @@ rich = "^13.6.0"
 # Ensure pip patched
 pip = ">=23.3"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 coverage = "^7.2.0"
 pytest = "^7.0.0"
 pytest-asyncio = "^0.21.0"

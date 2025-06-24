@@ -76,6 +76,12 @@ Details live in [`docs/roadmap_agile.md`](roadmap_agile.md).
 
 ---
 
+## 5. Additional Reference Docs
+
+* [`competitive_landscape.md`](competitive_landscape.md) – live comparison with Workflow86 / LangGraph / n8n and the text-to-flow action plan.
+
+---
+
 > This document is the single source of truth for **current capabilities** and
 > the forward **roadmap**.  Update the Current Capabilities table and roadmap
 > checkpoints at the end of every sprint. 
