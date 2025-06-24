@@ -520,9 +520,18 @@ class ScriptChain(BaseScriptChain):
                 cache_key: str | None = None
                 if self.use_cache and getattr(node, "use_cache", True):
                     try:
+                        # Include *node configuration* snapshot so that changes
+                        # (e.g. modified prompt) bust the cache automatically.
+                        from pydantic import BaseModel
+
+                        cfg_payload = (
+                            node.model_dump() if isinstance(node, BaseModel) else str(node)
+                        )
+
                         payload = {
                             "node_id": node_id,
                             "input": input_data,
+                            "cfg": cfg_payload,
                         }
                         serialized = json.dumps(payload, sort_keys=True, default=str)
                         cache_key = hashlib.sha256(serialized.encode()).hexdigest()

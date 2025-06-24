@@ -21,6 +21,9 @@ If a task does not improve the experience of **pip install â†’ scaffold a tool â
 | Day 4 | **Public API Freeze** | Frozen exports, contract test, generated API docs |
 | Day 4 | **Packaging Hygiene** | Optional extras for heavy deps, manylinux wheel build, `pip-audit` in CI |
 | Day 5 | **Reusable Examples Library** | File summariser, GitHub issue triager, deterministic data-pipeline demos |
+| Day 6 | **Pluggable Node Ecosystem Foundation** | Contract test harness, entry-point auto-discovery, `ice sdk create-node` scaffolder, `/nodespecs` introspection API |
+| Day 10 | **Core Node Catalogue v1** | Ingress (Webhook, Slack), Pre-process (HTML cleaner, SQL fetch), LLM (OpenAI, DeepSeek, Anthropic, Gemini), Post-process (Validator), Sink (Slack, Email) |
+| Day 14 | **Frosty UI & Marketplace Alpha** | React-Flow canvas that consumes `/nodespecs`, JSON round-trip, drag-and-drop install of published nodes |
 | Ongoing | **Community Feedback Loop** | Discussions board, Slack, "good first issue" labels, weekly DX-focused patch releases |
 
 ---

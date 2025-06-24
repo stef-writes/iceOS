@@ -56,28 +56,22 @@ class DeepSeekHandler(BaseLLMHandler):
             return "", None, str(exc)
 
         choice = response.choices[0].message
+
         if getattr(choice, "function_call", None):
             try:
-                arguments = json.loads(choice.function_call.arguments)  # type: ignore[union-attr]
+                fc_str = self._format_function_call(  # type: ignore[attr-defined]
+                    choice.function_call.name,  # type: ignore[union-attr]
+                    choice.function_call.arguments,  # type: ignore[union-attr]
+                )
             except json.JSONDecodeError:
                 return "", None, "Malformed function_call arguments"
-            text_content = json.dumps({
-                "function_call": {
-                    "name": choice.function_call.name,  # type: ignore[union-attr]
-                    "arguments": arguments,
-                }
-            })
-            return text_content, None, None
+            # DeepSeek returns tool call directly; usage not relevant here
+            return fc_str, None, None
 
         text_content = (choice.content or "").strip()
         if not text_content:
             return "", None, "DeepSeek response missing text"
 
-        usage_stats = None
-        if response.usage:
-            usage_stats = {
-                "prompt_tokens": response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens,
-            }
+        usage_stats = self._usage_from_openai(response)  # type: ignore[arg-type]
+
         return text_content, usage_stats, None 

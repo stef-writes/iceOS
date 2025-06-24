@@ -117,59 +117,7 @@ class BaseScriptChain(ABC):
         """Get execution metrics."""
         pass
 
+    @abstractmethod
     async def execute_node(self, node_id: str, input_data: Dict[str, Any]) -> NodeExecutionResult:
-        """Execute a single node.
-        
-        Args:
-            node_id: Node ID
-            input_data: Input data
-        """
-        node = self.nodes.get(node_id)
-        if not node:
-            raise ValueError(f"Node '{node_id}' not found")
-            
-        # Update node context
-        self.context_manager.update_node_context(
-            node_id=node_id,
-            content=input_data,
-            execution_id=self.context_manager.get_context().execution_id
-        )
-        
-        # Execute node
-        try:
-            result = await node.execute(input_data)
-            
-            # Persist output if configured
-            if self.persist_intermediate_outputs:
-                self.context_manager.update_node_context(
-                    node_id=node_id,
-                    content=result.output,
-                    execution_id=self.context_manager.get_context().execution_id
-                )
-                
-            return result
-            
-        except Exception as e:
-            if self.failure_policy == FailurePolicy.HALT:
-                raise
-            elif self.failure_policy == FailurePolicy.CONTINUE_POSSIBLE:
-                # Check if dependents can still execute
-                dependents = self.get_node_dependents(node_id)
-                if not dependents:
-                    return NodeExecutionResult(
-                        success=False,
-                        error=str(e),
-                        output=None
-                    )
-                # Continue execution
-                return NodeExecutionResult(
-                    success=False,
-                    error=str(e),
-                    output=None
-                )
-            else:  # ALWAYS
-                return NodeExecutionResult(
-                    success=False,
-                    error=str(e),
-                    output=None
-                )
+        """Execute a single node and return its :class:`NodeExecutionResult`.  Must be
+        implemented by concrete subclasses (e.g. :class:`ScriptChain`)."""

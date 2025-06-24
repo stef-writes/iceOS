@@ -65,26 +65,19 @@ class OpenAIHandler(BaseLLMHandler):
         # Parse response ------------------------------------------------
         # --------------------------------------------------------------
         choice = response.choices[0].message
-        content_str: str = ""
+
+        # Handle optional function call -----------------------------------
         if getattr(choice, "function_call", None):
             try:
-                arguments = json.loads(choice.function_call.arguments)  # type: ignore[union-attr]
+                content_str = self._format_function_call(  # type: ignore[attr-defined]
+                    choice.function_call.name,  # type: ignore[union-attr]
+                    choice.function_call.arguments,  # type: ignore[union-attr]
+                )
             except json.JSONDecodeError:
                 return "", None, "Malformed function_call arguments"
-            content_str = json.dumps({
-                "function_call": {
-                    "name": choice.function_call.name,  # type: ignore[union-attr]
-                    "arguments": arguments,
-                }
-            })
         else:
             content_str = (choice.content or "").strip()
 
-        usage_stats: Optional[Dict[str, int]] = None
-        if response.usage:
-            usage_stats = {
-                "prompt_tokens": response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens,
-            }
+        usage_stats = self._usage_from_openai(response)  # type: ignore[arg-type]
+
         return content_str, usage_stats, None 
