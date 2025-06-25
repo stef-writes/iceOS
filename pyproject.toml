@@ -24,6 +24,11 @@ addopts = """
     --html=tests/output/test-report.html
     --self-contained-html
 """
+markers = [
+    "slow: slow-running tests (contract/property)",
+    "contract: contract tests against external services or containers",
+    "property: property-based tests via Hypothesis"
+]
 
 [tool.black]
 line-length = 88

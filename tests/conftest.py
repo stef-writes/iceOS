@@ -38,4 +38,20 @@ async def fixture_isolated_slack_tool() -> Any:  # type: ignore[override]
     # Expose call-log on the tool instance for convenience ----------------------
     _dummy_slack.call_log = _CALL_LOG  # type: ignore[attr-defined]
     yield _dummy_slack  # noqa: E501 – yield to test
-    _CALL_LOG.clear() 
+    _CALL_LOG.clear()
+
+# ---------------------------------------------------------------------------
+# Dynamic marker assignment --------------------------------------------------
+# ---------------------------------------------------------------------------
+
+def pytest_collection_modifyitems(config, items):  # noqa: D401
+    """Automatically mark *contract* and *property* tests as *slow* so they can
+    be excluded from the default CI run with ``-m 'not slow'``.
+    """
+
+    import pathlib
+
+    for item in items:
+        node_path = pathlib.Path(item.fspath.strpath)
+        if "contract" in item.keywords or "property" in str(node_path.parts):
+            item.add_marker(pytest.mark.slow)  # type: ignore[attr-defined] 

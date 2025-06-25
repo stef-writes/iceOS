@@ -42,7 +42,7 @@ jobs:
       - name: Run unit tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: poetry run pytest -q
+        run: poetry run pytest -q -m "not slow"
 
       - name: Run full health-check matrix (make doctor)
         env:
