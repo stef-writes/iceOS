@@ -71,6 +71,13 @@ class HttpRequestTool(BaseTool):
             "params": {"type": "object", "description": "Query parameters", "default": {}},
             "data": {"type": "object", "description": "POST body data", "default": {}},
             "timeout": {"type": "number", "default": 10.0},
+            "attempts": {
+                "type": "integer",
+                "default": 5,
+                "minimum": 1,
+                "maximum": 10,
+                "description": "Number of retry attempts on network failure",
+            },
             "max_bytes": {"type": "integer", "default": 65536, "description": "Maximum bytes to return"},
             "base64": {"type": "boolean", "default": False, "description": "Return body as base64"},
         },
@@ -86,17 +93,29 @@ class HttpRequestTool(BaseTool):
         params: Dict[str, Any] = kwargs.get("params", {})
         data: Optional[Dict[str, Any]] = kwargs.get("data")
         timeout: float = kwargs.get("timeout", 10.0)
+        attempts: int = kwargs.get("attempts", 5)
+        if attempts < 1 or attempts > 10:
+            raise ToolError("'attempts' must be between 1 and 10")
+
         max_bytes: int = kwargs.get("max_bytes", 65536)
         wants_b64: bool = kwargs.get("base64", False)
 
-        try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                if method == "GET":
-                    resp = await client.get(url, params=params)
-                else:
-                    resp = await client.post(url, params=params, json=data)
-        except Exception as exc:  # pragma: no cover – network errors
-            raise ToolError(f"HTTP request failed: {exc}") from exc
+        last_exc: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    if method == "GET":
+                        resp = await client.get(url, params=params)
+                    else:
+                        resp = await client.post(url, params=params, json=data)
+                break  # Success, exit retry loop
+            except Exception as exc:  # pragma: no cover – network errors
+                last_exc = exc
+                if attempt == attempts:
+                    # Exhausted retries; raise detailed error
+                    raise ToolError(f"HTTP request failed after {attempts} attempts: {exc}") from exc
+                # Simple exponential backoff (0.1, 0.2, 0.4, ...)
+                await asyncio.sleep(0.1 * 2 ** (attempt - 1))
 
         content: bytes = resp.content[:max_bytes]
         body: str | None
