@@ -9,7 +9,7 @@ change without notice**.
 * The identifiers listed below are exported via `ice_sdk.__all__` **and re-exported unmodified under `iceos.sdk`**.
 * They will not be removed or receive breaking signature changes in a **minor** version.
 * Deprecations are announced at least **one minor version** in advance via
-  `DeprecationWarning`.
+  `DeprecationWarning`. 
 * Breaking removals are only allowed in a **major** version bump.
 
 | Category | Symbol |
