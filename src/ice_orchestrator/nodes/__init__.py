@@ -19,7 +19,6 @@ symbol and registering an alias in ``sys.modules``.  New code should import
 from importlib import import_module as _import_module
 import sys as _sys
 from types import ModuleType as _ModuleType
-from typing import TYPE_CHECKING as _TYPE_CHECKING
 import os as _os
 
 # Check feature flag ---------------------------------------------------------
