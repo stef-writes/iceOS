@@ -100,7 +100,6 @@ class HttpRequestTool(BaseTool):
         max_bytes: int = kwargs.get("max_bytes", 65536)
         wants_b64: bool = kwargs.get("base64", False)
 
-        last_exc: Exception | None = None
         for attempt in range(1, attempts + 1):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
@@ -110,7 +109,6 @@ class HttpRequestTool(BaseTool):
                         resp = await client.post(url, params=params, json=data)
                 break  # Success, exit retry loop
             except Exception as exc:  # pragma: no cover – network errors
-                last_exc = exc
                 if attempt == attempts:
                     # Exhausted retries; raise detailed error
                     raise ToolError(f"HTTP request failed after {attempts} attempts: {exc}") from exc
