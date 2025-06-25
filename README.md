@@ -83,7 +83,45 @@ graph TD
 
 ---
 
-## 7. Community & Support
+## 7. Product Vision (12-Month Outlook)
+1. **Frosty Copilot** – a natural-language canvas that generates, explains and refactors workflows.  
+2. **Guard-railed Runtime** – depth, token & semantic limits with pluggable policy hooks.  
+3. **Extensible Ecosystem** – verified node marketplace, shareable workflow library, versioned `IceWorkflowSpec`.  
+4. **Self-Improving Engine** – telemetry-driven optimisers that rewrite DAGs for latency, cost and accuracy.
+
+### Long-Term Milestones
+| Horizon | Milestone | Description |
+| ------- | --------- | ----------- |
+| 6 mo    | **Copilot GA** | WYSIWYG canvas with NL authoring & live verifier feedback |
+| 9 mo    | **Marketplace v1** | Verified node registry, revenue-share model, auto-update mechanism |
+| 12 mo   | **Self-Optimising Orchestrator** | Runtime telemetry loop that predicts & applies optimal execution plans |
+
+---
+
+## 8. Competitive Landscape (June 2025)
+| Dimension          | Workflow86                              | LangGraph              | n8n (+AI ext.)       | **iceOS (0.2-alpha)** |
+| ------------------ | --------------------------------------- | ---------------------- | -------------------- | --------------------- |
+| Licence / deploy   | Closed-source SaaS                      | MIT, library           | AGPL core + cloud    | **MIT OSS**           |
+| Primary UX         | Chat → visual canvas                    | Code (Python/TS)       | Visual canvas + chat | Code (Pydantic)       |
+| Text→flow maturity | GA (describe/upload)                    | DIY                    | GA via extension     | **Planned "Frosty Copilot"** |
+| Target workflows   | Business ops & forms                    | Multi-agent LLM graphs | API/data automations | Agentic + event-driven AI |
+| Guard-rails        | Version-controlled runs, human approval | Build your own         | Basic retries        | Depth/token/semantic hooks |
+| Extensibility      | JS/Python code node                     | Any Python callable    | 400+ nodes           | Python tools; entry-point auto-reg |
+
+---
+
+## 9. Current Capabilities (v0.x)
+| Layer | Implemented Highlights |
+|-------|------------------------|
+| **FastAPI Application** (`src/app`) | • Root health-check `/` • V1 API endpoints for executing a single node or a full chain |
+| **Orchestration Engine** (`ice_orchestrator`) | • Async `ScriptChain` executes `AiNode` & `ToolNode` DAGs • Basic dependency graph |
+| **Core SDK** (`ice_sdk`) | • Pydantic node / tool configs • `AgentNode` wrapper for LLM calls • `LLMService` with OpenAI, Anthropic, Gemini & DeepSeek handlers |
+| **Tools** (`ice_sdk.tools`) | • `BaseTool` abstraction • Hosted: `WebSearchTool`, `FileSearchTool`, `ComputerTool` • Deterministic: `SleepTool`, `HttpRequestTool`, `SumTool` |
+| **Quality Tooling** | • Ruff & isort • Black • MyPy (strict) • Pyright • Import-linter contracts • Pre-commit auto-format • Unit & integration tests |
+
+---
+
+## 10. Community & Support
 
 • **Slack** – join `ice-community.slack.com` for questions & pairing  
 • **GitHub Discussions** – roadmap input & showcase your flows  
@@ -91,7 +129,7 @@ graph TD
 
 ---
 
-## 8. Licence
+## 11. Licence
 
 iceOS is **MIT-licensed** – free for personal & commercial use. We welcome contributions via issues & pull requests!
 
