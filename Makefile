@@ -3,7 +3,7 @@
 PYTHON := python
 PIP := pip
 
-.PHONY: help install lint type test refresh-docs doctor clean
+.PHONY: help install lint type test coverage mutation refresh-docs doctor clean
 
 help:
 	@echo "Available targets:"
@@ -11,6 +11,8 @@ help:
 	@echo "  lint           Run ruff and isort checks"
 	@echo "  type           Run mypy static type checking"
 	@echo "  test           Run pytest with coverage"
+	@echo "  coverage       Run pytest with branch coverage"
+	@echo "  mutation       Run mutmut mutation testing"
 	@echo "  refresh-docs   Regenerate docs (catalog + overview)"
 	@echo "  doctor         Run full healthcheck suite"
 	@echo "  clean          Remove .pyc, build, and coverage artifacts"
@@ -39,6 +41,12 @@ refresh-docs:
 
 doctor:
 	$(PYTHON) scripts/doctor.py
+
+coverage:
+	pytest
+
+mutation:
+	mutmut run --paths-to-mutate src --tests-dir tests
 
 clean:
 	rm -rf .pytest_cache dist build *.egg-info

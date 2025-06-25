@@ -19,6 +19,7 @@ addopts = """
     --cov-report=html
     --cov-report=term-missing
     --cov-fail-under=54
+    --cov-branch
     --junitxml=tests/output/test-results.xml
     --html=tests/output/test-report.html
     --self-contained-html
@@ -105,6 +106,10 @@ mypy = "^1.5.0"
 ruff = "^0.1.7"
 pyright = "^1.1.402"
 import-linter = "^2.3.0"
+hypothesis = "^6.100"
+hypothesis-pydantic = "^0.7"
+mutmut = "^2.5"
+testcontainers = "^4.5"
 
 [tool.poetry.scripts]
 ice = "ice_cli.cli:app"
