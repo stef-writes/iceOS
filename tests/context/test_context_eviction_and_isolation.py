@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from ice_sdk.context.manager import GraphContextManager, GraphContext
+from ice_sdk.context.manager import GraphContext, GraphContextManager
 
 
 @pytest.mark.asyncio

@@ -35,9 +35,9 @@ from ice_sdk.models.node_models import (
 )
 from ice_sdk.node_registry import get_executor
 from ice_sdk.tools.base import BaseTool
+from ice_sdk.utils.perf import WeightedSemaphore, estimate_complexity
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
-from ice_sdk.utils.perf import estimate_complexity, WeightedSemaphore
 
 # ---------------------------------------------------------------------------
 # Tracing & logging setup ----------------------------------------------------

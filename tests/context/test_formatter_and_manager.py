@@ -1,8 +1,9 @@
-from ice_sdk.context.formatter import ContextFormatter
-from ice_sdk.context.manager import GraphContextManager, GraphContext
-from ice_sdk.context.store import ContextStore
-from ice_sdk.models.node_models import ContextRule, ContextFormat
 import json
+
+from ice_sdk.context.formatter import ContextFormatter
+from ice_sdk.context.manager import GraphContext, GraphContextManager
+from ice_sdk.context.store import ContextStore
+from ice_sdk.models.node_models import ContextFormat, ContextRule
 
 
 def test_context_formatter_truncates_long_text(tmp_path):

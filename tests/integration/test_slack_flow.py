@@ -4,15 +4,15 @@ from typing import Any, Dict, List
 
 import pytest
 
-from ice_orchestrator.script_chain import ScriptChain, FailurePolicy
+from ice_orchestrator.script_chain import FailurePolicy, ScriptChain
 from ice_sdk.models.node_models import (
     AiNodeConfig,
-    ToolNodeConfig,
     ConditionNodeConfig,
     NodeExecutionResult,
+    ToolNodeConfig,
 )
 from ice_sdk.node_registry import NODE_REGISTRY
-from ice_sdk.tools.base import function_tool, ToolContext, BaseTool
+from ice_sdk.tools.base import BaseTool, ToolContext, function_tool
 
 # Globals used by dummy slack tool
 CALL_LOG: List[Dict[str, Any]] = []
@@ -31,6 +31,7 @@ DUMMY_SLACK: BaseTool = _dummy_slack  # type: ignore[assignment]
 async def _dummy_ai_executor(_, cfg: AiNodeConfig, __) -> NodeExecutionResult:  # type: ignore[override]
     """Return deterministic price based on marker in cfg.prompt."""
     from datetime import datetime
+
     from ice_sdk.models.node_models import NodeMetadata
 
     price = 67000.0 if "HIGH" in getattr(cfg, "prompt", "") else 65000.0

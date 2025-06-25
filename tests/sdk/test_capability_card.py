@@ -1,8 +1,8 @@
 import pytest
 
 from ice_sdk.capabilities import CapabilityCard
-from ice_sdk.tools.service import ToolService
 from ice_sdk.tools.builtins.deterministic import SleepTool
+from ice_sdk.tools.service import ToolService
 
 
 def test_from_tool_cls():

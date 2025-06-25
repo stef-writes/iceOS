@@ -1,7 +1,7 @@
 from decimal import Decimal
 
-from ice_sdk.providers.costs import calculate_cost
 from ice_sdk.models.config import ModelProvider
+from ice_sdk.providers.costs import calculate_cost
 
 
 def test_calculate_cost_openai_gpt4o():

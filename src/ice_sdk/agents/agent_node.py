@@ -1,14 +1,13 @@
+from contextvars import ContextVar  # Track agent call stack across coroutines
 from typing import Any, ClassVar, Dict, List, Optional
 
 from ..context.manager import GraphContextManager
+from ..exceptions import CycleDetectionError
 from ..models.agent_models import AgentConfig
 from ..models.config import LLMConfig, ModelProvider
 from ..models.node_models import NodeExecutionResult
 from ..providers.costs import calculate_cost
 from ..tools.base import BaseTool
-from ..exceptions import CycleDetectionError
-
-from contextvars import ContextVar  # Track agent call stack across coroutines
 
 # Context-local stack of agent names to detect cycles -------------------------
 _AGENT_CALL_STACK: ContextVar[list[str]] = ContextVar("_AGENT_CALL_STACK", default=[])

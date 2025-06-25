@@ -1,4 +1,4 @@
-from ice_sdk.tools.hosted import WebSearchTool, FileSearchTool
+from ice_sdk.tools.hosted import FileSearchTool, WebSearchTool
 
 
 def test_hosted_tools_metadata():

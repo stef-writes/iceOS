@@ -1,10 +1,9 @@
 import asyncio
-from typing import Any, Dict, List, AsyncGenerator
+from typing import Any, AsyncGenerator, Dict, List
 
 import pytest
 
-from ice_sdk.tools.base import function_tool, ToolContext, BaseTool
-
+from ice_sdk.tools.base import BaseTool, ToolContext, function_tool
 
 # ---------------------------------------------------------------------------
 # Test-only deterministic Slack replacement  ---------------------------------

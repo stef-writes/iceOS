@@ -3,21 +3,22 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+
 from opentelemetry import trace
 
 # Skip if opentelemetry SDK missing -----------------------------------
 otlp = pytest.importorskip("opentelemetry.sdk")
 
-# Now safe to import ---------------------------------------------------
-from opentelemetry.sdk.trace import TracerProvider  # type: ignore[import-not-found]
-from opentelemetry.sdk.trace.export import (  # type: ignore[import-not-found]
-    SimpleSpanProcessor,
-    InMemorySpanExporter,
-)
-
 from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk.models.node_models import ToolNodeConfig
 from ice_sdk.tools.base import BaseTool
+
+# Now safe to import ---------------------------------------------------
+from opentelemetry.sdk.trace import TracerProvider  # type: ignore[import-not-found]
+from opentelemetry.sdk.trace.export import (  # type: ignore[import-not-found]
+    InMemorySpanExporter,
+    SimpleSpanProcessor,
+)
 
 
 class DummyTool(BaseTool):

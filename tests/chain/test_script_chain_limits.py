@@ -1,10 +1,10 @@
 import pytest
 
-from ice_sdk.models.node_models import ToolNodeConfig
 from ice_orchestrator.script_chain import ScriptChain
+from ice_sdk.context.manager import GraphContext, GraphContextManager
+from ice_sdk.models.node_models import ToolNodeConfig
 from ice_sdk.tools.builtins import SumTool
 from ice_sdk.tools.service import ToolService
-from ice_sdk.context.manager import GraphContextManager, GraphContext
 
 
 @pytest.mark.asyncio

@@ -16,10 +16,10 @@ symbol and registering an alias in ``sys.modules``.  New code should import
 ``BaseNode`` directly from ``ice_sdk.base_node`` instead.
 """
 
-from importlib import import_module as _import_module
-import sys as _sys
-from types import ModuleType as _ModuleType
 import os as _os
+import sys as _sys
+from importlib import import_module as _import_module
+from types import ModuleType as _ModuleType
 
 # Check feature flag ---------------------------------------------------------
 if _os.getenv("ICE_SDK_ENABLE_LEGACY_IMPORTS", "0") not in {"1", "true", "True"}:

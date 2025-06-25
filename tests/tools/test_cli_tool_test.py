@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 from textwrap import dedent
-import sys
-import os
 
 from typer.testing import CliRunner
 

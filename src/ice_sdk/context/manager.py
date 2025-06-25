@@ -280,8 +280,8 @@ class GraphContextManager:
         effective_max_tokens = max_tokens or self.max_tokens
 
         # Import token counter lazily to avoid heavy startup costs
-        from ice_sdk.utils.token_counter import TokenCounter
         from ice_sdk.models.config import ModelProvider
+        from ice_sdk.utils.token_counter import TokenCounter
 
         def _estimate_tokens(text: str) -> int:
             return TokenCounter.estimate_tokens(text, model="", provider=ModelProvider.CUSTOM)
@@ -303,7 +303,9 @@ class GraphContextManager:
         if strategy == "summarize":
             try:
                 # Defer import – summariser is optional dependency
-                from ice_sdk.tools.builtins.deterministic import deterministic_summariser  # type: ignore
+                from ice_sdk.tools.builtins.deterministic import (
+                    deterministic_summariser,  # type: ignore
+                )
 
                 summary = deterministic_summariser(content, schema=schema, max_tokens=effective_max_tokens)
                 return summary
