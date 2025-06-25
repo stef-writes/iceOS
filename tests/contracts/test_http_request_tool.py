@@ -5,8 +5,13 @@ from typing import Any
 
 import pytest  # type: ignore
 
+# ---------------------------------------------------------------------------
+# testcontainers-python 4.x renamed GenericContainer -> DockerContainer and
+# moved it under `testcontainers.core.container`.  Keep the rest of the test
+# unchanged by importing the new class *as* GenericContainer.
+# ---------------------------------------------------------------------------
 try:
-    from testcontainers.core.generic import GenericContainer  # type: ignore
+    from testcontainers.core.container import DockerContainer as GenericContainer  # type: ignore
 except ModuleNotFoundError:
     pytest.skip("testcontainers not installed", allow_module_level=True)
 
