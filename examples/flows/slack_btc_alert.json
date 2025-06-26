@@ -1,41 +1,47 @@
 {
   "schema_version": "0.1",
-  "id": "flow-0001-slack-btc",
-  "name": "Slack BTC Alert",
+  "id": "00000000-0000-0000-0000-000000000001",
   "nodes": [
     {
-      "id": "ai_get_price",
+      "id": "get_price",
       "type": "ai",
+      "name": "Get BTC Price",
       "model": "gpt-3.5-turbo",
-      "prompt": "Fetch current BTC price in USD as JSON {\"price\": number}",
-      "llm_config": {"temperature": 0.0},
-      "output_schema": {"price": "float"}
+      "prompt": "Return the current BTC price in USD as JSON: {\"price\": <value>}",
+      "output_schema": {
+        "price": "number"
+      },
+      "llm_config": {
+        "provider": "openai",
+        "model": "gpt-3.5-turbo",
+        "temperature": 0.0
+      }
     },
     {
-      "id": "cond_price_high",
+      "id": "if_price_high",
       "type": "condition",
+      "name": "Is price high?",
+      "dependencies": ["get_price"],
       "expression": "price > 66000",
-      "dependencies": ["ai_get_price"],
       "input_mappings": {
-        "price": {"source_node_id": "ai_get_price", "source_output_key": "price"}
+        "price": {
+          "source_node_id": "get_price",
+          "source_output_key": "price"
+        }
       },
-      "true_branch": ["tool_notify"],
+      "true_branch": ["send_slack_alert"],
       "false_branch": []
     },
     {
-      "id": "tool_notify",
+      "id": "send_slack_alert",
       "type": "tool",
+      "name": "Send Slack Alert",
+      "dependencies": ["if_price_high"],
       "tool_name": "slack_post",
       "tool_args": {
-        "channel": "#trading-alerts",
-        "text": "BTC price just crossed $66k!"
-      },
-      "dependencies": ["cond_price_high"]
+        "channel": "#alerts",
+        "text": "BTC price above threshold! Price: {price}"
+      }
     }
-  ],
-  "edges": [
-    {"source": "ai_get_price", "target": "cond_price_high"},
-    {"source": "cond_price_high", "target": "tool_notify"}
-  ],
-  "ui": {}
+  ]
 } 

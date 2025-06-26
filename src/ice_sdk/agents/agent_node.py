@@ -31,7 +31,11 @@ class AgentNode:
         self.config = config
         self.context_manager = context_manager
         self.llm_service = llm_service
-        self.tools: List[BaseTool] = []
+        # Tools explicitly declared in the config act as a *whitelist* that the
+        # LLM planner can choose from.  Fall back to an empty list when the
+        # user did not specify any tools in the ``AgentConfig`` (legacy
+        # behaviour).
+        self.tools: List[BaseTool] = list(config.tools or [])
 
     def as_tool(self, name: str, description: str) -> BaseTool:
         """Convert agent to tool.
@@ -160,7 +164,7 @@ class AgentNode:
         # ------------------------------------------------------------------
         # 3. LLM–tool loop --------------------------------------------------
         # ------------------------------------------------------------------
-        MAX_ROUNDS = 2  # current release supports one tool round + one final answer
+        MAX_ROUNDS = self.config.max_rounds  # honour per-agent override
         aggregate_usage: dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
         tool_result_cache: dict[str, Any] = {}
@@ -217,6 +221,18 @@ class AgentNode:
                     logger.warning("Repeated tool invocation detected, aborting loop")
                     final_output = str(tool_result_cache[cache_key])
                     break
+
+                # ------------------------------------------------------------------
+                # 3a. Tool whitelist enforcement -----------------------------------
+                # ------------------------------------------------------------------
+                if self.tools and tool_name not in [t.name for t in self.tools]:
+                    err_msg = f"Tool '{tool_name}' is not allowed by agent configuration"
+                    logger.error(err_msg)
+                    return NodeExecutionResult(  # type: ignore[call-arg]
+                        success=False,
+                        error=err_msg,
+                        metadata=metadata,
+                    )
 
                 # Execute tool --------------------------------------------------
                 try:

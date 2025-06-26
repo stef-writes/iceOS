@@ -1,5 +1,5 @@
 """Agent models."""
-from typing import Any, List, Optional, Type
+from typing import Any, List, Literal, Optional, Type  # noqa: I001
 
 from pydantic import BaseModel, Field
 
@@ -22,6 +22,33 @@ class AgentConfig(BaseModel):
     tools: List[BaseTool] = Field(default_factory=list, description="Available tools")
     output_type: Optional[Type[BaseModel]] = Field(None, description="Output type")
 
+    # ------------------------------------------------------------------
+    # Experimental v2 knobs (2025-06) -----------------------------------
+    # ------------------------------------------------------------------
+    max_rounds: int = Field(
+        2,
+        ge=1,
+        description="Maximum planning rounds the agent is allowed to perform."
+    )
+    budget_usd: Optional[float] = Field(
+        None,
+        gt=0,
+        description="Stop execution when the projected cost exceeds this budget."
+    )
+    memory_enabled: bool = Field(
+        False,
+        description="Enable persistence of context between invocations."
+    )
+    failure_policy: Literal["retry", "skip", "abort"] = Field(
+        "abort",
+        description="Behaviour when a tool or LLM call fails."
+    )
+    concurrency: int = Field(
+        1,
+        ge=1,
+        description="Maximum number of tool calls executed concurrently."
+    )
+
 class InputGuardrail(BaseModel):
     """Schema and validation rules for agent inputs.
 
@@ -32,6 +59,33 @@ class InputGuardrail(BaseModel):
 
     rules: dict[str, Any] = Field(default_factory=dict, description="Validation rules expressed as an arbitrary JSON-serialisable structure")
 
+    # ------------------------------------------------------------------
+    # Public validation hook -------------------------------------------
+    # ------------------------------------------------------------------
+    def validate(self, data: Any) -> bool:  # type: ignore[override]
+        """Validate *data* against the guardrail rules.
+
+        The default implementation performs a *very* lightweight check:
+
+        *   When *rules* is an empty mapping the method always returns *True*.
+        *   When *rules* contains ``required`` (list[str]) we verify that all
+            listed keys are present in *data* when the latter is a mapping.
+
+        More sophisticated rule engines (JSON Schema, JMESPath, etc.) can be
+        plugged-in later without changing the public interface.
+        """
+
+        if not self.rules:
+            return True
+
+        required = self.rules.get("required")
+        if required and isinstance(data, dict):
+            missing = [key for key in required if key not in data]
+            if missing:
+                return False
+
+        # Fallback – assume unknown rules are satisfied ------------------
+        return True
 
 class OutputGuardrail(BaseModel):
     """Schema and validation rules for agent outputs.
@@ -39,4 +93,24 @@ class OutputGuardrail(BaseModel):
     Mirrors :class:`InputGuardrail` but for the *output* side.
     """
 
-    rules: dict[str, Any] = Field(default_factory=dict, description="Validation rules expressed as an arbitrary JSON-serialisable structure") 
+    rules: dict[str, Any] = Field(default_factory=dict, description="Validation rules expressed as an arbitrary JSON-serialisable structure")
+
+    def validate(self, data: Any) -> bool:  # type: ignore[override]
+        """Validate *data* produced by the agent.
+
+        Mirrors :meth:`InputGuardrail.validate` but operates on *output*
+        payloads.  The default behaviour is identical – subclasses can extend
+        it with additional logic (range checks, JSON Schema, etc.).
+        """
+
+        if not self.rules:
+            return True
+
+        # Example: enforce allowed_keys subset ---------------------------
+        allowed = self.rules.get("allowed")
+        if allowed and isinstance(data, dict):
+            extra = [k for k in data.keys() if k not in allowed]
+            if extra:
+                return False
+
+        return True 
