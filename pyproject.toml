@@ -56,6 +56,12 @@ packages = [
   { include = "iceos", from = "src" }
 ]
 
+# Include non-Python assets (JSON templates & default context store)
+include = [
+  "src/app/templates/*.json",
+  "src/app/data/*.json"
+]
+
 [tool.poetry.dependencies]
 python = "^3.10"
 aiohttp = "^3.8.0"

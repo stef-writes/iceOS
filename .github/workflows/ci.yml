@@ -51,3 +51,6 @@ jobs:
 
       - name: CLI help sanity check
         run: poetry run python src/app/main.py --help 
+
+      - name: Build app image
+        run: docker build -t ghcr.io/iceos/iceos:${{ github.sha }} . 

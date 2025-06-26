@@ -47,6 +47,23 @@ pip install -e .[dev]
 python scripts/demo_run_chain.py
 ```
 
+### Docker one-liner
+
+Prefer containers?  Build and run the API without a local Python tool-chain:
+
+```bash
+# Build image (only needs to run once)
+docker build -t iceos .
+
+# Run FastAPI server on port 8000
+docker run --rm -p 8000:8000 iceos
+
+# Open http://localhost:8000/docs in your browser
+```
+
+The `Dockerfile` installs **runtime-only** dependencies, so the resulting image
+is ~230 MB and boots the `uvicorn` server automatically.
+
 ---
 
 ## 4. Architecture at a Glance

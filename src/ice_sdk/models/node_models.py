@@ -96,8 +96,6 @@ class NodeMetadata(BaseModel):
         values["modified_at"] = datetime.utcnow()
         return values
 
-    # TODO: Refactor or remove json_encoders for Pydantic v2 compatibility
-
     # Automatically compute duration if possible ------------------------------
     @model_validator(mode="after")
     def _set_duration(self):  # noqa: D401
@@ -448,7 +446,6 @@ class NodeExecutionResult(BaseModel):
     )
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    # TODO: Refactor or remove json_encoders for Pydantic v2 compatibility
 
 
 # NOTE: Demo output schemas removed during repository clean-up.  If

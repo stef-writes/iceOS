@@ -97,7 +97,7 @@ class {class_name}(BaseTool):
     \"\"\"{class_name} – describe what the tool does.\"\"\"
 
     name = \"{snake}\"
-    description = \"TODO: add description\"
+    description = "Describe what the tool does"
 
     async def run(self, ctx: ToolContext, **kwargs: Any) -> Any:  # noqa: D401
         \"\"\"Execute the tool.

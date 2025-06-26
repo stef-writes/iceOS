@@ -77,4 +77,20 @@ __all__: Final[list[str]] = [
     *_PACKAGES.values(),  # ["sdk", "orchestrator", "app"]
     "BaseNode",
     "BaseTool",
-] 
+]
+
+"""iceOS umbrella meta-package.
+
+This meta-package currently re-exports the public symbols of the
+main runtime packages so that third-party code can simply do::
+
+    import iceos
+    iceos.ScriptChain(...)
+
+without caring about the deeper layout under ``src/``.
+
+It deliberately keeps **zero** business logic – only lightweight imports – so
+it doesn't create dependency inversions (Cursor rule #4).
+"""
+
+__version__ = "0.1.0" 

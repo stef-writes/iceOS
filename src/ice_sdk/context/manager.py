@@ -319,7 +319,7 @@ class GraphContextManager:
                 )
 
         # ------------------------------------------------------------------
-        # Strategy: embed (TODO) -------------------------------------------
+        # Strategy: embed (placeholder – to be implemented) ----------------
         # ------------------------------------------------------------------
         if strategy == "embed":
             # Placeholder – will be implemented when embedding service lands
