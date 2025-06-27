@@ -1,21 +1,27 @@
 {
+  "schema_version": "0.1",
+  "id": "00000000-0000-0000-0000-0000btc00001",
+  "name": "btc_analysis_demo",
   "nodes": [
     {
       "id": "parse_input",
       "type": "ai",
+      "name": "Parse Input",
       "model": "gpt-4o",
       "prompt": "From '{{user_input}}' output JSON {needs_price:boolean}"
     },
     {
       "id": "get_price",
       "type": "tool",
-      "tool": "coinmarketcap",
-      "dependencies": ["parse_input"],
-      "condition": "{{parse_input.output.needs_price}}"
+      "name": "Get BTC Price",
+      "tool_name": "coinmarketcap",
+      "dependencies": ["parse_input"]
     },
     {
       "id": "route",
       "type": "condition",
+      "name": "Volatility Router",
+      "dependencies": ["get_price"],
       "expression": "{{abs(get_price.output.change_24h) > 5}}",
       "true_branch": ["generate_rich_content"],
       "false_branch": ["generate_simple_tweet"]
@@ -23,13 +29,17 @@
     {
       "id": "generate_rich_content",
       "type": "ai",
+      "name": "Rich Content Writer",
       "model": "gpt-4-turbo",
+      "dependencies": ["route"],
       "prompt": "Write 3 engaging tweets and a blog using price {{get_price.output.price}}"
     },
     {
       "id": "generate_simple_tweet",
       "type": "ai",
+      "name": "Calm Tweet Writer",
       "model": "deepseek-r1",
+      "dependencies": ["route"],
       "prompt": "Write one calm tweet about BTC based on price {{get_price.output.price}}"
     }
   ]
