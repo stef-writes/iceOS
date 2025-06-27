@@ -1,0 +1,36 @@
+{
+  "nodes": [
+    {
+      "id": "parse_input",
+      "type": "ai",
+      "model": "gpt-4o",
+      "prompt": "From '{{user_input}}' output JSON {needs_price:boolean}"
+    },
+    {
+      "id": "get_price",
+      "type": "tool",
+      "tool": "coinmarketcap",
+      "dependencies": ["parse_input"],
+      "condition": "{{parse_input.output.needs_price}}"
+    },
+    {
+      "id": "route",
+      "type": "condition",
+      "expression": "{{abs(get_price.output.change_24h) > 5}}",
+      "true_branch": ["generate_rich_content"],
+      "false_branch": ["generate_simple_tweet"]
+    },
+    {
+      "id": "generate_rich_content",
+      "type": "ai",
+      "model": "gpt-4-turbo",
+      "prompt": "Write 3 engaging tweets and a blog using price {{get_price.output.price}}"
+    },
+    {
+      "id": "generate_simple_tweet",
+      "type": "ai",
+      "model": "deepseek-r1",
+      "prompt": "Write one calm tweet about BTC based on price {{get_price.output.price}}"
+    }
+  ]
+} 
