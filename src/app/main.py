@@ -5,6 +5,7 @@ FastAPI application entry point
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import List
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -126,7 +127,6 @@ async def root():
 
 
 # Add minimal health-check and tools listing endpoints -----------------------
-from typing import List
 
 
 @app.get("/health", tags=["utils"])
