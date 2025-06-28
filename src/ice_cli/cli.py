@@ -21,9 +21,9 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+import click  # 3rd-party
 import typer
 from rich import print as rprint
-import click  # Added for patch
 
 # Watchdog is optional: CLI still works sans --watch ----------------------
 try:
