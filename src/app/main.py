@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
@@ -123,3 +123,20 @@ app.include_router(router)
 async def root():
     logger.info("Root endpoint accessed")
     return {"message": "Welcome to iceOS"}
+
+
+# Add minimal health-check and tools listing endpoints -----------------------
+from typing import List
+
+
+@app.get("/health", tags=["utils"])
+async def health_check():  # noqa: D401
+    """Return simple health status so external monitors can probe the API."""
+    return {"status": "ok"}
+
+
+@app.get("/v1/tools", response_model=List[str], tags=["utils"])
+async def list_tools_v1(request: Request):  # noqa: D401
+    """Return all registered tool names (legacy alias without /api prefix)."""
+    tool_service = request.app.state.tool_service  # type: ignore[attr-defined]
+    return sorted(tool_service.available_tools())

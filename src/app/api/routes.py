@@ -197,3 +197,11 @@ async def execute_chain_alias(
 ):
     """Alias for executing a chain (generic path)."""
     return await execute_workflow(request)
+
+
+@router.get("/tools", response_model=List[str])
+async def list_tools(
+    tool_service: ToolService = Depends(get_tool_service),
+):
+    """List all registered tool names."""
+    return sorted(tool_service.available_tools())

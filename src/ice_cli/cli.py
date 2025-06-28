@@ -23,6 +23,7 @@ from typing import Any
 
 import typer
 from rich import print as rprint
+import click  # Added for patch
 
 # Watchdog is optional: CLI still works sans --watch ----------------------
 try:
@@ -344,4 +345,56 @@ def run_cmd(
         $ ice run examples/my_chain.py --watch
     """
 
-    asyncio.run(_cli_run(path.resolve(), watch)) 
+    asyncio.run(_cli_run(path.resolve(), watch))
+
+
+# ---------------------------------------------------------------------------
+# ``ls`` – top-level alias (shortcut) ---------------------------------------
+# ---------------------------------------------------------------------------
+
+@app.command("ls", help="List tools (shortcut for 'tool ls')")
+def root_ls(
+    json_format: bool = typer.Option(False, "--json", "-j", help="Return JSON instead of rich table"),
+    refresh: bool = typer.Option(False, "--refresh", "-r", help="Re-scan project directories"),
+):
+    """Convenience wrapper around ``tool ls`` for quicker access.
+
+    Example::
+        $ ice ls --json
+    """
+    svc = _get_tool_service(refresh)
+    if json_format:
+        import json as _json
+
+        typer.echo(_json.dumps(sorted(svc.available_tools())))
+    else:
+        # Reuse the internal ``tool_ls`` implementation -------------------
+        from rich.table import Table
+
+        table = Table(title="Registered Tools")
+        table.add_column("Name", style="cyan", no_wrap=True)
+        table.add_column("Description", style="green")
+        for name in sorted(svc.available_tools()):
+            tool_obj = svc.get(name)
+            table.add_row(name, getattr(tool_obj, "description", ""))
+        rprint(table)
+
+
+# ---------------------------------------------------------------------------
+# Compatibility patch: Typer <-> Click metavar bug ---------------------------
+# ---------------------------------------------------------------------------
+
+# Some versions of Typer call ``click.Parameter.make_metavar()`` without the
+# required *ctx* argument causing a ``TypeError`` when running ``--help`` via
+# *CliRunner*.  Patch the method at import-time to accept an optional context.
+if not getattr(click.Parameter.make_metavar, "_icepatched", False):  # type: ignore[attr-defined]
+    _orig_make_metavar = click.Parameter.make_metavar  # type: ignore[assignment]
+
+    def _patched_make_metavar(self: click.Parameter, ctx: click.Context | None = None):  # type: ignore[override]
+        if ctx is None:
+            # Create a minimal dummy Context when none was provided
+            ctx = click.Context(click.Command(name="_dummy"))
+        return _orig_make_metavar(self, ctx)
+
+    _patched_make_metavar._icepatched = True  # type: ignore[attr-defined]
+    click.Parameter.make_metavar = _patched_make_metavar  # type: ignore[assignment] 

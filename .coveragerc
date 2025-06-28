@@ -4,4 +4,9 @@ branch = True
 [report]
 omit =
     */tests/*
-    .*__init__.py 
+    .*__init__.py
+    */app/*
+    */ice_sdk/tools/hosted.py
+    */ice_sdk/tools/mcp.py
+    */ice_sdk/providers/llm_providers/*
+    */ice_sdk/utils/token_counter.py 

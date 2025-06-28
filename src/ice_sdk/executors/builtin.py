@@ -24,6 +24,7 @@ from ice_sdk.models.node_models import (
 )
 from ice_sdk.node_registry import register_node
 from ice_sdk.tools.base import BaseTool
+from ice_sdk.utils.prompt_renderer import render_prompt
 
 # Alias used in annotations locally ------------------------------------------
 ScriptChain: TypeAlias = ScriptChainLike
@@ -103,6 +104,20 @@ async def ai_executor(chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]) 
 
     if not isinstance(cfg, AiNodeConfig):
         raise TypeError("ai_executor received incompatible cfg type")
+
+    # ------------------------------------------------------------------
+    # Dynamic prompt templating ----------------------------------------
+    # ------------------------------------------------------------------
+    # *render_prompt* substitutes any placeholder expressions in the
+    # ``cfg.prompt`` string using the *ctx* dict prepared by ScriptChain.
+    # The helper falls back to the original string if rendering fails so
+    # we never break node execution due to missing keys.
+
+    try:
+        cfg.prompt = await render_prompt(cfg.prompt, ctx)  # type: ignore[assignment]
+    except Exception:
+        # Defensive: keep original prompt on any rendering error.
+        pass
 
     agent = _build_agent(chain, cfg)
     return await agent.execute(ctx)
