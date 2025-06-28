@@ -1600,7 +1600,7 @@ version = "3.1.6"
 description = "A very fast and expressive template engine."
 optional = false
 python-versions = ">=3.7"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"},
     {file = "jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"},
@@ -4109,4 +4109,4 @@ llm-openai = ["openai", "tiktoken"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "2c4df8f40b621eb23ecaa98ab69cee109e6441d72bd41b1aa16fb72d451c3ad3"
+content-hash = "4a853e665110ade6bf09f897a1715fffcd3bf350ecebab2acfab07f7de4c6a39"
