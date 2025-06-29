@@ -153,9 +153,15 @@ def tool_new(
         rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
         raise typer.Exit(code=1)
 
+    def _pretty_path(p: Path) -> str:
+        try:
+            return str(p.relative_to(Path.cwd()))
+        except ValueError:
+            return str(p)
+
     try:
         target_path.write_text(_create_tool_template(name))
-        rprint(f"[green]✔[/] Created {target_path.relative_to(Path.cwd())}")
+        rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
     except Exception as exc:
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
         raise typer.Exit(code=1)
@@ -266,19 +272,45 @@ def _load_module_from_path(path: Path) -> ModuleType:
     if not path.exists():
         raise FileNotFoundError(path)
 
-    # Add parent dir to sys.path so `import` works inside the module too.
-    sys.path.insert(0, str(path.parent))
     module_name = path.stem
 
-    # When reloading we need to drop previous import -----------------------
-    if module_name in sys.modules:
-        del sys.modules[module_name]
+    # When filename contains dots (e.g. hello_chain.chain.py) treat it as a
+    # *single* module name by replacing dots with underscores so we avoid
+    # ``my_chain.chain`` import errors.
+    safe_module_name = module_name.replace(".", "_")
 
-    return importlib.import_module(module_name)
+    # Drop previous import if exists --------------------------------------
+    if safe_module_name in sys.modules:
+        del sys.modules[safe_module_name]
+
+    # Ensure the parent directory is on sys.path so relative imports work.
+    if str(path.parent) not in sys.path:
+        sys.path.insert(0, str(path.parent))
+
+    import importlib as _importlib
+
+    try:
+        return _importlib.import_module(safe_module_name)
+    except ModuleNotFoundError:
+        import importlib.util as _util
+
+        spec = _util.spec_from_file_location(safe_module_name, path)
+        if spec and spec.loader:
+            module = _util.module_from_spec(spec)
+            sys.modules[safe_module_name] = module
+            spec.loader.exec_module(module)  # type: ignore[reportGeneralTypeIssues]
+            return module
+
+        # If we reach here, loading failed
+        raise
 
 
-async def _execute_chain(entry: ModuleType) -> None:
-    """Look for a ScriptChain instance or factory function and run it."""
+async def _execute_chain(entry: ModuleType, show_graph: bool = False) -> None:
+    """Look for a ScriptChain instance or factory function and run it.
+
+    When *show_graph* is *True* we print a Mermaid diagram instead of
+    executing the chain so users get a quick visual preview.
+    """
 
     from ice_orchestrator.script_chain import (
         ScriptChain,  # local import to avoid cycles
@@ -298,8 +330,36 @@ async def _execute_chain(entry: ModuleType) -> None:
         rprint("[red]No ScriptChain found in the provided file.[/]")
         return
 
+    # ------------------------------------------------------------------
+    # Graph preview mode ------------------------------------------------
+    # ------------------------------------------------------------------
+    if show_graph:
+        _print_mermaid_graph(chain)
+        return
+
     result = await chain.execute()
     rprint(result.model_dump())
+
+
+def _print_mermaid_graph(chain):  # noqa: D401 – helper
+    """Render *chain* as a Mermaid `graph TD` diagram and print it."""
+
+    from ice_sdk.models.node_models import BaseNodeConfig  # local import
+
+    lines: list[str] = ["```mermaid", "graph TD"]
+
+    # Ensure all nodes present even if they have no deps -----------------
+    node_ids = [n.id for n in chain.nodes]  # type: ignore[attr-defined]
+    for nid in node_ids:
+        lines.append(f"  {nid}(( {nid} ))")
+
+    # Add edges for dependencies ---------------------------------------
+    for node in chain.nodes:  # type: ignore[attr-defined]
+        for dep in getattr(node, "dependencies", []):
+            lines.append(f"  {dep} --> {node.id}")
+
+    lines.append("```")
+    rprint("\n".join(lines))
 
 
 class _ReloadHandler(FileSystemEventHandler):  # type: ignore[misc]
@@ -317,7 +377,7 @@ class _ReloadHandler(FileSystemEventHandler):  # type: ignore[misc]
 
 async def _cli_run(entry: Path, watch: bool) -> None:
     module = _load_module_from_path(entry)
-    await _execute_chain(module)
+    await _execute_chain(module, show_graph=False)
 
     if watch:
         observer = Observer()
@@ -337,6 +397,7 @@ async def _cli_run(entry: Path, watch: bool) -> None:
 def run_cmd(
     path: Path = typer.Argument(..., exists=True, file_okay=True, dir_okay=False, readable=True),
     watch: bool = typer.Option(False, "--watch", "-w", help="Auto-reload when source files change"),
+    graph: bool = typer.Option(False, "--graph", "-g", help="Print Mermaid graph instead of executing"),
 ):
     """Run a ScriptChain defined in *path*.
 
@@ -345,7 +406,16 @@ def run_cmd(
         $ ice run examples/my_chain.py --watch
     """
 
-    asyncio.run(_cli_run(path.resolve(), watch))
+    if graph and watch:
+        rprint("[red]--graph and --watch cannot be combined.[/]")
+        raise typer.Exit(1)
+
+    if graph:
+        # Directly print graph without watch functionality
+        module = _load_module_from_path(path.resolve())
+        asyncio.run(_execute_chain(module, show_graph=True))
+    else:
+        asyncio.run(_cli_run(path.resolve(), watch))
 
 
 # ---------------------------------------------------------------------------
@@ -397,4 +467,250 @@ if not getattr(click.Parameter.make_metavar, "_icepatched", False):  # type: ign
         return _orig_make_metavar(self, ctx)
 
     _patched_make_metavar._icepatched = True  # type: ignore[attr-defined]
-    click.Parameter.make_metavar = _patched_make_metavar  # type: ignore[assignment] 
+    click.Parameter.make_metavar = _patched_make_metavar  # type: ignore[assignment]
+
+
+# ---------------------------------------------------------------------------
+# "sdk" top-level group – opinionated scaffolds -----------------------------
+# ---------------------------------------------------------------------------
+
+sdk_app = typer.Typer(help="Opinionated scaffolds for tools, nodes and chains")
+app.add_typer(sdk_app, name="sdk")
+
+# ---------------------------------------------------------------------------
+# Helper – Node templates ----------------------------------------------------
+# ---------------------------------------------------------------------------
+
+def _create_ai_node_template(node_name: str) -> str:
+    """Return YAML scaffold for an *AiNode* configuration."""
+
+    snake = _snake_case(node_name)
+    return (
+        "# iceOS AiNode configuration\n"
+        f"id: {snake}_ai\n"
+        "type: ai\n"
+        f"name: {node_name}\n"
+        "model: gpt-3.5-turbo\n"
+        "prompt: |\n"
+        "  # TODO: write prompt here\n"
+        "llm_config:\n"
+        "  provider: openai\n"
+        "  temperature: 0.7\n"
+        "  max_tokens: 256\n"
+        "dependencies: []\n"
+    )
+
+
+def _create_tool_node_template(node_name: str, tool_name: str | None = None) -> str:
+    """Return YAML scaffold for a *ToolNode* configuration."""
+
+    snake = _snake_case(node_name)
+    tool_ref = tool_name or snake
+    return (
+        "# iceOS ToolNode configuration\n"
+        f"id: {snake}_tool\n"
+        "type: tool\n"
+        f"name: {node_name}\n"
+        f"tool_name: {tool_ref}\n"
+        "tool_args: {}\n"
+        "dependencies: []\n"
+    )
+
+
+def _create_agent_config_template(agent_name: str) -> str:
+    """Return YAML scaffold for an *AgentConfig*."""
+
+    snake = _snake_case(agent_name)
+    return (
+        "# iceOS Agent configuration\n"
+        f"name: {snake}\n"
+        "instructions: |\n"
+        "  # TODO: add high-level instructions for the agent\n"
+        "model: gpt-4o\n"
+        "model_settings:\n"
+        "  provider: openai\n"
+        "  model: gpt-4o\n"
+        "  temperature: 0.7\n"
+        "  max_tokens: 512\n"
+        "tools: []  # list tool names or embed ToolConfigs here\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# ``create-tool`` (alias for existing `tool new`) ----------------------------
+# ---------------------------------------------------------------------------
+
+@sdk_app.command("create-tool", help="Scaffold a new Tool implementation module")
+def sdk_create_tool(
+    name: str = typer.Argument(..., help="Class name for the tool (e.g. MyCool)"),
+    directory: Path = typer.Option(
+        Path.cwd(), "--dir", "-d", exists=True, file_okay=False, dir_okay=True, writable=True, help="Destination directory"
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite if file already exists"),
+):
+    """Generate a new ``*.tool.py`` module using the same template as `ice tool new`."""
+
+    target_path = directory / f"{_snake_case(name)}.tool.py"
+
+    if target_path.exists() and not force:
+        rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
+        raise typer.Exit(code=1)
+
+    def _pretty_path(p: Path) -> str:
+        try:
+            return str(p.relative_to(Path.cwd()))
+        except ValueError:
+            return str(p)
+
+    try:
+        target_path.write_text(_create_tool_template(name))
+        rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
+    except Exception as exc:
+        rprint(f"[red]✗ Failed to write template:[/] {exc}")
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# ``create-node`` -----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@sdk_app.command("create-node", help="Scaffold a new node configuration")
+def sdk_create_node(
+    name: str = typer.Argument(..., help="Human-readable node name"),
+    type_: str = typer.Option(
+        None, "--type", "-t", help="Node type: ai | tool | agent", case_sensitive=False
+    ),
+    directory: Path = typer.Option(
+        Path.cwd(), "--dir", "-d", exists=True, file_okay=False, dir_okay=True, writable=True, help="Destination directory"
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite if file already exists"),
+    interactive: bool = typer.Option(
+        False, "--interactive", "-i", help="Prompt for missing parameters interactively"
+    ),
+):
+    """Generate YAML configuration for an AiNode, ToolNode or AgentConfig."""
+
+    allowed = {"ai", "tool", "agent"}
+
+    # Interactive prompts -------------------------------------------------
+    if interactive:
+        if type_ is None:
+            type_ = typer.prompt("Node type (ai/tool/agent)", default="tool")
+        name = name or typer.prompt("Human-readable node name")
+
+    if type_ is None:
+        type_ = "tool"  # fallback default if not provided and not interactive
+
+    type_lower = type_.lower()
+
+    if type_lower not in allowed:
+        rprint(f"[red]Error:[/] invalid --type '{type_}'. Must be one of: {', '.join(sorted(allowed))}.")
+        raise typer.Exit(1)
+
+    file_suffix_map = {
+        "ai": ".ainode.yaml",
+        "tool": ".toolnode.yaml",
+        "agent": ".agent.yaml",
+    }
+
+    filename = _snake_case(name) + file_suffix_map[type_lower]
+    target_path = directory / filename
+
+    if target_path.exists() and not force:
+        rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
+        raise typer.Exit(code=1)
+
+    # Build template -------------------------------------------------------
+    if type_lower == "ai":
+        content = _create_ai_node_template(name)
+    elif type_lower == "tool":
+        content = _create_tool_node_template(name)
+    else:  # agent
+        content = _create_agent_config_template(name)
+
+    def _pretty_path(p: Path) -> str:
+        try:
+            return str(p.relative_to(Path.cwd()))
+        except ValueError:
+            return str(p)
+
+    try:
+        target_path.write_text(content)
+        rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
+    except Exception as exc:
+        rprint(f"[red]✗ Failed to write template:[/] {exc}")
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# ``create-chain`` ----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@sdk_app.command("create-chain", help="Scaffold a new Python ScriptChain file")
+def sdk_create_chain(
+    name: str = typer.Argument(
+        "my_chain", help="Base filename (without .py) for the new chain"
+    ),
+    directory: Path = typer.Option(
+        Path.cwd(), "--dir", "-d", exists=True, file_okay=False, dir_okay=True, writable=True, help="Destination directory"
+    ),
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite if file already exists"),
+):
+    """Generate a minimal Python file that constructs & executes a ScriptChain."""
+
+    snake = _snake_case(name)
+    target_path = directory / f"{snake}.chain.py"
+
+    if target_path.exists() and not force:
+        rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
+        raise typer.Exit(code=1)
+
+    template = (
+        f'"""{snake} – hello-world ScriptChain scaffold."""\n\n'
+        "from __future__ import annotations\n\n"
+        "import asyncio\n"
+        "from typing import Any, List\n\n"
+        "from ice_orchestrator.script_chain import ScriptChain\n"
+        "from ice_sdk.models.node_models import ToolNodeConfig\n"
+        "from ice_sdk.tools.base import function_tool, ToolContext\n\n"
+        "# ---------------------------------------------------------------------------\n"
+        "# Example inline tool -------------------------------------------------------\n"
+        "# ---------------------------------------------------------------------------\n\n"
+        "@function_tool(name_override=\"echo\")\n"
+        "async def _echo_tool(ctx: ToolContext, text: str) -> dict[str, Any]:  # type: ignore[override]\n"
+        "    \"\"\"Return the *text* argument as-is so we can observe flow output.\"\"\"\n"
+        "    return {\"echo\": text}\n\n"
+        "echo_tool = _echo_tool  # mypy happy cast\n\n"
+        "# ---------------------------------------------------------------------------\n"
+        "# Node list ---------------------------------------------------------------\n"
+        "# ---------------------------------------------------------------------------\n\n"
+        "nodes: List[ToolNodeConfig] = [\n"
+        "    ToolNodeConfig(id=\"start\", type=\"tool\", name=\"echo_start\", tool_name=\"echo\", tool_args={\"text\": \"hello\"}),\n"
+        "]\n\n"
+        "# ---------------------------------------------------------------------------\n"
+        "# Entry-point -------------------------------------------------------------\n"
+        "# ---------------------------------------------------------------------------\n\n"
+        "async def main() -> None:\n"
+        "    chain = ScriptChain(nodes=nodes, tools=[echo_tool], name=\"sample-chain\")\n"
+        "    result = await chain.execute()\n"
+        "    print(result.output)\n\n"
+        "if __name__ == \"__main__\":\n"
+        "    asyncio.run(main())\n"
+    )
+
+    def _pretty_path(p: Path) -> str:
+        try:
+            return str(p.relative_to(Path.cwd()))
+        except ValueError:
+            return str(p)
+
+    try:
+        target_path.write_text(template)
+        rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
+    except Exception as exc:
+        rprint(f"[red]✗ Failed to write template:[/] {exc}")
+        raise typer.Exit(code=1)
+
+# ---------------------------------------------------------------------------
+# End of sdk group ----------------------------------------------------------
+# --------------------------------------------------------------------------- 

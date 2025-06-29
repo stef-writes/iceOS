@@ -36,15 +36,14 @@ _Result: teams focus on product logic, not plumbing._
 ## 3. Quick Start (2 min)
 
 ```bash
-# Clone & enter repo
-git clone https://github.com/stef-writes/iceOSv1-A-.git && cd iceOSv1-A-
-
-# Create virtual-env and install deps
-python -m venv .venv && source .venv/bin/activate
-pip install -e .[dev]
-
-# Run a demo chain
+# 1. Run an out-of-the-box demo chain
 python scripts/demo_run_chain.py
+
+# 2. Create your own flow from scratch
+ice sdk create-tool HelloTool             # scaffolds hello_tool.tool.py
+ice sdk create-node HelloNode --type ai   # scaffolds hello_node.ainode.yaml
+ice sdk create-chain hello_chain          # scaffolds hello_chain.chain.py
+python hello_chain.chain.py               # executes the chain
 ```
 
 ### Docker one-liner
