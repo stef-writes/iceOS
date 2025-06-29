@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import os
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable
@@ -756,17 +757,24 @@ def sdk_create_chain(
 # ---------------------------------------------------------------------------
 
 # Select prompting backend -----------------------------------
-ask_fn: Callable[[Any], str | None]
+# ``ask_fn`` is assigned below after selecting a prompt backend.
+ask_fn: Callable[[Any], str | None]  # noqa: D401
 
 try:
     import questionary as _q  # type: ignore
 
-    def _ask_questionary(question):  # noqa: D401 – helper
-        if question.choices:
-            return _q.select(question.prompt, choices=question.choices).ask()
-        return _q.text(question.prompt).ask()
+    # Use questionary only when stdin is a real TTY (interactive) ----------
+    if sys.stdin.isatty() and not os.getenv("CI"):
 
-    ask_fn = _ask_questionary  # type: ignore[assignment]
+        def _ask_questionary(question):  # noqa: D401 – helper
+            if question.choices:
+                return _q.select(question.prompt, choices=question.choices).ask()
+            return _q.text(question.prompt).ask()
+
+        ask_fn = _ask_questionary  # type: ignore[assignment]
+
+    else:
+        raise ImportError  # force fallback to Typer non-interactive prompts
 
 except ModuleNotFoundError:
 
