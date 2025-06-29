@@ -18,7 +18,7 @@ import asyncio
 import sys
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import Any, Callable
 
 import click  # 3rd-party
 import typer
@@ -652,6 +652,8 @@ def sdk_create_chain(
         Path.cwd(), "--dir", "-d", exists=True, file_okay=False, dir_okay=True, writable=True, help="Destination directory"
     ),
     force: bool = typer.Option(False, "--force", "-f", help="Overwrite if file already exists"),
+    builder: bool = typer.Option(False, "--builder", "-b", help="Run interactive Chain Builder"),
+    nodes: int | None = typer.Option(None, "--nodes", "-n", min=1, help="Total nodes for the interactive builder"),
 ):
     """Generate a minimal Python file that constructs & executes a ScriptChain."""
 
@@ -662,39 +664,80 @@ def sdk_create_chain(
         rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
         raise typer.Exit(code=1)
 
-    template = (
-        f'"""{snake} – hello-world ScriptChain scaffold."""\n\n'
-        "from __future__ import annotations\n\n"
-        "import asyncio\n"
-        "from typing import Any, List\n\n"
-        "from ice_orchestrator.script_chain import ScriptChain\n"
-        "from ice_sdk.models.node_models import ToolNodeConfig\n"
-        "from ice_sdk.tools.base import function_tool, ToolContext\n\n"
-        "# ---------------------------------------------------------------------------\n"
-        "# Example inline tool -------------------------------------------------------\n"
-        "# ---------------------------------------------------------------------------\n\n"
-        "@function_tool(name_override=\"echo\")\n"
-        "async def _echo_tool(ctx: ToolContext, text: str) -> dict[str, Any]:  # type: ignore[override]\n"
-        "    \"\"\"Return the *text* argument as-is so we can observe flow output.\"\"\"\n"
-        "    return {\"echo\": text}\n\n"
-        "echo_tool = _echo_tool  # mypy happy cast\n\n"
-        "# ---------------------------------------------------------------------------\n"
-        "# Node list ---------------------------------------------------------------\n"
-        "# ---------------------------------------------------------------------------\n\n"
-        "nodes: List[ToolNodeConfig] = [\n"
-        "    ToolNodeConfig(id=\"start\", type=\"tool\", name=\"echo_start\", tool_name=\"echo\", tool_args={\"text\": \"hello\"}),\n"
-        "]\n\n"
-        "# ---------------------------------------------------------------------------\n"
-        "# Entry-point -------------------------------------------------------------\n"
-        "# ---------------------------------------------------------------------------\n\n"
-        "async def main() -> None:\n"
-        "    chain = ScriptChain(nodes=nodes, tools=[echo_tool], name=\"sample-chain\")\n"
-        "    result = await chain.execute()\n"
-        "    print(result.output)\n\n"
-        "if __name__ == \"__main__\":\n"
-        "    asyncio.run(main())\n"
-    )
+    # ------------------------------------------------------------------
+    # Interactive builder path -----------------------------------------
+    # ------------------------------------------------------------------
+    if builder:
+        from ice_cli.chain_builder.engine import BuilderEngine  # local import to avoid cost
 
+        # Determine node count ----------------------------------------
+        total_nodes: int
+        if nodes is not None:
+            total_nodes = nodes
+        else:
+            # Prompt for node count when not provided
+            total_nodes = int(typer.prompt("How many nodes?", default="1"))
+
+        draft = BuilderEngine.start(total_nodes=total_nodes, chain_name=name)
+
+        # Main Q&A loop ----------------------------------------------
+        while True:
+            # Break when requested number of nodes fully captured and we are at a node boundary
+            if len(draft.nodes) >= total_nodes and draft.current_step == 0:
+                break
+
+            q = BuilderEngine.next_question(draft)
+            if q is None:
+                # No question returned – loop will re-check break condition
+                continue
+
+            answer = ask_fn(q)
+            if answer is None:
+                rprint("[red]Aborted by user.[/]")
+                raise typer.Exit(1)
+            BuilderEngine.submit_answer(draft, q.key, answer)
+
+        source = BuilderEngine.render_chain(draft)
+    # ------------------------------------------------------------------
+    # Default hello-world scaffold path --------------------------------
+    # ------------------------------------------------------------------
+    else:
+        source = (
+            f'"""{snake} – hello-world ScriptChain scaffold."""\n\n'
+            "from __future__ import annotations\n\n"
+            "import asyncio\n"
+            "from typing import Any, List\n\n"
+            "from ice_orchestrator.script_chain import ScriptChain\n"
+            "from ice_sdk.models.node_models import ToolNodeConfig\n"
+            "from ice_sdk.tools.base import function_tool, ToolContext\n\n"
+            "# ---------------------------------------------------------------------------\n"
+            "# Example inline tool -------------------------------------------------------\n"
+            "# ---------------------------------------------------------------------------\n\n"
+            "@function_tool(name_override=\"echo\")\n"
+            "async def _echo_tool(ctx: ToolContext, text: str) -> dict[str, Any]:  # type: ignore[override]\n"
+            "    \"\"\"Return the *text* argument as-is so we can observe flow output.\"\"\"\n"
+            "    return {\"echo\": text}\n\n"
+            "echo_tool = _echo_tool  # mypy happy cast\n\n"
+            "# ---------------------------------------------------------------------------\n"
+            "# Node list ---------------------------------------------------------------\n"
+            "# ---------------------------------------------------------------------------\n\n"
+            "nodes: List[ToolNodeConfig] = [\n"
+            "    ToolNodeConfig(id=\"start\", type=\"tool\", name=\"echo_start\", tool_name=\"echo\", tool_args={\"text\": \"hello\"}),\n"
+            "]\n\n"
+            "# ---------------------------------------------------------------------------\n"
+            "# Entry-point -------------------------------------------------------------\n"
+            "# ---------------------------------------------------------------------------\n\n"
+            "async def main() -> None:\n"
+            "    chain = ScriptChain(nodes=nodes, tools=[echo_tool], name=\"sample-chain\")\n"
+            "    result = await chain.execute()\n"
+            "    print(result.output)\n\n"
+            "if __name__ == \"__main__\":\n"
+            "    asyncio.run(main())\n"
+        )
+
+    # ------------------------------------------------------------------
+    # Write file --------------------------------------------------------
+    # ------------------------------------------------------------------
     def _pretty_path(p: Path) -> str:
         try:
             return str(p.relative_to(Path.cwd()))
@@ -702,7 +745,7 @@ def sdk_create_chain(
             return str(p)
 
     try:
-        target_path.write_text(template)
+        target_path.write_text(source)
         rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
     except Exception as exc:
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
@@ -710,4 +753,28 @@ def sdk_create_chain(
 
 # ---------------------------------------------------------------------------
 # End of sdk group ----------------------------------------------------------
-# --------------------------------------------------------------------------- 
+# ---------------------------------------------------------------------------
+
+# Select prompting backend -----------------------------------
+ask_fn: Callable[[Any], str | None]
+
+try:
+    import questionary as _q  # type: ignore
+
+    def _ask_questionary(question):  # noqa: D401 – helper
+        if question.choices:
+            return _q.select(question.prompt, choices=question.choices).ask()
+        return _q.text(question.prompt).ask()
+
+    ask_fn = _ask_questionary  # type: ignore[assignment]
+
+except ModuleNotFoundError:
+
+    def _ask_typer(question):  # noqa: D401 – helper
+        if question.choices:
+            default = question.choices[0]
+            prompt_text = f"{question.prompt} ({'/'.join(question.choices)})"
+            return typer.prompt(prompt_text, default=default)
+        return typer.prompt(question.prompt)
+
+    ask_fn = _ask_typer  # type: ignore[assignment] 

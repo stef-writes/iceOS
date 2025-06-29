@@ -1,9 +1,9 @@
-# Interactive Chain Wizard – Implementation Roadmap
+# Interactive Chain Builder – Implementation Roadmap
 
-> Status: **Planned** (target release `v0.2.0`)
+> Status: **In Progress** (target release `v0.2.0`)
 
 This document captures the design blueprint and incremental milestones for the
-`ice sdk create-chain --wizard` feature.
+`ice sdk create-chain --builder` feature.
 
 ---
 
@@ -12,8 +12,8 @@ This document captures the design blueprint and incremental milestones for the
 | Layer | Responsibility | Notes |
 |-------|----------------|-------|
 | **IO layer** | Renders questions / collects answers (CLI prompts today, UI or agent later) | Typer + Questionary for v0.  Copilot will swap this layer. |
-| **Wizard-Engine** | Stateless state-machine that emits **Question → Answer** cycles and finally a `WizardDraft` | Lives in `ice_cli.wizard.engine` (pure Python, no UI deps). |
-| **Template layer** | Converts `WizardDraft` → concrete `NodeConfig` objects + `ScriptChain` Python scaffold | Re-uses existing template helpers. |
+| **Builder-Engine** | Stateless state-machine that emits **Question → Answer** cycles and finally a `ChainDraft` | Lives in `ice_cli.chain_builder.engine` (pure Python, no UI deps). |
+| **Template layer** | Converts `ChainDraft` → concrete `NodeConfig` objects + `ScriptChain` Python scaffold | Re-uses existing template helpers. |
 
 ---
 
@@ -40,7 +40,7 @@ This document captures the design blueprint and incremental milestones for the
 |-----------|-------|-----|
 | **M0** | Linear graphs, `ai` + `tool` nodes, up to 10 nodes, writes `.chain.py`. | 1 week |
 | **M1** | Mermaid graph preview, validation (dup IDs, cycles). | +3 days |
-| **M2** | Wizard-Engine REST façade for Copilot, CLI remains a thin client. | +1 week |
+| **M2** | Builder-Engine REST façade for Copilot, CLI remains a thin client. | +1 week |
 | **M3** | Branching, `condition` & `sink` nodes, import existing YAMLs. | +2 weeks |
 
 ---
