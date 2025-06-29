@@ -15,7 +15,6 @@ watchers that may need to reload commands many times per second.
 from __future__ import annotations
 
 import asyncio
-import importlib
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -343,8 +342,6 @@ async def _execute_chain(entry: ModuleType, show_graph: bool = False) -> None:
 
 def _print_mermaid_graph(chain):  # noqa: D401 – helper
     """Render *chain* as a Mermaid `graph TD` diagram and print it."""
-
-    from ice_sdk.models.node_models import BaseNodeConfig  # local import
 
     lines: list[str] = ["```mermaid", "graph TD"]
 
