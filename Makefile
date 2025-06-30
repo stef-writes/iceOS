@@ -3,7 +3,7 @@
 PYTHON := python
 PIP := pip
 
-.PHONY: help install lint type test coverage mutation refresh-docs doctor clean
+.PHONY: help install lint type test coverage mutation refresh-docs doctor clean docs
 
 help:
 	@echo "Available targets:"
@@ -16,6 +16,7 @@ help:
 	@echo "  refresh-docs   Regenerate docs (catalog + overview)"
 	@echo "  doctor         Run full healthcheck suite"
 	@echo "  clean          Remove .pyc, build, and coverage artifacts"
+	@echo "  docs           Build documentation site (output to site/)"
 
 install:
 	$(PIP) install -e .[test]
@@ -51,4 +52,7 @@ mutation:
 clean:
 	rm -rf .pytest_cache dist build *.egg-info
 	rm -rf .coverage htmlcov .ruff_cache .mypy_cache .benchmarks .import_linter_cache
-	find . -name "__pycache__" -type d -exec rm -rf {} + 
+	find . -name "__pycache__" -type d -exec rm -rf {} +
+
+docs:
+	mkdocs build -s 

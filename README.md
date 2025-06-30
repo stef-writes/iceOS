@@ -1,5 +1,7 @@
 # iceOS – The AI-Native Operating Layer for Agentic Workflows
 
+> **Docs moved!**  This README is now a high-level overview.  Full, versioned documentation lives in the `docs/` folder and will be published at https://stef-writes.github.io/iceOSv1-A-.  Start with `docs/index.md` or run `mkdocs serve`.
+
 > **Build, run & scale reliable multi-agent AI systems in minutes.**
 
 [![CI](https://github.com/stef-writes/iceOSv1-A-/actions/workflows/ci.yml/badge.svg)](https://github.com/stef-writes/iceOSv1-A-/actions/workflows/ci.yml)

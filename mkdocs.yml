@@ -1,0 +1,44 @@
+site_name: iceOS Documentation
+repo_url: https://github.com/stef-writes/iceOSv1-A-
+
+# Theme configuration --------------------------------------------------------
+site_url: https://stef-writes.github.io/iceOSv1-A-
+theme:
+  name: material
+  features:
+    - navigation.tabs
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+
+# Plugins -------------------------------------------------------------------
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          setup_commands:
+            - "import sys, os; sys.path.append('src')"
+  - include-markdown
+
+# Navigation ----------------------------------------------------------------
+nav:
+  - Home: index.md
+  - Quick Start: quick_start.md
+  - Architecture: architecture.md
+  - Core Concepts:
+      - Nodes, Tools & Agents: core_concepts/nodes_tools_agents.md
+      - ScriptChain Execution: core_concepts/script_chain.md
+  - How-to Guides:
+      - Build a Custom Tool: how_to/custom_tool.md
+      - Wrap an Agent: how_to/agent.md
+  - CLI Reference: cli_reference.md
+  - API Reference: api_reference.md
+  - Deployment & Ops: deployment.md
+  - Contrib & Extensions: contrib.md 
