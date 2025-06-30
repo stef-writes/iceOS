@@ -25,6 +25,7 @@ plugins:
         python:
           setup_commands:
             - "import sys, os; sys.path.append('src')"
+  - autorefs
   - include-markdown
 
 # Navigation ----------------------------------------------------------------
