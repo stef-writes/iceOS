@@ -17,6 +17,7 @@ from ice_sdk import ToolService
 from ice_sdk.context.manager import GraphContextManager
 from ice_sdk.utils.errors import add_exception_handlers
 from ice_sdk.utils.logging import setup_logger
+from ice_sdk_contrib.kb_router import router as kb_router
 
 # Setup logging
 logger = setup_logger()
@@ -120,6 +121,7 @@ app.add_middleware(
 # Include core & builder routers -----------------------------------
 app.include_router(router)
 app.include_router(builder_router)
+app.include_router(kb_router)
 
 
 @app.get("/")

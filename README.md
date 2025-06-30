@@ -133,6 +133,7 @@ graph TD
 | **Orchestration Engine** (`ice_orchestrator`) | • Async `ScriptChain` executes `AiNode` & `ToolNode` DAGs • Basic dependency graph |
 | **Core SDK** (`ice_sdk`) | • Pydantic node / tool configs • `AgentNode` wrapper for LLM calls • `LLMService` with OpenAI, Anthropic, Gemini & DeepSeek handlers |
 | **Tools** (`ice_sdk.tools`) | • `BaseTool` abstraction • Hosted: `WebSearchTool`, `FileSearchTool`, `ComputerTool` • Deterministic: `SleepTool`, `HttpRequestTool`, `SumTool` |
+| **Contrib Package** (`ice_sdk_contrib`) | • Mock Knowledge-Base REST router (`/api/v1/kb/*`) • `KBSearchTool` for demo vector-less lookup • Additional generic helpers (coming soon) |
 | **Quality Tooling** | • Ruff & isort • Black • MyPy (strict) • Pyright • Import-linter contracts • Pre-commit auto-format • Unit & integration tests |
 
 ---
@@ -170,6 +171,27 @@ Clean up artefacts:
 ```bash
 make clean
 ```
+
+# End-to-end dev sanity check (runs lint, type, tests, import contracts, etc.)
+make doctor
+```
+
+### Knowledge-Base demo endpoints
+
+Once the FastAPI server is running you can:
+
+```bash
+# 1) Upload any text file (returns file_id)
+curl -F "file=@README.md" http://localhost:8000/api/v1/kb/upload
+
+# 2) Ingest the uploaded file into the demo index
+curl -X POST http://localhost:8000/api/v1/kb/ingest/<file_id>
+
+# 3) Query via tool (CLI)
+ice tool test kb_search -a '{"query":"workflow"}'
+```
+
+Replace the internals with a real vector DB by overriding `ice_sdk_contrib.kb_router` & `KBSearchTool`.
 
 ---
 
