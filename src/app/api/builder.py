@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import time
 import uuid
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -63,16 +64,28 @@ class RenderResponse(BaseModel):
 # In-memory store -----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-_drafts: Dict[str, ChainDraft] = {}
+_TTL_SECONDS = 30 * 60  # 30-minute in-memory expiry
+
+# Map draft_id -> (ChainDraft, created_at_ts)
+_drafts: Dict[str, Tuple[ChainDraft, float]] = {}
 
 
 # ---------------------------------------------------------------------------
 # Helper functions ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+def _cleanup_expired() -> None:  # noqa: D401 – helper
+    """Purge drafts older than the configured TTL."""
+    now = time.time()
+    expired = [k for k, (_, ts) in _drafts.items() if now - ts > _TTL_SECONDS]
+    for k in expired:
+        _drafts.pop(k, None)
+
 def _get_draft(draft_id: str) -> ChainDraft:
+    _cleanup_expired()
     try:
-        return _drafts[draft_id]
+        draft, _ = _drafts[draft_id]
+        return draft
     except KeyError:
         raise HTTPException(status_code=404, detail="draft_id not found")
 
@@ -86,7 +99,7 @@ def _get_draft(draft_id: str) -> ChainDraft:
 async def start_builder(req: StartRequest):  # noqa: D401
     draft = BuilderEngine.start(total_nodes=req.total_nodes, chain_name=req.name)
     draft_id = str(uuid.uuid4())
-    _drafts[draft_id] = draft
+    _drafts[draft_id] = (draft, time.time())
     first_q = BuilderEngine.next_question(draft)
     return StartResponse(draft_id=draft_id, question=QuestionModel.from_engine(first_q))
 
@@ -101,7 +114,23 @@ async def next_question(draft_id: str):  # noqa: D401
 @router.post("/answer", response_model=AnswerResponse)
 async def submit_answer(req: AnswerRequest):  # noqa: D401
     draft = _get_draft(req.draft_id)
+
+    # ------------------------------------------------------------------
+    # Validation --------------------------------------------------------
+    # ------------------------------------------------------------------
+    q_expected = BuilderEngine.next_question(draft)
+    if q_expected is None:
+        raise HTTPException(status_code=400, detail="No question pending for this draft")
+
+    if req.key != q_expected.key:
+        raise HTTPException(status_code=400, detail=f"Expected key '{q_expected.key}', got '{req.key}'")
+
+    if q_expected.choices and req.answer not in q_expected.choices:
+        raise HTTPException(status_code=400, detail="Answer not in allowed choices")
+
+    # Submit ------------------------------------------------------------
     BuilderEngine.submit_answer(draft, req.key, req.answer)
+
     next_q = BuilderEngine.next_question(draft)
     completed = next_q is None and draft.current_step == 0 and len(draft.nodes) >= draft.total_nodes
     return AnswerResponse(next_question=QuestionModel.from_engine(next_q), completed=completed)
@@ -117,4 +146,16 @@ async def render_chain(draft_id: str):  # noqa: D401
 @router.delete("/{draft_id}", status_code=204)
 async def delete_draft(draft_id: str):  # noqa: D401
     _drafts.pop(draft_id, None)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Admin convenience: manual cleanup ----------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@router.post("/cleanup", status_code=204)
+async def cleanup():  # noqa: D401
+    """Delete all expired drafts (older than TTL)."""
+    _cleanup_expired()
     return None 
