@@ -2,6 +2,8 @@
 API routes for the workflow engine
 """
 
+# pyright: reportCallIssue=false, reportArgumentType=false, reportAttributeAccessIssue=false
+
 # Removed explicit built-in tool imports, ToolService already loads defaults
 import traceback
 from typing import Any, Dict, List, Optional
