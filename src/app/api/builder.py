@@ -58,6 +58,7 @@ class AnswerResponse(BaseModel):
 
 class RenderResponse(BaseModel):
     source: str
+    mermaid: str
 
 
 # ---------------------------------------------------------------------------
@@ -140,7 +141,8 @@ async def submit_answer(req: AnswerRequest):  # noqa: D401
 async def render_chain(draft_id: str):  # noqa: D401
     draft = _get_draft(draft_id)
     source = BuilderEngine.render_chain(draft)
-    return RenderResponse(source=source)
+    mermaid = BuilderEngine.render_mermaid(draft)
+    return RenderResponse(source=source, mermaid=mermaid)
 
 
 @router.delete("/{draft_id}", status_code=204)

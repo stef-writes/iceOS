@@ -48,6 +48,10 @@ async def test_builder_happy_path():
         source = resp.json()["source"]
         assert "ScriptChain" in source
 
+        # New field – Mermaid graph
+        mermaid = resp.json()["mermaid"]
+        assert mermaid.startswith("graph LR")
+
         # Delete draft
         resp = await client.delete(f"/api/v1/builder/{draft_id}")
         assert resp.status_code == 204 

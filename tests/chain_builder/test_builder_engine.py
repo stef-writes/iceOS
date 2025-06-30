@@ -46,4 +46,11 @@ def test_builder_engine_render_valid_python() -> None:
     # Render and validate Python syntax --------------------------------------
     source = BuilderEngine.render_chain(draft)
     # ``ast.parse`` raises *SyntaxError* if the template is invalid.
-    ast.parse(source) 
+    ast.parse(source)
+
+    # Render Mermaid diagram -------------------------------------------------
+    mermaid = BuilderEngine.render_mermaid(draft)
+    assert mermaid.startswith("graph LR")
+    # Expect 2 nodes represented
+    assert "[TOOL:" in mermaid.upper()
+    assert "[AI:" in mermaid.upper() 
