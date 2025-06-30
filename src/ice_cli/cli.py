@@ -31,7 +31,7 @@ try:
     from watchdog.observers import Observer  # type: ignore
 
     _WATCHDOG_AVAILABLE = True
-except ModuleNotFoundError:  # pragma: no cover
+except (ModuleNotFoundError, ImportError):  # pragma: no cover
     _WATCHDOG_AVAILABLE = False
 
     class FileSystemEventHandler:  # type: ignore
@@ -776,7 +776,7 @@ try:
     else:
         raise ImportError  # force fallback to Typer non-interactive prompts
 
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
 
     def _ask_typer(question):  # noqa: D401 – helper
         if question.choices:
