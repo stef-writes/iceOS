@@ -127,6 +127,7 @@ mkdocs = "^1.5.3"
 mkdocs-material = "^9.5.9"
 mkdocstrings = "^0.24.0"
 mkdocstrings-python = "^1.7.0"
+mkdocs-include-markdown-plugin = "^6.0.4"
 
 [tool.poetry.scripts]
 ice = "ice_cli.cli:app"
