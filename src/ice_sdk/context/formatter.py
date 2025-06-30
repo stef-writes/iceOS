@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 
-from ice_sdk.models.node_models import ContextFormat, ContextRule
 from ice_sdk.models.config import ModelProvider
+from ice_sdk.models.node_models import ContextFormat, ContextRule
 
 
 class BaseContextFormatter:
