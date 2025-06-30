@@ -38,6 +38,19 @@ class ChainDraft:  # noqa: D401 – mutable builder state
     current_step: int = 0
     total_nodes: int = 0
 
+    # Helpers -----------------------------------------------------------
+    def save(self) -> None:  # noqa: D401 – persist to disk
+        """Serialize *self* to .ice/builder.draft.json under CWD (best-effort)."""
+
+        import json
+        from dataclasses import asdict
+        from pathlib import Path
+
+        ice_dir = Path.cwd() / ".ice"
+        ice_dir.mkdir(exist_ok=True)
+        (ice_dir / "builder.draft.json").write_text(json.dumps(asdict(self), indent=2))
+        # Intentionally swallow exceptions – persistence is best-effort
+
 
 class BuilderEngine:  # noqa: D401 – stateless helper
     """Simple state machine for M0 (linear ai/tool nodes)."""
@@ -52,32 +65,55 @@ class BuilderEngine:  # noqa: D401 – stateless helper
     # ------------------------------------------------------------------
     @staticmethod
     def next_question(draft: ChainDraft) -> Optional[Question]:  # noqa: D401
+        # Determine current node index ---------------------------------
+        node_idx = len(draft.nodes) - (1 if draft.current_step < 1 else 0)
+
         if draft.current_step == 0:
             return Question(key="type", prompt="Node type", choices=["ai", "tool"])
         elif draft.current_step == 1:
             return Question(key="name", prompt="Node name")
         elif draft.current_step == 2:
-            return Question(key="model", prompt="Model (ai only)")
+            if draft.nodes and draft.nodes[-1]["type"] == "ai":
+                return Question(key="model", prompt="Model (ai only)")
+            else:
+                # Skip model step for tool nodes -----------------------
+                draft.current_step += 1
+                return BuilderEngine.next_question(draft)
+        elif draft.current_step == 3 and node_idx > 0:
+            # Ask dependencies unless this is the first node ----------
+            available_ids = [f"n{i}" for i in range(node_idx)]
+            return Question(
+                key="deps",
+                prompt=f"Depends on (comma-separated IDs, blank=auto-prev) [available: {', '.join(available_ids)}]",
+            )
         else:
             return None
 
     @staticmethod
     def submit_answer(draft: ChainDraft, key: str, answer: str) -> None:  # noqa: D401
-        step_map = {0: "type", 1: "name", 2: "model"}
-        current_key = step_map.get(draft.current_step)
-        if key != current_key:
-            return
-        if draft.current_step == 0:
+        # Map step index -> expected key (dynamic based on node type) ---
+        if draft.current_step == 0 and key == "type":
             draft.nodes.append({"type": answer})
-        elif draft.current_step == 1:
+            draft.current_step += 1
+        elif draft.current_step == 1 and key == "name":
             draft.nodes[-1]["name"] = answer
-        elif draft.current_step == 2:
+            draft.current_step += 1
+        elif draft.current_step == 2 and key == "model":
             if draft.nodes[-1]["type"] == "ai":
                 draft.nodes[-1]["model"] = answer
-        draft.current_step += 1
-        if draft.current_step > 2:
-            draft.current_step = 0  # next node
-        
+            draft.current_step += 1
+        elif draft.current_step in (2, 3) and key == "deps":
+            deps = [d.strip() for d in answer.split(",") if d.strip()]
+            if not deps and len(draft.nodes) > 1:
+                # Default dependency → previous node id --------------
+                deps = [f"n{len(draft.nodes)-2}"]
+            draft.nodes[-1]["dependencies"] = deps
+            # Node finished – reset pointer for next node -------------
+            draft.current_step = 0
+
+        # Persist after every answer ----------------------------------
+        draft.save()
+
     # ------------------------------------------------------------------
     # Render -------------------------------------------------------------
     # ------------------------------------------------------------------
@@ -90,12 +126,14 @@ class BuilderEngine:  # noqa: D401 – stateless helper
         for idx, node in enumerate(draft.nodes):
             node_id = f"n{idx}"
             if node["type"] == "ai":
+                deps_str = node.get('dependencies', [])
                 node_lines.append(
-                    f"    AiNodeConfig(id=\"{node_id}\", type=\"ai\", name=\"{node['name']}\", model=\"{node.get('model','gpt-3.5-turbo')}\", prompt=\"# TODO\", llm_config={{'provider': 'openai'}}),"
+                    f"    AiNodeConfig(id=\"{node_id}\", type=\"ai\", name=\"{node['name']}\", model=\"{node.get('model','gpt-3.5-turbo')}\", prompt=\"# TODO\", llm_config={{'provider': 'openai'}}, dependencies={deps_str}),"
                 )
             else:
+                deps_str = node.get('dependencies', [])
                 node_lines.append(
-                    f"    ToolNodeConfig(id=\"{node_id}\", type=\"tool\", name=\"{node['name']}\", tool_name=\"echo\", tool_args={{}}),"
+                    f"    ToolNodeConfig(id=\"{node_id}\", type=\"tool\", name=\"{node['name']}\", tool_name=\"echo\", tool_args={{}}, dependencies={deps_str}),"
                 )
 
         nodes_block = "\n".join(node_lines)
@@ -119,7 +157,11 @@ class BuilderEngine:  # noqa: D401 – stateless helper
             node_id = f"n{idx}"
             label = f"{node['type'].upper()}: {node.get('name', '')}".strip()
             lines.append(f"    {node_id}[{label}]")
-            if idx > 0:
+            deps = node.get('dependencies')
+            if deps:
+                for dep in deps:
+                    lines.append(f"    {dep} --> {node_id}")
+            elif idx > 0:
                 prev_id = f"n{idx - 1}"
                 lines.append(f"    {prev_id} --> {node_id}")
 

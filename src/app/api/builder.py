@@ -61,6 +61,22 @@ class RenderResponse(BaseModel):
     mermaid: str
 
 
+# New – persistence -----------------------------------------------------------
+
+
+class ExportResponse(BaseModel):
+    draft: dict
+
+
+class ResumeRequest(BaseModel):
+    draft: dict  # Raw ChainDraft JSON as produced by ExportResponse
+
+
+class ResumeResponse(BaseModel):
+    draft_id: str
+    question: Optional[QuestionModel]
+
+
 # ---------------------------------------------------------------------------
 # In-memory store -----------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -149,6 +165,38 @@ async def render_chain(draft_id: str):  # noqa: D401
 async def delete_draft(draft_id: str):  # noqa: D401
     _drafts.pop(draft_id, None)
     return None
+
+
+# ---------------------------------------------------------------------------
+# Persistence endpoints ------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@router.get("/export", response_model=ExportResponse)
+async def export_draft(draft_id: str):  # noqa: D401
+    """Return the raw ChainDraft dict so clients can persist it offline."""
+
+    draft = _get_draft(draft_id)
+    from dataclasses import asdict
+
+    return ExportResponse(draft=asdict(draft))
+
+
+@router.post("/resume", response_model=ResumeResponse, status_code=201)
+async def resume_draft(req: ResumeRequest):  # noqa: D401
+    """Load *draft* JSON (as from `/export`) and return a fresh `draft_id`."""
+
+    # Validate and reconstruct ------------------------------------------------
+    try:
+        draft_obj = ChainDraft(**req.draft)  # type: ignore[arg-type]
+    except TypeError as exc:  # noqa: BLE001 – explicit catch
+        raise HTTPException(status_code=400, detail=f"Invalid draft payload: {exc}")
+
+    draft_id = str(uuid.uuid4())
+    _drafts[draft_id] = (draft_obj, time.time())
+
+    next_q = BuilderEngine.next_question(draft_obj)
+    return ResumeResponse(draft_id=draft_id, question=QuestionModel.from_engine(next_q))
 
 
 # ---------------------------------------------------------------------------

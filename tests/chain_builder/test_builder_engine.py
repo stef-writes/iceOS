@@ -24,7 +24,7 @@ def test_builder_engine_render_valid_python() -> None:
         [
             ("type", "tool"),
             ("name", "echo_start"),
-            ("model", ""),  # no-op for tool node, required to advance state
+            ("deps", ""),  # depends-on; blank defaults to previous (none)
         ],
     )
 
@@ -35,6 +35,7 @@ def test_builder_engine_render_valid_python() -> None:
             ("type", "ai"),
             ("name", "ask_llm"),
             ("model", "gpt-3.5-turbo"),
+            ("deps", "n0"),
         ],
     )
 

@@ -33,7 +33,7 @@ async def test_builder_happy_path():
         )
         assert resp.status_code == 200
         q = resp.json()["next_question"]
-        assert q is None or q["key"] in {"model"}
+        assert q is None or q["key"] in {"model", "deps"}
 
         # If model question present, answer it
         if q and q["key"] == "model":
@@ -41,6 +41,12 @@ async def test_builder_happy_path():
                 "/api/v1/builder/answer",
                 json={"draft_id": draft_id, "key": "model", "answer": "gpt-3.5-turbo"},
             )
+            # Fetch next question which could be deps
+            q_resp = await client.post(
+                "/api/v1/builder/answer",
+                json={"draft_id": draft_id, "key": "deps", "answer": ""},
+            )
+            assert q_resp.status_code in {200, 204, 201, 202}
 
         # Render chain
         resp = await client.get("/api/v1/builder/render", params={"draft_id": draft_id})

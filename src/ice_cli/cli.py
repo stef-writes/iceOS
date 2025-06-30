@@ -342,9 +342,21 @@ async def _execute_chain(entry: ModuleType, show_graph: bool = False) -> None:
 
 
 def _print_mermaid_graph(chain):  # noqa: D401 – helper
-    """Render *chain* as a Mermaid `graph TD` diagram and print it."""
+    """Render *chain* as a Mermaid `graph TD` diagram.
 
-    lines: list[str] = ["```mermaid", "graph TD"]
+    Behaviour:
+    1. Always prints the fenced mermaid code to stdout so it can be copied.
+    2. If the *mermaid-cli* (`mmdc`) binary is available **and** a local
+       display is possible, we generate an SVG on the fly and open it in the
+       default browser for instant visual feedback.
+    """
+
+    import shutil
+    import subprocess
+    import tempfile
+    import webbrowser
+
+    lines: list[str] = ["graph TD"]
 
     # Ensure all nodes present even if they have no deps -----------------
     node_ids = [n.id for n in chain.nodes]  # type: ignore[attr-defined]
@@ -356,8 +368,27 @@ def _print_mermaid_graph(chain):  # noqa: D401 – helper
         for dep in getattr(node, "dependencies", []):
             lines.append(f"  {dep} --> {node.id}")
 
-    lines.append("```")
-    rprint("\n".join(lines))
+    mermaid_code = "\n".join(lines)
+
+    # Always print fenced block to console ------------------------------
+    rprint("```mermaid\n" + mermaid_code + "\n```")
+
+    # Attempt auto-preview via mermaid-cli ------------------------------
+    mmdc_path = shutil.which("mmdc")  # NB: binary name of mermaid-cli
+    if mmdc_path is None:
+        rprint("[yellow]ℹ Install 'mermaid-cli' (npm i -g @mermaid-js/mermaid-cli) for graph preview.[/]")
+        return
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            md_path = Path(tmp) / "graph.mmd"
+            svg_path = Path(tmp) / "graph.svg"
+            md_path.write_text(mermaid_code)
+            subprocess.run([mmdc_path, "-i", str(md_path), "-o", str(svg_path)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            webbrowser.open(svg_path.as_uri())
+            rprint("[green]✔[/] Opened graph preview in browser.")
+    except Exception as exc:  # pragma: no cover – best-effort preview
+        rprint(f"[yellow]⚠ Failed to generate preview:[/] {exc}")
 
 
 class _ReloadHandler(FileSystemEventHandler):  # type: ignore[misc]
@@ -787,4 +818,76 @@ except (ModuleNotFoundError, ImportError):
             return typer.prompt(prompt_text, default=default)
         return typer.prompt(question.prompt)
 
-    ask_fn = _ask_typer  # type: ignore[assignment] 
+    ask_fn = _ask_typer  # type: ignore[assignment]
+
+@app.command("init", help="Initialise an .ice workspace and developer environment")
+def init_cmd(
+    force: bool = typer.Option(False, "--force", "-f", help="Overwrite existing files where applicable"),
+    install_precommit: bool = typer.Option(True, "--pre-commit/--no-pre-commit", help="Install pre-commit hooks"),
+    openai_key: str | None = typer.Option(None, "--openai-key", help="OpenAI API key to write into .env"),
+):
+    """Set up local dev environment.
+
+    This command performs a few quality-of-life tasks so newcomers can run a
+    chain within seconds:
+
+    1. Creates a *.ice* folder (ignored by git) to store temp artefacts.
+    2. Writes a *.env* file with an *OPENAI_API_KEY* entry (unless it already
+       exists or *--force* is given).
+    3. Installs *pre-commit* hooks so quality gates run on *git commit* if the
+       tool is available and the flag not disabled.
+    """
+
+    from dataclasses import asdict
+    import json
+    import shutil
+    import subprocess
+    import textwrap
+
+    cwd = Path.cwd()
+    ice_dir = cwd / ".ice"
+    if not ice_dir.exists():
+        ice_dir.mkdir(parents=True)
+        rprint(f"[green]✔[/] Created workspace directory {ice_dir.relative_to(cwd)}")
+    else:
+        rprint(f"[yellow]ℹ[/] Workspace directory {ice_dir.relative_to(cwd)} already exists.")
+
+    # ------------------------------------------------------------------
+    # .env handling -----------------------------------------------------
+    # ------------------------------------------------------------------
+    env_path = cwd / ".env"
+    if env_path.exists() and not force:
+        rprint(f"[yellow]ℹ[/] .env already exists – not overwritten (use --force to regenerate).")
+    else:
+        key = openai_key or os.getenv("OPENAI_API_KEY")
+        if key is None:
+            key = typer.prompt("Enter your OpenAI API Key", hide_input=True)
+        env_content = textwrap.dedent(
+            f"""# iceOS environment variables\nOPENAI_API_KEY={key}\n"""
+        )
+        env_path.write_text(env_content)
+        rprint(f"[green]✔[/] Wrote {env_path.relative_to(cwd)}")
+
+    # ------------------------------------------------------------------
+    # Persist default builder draft template ---------------------------
+    # ------------------------------------------------------------------
+    draft_path = ice_dir / "builder.draft.json"
+    if not draft_path.exists():
+        from ice_cli.chain_builder.engine import ChainDraft
+
+        draft = ChainDraft()  # empty draft
+        draft_path.write_text(json.dumps(asdict(draft), indent=2))
+        rprint(f"[green]✔[/] Initialised {draft_path.relative_to(cwd)}")
+
+    # ------------------------------------------------------------------
+    # Install pre-commit hooks -----------------------------------------
+    # ------------------------------------------------------------------
+    if install_precommit:
+        if shutil.which("pre-commit") is None:
+            rprint("[yellow]⚠ pre-commit not found – skipping hook installation.[/]")
+        else:
+            try:
+                subprocess.run(["pre-commit", "install"], check=True, stdout=subprocess.PIPE)
+                rprint("[green]✔[/] pre-commit hooks installed.")
+            except subprocess.CalledProcessError as exc:  # pragma: no cover
+                rprint(f"[red]✗ Failed to install pre-commit hooks:[/] {exc}") 
