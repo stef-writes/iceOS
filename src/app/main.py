@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.builder import router as builder_router
 from app.api.routes import router
 from ice_sdk import ToolService
 from ice_sdk.context.manager import GraphContextManager
@@ -116,8 +117,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Include core & builder routers -----------------------------------
 app.include_router(router)
+app.include_router(builder_router)
 
 
 @app.get("/")
