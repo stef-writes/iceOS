@@ -12,4 +12,22 @@ Key features:
 | Metrics | `ChainMetrics` | Aggregates token / cost per node |
 | Observability | OpenTelemetry spans | Integrate with Jaeger / Honeycomb |
 
-Sequence diagram coming soon. 
+Sequence diagram coming soon.
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant SC as ScriptChain
+    participant N1 as Node A
+    participant N2 as Node B
+    participant N3 as Node C
+
+    C->>SC: execute()
+    SC->>N1: run()
+    SC-->>N1: await
+    SC->>N2: run()
+    SC-->>N2: await
+    SC->>N3: run()
+    N3-->>SC: result
+    SC-->>C: ChainExecutionResult
+``` 

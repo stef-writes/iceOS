@@ -1,0 +1,35 @@
+name: Docs
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # needed for gh-deploy to push to gh-pages
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies (docs only)
+        run: poetry install --with dev --no-interaction
+
+      - name: Build & deploy MkDocs site
+        env:
+          # GitHub automatically provides this token with write access to the repo
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          poetry run mkdocs gh-deploy --force --clean 
