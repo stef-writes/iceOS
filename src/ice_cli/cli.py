@@ -838,11 +838,11 @@ def init_cmd(
        tool is available and the flag not disabled.
     """
 
-    from dataclasses import asdict
     import json
     import shutil
     import subprocess
     import textwrap
+    from dataclasses import asdict
 
     cwd = Path.cwd()
     ice_dir = cwd / ".ice"
