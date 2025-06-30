@@ -25,6 +25,25 @@ import click  # 3rd-party
 import typer
 from rich import print as rprint
 
+# NEW: Load environment variables early so CLI commands inherit API keys ----
+try:
+    from dotenv import load_dotenv  # type: ignore
+
+    def _load_dotenv() -> None:  # noqa: D401 – helper
+        """Mimic the FastAPI lifespan logic: search CWD for a .env file."""
+        project_root = Path.cwd()
+        for candidate in (".env.local", ".env", ".env.example"):
+            env_path = project_root / candidate
+            if env_path.exists():
+                load_dotenv(dotenv_path=env_path)
+                # Avoid repeated loading when CLI is re-imported by *watch* mode
+                break
+
+    _load_dotenv()
+except ModuleNotFoundError:  # pragma: no cover – optional dependency
+    # *python-dotenv* not installed – proceed without automatic env loading.
+    pass
+
 # Watchdog is optional: CLI still works sans --watch ----------------------
 try:
     from watchdog.events import FileSystemEventHandler  # type: ignore

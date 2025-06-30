@@ -3,7 +3,7 @@
 PYTHON := python
 PIP := pip
 
-.PHONY: help install lint type test coverage mutation refresh-docs doctor clean docs
+.PHONY: help install lint type test coverage mutation refresh-docs doctor clean docs deep-clean
 
 help:
 	@echo "Available targets:"
@@ -17,6 +17,7 @@ help:
 	@echo "  doctor         Run full healthcheck suite"
 	@echo "  clean          Remove .pyc, build, and coverage artifacts"
 	@echo "  docs           Build documentation site (output to site/)"
+	@echo "  deep-clean     Remove build/test artifacts, caches, logs, compiled files and local data"
 
 install:
 	$(PIP) install -e .[test]
@@ -51,8 +52,16 @@ mutation:
 
 clean:
 	rm -rf .pytest_cache dist build *.egg-info
-	rm -rf .coverage htmlcov .ruff_cache .mypy_cache .benchmarks .import_linter_cache
+	rm -rf .coverage htmlcov .ruff_cache .mypy_cache .benchmarks .import_linter_cache .hypothesis
+	rm -rf logs *.log data/*.db data/*.sqlite3 data/context_store.json
 	find . -name "__pycache__" -type d -exec rm -rf {} +
+	find . -name "*.py[co]" -delete
 
 docs:
 	mkdocs build -s 
+
+# Deep clean also removes virtual environment & compiled docs
+deep-clean: clean
+	rm -rf .venv venv ENV
+	rm -rf site
+	rm -rf docs/generated 

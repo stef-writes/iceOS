@@ -32,14 +32,19 @@ plugins:
 nav:
   - Home: index.md
   - Quick Start: quick_start.md
-  - Architecture: architecture.md
   - Core Concepts:
       - Nodes, Tools & Agents: core_concepts/nodes_tools_agents.md
-      - ScriptChain Execution: core_concepts/script_chain.md
+      - ScriptChain Runtime: core_concepts/script_chain.md
   - How-to Guides:
-      - Build a Custom Tool: how_to/custom_tool.md
-      - Wrap an Agent: how_to/agent.md
-  - CLI Reference: cli_reference.md
-  - API Reference: api_reference.md
-  - Deployment & Ops: deployment.md
-  - Contrib & Extensions: contrib.md 
+      - Build a Custom Tool: how_to/build_custom_tool.md
+      - Build an Agent: how_to/build_agent.md
+  - Reference:
+      - CLI Commands: reference/cli.md
+      - REST API: reference/api.md
+      - Architecture Internals: reference/architecture.md
+      - Health-check Matrix: reference/healthchecks.md
+  - Plans & Roadmaps:
+      - Docker + Poetry Strategy: plans/docker_poetry_strategy.md
+      - Chain Builder Roadmap: plans/next_steps_chain_wizard.md
+  - Demos:
+      - Frosty Personal Brand: demos/frosty_personal_brand_demo.md 

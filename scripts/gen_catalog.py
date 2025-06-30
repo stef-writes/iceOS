@@ -1,6 +1,9 @@
-# Copy of scripts/gen_catalog.py – kept for reference
-# (see original header notes)
+#!/usr/bin/env python3
+"""Generate a JSON catalog of Nodes/Tools/Agents/Chains defined in *src/*.
 
+Lifted from the prior ``dev_tools/legacy`` location so that build tooling and
+external callers can rely on ``scripts/gen_catalog.py`` directly.
+"""
 from __future__ import annotations
 
 import ast
@@ -73,7 +76,7 @@ def analyse_file(path: Path, project_root: Path) -> list[Capability]:
 
 
 def main() -> None:  # noqa: D401
-    project_root = Path(__file__).resolve().parent.parent.parent
+    project_root = Path(__file__).resolve().parent.parent
     all_caps: list[Capability] = []
     for py_file in discover_py_files():
         all_caps.extend(analyse_file(py_file, project_root))
@@ -81,7 +84,7 @@ def main() -> None:  # noqa: D401
     catalog = Catalog(generated_at=datetime.utcfromtimestamp(0), capabilities=all_caps)
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_FILE.write_text(catalog.model_dump_json(indent=2, exclude={"generated_at"}) + "\n")
-    print(f"[legacy.gen_catalog] wrote {len(all_caps)} entries", file=sys.stderr)
+    print(f"[scripts.gen_catalog] wrote {len(all_caps)} entries", file=sys.stderr)
 
 
 if __name__ == "__main__":

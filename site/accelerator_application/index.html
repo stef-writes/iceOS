@@ -1,0 +1,1187 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://stef-writes.github.io/iceOSv1-A-/accelerator_application/">
+      
+      
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>Accelerator application - iceOS Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#iceos-accelerator-application" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="iceOS Documentation" class="md-header__button md-logo" aria-label="iceOS Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            iceOS Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Accelerator application
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-hidden="true"  type="radio" name="__palette" id="__palette_1">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/stef-writes/iceOSv1-A-" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../quick_start/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../core_concepts/nodes_tools_agents/" class="md-tabs__link">
+          
+  
+  
+  Core Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../how_to/custom_tool/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../cli_reference/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  CLI Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../api_reference/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../deployment/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Deployment & Ops
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../contrib/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contrib & Extensions
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="iceOS Documentation" class="md-nav__button md-logo" aria-label="iceOS Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    iceOS Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/stef-writes/iceOSv1-A-" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quick_start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Quick Start
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Architecture
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Core Concepts
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Core Concepts
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core_concepts/nodes_tools_agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Nodes, Tools & Agents
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core_concepts/script_chain/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    ScriptChain Execution
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    How-to Guides
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            How-to Guides
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to/custom_tool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Build a Custom Tool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to/agent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Wrap an Agent
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli_reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    CLI Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api_reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    API Reference
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Deployment & Ops
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contrib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contrib & Extensions
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#iceos-accelerator-application" class="md-nav__link">
+    <span class="md-ellipsis">
+      iceOS – Accelerator Application
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="iceOS – Accelerator Application">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-one-sentence-pitch" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. One-sentence pitch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-product-service-description" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Product / service description
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-problem-we-solve" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Problem we solve
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-why-we-are-passionate" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Why we are passionate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-mission-core-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Mission &amp; core values
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-customers" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Customers
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-competitors" class="md-nav__link">
+    <span class="md-ellipsis">
+      7. Competitors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-our-advantage" class="md-nav__link">
+    <span class="md-ellipsis">
+      8. Our advantage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-team-qualifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      9. Team qualifications
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-business-model-revenue" class="md-nav__link">
+    <span class="md-ellipsis">
+      10. Business model &amp; revenue
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-key-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      11. Key metrics
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-market-opportunity" class="md-nav__link">
+    <span class="md-ellipsis">
+      12. Market opportunity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-traction" class="md-nav__link">
+    <span class="md-ellipsis">
+      13. Traction
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-scale-gtm" class="md-nav__link">
+    <span class="md-ellipsis">
+      14. Scale &amp; GTM
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-ip-unique-advantages" class="md-nav__link">
+    <span class="md-ellipsis">
+      15. IP / unique advantages
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16-sustainable-competitive-advantage" class="md-nav__link">
+    <span class="md-ellipsis">
+      16. Sustainable competitive advantage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#17-key-hires-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      17. Key hires needed
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#18-capital-raised-to-date" class="md-nav__link">
+    <span class="md-ellipsis">
+      18. Capital raised to date
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#19-sources-of-capital" class="md-nav__link">
+    <span class="md-ellipsis">
+      19. Sources of capital
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#20-attachments" class="md-nav__link">
+    <span class="md-ellipsis">
+      20. Attachments
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Accelerator application</h1>
+
+<h2 id="iceos-accelerator-application">iceOS – Accelerator Application</h2>
+<p><strong>Date:</strong> <!-- Fill in submission date --></p>
+<hr />
+<h3 id="1-one-sentence-pitch">1. One-sentence pitch</h3>
+<p>iceOS is a drag-and-drop "AI control room" where teams snap together ready-made skills on an infinite canvas to automate their work in minutes.</p>
+<h3 id="2-product-service-description">2. Product / service description</h3>
+<p>iceOS combines <strong>four</strong> tightly-integrated modules:
+1. <strong>Infinite Canvas UI</strong> – an endless, real-time board (think Miro) where users drag skills like <em>Search</em>, <em>Summarise</em>, <em>Email</em> or custom tools onto the canvas and connect them visually.
+2. <strong>Frosty AI Assistant</strong> – an on-board co-pilot that watches the canvas, asks Socratic questions and can auto-generate or re-wire workflows on demand.
+3. <strong>Safety-First Execution Engine</strong> – an open-source backend that runs those automations in parallel, enforces budget &amp; content guard-rails and learns from every run to cut cost and latency next time.
+4. <strong>Emergent Workflow Co-Creation Framework</strong> – our conceptual backbone that keeps ideas fuzzy until the user is ready to materialise them.  It supports ambiguity-preserving workspaces, progressive materialisation (idea → stub → executable), agentic swarm orchestration and a living artifact continuum that ties design history to runtime metrics.
+The result: business users design workflows as easily as sketching, while engineers get a reliable, auditable runtime under the hood.</p>
+<h3 id="3-problem-we-solve">3. Problem we solve</h3>
+<p>Building AI workflows today is messy and slow—developers juggle prompt engineering, error handling, rate-limits and multiple APIs, while non-technical teams are locked out entirely.  The overhead steals weeks per project and risks runaway costs.</p>
+<h3 id="4-why-we-are-passionate">4. Why we are passionate</h3>
+<p>Each founder has lived this pain: we spent months wiring brittle scripts at Stripe, Notion and health-tech startups.  We want the next generation to focus on customer value, not plumbing.</p>
+<h3 id="5-mission-core-values">5. Mission &amp; core values</h3>
+<p><strong>Mission:</strong> Make powerful AI automation as simple as sketching on a whiteboard.</p>
+<p><strong>Core values:</strong>
+- <em>Openness</em> (MIT licence, open roadmap)
+- <em>Reliability</em> (safety first, data-driven)
+- <em>Developer-love</em> (DX tools, clear docs)
+- <em>Measurable impact</em> (cost &amp; time savings)</p>
+<h3 id="6-customers">6. Customers</h3>
+<ul>
+<li><strong>Today:</strong> AI engineers and operations teams at Series-A/B SaaS firms using our private-alpha canvas.</li>
+<li><strong>12 mo:</strong> Agencies / consultancies packaging automations for clients.</li>
+<li><strong>36 mo:</strong> "Citizen developers" inside mid-market companies.</li>
+</ul>
+<h3 id="7-competitors">7. Competitors</h3>
+<ul>
+<li><strong>Now:</strong> Workflow86, LangFlow, n8n (with AI nodes).</li>
+<li><strong>At scale:</strong> Zapier AI, Microsoft Copilot Studio, ServiceNow Flow Designer.</li>
+</ul>
+<h3 id="8-our-advantage">8. Our advantage</h3>
+<ul>
+<li>Built-in safety nets (budget &amp; content filters) absent in visual rivals.</li>
+<li>Frosty AI co-pilot drafts flows automatically—saves hours.</li>
+<li>Open-source core → on-prem deployment for regulated sectors.</li>
+<li>Self-optimising engine reduces run cost ~20 % over time.</li>
+<li>Emergent Workflow Co-Creation Framework lets users postpone commitment and iterate at any fidelity—no rival offers this flexibility.</li>
+</ul>
+<h3 id="9-team-qualifications">9. Team qualifications</h3>
+<ul>
+<li><strong>Stef — CEO/CTO:</strong> ex-Stripe infra engineer, led async platform handling 50 M req/day.</li>
+<li><strong>Ada — Lead Engineer:</strong> creator of open-source tools with 15 k GitHub stars.</li>
+<li><strong>Jordan — Head of Product:</strong> former Notion PM specialised in visual collaboration UX.</li>
+</ul>
+<h3 id="10-business-model-revenue">10. Business model &amp; revenue</h3>
+<ol>
+<li><strong>Cloud SaaS:</strong> usage-based price per active workflow.</li>
+<li><strong>Enterprise licence:</strong> on-prem, RBAC, audit, SLA support.</li>
+<li><strong>Marketplace rev-share:</strong> paid third-party skills.</li>
+</ol>
+<h3 id="11-key-metrics">11. Key metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Why it matters</th>
+<th>Measurement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Weekly Active Workflows</td>
+<td>Core engagement</td>
+<td>Internal analytics</td>
+</tr>
+<tr>
+<td>Avg. Cost-per-Run</td>
+<td>Demonstrates ROI</td>
+<td>Engine telemetry</td>
+</tr>
+<tr>
+<td>Retention of paying workspaces</td>
+<td>Product-market fit</td>
+<td>Billing data</td>
+</tr>
+<tr>
+<td>OSS community size</td>
+<td>Top-of-funnel</td>
+<td>GitHub stars / Slack members</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-market-opportunity">12. Market opportunity</h3>
+<p>IDC projects AI-powered automation at <strong>$30 B TAM by 2028</strong>.  Capturing 1 % share yields a $300 M annual revenue path.</p>
+<h3 id="13-traction">13. Traction</h3>
+<ul>
+<li>1.2 k GitHub stars, 140 Slack members in six weeks.</li>
+<li>Infinite canvas in private-alpha with 3 design-partner companies.</li>
+<li>Wait-list: 220 sign-ups, growing 25 % WoW.</li>
+</ul>
+<h3 id="14-scale-gtm">14. Scale &amp; GTM</h3>
+<p>Land-and-expand OSS → self-serve cloud → enterprise upsell.
+- Content &amp; DevRel to acquire users (CAC ≈ $350 projected).
+- Marketplace recommendations drive expansion inside accounts.</p>
+<h3 id="15-ip-unique-advantages">15. IP / unique advantages</h3>
+<ul>
+<li>Trademark on <strong>iceOS</strong> and <strong>Frosty Copilot</strong>.</li>
+<li>Trade-secret optimisation heuristics (self-learning runtime).</li>
+<li>Preparing provisional patent on <em>self-optimising AI workflow execution</em>.</li>
+</ul>
+<h3 id="16-sustainable-competitive-advantage">16. Sustainable competitive advantage</h3>
+<ul>
+<li>Data network effect: optimiser improves with every run across installs.</li>
+<li>Ecosystem lock-in: bespoke skills &amp; saved canvases raise switching costs.</li>
+<li>Enterprise on-prem option difficult for SaaS-only rivals to match.</li>
+</ul>
+<h3 id="17-key-hires-needed">17. Key hires needed</h3>
+<ol>
+<li>Senior front-end engineer (React-Flow, real-time collab)</li>
+<li>Applied ML engineer (prompt-to-workflow reasoning)</li>
+<li>DevRel lead (education &amp; community)</li>
+</ol>
+<h3 id="18-capital-raised-to-date">18. Capital raised to date</h3>
+<p>$0 external (bootstrapped with &lt;$30 k sweat equity + $25 k AWS credits).</p>
+<h3 id="19-sources-of-capital">19. Sources of capital</h3>
+<p>Founders' personal funds and AWS Activate.</p>
+<h3 id="20-attachments">20. Attachments</h3>
+<ul>
+<li>Pitch deck: <a href="https://tinyurl.com/iceOS-deck">https://tinyurl.com/iceOS-deck</a></li>
+<li>2-min demo video: <a href="https://tinyurl.com/iceOS-demo-video">https://tinyurl.com/iceOS-demo-video</a></li>
+</ul>
+<p><em>(Replace links with final assets before submission.)</em> </p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs"], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+    
+  </body>
+</html>
