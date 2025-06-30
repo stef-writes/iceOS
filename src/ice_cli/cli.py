@@ -857,7 +857,7 @@ def init_cmd(
     # ------------------------------------------------------------------
     env_path = cwd / ".env"
     if env_path.exists() and not force:
-        rprint(f"[yellow]ℹ[/] .env already exists – not overwritten (use --force to regenerate).")
+        rprint("[yellow]ℹ[/] .env already exists – not overwritten (use --force to regenerate).")
     else:
         key = openai_key or os.getenv("OPENAI_API_KEY")
         if key is None:
