@@ -4508,4 +4508,4 @@ llm-openai = ["openai", "tiktoken"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "7280ccb0d8cfe89d187813ab23c0cd696ef4f63c034b6e2c5c7fd351254db455"
+content-hash = "bcee08b001b18e288507fb0fc3498b248977d6f2a984c55a35afe3936b0ffc3d"
