@@ -42,9 +42,11 @@ class DeepSeekHandler(BaseLLMHandler):
         if system_prompt := context.get("system_prompt"):
             messages.insert(0, {"role": "system", "content": system_prompt})
 
+        model_name: str = llm_config.model or "deepseek-chat"
+
         try:
             response = await client.chat.completions.create(  # type: ignore[arg-type]
-                model=llm_config.model,
+                model=model_name,
                 messages=messages,  # type: ignore[arg-type]
                 max_tokens=llm_config.max_tokens,
                 temperature=llm_config.temperature,

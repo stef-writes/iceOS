@@ -46,8 +46,9 @@ class OpenAIHandler(BaseLLMHandler):
         try:
             async with client:
                 logger.info("🔄 OpenAI call: model=%s", llm_config.model)
+                model_name: str = llm_config.model or "gpt-3.5-turbo"
                 response = await client.chat.completions.create(  # type: ignore[arg-type]
-                    model=llm_config.model,
+                    model=model_name,
                     messages=messages,  # type: ignore[arg-type]
                     temperature=llm_config.temperature,
                     max_tokens=llm_config.max_tokens,

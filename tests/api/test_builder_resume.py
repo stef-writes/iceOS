@@ -15,7 +15,13 @@ async def test_builder_export_resume_roundtrip():
         data = resp.json()
         draft_id = data["draft_id"]
 
-        # Answer first (and only) question prompts -----------------------
+        # Answer persist meta question first ---------------------------
+        await client.post(
+            "/api/v1/builder/answer",
+            json={"draft_id": draft_id, "key": "persist", "answer": "y"},
+        )
+
+        # Answer first (and only) node questions -----------------------
         await client.post(
             "/api/v1/builder/answer",
             json={"draft_id": draft_id, "key": "type", "answer": "tool"},
@@ -24,13 +30,21 @@ async def test_builder_export_resume_roundtrip():
             "/api/v1/builder/answer",
             json={"draft_id": draft_id, "key": "name", "answer": "demo_tool"},
         )
-        # Depending on engine flow, there might be deps step now ----------
+        # Depending on engine flow, there might be deps or adv step now ----
         next_q_resp = await client.get("/api/v1/builder/next", params={"draft_id": draft_id})
-        if next_q_resp.json() and next_q_resp.json().get("key") == "deps":
-            await client.post(
-                "/api/v1/builder/answer",
-                json={"draft_id": draft_id, "key": "deps", "answer": ""},
-            )
+        if next_q_resp.json():
+            key = next_q_resp.json().get("key")
+            if key == "deps":
+                await client.post(
+                    "/api/v1/builder/answer",
+                    json={"draft_id": draft_id, "key": "deps", "answer": ""},
+                )
+            if key in {"adv", "deps"}:
+                # ensure adv answered
+                await client.post(
+                    "/api/v1/builder/answer",
+                    json={"draft_id": draft_id, "key": "adv", "answer": "n"},
+                )
 
         # Export current draft ------------------------------------------
         export_resp = await client.get("/api/v1/builder/export", params={"draft_id": draft_id})

@@ -72,9 +72,20 @@ class LLMService:
     ) -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:
         """Return *(text, usage, error)* from the configured LLM provider."""
 
-        handler = self.handlers.get(llm_config.provider)
+        # Map provider to enum constant when supplied as raw string
+        provider_key: ModelProvider
+        try:
+            provider_key = (
+                llm_config.provider
+                if isinstance(llm_config.provider, ModelProvider)
+                else ModelProvider(llm_config.provider)  # type: ignore[arg-type]
+            ) if llm_config.provider else ModelProvider.OPENAI
+        except ValueError:
+            return "", None, f"Unsupported provider: {llm_config.provider}"
+
+        handler = self.handlers.get(provider_key)
         if handler is None:
-            return "", None, f"No handler for provider: {llm_config.provider}"
+            return "", None, f"No handler for provider: {provider_key}"
 
         async def _call_handler() -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:
             try:

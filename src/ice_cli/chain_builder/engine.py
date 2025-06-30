@@ -37,6 +37,7 @@ class ChainDraft:  # noqa: D401 – mutable builder state
     nodes: List[dict] = field(default_factory=list)  # hold raw answers per node
     current_step: int = 0
     total_nodes: int = 0
+    persist_interm_outputs: Optional[bool] = None  # ask once at start
 
     # Helpers -----------------------------------------------------------
     def save(self) -> None:  # noqa: D401 – persist to disk
@@ -65,6 +66,16 @@ class BuilderEngine:  # noqa: D401 – stateless helper
     # ------------------------------------------------------------------
     @staticmethod
     def next_question(draft: ChainDraft) -> Optional[Question]:  # noqa: D401
+        # ------------------------------------------------------------------
+        # Chain-level meta questions (asked once) ---------------------------
+        # ------------------------------------------------------------------
+        if draft.persist_interm_outputs is None:
+            return Question(
+                key="persist",
+                prompt="Persist intermediate outputs?",
+                choices=["y", "n"],
+            )
+
         # Determine current node index ---------------------------------
         node_idx = len(draft.nodes) - (1 if draft.current_step < 1 else 0)
 
@@ -86,11 +97,32 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                 key="deps",
                 prompt=f"Depends on (comma-separated IDs, blank=auto-prev) [available: {', '.join(available_ids)}]",
             )
+        elif draft.current_step == 4:
+            # Ask if user wants advanced settings ----------------------
+            return Question(key="adv", prompt="Advanced settings?", choices=["y", "n"])
+        elif draft.current_step == 5:
+            # Only ask retries if advanced flagged --------------------
+            if draft.nodes[-1].get("adv") == "y":
+                return Question(key="retries", prompt="Retries (int)")
+            else:
+                draft.current_step = 0  # finish node
+                return None
+        elif draft.current_step == 6:
+            return Question(key="timeout", prompt="Timeout seconds (int)")
+        elif draft.current_step == 7:
+            return Question(key="cache", prompt="Enable cache?", choices=["y", "n"])
         else:
             return None
 
     @staticmethod
     def submit_answer(draft: ChainDraft, key: str, answer: str) -> None:  # noqa: D401
+        # Chain-level meta -------------------------------------------------
+        if key == "persist" and draft.persist_interm_outputs is None:
+            draft.persist_interm_outputs = answer.lower().startswith("y")
+            # Persist draft state and exit early ---------------------------
+            draft.save()
+            return
+
         # Map step index -> expected key (dynamic based on node type) ---
         if draft.current_step == 0 and key == "type":
             draft.nodes.append({"type": answer})
@@ -108,8 +140,30 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                 # Default dependency → previous node id --------------
                 deps = [f"n{len(draft.nodes)-2}"]
             draft.nodes[-1]["dependencies"] = deps
-            # Node finished – reset pointer for next node -------------
-            draft.current_step = 0
+            # Move to advanced decision -------------------------------
+            draft.current_step = 4
+        elif draft.current_step == 4 and key == "adv":
+            draft.nodes[-1]["adv"] = answer.lower()
+            if answer.lower().startswith("y"):
+                draft.current_step += 1  # ask retries next
+            else:
+                # Node finished -------------------------------------
+                draft.current_step = 0
+        elif draft.current_step == 5 and key == "retries":
+            try:
+                draft.nodes[-1]["retries"] = int(answer)
+            except ValueError:
+                draft.nodes[-1]["retries"] = 0
+            draft.current_step += 1
+        elif draft.current_step == 6 and key == "timeout":
+            try:
+                draft.nodes[-1]["timeout"] = int(answer)
+            except ValueError:
+                draft.nodes[-1]["timeout"] = 0
+            draft.current_step += 1
+        elif draft.current_step == 7 and key == "cache":
+            draft.nodes[-1]["cache"] = answer.lower().startswith("y")
+            draft.current_step = 0  # Node finished
 
         # Persist after every answer ----------------------------------
         draft.save()
@@ -127,17 +181,33 @@ class BuilderEngine:  # noqa: D401 – stateless helper
             node_id = f"n{idx}"
             if node["type"] == "ai":
                 deps_str = node.get('dependencies', [])
+                extra = []
+                if "retries" in node:
+                    extra.append(f"retries={node['retries']}")
+                if "timeout" in node:
+                    extra.append(f"timeout={node['timeout']}")
+                if "cache" in node:
+                    extra.append(f"use_cache={node['cache']}")
+                extra_str = (", " + ", ".join(extra)) if extra else ""
                 node_lines.append(
-                    f"    AiNodeConfig(id=\"{node_id}\", type=\"ai\", name=\"{node['name']}\", model=\"{node.get('model','gpt-3.5-turbo')}\", prompt=\"# TODO\", llm_config={{'provider': 'openai'}}, dependencies={deps_str}),"
+                    f"    AiNodeConfig(id=\"{node_id}\", type=\"ai\", name=\"{node['name']}\", model=\"{node.get('model','gpt-3.5-turbo')}\", prompt=\"# TODO\", llm_config={{'provider': 'openai'}}, dependencies={deps_str}{extra_str}),"
                 )
             else:
                 deps_str = node.get('dependencies', [])
+                extra = []
+                if "retries" in node:
+                    extra.append(f"retries={node['retries']}")
+                if "timeout" in node:
+                    extra.append(f"timeout={node['timeout']}")
+                if "cache" in node:
+                    extra.append(f"use_cache={node['cache']}")
+                extra_str = (", " + ", ".join(extra)) if extra else ""
                 node_lines.append(
-                    f"    ToolNodeConfig(id=\"{node_id}\", type=\"tool\", name=\"{node['name']}\", tool_name=\"echo\", tool_args={{}}, dependencies={deps_str}),"
+                    f"    ToolNodeConfig(id=\"{node_id}\", type=\"tool\", name=\"{node['name']}\", tool_name=\"echo\", tool_args={{}}, dependencies={deps_str}{extra_str}),"
                 )
 
         nodes_block = "\n".join(node_lines)
-        template = f'"""{draft.name} – generated by Chain Builder"""\n\nfrom __future__ import annotations\n\nfrom typing import List\n\nfrom ice_orchestrator.script_chain import ScriptChain\nfrom ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig\nfrom ice_sdk.tools.builtins.deterministic import SumTool\n\nnodes: List[AiNodeConfig | ToolNodeConfig] = [\n{nodes_block}\n]\n\nif __name__ == "__main__":\n    chain = ScriptChain(nodes=nodes, tools=[SumTool()], name="{draft.name}")\n    import asyncio, rich; rich.print(asyncio.run(chain.execute()).model_dump())\n'
+        template = f'"""{draft.name} – generated by Chain Builder"""\n\nfrom __future__ import annotations\n\nfrom typing import List\n\nfrom ice_orchestrator.script_chain import ScriptChain\nfrom ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig\nfrom ice_sdk.tools.builtins.deterministic import SumTool\n\nnodes: List[AiNodeConfig | ToolNodeConfig] = [\n{nodes_block}\n]\n\nif __name__ == "__main__":\n    chain = ScriptChain(nodes=nodes, tools=[SumTool()], name="{draft.name}", persist_intermediate_outputs={draft.persist_interm_outputs if draft.persist_interm_outputs is not None else True})\n    import asyncio, rich; rich.print(asyncio.run(chain.execute()).model_dump())\n'
         return textwrap.dedent(template)
 
     @staticmethod
@@ -165,4 +235,36 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                 prev_id = f"n{idx - 1}"
                 lines.append(f"    {prev_id} --> {node_id}")
 
-        return "\n".join(lines) 
+        return "\n".join(lines)
+
+    # ------------------------------------------------------------------
+    # Validation --------------------------------------------------------
+    # ------------------------------------------------------------------
+    @staticmethod
+    def validate(draft: ChainDraft) -> list[str]:  # noqa: D401
+        """Return a list of validation error messages."""
+
+        errors: list[str] = []
+
+        # Duplicate names ---------------------------------------------
+        names_seen: set[str] = set()
+        for n in draft.nodes:
+            if "name" in n:
+                if n["name"] in names_seen:
+                    errors.append(f"Duplicate node name '{n['name']}'.")
+                names_seen.add(n["name"])
+
+        # Dependency checks -------------------------------------------
+        for idx, n in enumerate(draft.nodes):
+            for dep in n.get("dependencies", []):
+                try:
+                    dep_idx = int(dep.lstrip("n"))
+                except ValueError:
+                    errors.append(f"Invalid dependency id '{dep}'.")
+                    continue
+                if dep_idx >= idx:
+                    errors.append(
+                        f"Node n{idx} depends on n{dep_idx} which is not an earlier node (cycle)."
+                    )
+
+        return errors 

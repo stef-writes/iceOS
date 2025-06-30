@@ -18,13 +18,17 @@ def test_builder_engine_render_valid_python() -> None:
     draft = BuilderEngine.start(total_nodes=2, chain_name="demo_chain")
 
     # Simulate Q&A loop -------------------------------------------------------
+    # Chain meta – persist outputs ------------------------------------------
+    _feed_answers(draft, [("persist", "y")])
+
     # Node 0 – tool -----------------------------------------------------------
     _feed_answers(
         draft,
         [
             ("type", "tool"),
             ("name", "echo_start"),
-            ("deps", ""),  # depends-on; blank defaults to previous (none)
+            ("deps", ""),
+            ("adv", "n"),
         ],
     )
 
@@ -36,6 +40,7 @@ def test_builder_engine_render_valid_python() -> None:
             ("name", "ask_llm"),
             ("model", "gpt-3.5-turbo"),
             ("deps", "n0"),
+            ("adv", "n"),
         ],
     )
 

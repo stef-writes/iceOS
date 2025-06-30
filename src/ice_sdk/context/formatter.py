@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, List, Optional
 
 from ice_sdk.models.node_models import ContextFormat, ContextRule
+from ice_sdk.models.config import ModelProvider
 
 
 class BaseContextFormatter:
@@ -72,13 +73,13 @@ class ContextFormatter(BaseContextFormatter):
     ) -> str:
         format_type = getattr(rule, "format", None)
         self._run_hooks(str(format_type), content)
-        if format_type in self.format_handlers:
+        if format_type is None or format_type not in self.format_handlers:
+            formatted = str(content)
+        else:
             if getattr(format_type, "name", None) == "CUSTOM" and format_specs:
                 formatted = self.format_handlers[format_type](content, format_specs)
             else:
                 formatted = self.format_handlers[format_type](content)
-        else:
-            formatted = str(content)
 
         # NEW: token truncation logic honouring ContextRule.max_tokens ----------------
         max_tokens = getattr(rule, "max_tokens", None)
@@ -89,7 +90,7 @@ class ContextFormatter(BaseContextFormatter):
 
                 # We don't know the exact model/provider here; use fast estimate.
                 current_tokens = TokenCounter.estimate_tokens(
-                    formatted, model="", provider="custom"
+                    formatted, model="", provider=ModelProvider.CUSTOM
                 )
                 if current_tokens > max_tokens:
                     # Roughly remove excess characters assuming 4 chars per token.

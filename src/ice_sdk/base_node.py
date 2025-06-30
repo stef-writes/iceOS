@@ -83,15 +83,19 @@ class BaseNode(ABC):
                 return False
 
         # Dict-based validation fallback.
-        try:
-            fields = {
-                key: (eval(type_str), ...) for key, type_str in schema.items()
-            }  # noqa: S307 – eval on trusted input
-            InputModel = create_model("InputModel", **fields)  # type: ignore[call-arg,call-overload]
-            InputModel(**context)  # type: ignore[call-arg]
-            return True
-        except (ValidationError, NameError, SyntaxError):
-            return False
+        if isinstance(schema, dict):
+            try:
+                fields = {
+                    key: (eval(type_str), ...) for key, type_str in schema.items()
+                }  # noqa: S307 – eval on trusted input
+                InputModel = create_model("InputModel", **fields)  # type: ignore[call-arg,call-overload]
+                InputModel(**context)  # type: ignore[call-arg]
+                return True
+            except (ValidationError, NameError, SyntaxError):
+                return False
+
+        # Unsupported schema type; consider validation failed.
+        return False
 
     # ------------------------------------------------------------------
     # Abstract method ----------------------------------------------------

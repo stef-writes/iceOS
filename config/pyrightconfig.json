@@ -32,5 +32,15 @@
     { "module": "pydantic.pyright_plugin" }
   ],
   "pythonVersion": "3.10",
-  "typeCheckingMode": "basic"
+  "typeCheckingMode": "basic",
+  "exclude": [
+    "src/ice_sdk",
+    "src/ice_orchestrator",
+    "tests",
+    ".venv",
+    "**/site-packages/**"
+  ],
+  "include": [
+    "src"
+  ]
 } 

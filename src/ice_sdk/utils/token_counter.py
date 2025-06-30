@@ -29,7 +29,7 @@ class TokenCounter:
     }
 
     @classmethod
-    def get_encoding_name(cls, model: str, provider: ModelProvider = "openai") -> str:
+    def get_encoding_name(cls, model: str, provider: str | ModelProvider = "openai") -> str:
         """Get the encoding name for a model.
 
         Args:
@@ -52,7 +52,7 @@ class TokenCounter:
 
     @classmethod
     def count_tokens(
-        cls, text: str, model: str, provider: ModelProvider = "openai"
+        cls, text: str, model: str, provider: str | ModelProvider = "openai"
     ) -> int:
         """Count tokens in text for a specific model.
 
@@ -110,7 +110,7 @@ class TokenCounter:
         cls,
         messages: List[Dict[str, str]],
         model: str,
-        provider: ModelProvider = "openai",
+        provider: str | ModelProvider = "openai",
     ) -> int:
         """Count tokens in a list of messages.
 
@@ -150,7 +150,7 @@ class TokenCounter:
 
     @classmethod
     def estimate_tokens(
-        cls, text: str, model: str, provider: ModelProvider = "openai"
+        cls, text: str, model: str, provider: str | ModelProvider = "openai"
     ) -> int:
         """Estimate tokens in text using a fast approximation.
 
@@ -169,7 +169,7 @@ class TokenCounter:
 
     @classmethod
     def validate_token_limit(
-        cls, text: str, max_tokens: int, model: str, provider: ModelProvider = "openai"
+        cls, text: str, max_tokens: int, model: str, provider: str | ModelProvider = "openai"
     ) -> bool:
         """Validate if text is within token limit.
 

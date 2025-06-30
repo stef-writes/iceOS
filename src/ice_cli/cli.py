@@ -731,6 +731,50 @@ def sdk_create_chain(
                 raise typer.Exit(1)
             BuilderEngine.submit_answer(draft, q.key, answer)
 
+        # ------------------------------------------------------------------
+        # Review step – Mermaid & summary table -----------------------------
+        # ------------------------------------------------------------------
+        mermaid = BuilderEngine.render_mermaid(draft)
+
+        # Validate ----------------------------------------------------------
+        errors = BuilderEngine.validate(draft)
+        if errors:
+            rprint("[red]✗ Validation errors detected:[/]")
+            for msg in errors:
+                rprint(f"  • {msg}")
+            raise typer.Exit(1)
+
+        # Pretty-print preview ---------------------------------------------
+        try:
+            from rich.panel import Panel
+            from rich.table import Table
+
+            rprint(Panel(mermaid, title="Mermaid Graph", border_style="cyan"))
+
+            table = Table(title="Node Summary", show_lines=True)
+            table.add_column("#", justify="right")
+            table.add_column("Type")
+            table.add_column("Name")
+            table.add_column("Deps")
+
+            for idx, node in enumerate(draft.nodes):
+                deps = ", ".join(node.get("dependencies", [])) or "-"
+                table.add_row(str(idx), node.get("type", ""), node.get("name", ""), deps)
+
+            rprint(table)
+        except Exception:  # Fallback – plain text
+            rprint("\n--- Mermaid Graph ---\n" + mermaid)
+            rprint("\n--- Node Summary ---")
+            for idx, node in enumerate(draft.nodes):
+                deps = ", ".join(node.get("dependencies", [])) or "-"
+                rprint(f"{idx}: {node.get('type')} {node.get('name')} deps=[{deps}]")
+
+        # Confirmation ------------------------------------------------------
+        proceed = typer.confirm("Write chain file to disk?", default=True)
+        if not proceed:
+            rprint("[yellow]Aborted – no file written.[/]")
+            raise typer.Exit(1)
+
         source = BuilderEngine.render_chain(draft)
     # ------------------------------------------------------------------
     # Default hello-world scaffold path --------------------------------

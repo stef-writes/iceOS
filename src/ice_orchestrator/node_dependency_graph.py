@@ -42,7 +42,14 @@ class DependencyGraph:
             node = node_map[node_id]
             node.level = (
                 max(
-                    (node_map[dep].level for dep in getattr(node, "dependencies", [])),
+                    (
+                        node_map[dep].level
+                        for dep in (
+                            getattr(node, "dependencies", [])
+                            if isinstance(getattr(node, "dependencies", []), list)
+                            else [getattr(node, "dependencies", [])]
+                        )
+                    ),
                     default=-1,
                 )
                 + 1
@@ -67,7 +74,10 @@ class DependencyGraph:
         return self.node_levels[node_id]
 
     def get_leaf_nodes(self) -> List[str]:
-        return [node for node, out_degree in self.graph.out_degree() if out_degree == 0]
+        # NetworkX typing stubs treat ``out_degree`` as *Mapping[node, int]* rather than
+        # an iterable of *(node, degree)* tuples.  Avoid the unpacking to satisfy
+        # Pyright by querying degree per node explicitly.
+        return [n for n in self.graph.nodes() if self.graph.out_degree(n) == 0]
 
     def validate_schema_alignment(self, nodes: List[Any]):
         node_map = {node.id: node for node in nodes}

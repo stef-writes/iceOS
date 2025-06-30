@@ -52,7 +52,7 @@ def function_tool(
     use_docstring_info: bool = True,
     failure_error_function: Optional[Callable[[ToolContext, Exception], str]] = None,
     strict_mode: bool = True
-) -> Callable:
+) -> Callable[[Callable[..., Any]], BaseTool]:
     """Decorator to convert a function into a tool.
     
     Args:
@@ -63,7 +63,7 @@ def function_tool(
         failure_error_function: Function to handle errors
         strict_mode: Enable strict JSON schema validation
     """
-    def decorator(func: Callable[..., Any]) -> Callable:
+    def decorator(func: Callable[..., Any]) -> BaseTool:
         # Get function metadata
         name = name_override or func.__name__
         doc = func.__doc__ or ""

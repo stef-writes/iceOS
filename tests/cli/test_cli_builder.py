@@ -12,8 +12,8 @@ def test_cli_chain_builder(tmp_path: Path) -> None:  # noqa: D401 – integratio
 
     runner = CliRunner()
 
-    # Provide answers for 1 tool node: type, name, (blank model)
-    answers = "tool\necho_start\nna\n"
+    # Provide answers for chain meta + 1 tool node: persist?, type, name, (deps blank)
+    answers = "y\ntool\necho_start\n \nn\ny\n"
     res = runner.invoke(
         app,
         [

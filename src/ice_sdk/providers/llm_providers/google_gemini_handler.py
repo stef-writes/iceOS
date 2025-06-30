@@ -34,7 +34,8 @@ class GoogleGeminiHandler(BaseLLMHandler):
             return "", None, "GOOGLE_API_KEY not set"
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel(llm_config.model)
+        model_name: str = llm_config.model or "gemini-pro"
+        model = genai.GenerativeModel(model_name)
 
         gen_cfg_params: dict[str, Any] = {
             "temperature": llm_config.temperature,
@@ -62,10 +63,11 @@ class GoogleGeminiHandler(BaseLLMHandler):
             return "", None, "Gemini response missing text"
 
         usage_stats = None
-        if hasattr(response, "usage_metadata") and response.usage_metadata:
+        _usage = getattr(response, "usage_metadata", None)
+        if _usage is not None:
             usage_stats = {
-                "prompt_tokens": getattr(response.usage_metadata, "prompt_token_count", 0),
-                "completion_tokens": getattr(response.usage_metadata, "candidates_token_count", 0),
-                "total_tokens": getattr(response.usage_metadata, "total_token_count", 0),
+                "prompt_tokens": getattr(_usage, "prompt_token_count", 0),
+                "completion_tokens": getattr(_usage, "candidates_token_count", 0),
+                "total_tokens": getattr(_usage, "total_token_count", 0),
             }
         return text_content, usage_stats, None 

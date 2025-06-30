@@ -15,6 +15,15 @@ async def test_builder_happy_path():
         data = resp.json()
         draft_id = data["draft_id"]
         q = data["question"]
+        assert q["key"] == "persist"
+
+        # Answer persist
+        resp = await client.post(
+            "/api/v1/builder/answer",
+            json={"draft_id": draft_id, "key": "persist", "answer": "y"},
+        )
+        assert resp.status_code == 200
+        q = resp.json()["next_question"]
         assert q["key"] == "type"
 
         # Answer type
@@ -33,7 +42,7 @@ async def test_builder_happy_path():
         )
         assert resp.status_code == 200
         q = resp.json()["next_question"]
-        assert q is None or q["key"] in {"model", "deps"}
+        assert q is None or q["key"] in {"model", "deps", "adv"}
 
         # If model question present, answer it
         if q and q["key"] == "model":
@@ -47,6 +56,19 @@ async def test_builder_happy_path():
                 json={"draft_id": draft_id, "key": "deps", "answer": ""},
             )
             assert q_resp.status_code in {200, 204, 201, 202}
+
+        # If deps question present, answer it
+        if q and q["key"] == "deps":
+            await client.post(
+                "/api/v1/builder/answer",
+                json={"draft_id": draft_id, "key": "deps", "answer": ""},
+            )
+
+        # Answer advanced settings question (skip) --------------------
+        await client.post(
+            "/api/v1/builder/answer",
+            json={"draft_id": draft_id, "key": "adv", "answer": "n"},
+        )
 
         # Render chain
         resp = await client.get("/api/v1/builder/render", params={"draft_id": draft_id})
