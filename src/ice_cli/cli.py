@@ -15,8 +15,8 @@ watchers that may need to reload commands many times per second.
 from __future__ import annotations
 
 import asyncio
-import sys
 import os
+import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable
@@ -669,7 +669,9 @@ def sdk_create_chain(
     # Interactive builder path -----------------------------------------
     # ------------------------------------------------------------------
     if builder:
-        from ice_cli.chain_builder.engine import BuilderEngine  # local import to avoid cost
+        from ice_cli.chain_builder.engine import (
+            BuilderEngine,  # local import to avoid cost
+        )
 
         # Determine node count ----------------------------------------
         total_nodes: int

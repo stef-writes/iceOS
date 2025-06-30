@@ -7,10 +7,6 @@ A CLI wrapper (in ``ice_cli.cli``) feeds user answers via *questionary*.
 
 from __future__ import annotations
 
-# ---------------------------------------------------------------------------
-# Standard library imports ---------------------------------------------------
-# ---------------------------------------------------------------------------
-
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -18,6 +14,12 @@ from typing import List, Optional
 # string – they are not used at runtime within this module.  Suppress the
 # unused-import warnings accordingly.  # noqa: F401
 from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig  # noqa: F401
+
+# ---------------------------------------------------------------------------
+# Standard library imports ---------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
 
 __all__ = ["ChainDraft", "BuilderEngine", "Question"]
 
