@@ -24,8 +24,8 @@ import shutil
 import subprocess
 import textwrap
 from dataclasses import asdict
-from rich.table import Table
-from ice_cli.context import CLIContext
+from rich import print as rprint
+from ice_cli.context import CLIContext, get_ctx
 from ice_sdk.utils.logging import setup_logger
 
 # Ensure realistic terminal width *before* importing Rich/Click/Typer so any
@@ -51,7 +51,6 @@ from typing import Any, Callable
 import click  # 3rd-party
 import click.formatting as _cf  # noqa: WPS433,F401 – ensure available after click import
 import typer
-from rich import print as rprint
 
 # NEW: Load environment variables early so CLI commands inherit API keys ----
 try:
@@ -247,7 +246,8 @@ def _snake_case(name: str) -> str:
 # maintainability.  We import the Typer app _after_ instantiating the root
 # application so the add_typer call can attach the group immediately.
 
-from ice_cli.commands.tool import (
+# noqa comment to appease ruff E402 (import after app setup)
+from ice_cli.commands.tool import (  # noqa: E402
     tool_app,  # noqa: WPS433 – re-exported for backwards-compat
     get_tool_service as _get_tool_service,
 )
@@ -931,6 +931,18 @@ def init_cmd(
             },
         ),
     )
+
+    # Honour --dry-run flag ---------------------------------------------------
+    ctx_flags = get_ctx()
+    if getattr(ctx_flags, "dry_run", False):
+        rprint(
+            "[yellow]Dry-run:[/] Would initialise workspace (.ice), write .env, and install pre-commit hooks."
+        )
+        _emit_event(
+            "cli.init.completed",
+            CLICommandEvent(command="init", status="completed", params={"dry_run": True}),
+        )
+        raise typer.Exit()
 
     cwd = Path.cwd()
     ice_dir = cwd / ".ice"

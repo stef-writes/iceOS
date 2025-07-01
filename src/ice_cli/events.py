@@ -7,15 +7,15 @@ can be imported by sub-modules (e.g. *commands.tool*) without triggering Typer
 app initialisation or causing circular imports back to *ice_cli.cli*.
 """
 
+# stdlib
 import asyncio
-from typing import Any
 
+# 3rd-party
 from pydantic import BaseModel
 
-# The event dispatcher lives in *ice_sdk* – keep the import local to avoid the
-# dependency for code paths that do not publish events.
-from ice_sdk.events.dispatcher import publish  # noqa: WPS433,E402
-from ice_cli.context import get_ctx  # noqa: WPS433,E402
+# Project
+from ice_sdk.events.dispatcher import publish  # noqa: WPS433
+from ice_cli.context import get_ctx  # noqa: WPS433
 
 __all__ = ["_emit_event"]
 

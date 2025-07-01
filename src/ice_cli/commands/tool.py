@@ -11,6 +11,7 @@ from rich import print as rprint
 from rich.table import Table
 
 from ice_cli.events import _emit_event
+from ice_cli.context import get_ctx  # access global CLIContext
 from ice_sdk.tools.service import ToolService
 from ice_sdk.events.models import CLICommandEvent
 from ice_sdk.tools.base import ToolContext
@@ -111,6 +112,22 @@ def tool_new(
             params={"name": name, "directory": str(directory), "force": force},
         ),
     )
+
+    # Honour --dry-run flag ---------------------------------------------------
+    ctx = get_ctx()
+    if getattr(ctx, "dry_run", False):
+        def _pretty_path(p: Path) -> str:
+            try:
+                return str(p.relative_to(Path.cwd()))
+            except ValueError:
+                return str(p)
+
+        rprint(f"[yellow]Dry-run:[/] Would create {_pretty_path(target_path)}")
+        _emit_event(
+            "cli.tool_new.completed",
+            CLICommandEvent(command="tool_new", status="completed", params={"dry_run": True}),
+        )
+        raise typer.Exit()
 
     if target_path.exists() and not force:
         rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")

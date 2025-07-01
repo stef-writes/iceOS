@@ -6,9 +6,18 @@
       "name": "echo_start",
       "dependencies": [],
       "adv": "n"
+    },
+    {
+      "type": "ai",
+      "name": "ask_llm",
+      "model": "gpt-3.5-turbo",
+      "dependencies": [
+        "n0"
+      ],
+      "adv": "n"
     }
   ],
   "current_step": 0,
-  "total_nodes": 1,
+  "total_nodes": 2,
   "persist_interm_outputs": true
 }
