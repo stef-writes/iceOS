@@ -89,7 +89,13 @@ from ice_cli.context import CLIContext
 # ---------------------------------------------------------------------------
 # Setup Typer app -----------------------------------------------------------
 # ---------------------------------------------------------------------------
-app = typer.Typer(add_completion=False, help="iceOS developer CLI")
+app = typer.Typer(
+    add_completion=False,
+    help=(
+        "iceOS developer CLI\n\n"
+        "Global flags: --json, --dry-run, --yes, --verbose (use --help for full details)"
+    ),
+)
 logger = setup_logger()
 
 
