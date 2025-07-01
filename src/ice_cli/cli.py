@@ -15,11 +15,12 @@ watchers that may need to reload commands many times per second.
 # Start of module -----------------------------------------------------------
 from __future__ import annotations
 
+import os
+
 # Ensure realistic terminal width *before* importing Rich/Click/Typer so any
 # Consoles instantiated during import use a sane fallback (GitHub Actions
 # can report COLUMNS=5 which causes option names like "--json" to be split).
 
-import os
 
 try:
     _cols = int(os.getenv("COLUMNS", "0"))
@@ -89,6 +90,7 @@ except (ModuleNotFoundError, ImportError):  # pragma: no cover
         def join(self):
             pass
 
+from ice_cli.context import CLIContext
 from ice_sdk.tools.service import (  # noqa: F401 – side-effect import makes built-ins discoverable
     ToolService,
 )
@@ -98,7 +100,6 @@ from ice_sdk.utils.logging import setup_logger
 # Global context ------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-from ice_cli.context import CLIContext
 
 
 # ---------------------------------------------------------------------------
@@ -1118,14 +1119,16 @@ def init_cmd(
 # Third-party / shared libs ---------------------------------------------------
 # ---------------------------------------------------------------------------
 
-# Event system (non-blocking) -------------------------------------------------
-from ice_sdk.events.dispatcher import publish  # noqa: E402 – placed after stdlib imports
-from ice_sdk.events.models import CLICommandEvent  # noqa: E402
-
 # ---------------------------------------------------------------------------
 # Helper – safe event publication respecting --no-events flag --------------
 # ---------------------------------------------------------------------------
 from pydantic import BaseModel  # noqa: E402
+
+# Event system (non-blocking) -------------------------------------------------
+from ice_sdk.events.dispatcher import (  # noqa: E402 – placed after stdlib imports
+    publish,
+)
+from ice_sdk.events.models import CLICommandEvent  # noqa: E402
 
 
 def _emit_event(name: str, payload: BaseModel) -> None:  # noqa: D401 – simple helper

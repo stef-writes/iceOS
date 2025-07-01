@@ -17,11 +17,10 @@ Only *exact* event names are supported for now (wildcards ignored).
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import List
-
 import logging
 import os
+from pathlib import Path
+from typing import List
 
 try:
     import yaml  # PyYAML – optional dependency

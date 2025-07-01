@@ -7,8 +7,8 @@ introducing tight coupling or blocking IO.
 
 from __future__ import annotations
 
+from .dispatcher import Subscriber, publish, subscribe  # noqa: F401 – re-export
 from .models import CLICommandEvent, EventEnvelope  # noqa: F401 – re-export
-from .dispatcher import publish, subscribe, Subscriber  # noqa: F401 – re-export
 
 __all__ = [
     "CLICommandEvent",

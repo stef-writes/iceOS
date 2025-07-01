@@ -16,6 +16,7 @@ from collections import defaultdict
 from typing import Awaitable, Callable, Dict, List
 
 from pydantic import BaseModel
+
 from .models import EventEnvelope
 
 Subscriber = Callable[[EventEnvelope], Awaitable[None]]
