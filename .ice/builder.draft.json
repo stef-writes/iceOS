@@ -1,14 +1,11 @@
 {
-  "name": "adv_chain",
+  "name": "demo",
   "nodes": [
     {
       "type": "tool",
-      "name": "adv_tool",
+      "name": "demo_tool",
       "dependencies": [],
-      "adv": "y",
-      "retries": 3,
-      "timeout": 60,
-      "cache": false
+      "adv": "n"
     }
   ],
   "current_step": 0,

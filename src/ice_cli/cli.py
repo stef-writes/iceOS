@@ -209,23 +209,6 @@ def _global_options(
 
     # If the user did not provide a sub-command, show the main --help and exit.
     if ctx.invoked_subcommand is None:
-        # ------------------------------------------------------------------
-        # Emit a plain summary line first so tests can reliably detect tokens
-        # like "--json" even when Rich wraps option names due to a tiny
-        # terminal width (GitHub Actions sometimes sets COLUMNS=5).  A simple
-        # echo is not subject to Rich's table wrapping, so the substring is
-        # always contiguous.
-        # ------------------------------------------------------------------
-        # Bypass Click/Rich entirely so the line is emitted verbatim and never
-        # wrapped, guaranteeing the substring "--json" stays contiguous even
-        # at extreme terminal widths (e.g. COLUMNS=5).
-        sys.stdout.write("--json --dry-run --yes --verbose\n")
-
-        # Force Click's internal width override so Rich tables never render
-        # with <20 columns even if some wrapper re-sets COLUMNS moments ago.
-        _cf.FORCED_WIDTH = 80
-
-        # Typer's rich help prints automatically when we call get_help().
         typer.echo(ctx.get_help())
         raise typer.Exit()
 
