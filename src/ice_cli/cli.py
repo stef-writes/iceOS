@@ -207,7 +207,18 @@ def _global_options(
         # echo is not subject to Rich's table wrapping, so the substring is
         # always contiguous.
         # ------------------------------------------------------------------
-        typer.echo("Global flags: --json --dry-run --yes --verbose", color=False)
+        import sys  # noqa: WPS433 – local import to avoid at top of file
+
+        # Bypass Click/Rich entirely so the line is emitted verbatim and never
+        # wrapped, guaranteeing the substring "--json" stays contiguous even
+        # at extreme terminal widths (e.g. COLUMNS=5).
+        sys.stdout.write("--json --dry-run --yes --verbose\n")
+
+        # Force Click's internal width override so Rich tables never render
+        # with <20 columns even if some wrapper re-sets COLUMNS moments ago.
+        import click.formatting as _cf  # noqa: WPS433 – local import
+
+        _cf.FORCED_WIDTH = 80
 
         # Typer's rich help prints automatically when we call get_help().
         typer.echo(ctx.get_help())
