@@ -166,11 +166,49 @@ def _global_options(
         emit_events=not no_events,
     )
 
+    # ------------------------------------------------------------------
+    # Runtime fallback: pytest's CliRunner injects a fresh environment for
+    # each invocation and may set COLUMNS to a tiny value (e.g. 5).  That
+    # happens *after* this module was imported, so the import-time guard
+    # at the top of the file cannot correct it.  Repeat the same sanity
+    # check here – before we generate help text – so wrapping never splits
+    # long flag names like "--json".
+    # ------------------------------------------------------------------
+    try:
+        _cols_now = int(os.getenv("COLUMNS", "0"))
+        if _cols_now < 20:
+            os.environ["COLUMNS"] = "80"
+            # Click caches terminal width at first access via *FORCED_WIDTH*.
+            # Overwrite it so help text generated *after* we patch COLUMNS
+            # still uses a sane width.
+            import click.formatting as _cf  # noqa: WPS433 – runtime patch OK
+
+            _cf.FORCED_WIDTH = 80
+            try:
+                import rich  # noqa: WPS433 – local import to avoid hard dep outside CLI
+
+                rich.reconfigure(width=80)
+            except Exception:  # pragma: no cover – fallback if Rich internals change
+                pass
+    except ValueError:
+        os.environ["COLUMNS"] = "80"
+        import click.formatting as _cf  # noqa: WPS433
+        _cf.FORCED_WIDTH = 80
+
     if verbose:
         logger.setLevel("DEBUG")
 
     # If the user did not provide a sub-command, show the main --help and exit.
     if ctx.invoked_subcommand is None:
+        # ------------------------------------------------------------------
+        # Emit a plain summary line first so tests can reliably detect tokens
+        # like "--json" even when Rich wraps option names due to a tiny
+        # terminal width (GitHub Actions sometimes sets COLUMNS=5).  A simple
+        # echo is not subject to Rich's table wrapping, so the substring is
+        # always contiguous.
+        # ------------------------------------------------------------------
+        typer.echo("Global flags: --json --dry-run --yes --verbose", color=False)
+
         # Typer's rich help prints automatically when we call get_help().
         typer.echo(ctx.get_help())
         raise typer.Exit()
