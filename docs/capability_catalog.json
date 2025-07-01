@@ -1,0 +1,74 @@
+{
+  "capabilities": [
+    {
+      "id": "src.ice_orchestrator.base_script_chain.BaseScriptChain",
+      "kind": "chain",
+      "path": "src/ice_orchestrator/base_script_chain.py"
+    },
+    {
+      "id": "src.ice_orchestrator.script_chain.ScriptChain",
+      "kind": "chain",
+      "path": "src/ice_orchestrator/script_chain.py"
+    },
+    {
+      "id": "src.ice_sdk.agents.agent_node.AgentNode",
+      "kind": "node",
+      "path": "src/ice_sdk/agents/agent_node.py"
+    },
+    {
+      "id": "src.ice_sdk.base_node.BaseNode",
+      "kind": "node",
+      "path": "src/ice_sdk/base_node.py"
+    },
+    {
+      "id": "src.ice_sdk.tools.base.BaseTool",
+      "kind": "tool",
+      "path": "src/ice_sdk/tools/base.py"
+    },
+    {
+      "id": "src.ice_sdk.tools.builtins.deterministic.HttpRequestTool",
+      "kind": "tool",
+      "path": "src/ice_sdk/tools/builtins/deterministic.py"
+    },
+    {
+      "id": "src.ice_sdk.tools.builtins.deterministic.SleepTool",
+      "kind": "tool",
+      "path": "src/ice_sdk/tools/builtins/deterministic.py"
+    },
+    {
+      "id": "src.ice_sdk.tools.builtins.deterministic.SumTool",
+      "kind": "tool",
+      "path": "src/ice_sdk/tools/builtins/deterministic.py"
+    },
+    {
+      "id": "src.ice_sdk.tools.hosted.ComputerTool",
+      "kind": "tool",
+      "path": "src/ice_sdk/tools/hosted.py"
+    },
+    {
+      "id": "src.ice_sdk.tools.hosted.FileSearchTool",
+      "kind": "tool",
+      "path": "src/ice_sdk/tools/hosted.py"
+    },
+    {
+      "id": "src.ice_sdk.tools.hosted.WebSearchTool",
+      "kind": "tool",
+      "path": "src/ice_sdk/tools/hosted.py"
+    },
+    {
+      "id": "src.ice_sdk.tools.mcp.MCPTool",
+      "kind": "tool",
+      "path": "src/ice_sdk/tools/mcp.py"
+    },
+    {
+      "id": "src.ice_sdk.tools.webhook.WebhookEmitterTool",
+      "kind": "tool",
+      "path": "src/ice_sdk/tools/webhook.py"
+    },
+    {
+      "id": "src.ice_sdk_contrib.kb_search.tool.KBSearchTool",
+      "kind": "tool",
+      "path": "src/ice_sdk_contrib/kb_search.tool.py"
+    }
+  ]
+}

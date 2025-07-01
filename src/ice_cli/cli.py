@@ -834,12 +834,37 @@ def sdk_create_chain(
                 rprint(f"  • {msg}")
             raise typer.Exit(1)
 
-        # Pretty-print preview ---------------------------------------------
+        # Show --graph preview (Mermaid) right after builder finishes
         try:
+            import shutil
+            import subprocess
+            import tempfile
+            import webbrowser
+
             from rich.panel import Panel
             from rich.table import Table
 
             rprint(Panel(mermaid, title="Mermaid Graph", border_style="cyan"))
+
+            # Attempt auto-preview via mermaid-cli (mmdc)
+            mmdc_path = shutil.which("mmdc")
+            if mmdc_path is not None:
+                with tempfile.TemporaryDirectory() as tmp:
+                    md_path = Path(tmp) / "graph.mmd"
+                    svg_path = Path(tmp) / "graph.svg"
+                    md_path.write_text(mermaid)
+                    subprocess.run(
+                        [mmdc_path, "-i", str(md_path), "-o", str(svg_path)],
+                        check=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                    )
+                    webbrowser.open(svg_path.as_uri())
+                    rprint("[green]✔[/] Opened graph preview in browser.")
+            else:
+                rprint(
+                    "[yellow]ℹ Install 'mermaid-cli' (npm i -g @mermaid-js/mermaid-cli) for graph preview.[/]"
+                )
 
             table = Table(title="Node Summary", show_lines=True)
             table.add_column("#", justify="right")

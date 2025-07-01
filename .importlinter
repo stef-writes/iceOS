@@ -1,0 +1,10 @@
+[importlinter]
+root_package = src
+
+[contract: sdk-no-app]
+name = SDK must not import app layer
+type = forbidden
+source_modules =
+    ice_sdk
+forbidden_modules =
+    app 

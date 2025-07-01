@@ -358,7 +358,7 @@
     },
     "tool_args": {
       "additionalProperties": true,
-      "description": "Arguments to forward to the tool",
+      "description": "Arguments forwarded to the tool (can contain placeholders)",
       "title": "Tool Args",
       "type": "object"
     }

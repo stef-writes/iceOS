@@ -89,26 +89,35 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                 # Skip model step for tool nodes -----------------------
                 draft.current_step += 1
                 return BuilderEngine.next_question(draft)
-        elif draft.current_step == 3 and node_idx > 0:
+        elif draft.current_step == 3:
+            # After model, if AI node, ask for tool whitelist
+            if draft.nodes and draft.nodes[-1]["type"] == "ai":
+                return Question(
+                    key="tools", prompt="Allowed tools (comma-separated, blank=all)"
+                )
+            # For tool nodes or if already asked tools, move on
+            draft.current_step += 1
+            return BuilderEngine.next_question(draft)
+        elif draft.current_step == 4:
             # Ask dependencies unless this is the first node ----------
             available_ids = [f"n{i}" for i in range(node_idx)]
             return Question(
                 key="deps",
                 prompt=f"Depends on (comma-separated IDs, blank=auto-prev) [available: {', '.join(available_ids)}]",
             )
-        elif draft.current_step == 4:
+        elif draft.current_step == 5:
             # Ask if user wants advanced settings ----------------------
             return Question(key="adv", prompt="Advanced settings?", choices=["y", "n"])
-        elif draft.current_step == 5:
+        elif draft.current_step == 6:
             # Only ask retries if advanced flagged --------------------
             if draft.nodes[-1].get("adv") == "y":
                 return Question(key="retries", prompt="Retries (int)")
             else:
                 draft.current_step = 0  # finish node
                 return None
-        elif draft.current_step == 6:
-            return Question(key="timeout", prompt="Timeout seconds (int)")
         elif draft.current_step == 7:
+            return Question(key="timeout", prompt="Timeout seconds (int)")
+        elif draft.current_step == 8:
             return Question(key="cache", prompt="Enable cache?", choices=["y", "n"])
         else:
             return None
@@ -132,35 +141,48 @@ class BuilderEngine:  # noqa: D401 – stateless helper
         elif draft.current_step == 2 and key == "model":
             if draft.nodes[-1]["type"] == "ai":
                 draft.nodes[-1]["model"] = answer
+                # After model for AI nodes ask for tool whitelist (optional)
+                draft.current_step += 1  # move to new tools step
+                # Persist draft state before returning
+                draft.save()
+                return
             draft.current_step += 1
-        elif draft.current_step in (2, 3) and key == "deps":
+        elif draft.current_step == 3 and key == "tools":
+            # Expect comma-separated list of tool names; allow blank (no tools)
+            tools = [t.strip() for t in answer.split(",") if t.strip()]
+            draft.nodes[-1]["tools"] = tools
+            # Continue to dependencies step next (maintain original flow)
+            draft.current_step += 1
+            draft.save()
+            return
+        elif draft.current_step in (2, 3, 4) and key == "deps":
             deps = [d.strip() for d in answer.split(",") if d.strip()]
             if not deps and len(draft.nodes) > 1:
                 # Default dependency → previous node id --------------
                 deps = [f"n{len(draft.nodes)-2}"]
             draft.nodes[-1]["dependencies"] = deps
             # Move to advanced decision -------------------------------
-            draft.current_step = 4
-        elif draft.current_step == 4 and key == "adv":
+            draft.current_step = 5
+        elif draft.current_step == 5 and key == "adv":
             draft.nodes[-1]["adv"] = answer.lower()
             if answer.lower().startswith("y"):
                 draft.current_step += 1  # ask retries next
             else:
                 # Node finished -------------------------------------
                 draft.current_step = 0
-        elif draft.current_step == 5 and key == "retries":
+        elif draft.current_step == 6 and key == "retries":
             try:
                 draft.nodes[-1]["retries"] = int(answer)
             except ValueError:
                 draft.nodes[-1]["retries"] = 0
             draft.current_step += 1
-        elif draft.current_step == 6 and key == "timeout":
+        elif draft.current_step == 7 and key == "timeout":
             try:
                 draft.nodes[-1]["timeout"] = int(answer)
             except ValueError:
                 draft.nodes[-1]["timeout"] = 0
             draft.current_step += 1
-        elif draft.current_step == 7 and key == "cache":
+        elif draft.current_step == 8 and key == "cache":
             draft.nodes[-1]["cache"] = answer.lower().startswith("y")
             draft.current_step = 0  # Node finished
 
@@ -187,6 +209,11 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                     extra.append(f"timeout={node['timeout']}")
                 if "cache" in node:
                     extra.append(f"use_cache={node['cache']}")
+                if "tools" in node and node["tools"]:
+                    tools_list = (
+                        "[" + ", ".join([f'"{t}"' for t in node["tools"]]) + "]"
+                    )
+                    extra.append(f"tools={tools_list}")
                 extra_str = (", " + ", ".join(extra)) if extra else ""
                 node_lines.append(
                     f"    AiNodeConfig(id=\"{node_id}\", type=\"ai\", name=\"{node['name']}\", model=\"{node.get('model','gpt-3.5-turbo')}\", prompt=\"# TODO\", llm_config={{'provider': 'openai'}}, dependencies={deps_str}{extra_str}),"
@@ -206,7 +233,7 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                 )
 
         nodes_block = "\n".join(node_lines)
-        template = f'"""{draft.name} – generated by Chain Builder"""\n\nfrom __future__ import annotations\n\nfrom typing import List\n\nfrom ice_orchestrator.script_chain import ScriptChain\nfrom ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig\nfrom ice_sdk.tools.builtins.deterministic import SumTool\n\nnodes: List[AiNodeConfig | ToolNodeConfig] = [\n{nodes_block}\n]\n\nif __name__ == "__main__":\n    chain = ScriptChain(nodes=nodes, tools=[SumTool()], name="{draft.name}", persist_intermediate_outputs={draft.persist_interm_outputs if draft.persist_interm_outputs is not None else True})\n    import asyncio, rich; rich.print(asyncio.run(chain.execute()).model_dump())\n'
+        template = f'"""{draft.name} – generated by Chain Builder"""\n\nfrom __future__ import annotations\n\nfrom typing import List\n\nfrom ice_orchestrator.script_chain import ScriptChain\nfrom ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig\nfrom ice_sdk.tools.builtins.deterministic import SumTool\n\nnodes: List[AiNodeConfig | ToolNodeConfig] = [\n{nodes_block}\n]\n\nchain = ScriptChain(nodes=nodes, tools=[SumTool()], name="{draft.name}", persist_intermediate_outputs={draft.persist_interm_outputs if draft.persist_interm_outputs is not None else True})\n\nif __name__ == "__main__":\n    import asyncio, rich; rich.print(asyncio.run(chain.execute()).model_dump())\n'
         return textwrap.dedent(template)
 
     @staticmethod

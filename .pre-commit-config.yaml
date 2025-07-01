@@ -1,14 +1,23 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.4.2
     hooks:
       - id: ruff
         args: ["--fix"]
-        exclude: "^(tests/|scripts/)"
-  - repo: https://github.com/pycqa/isort
+  - repo: https://github.com/PyCQA/isort
     rev: 5.13.2
     hooks:
       - id: isort
+        args: ["--profile=black"]
+  # Pyright mirror temporarily disabled due to GitHub repo access issue
+  - repo: https://github.com/seddonym/import-linter
+    rev: v2.3
+    hooks:
+      - id: import-linter
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.7.2
+    hooks:
+      - id: pip-audit
   - repo: https://github.com/psf/black
     rev: 24.3.0
     hooks:
