@@ -80,10 +80,78 @@ from ice_sdk.tools.service import (  # noqa: F401 – side-effect import makes b
 from ice_sdk.utils.logging import setup_logger
 
 # ---------------------------------------------------------------------------
+# Global context ------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+from ice_cli.context import CLIContext
+
+
+# ---------------------------------------------------------------------------
 # Setup Typer app -----------------------------------------------------------
 # ---------------------------------------------------------------------------
 app = typer.Typer(add_completion=False, help="iceOS developer CLI")
 logger = setup_logger()
+
+
+# ---------------------------------------------------------------------------
+# Global flags callback ------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@app.callback(invoke_without_command=True)
+def _global_options(
+    ctx: typer.Context,
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        "-j",
+        help="Default to JSON output where supported",
+        rich_help_panel="Global",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Do not execute mutations; log intended actions instead",
+        rich_help_panel="Global",
+    ),
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        "-y",
+        help="Assume 'yes' for all confirmation prompts",
+        rich_help_panel="Global",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose logging output",
+        rich_help_panel="Global",
+    ),
+    no_events: bool = typer.Option(
+        False,
+        "--no-events",
+        help="Do not emit telemetry events (e.g. CLICommandEvent)",
+        rich_help_panel="Global",
+    ),
+):
+    """Register shared flags and expose them via :class:`~ice_cli.context.CLIContext`."""
+
+    ctx.obj = CLIContext(
+        json_output=json_output,
+        dry_run=dry_run,
+        yes=yes,
+        verbose=verbose,
+        emit_events=not no_events,
+    )
+
+    if verbose:
+        logger.setLevel("DEBUG")
+
+    # If the user did not provide a sub-command, show the main --help and exit.
+    if ctx.invoked_subcommand is None:
+        # Typer's rich help prints automatically when we call get_help().
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
 
 
 # ---------------------------------------------------------------------------
@@ -168,6 +236,16 @@ def tool_new(
 
     target_path = directory / f"{_snake_case(name)}.tool.py"
 
+    # Emit started event -------------------------------------------------
+    _emit_event(
+        "cli.tool_new.started",
+        CLICommandEvent(
+            command="tool_new",
+            status="started",
+            params={"name": name, "directory": str(directory), "force": force},
+        ),
+    )
+
     if target_path.exists() and not force:
         rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
         raise typer.Exit(code=1)
@@ -181,7 +259,12 @@ def tool_new(
     try:
         target_path.write_text(_create_tool_template(name))
         rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
+        _emit_event("cli.tool_new.completed", CLICommandEvent(command="tool_new", status="completed"))
     except Exception as exc:
+        _emit_event(
+            "cli.tool_new.failed",
+            CLICommandEvent(command="tool_new", status="failed", params={"error": str(exc)}),
+        )
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
         raise typer.Exit(code=1)
 
@@ -454,6 +537,22 @@ def run_cmd(
         $ ice run examples/my_chain.py --watch
     """
 
+    # -------------------------------------------------------------------
+    # Emit *started* event ------------------------------------------------
+    # -------------------------------------------------------------------
+    _emit_event(
+        "cli.run.started",
+        CLICommandEvent(
+            command="run",
+            status="started",
+            params={
+                "path": str(path),
+                "watch": watch,
+                "graph": graph,
+            },
+        ),
+    )
+
     if graph and watch:
         rprint("[red]--graph and --watch cannot be combined.[/]")
         raise typer.Exit(1)
@@ -461,9 +560,33 @@ def run_cmd(
     if graph:
         # Directly print graph without watch functionality
         module = _load_module_from_path(path.resolve())
-        asyncio.run(_execute_chain(module, show_graph=True))
+        try:
+            asyncio.run(_execute_chain(module, show_graph=True))
+            _emit_event("cli.run.completed", CLICommandEvent(command="run", status="completed"))
+        except Exception as exc:
+            _emit_event(
+                "cli.run.failed",
+                CLICommandEvent(
+                    command="run",
+                    status="failed",
+                    params={"error": str(exc)},
+                ),
+            )
+            raise
     else:
-        asyncio.run(_cli_run(path.resolve(), watch))
+        try:
+            asyncio.run(_cli_run(path.resolve(), watch))
+            _emit_event("cli.run.completed", CLICommandEvent(command="run", status="completed"))
+        except Exception as exc:
+            _emit_event(
+                "cli.run.failed",
+                CLICommandEvent(
+                    command="run",
+                    status="failed",
+                    params={"error": str(exc)},
+                ),
+            )
+            raise
 
 
 # ---------------------------------------------------------------------------
@@ -901,6 +1024,18 @@ def init_cmd(
        tool is available and the flag not disabled.
     """
 
+    _emit_event(
+        "cli.init.started",
+        CLICommandEvent(
+            command="init",
+            status="started",
+            params={
+                "force": force,
+                "install_precommit": install_precommit,
+            },
+        ),
+    )
+
     import json
     import shutil
     import subprocess
@@ -953,4 +1088,42 @@ def init_cmd(
                 subprocess.run(["pre-commit", "install"], check=True, stdout=subprocess.PIPE)
                 rprint("[green]✔[/] pre-commit hooks installed.")
             except subprocess.CalledProcessError as exc:  # pragma: no cover
-                rprint(f"[red]✗ Failed to install pre-commit hooks:[/] {exc}") 
+                rprint(f"[red]✗ Failed to install pre-commit hooks:[/] {exc}")
+
+    # Completed ------------------------------------------------------------
+    _emit_event("cli.init.completed", CLICommandEvent(command="init", status="completed"))
+
+# ---------------------------------------------------------------------------
+# Third-party / shared libs ---------------------------------------------------
+# ---------------------------------------------------------------------------
+
+# Event system (non-blocking) -------------------------------------------------
+from ice_sdk.events.dispatcher import publish  # noqa: E402 – placed after stdlib imports
+from ice_sdk.events.models import CLICommandEvent  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Helper – safe event publication respecting --no-events flag --------------
+# ---------------------------------------------------------------------------
+from pydantic import BaseModel  # noqa: E402
+
+
+def _emit_event(name: str, payload: BaseModel) -> None:  # noqa: D401 – simple helper
+    """Publish *payload* under *name* unless the user disabled events."""
+
+    from ice_cli.context import get_ctx  # local import to avoid cycles
+
+    try:
+        if not get_ctx().emit_events:  # honour --no-events flag
+            return
+        asyncio.create_task(publish(name, payload))
+    except Exception:  # noqa: BLE001 – best-effort only
+        pass
+
+# Auto-load webhook subscribers (non-blocking) ------------------------------
+try:
+    from ice_cli.webhooks import initialise as _init_webhooks  # noqa: WPS433
+
+    _init_webhooks()
+except Exception:
+    # Never fail CLI if optional webhook config parsing blows up
+    pass 

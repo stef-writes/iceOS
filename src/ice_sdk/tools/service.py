@@ -149,10 +149,10 @@ class ToolService:  # noqa: D101 – simple façade
     # ------------------------------------------------------------------
     def _register_default_tools(self) -> None:
         """Register built-in tools shipped with *ice_sdk*."""
-        # Import *inside* the method to avoid potential circular imports if
-        # user code also imports from `ice_sdk` at module top-level.
+        # Local imports kept inside the method to prevent circular deps -----------
         from .builtins import HttpRequestTool, SleepTool, SumTool  # noqa: WPS433
         from .hosted import ComputerTool, FileSearchTool, WebSearchTool  # noqa: WPS433
+        from .webhook import WebhookEmitterTool  # noqa: WPS433 – new tool
 
         for tool_cls in (
             WebSearchTool,
@@ -161,6 +161,7 @@ class ToolService:  # noqa: D101 – simple façade
             SleepTool,
             HttpRequestTool,
             SumTool,
+            WebhookEmitterTool,
         ):
             try:
                 self.register(tool_cls)
