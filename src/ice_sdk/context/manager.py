@@ -21,6 +21,7 @@ class GraphContext(BaseModel):
     """Context for graph execution."""
 
     session_id: str
+    tenant: Optional[str] = None
     metadata: Dict[str, Any] = {}
     execution_id: Optional[str] = None
     start_time: datetime = Field(default_factory=datetime.utcnow)

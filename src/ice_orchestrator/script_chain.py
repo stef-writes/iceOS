@@ -19,7 +19,6 @@ from pydantic import BaseModel, Field
 
 import ice_sdk.executors  # noqa: F401 – side-effect import registers built-in executors
 import structlog
-from ice_orchestrator.base_script_chain import BaseScriptChain, FailurePolicy
 from ice_orchestrator.chain_errors import ChainError
 from ice_orchestrator.node_dependency_graph import DependencyGraph
 from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
@@ -35,8 +34,10 @@ from ice_sdk.models.node_models import (
     NodeMetadata,
 )
 from ice_sdk.node_registry import get_executor
+from ice_sdk.orchestrator.base_script_chain import BaseScriptChain, FailurePolicy
 from ice_sdk.tools.base import BaseTool
 from ice_sdk.utils.perf import WeightedSemaphore, estimate_complexity
+from ice_sdk.utils.validation import validate_nested_output  # type: ignore
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
@@ -165,6 +166,9 @@ class ScriptChain(BaseScriptChain):
         self._agent_cache: Dict[str, AgentNode] = {}
         # Track decisions made by *condition* nodes -----------------------
         self._branch_decisions: Dict[str, bool] = {}
+        # Cache for branch-gating propagation results ---------------------
+        # Initialising here avoids repeated hasattr checks at runtime.
+        self._active_cache: Dict[str, bool] = {}
         # Retain reference to chain-level tools ---------------------------
         self._chain_tools: List[BaseTool] = tools or []
 
@@ -727,7 +731,7 @@ class ScriptChain(BaseScriptChain):
         return agent
 
     @staticmethod
-    def _is_output_valid(node: NodeConfig, output: Any) -> bool:  # noqa: D401
+    def _is_output_valid(node: NodeConfig, output: Any) -> bool:
         """Validate *output* against ``node.output_schema``.  Returns *True* when
         validation succeeds or no schema declared.
 
@@ -755,20 +759,25 @@ class ScriptChain(BaseScriptChain):
             pass
 
         # ------------------------------------------------------------------
-        # 2. dict schema {key: type_str} ------------------------------------
+        # 2. dict schema – leverage nested validation helper -----------------
         # ------------------------------------------------------------------
         if isinstance(schema, dict):
-            for key, type_str in schema.items():
-                if key not in output:
-                    return False
-                try:
-                    expected_type = eval(type_str)
-                except Exception:  # noqa: S110
-                    # Unsafe eval on trusted config; if fails assume pass-through.
-                    continue
-                if not isinstance(output[key], expected_type):
-                    return False
-            return True
+            # Accept both {key: "type"} and {key: <type>} formats ------------
+            normalized_schema: dict[str, type] = {}
+            for key, expected in schema.items():
+                if isinstance(expected, str):
+                    try:
+                        normalized_schema[key] = eval(expected)
+                    except Exception:  # noqa: S110
+                        # Fallback to 'Any' when type string cannot be resolved
+                        from typing import Any  # local import to avoid top-level
+
+                        normalized_schema[key] = Any  # type: ignore[assignment]
+                else:
+                    normalized_schema[key] = expected  # type: ignore[assignment]
+
+            errors = validate_nested_output(output, normalized_schema)
+            return len(errors) == 0
 
         # Unknown schema format – consider valid to avoid false negatives
         return True
@@ -777,7 +786,7 @@ class ScriptChain(BaseScriptChain):
     # Branch gating helpers -------------------------------------------------
     # ---------------------------------------------------------------------
 
-    def _is_node_active(self, node_id: str) -> bool:  # noqa: D401
+    def _is_node_active(self, node_id: str) -> bool:
         """Determine whether *node_id* should run in the current execution.
 
         The logic combines two independent gating mechanisms:
@@ -819,9 +828,6 @@ class ScriptChain(BaseScriptChain):
         # 2. Implicit propagation through dependencies ---------------------
         # ------------------------------------------------------------------
         # Cache already-computed decisions to avoid exponential recursion
-        if not hasattr(self, "_active_cache"):
-            self._active_cache: Dict[str, bool] = {}
-
         if node_id in self._active_cache:
             return self._active_cache[node_id]
 

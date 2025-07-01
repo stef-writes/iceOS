@@ -98,6 +98,9 @@ jinja2 = "^3.1.3"
 # Ensure pip patched
 pip = ">=23.3"
 
+# Nested dict traversal for validation helpers -----------------------------
+dpath = "^2.1.0"
+
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.2.0"
 pytest = "^7.0.0"

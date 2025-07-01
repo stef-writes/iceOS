@@ -117,3 +117,14 @@ class DependencyGraph:
                         f"of node '{dep_id}', but '{top_level_key}' is not in its output schema. "
                         f"Available keys: {list(output_keys)}"
                     )
+
+    # ---------------------------------------------------------------------
+    # Developer ergonomics -------------------------------------------------
+    # ---------------------------------------------------------------------
+
+    def __repr__(self) -> str:  # noqa: D401
+        return (
+            f"<DependencyGraph nodes={self.graph.number_of_nodes()} "
+            f"edges={self.graph.number_of_edges()} "
+            f"levels={len(self.node_levels)}>"
+        )

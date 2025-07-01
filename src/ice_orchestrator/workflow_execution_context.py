@@ -1,42 +1,19 @@
-from typing import Any, Dict, Optional
+"""DEPRECATED shim – re-export from ``ice_sdk.orchestrator.workflow_execution_context``.
+# ruff: noqa
+"""
 
+from warnings import warn
 
-class WorkflowExecutionContext:
-    """
-    Holds workflow-wide execution settings, output format requirements, and preferences for ScriptChain orchestration.
-    """
+# Import canonical symbols before issuing warning to satisfy import-order rules.
+from ice_sdk.orchestrator.workflow_execution_context import (  # noqa: E402
+    WorkflowExecutionContext,
+)
 
-    def __init__(
-        self,
-        mode: str = "auto",
-        require_json_output: bool = False,
-        strict_validation: bool = False,
-        user_preferences: Optional[Dict[str, Any]] = None,
-        **kwargs,
-    ):
-        self.mode = mode  # e.g., 'tool-calling', 'chat', 'summarization', etc.
-        self.require_json_output = require_json_output
-        self.strict_validation = strict_validation
-        self.user_preferences = user_preferences or {}
-        # Store any additional context fields
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+warn(
+    "Importing from 'ice_orchestrator.workflow_execution_context' is deprecated; "
+    "use 'ice_sdk.orchestrator.workflow_execution_context' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "mode": self.mode,
-            "require_json_output": self.require_json_output,
-            "strict_validation": self.strict_validation,
-            "user_preferences": self.user_preferences,
-            **{
-                k: v
-                for k, v in self.__dict__.items()
-                if k
-                not in {
-                    "mode",
-                    "require_json_output",
-                    "strict_validation",
-                    "user_preferences",
-                }
-            },
-        }
+__all__ = ["WorkflowExecutionContext"]
