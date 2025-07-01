@@ -38,6 +38,9 @@ from types import ModuleType
 from typing import Any, Callable
 
 import click  # 3rd-party
+import click.formatting as _cf  # noqa: WPS433 – ensure available after click import
+# Force reasonable width for all Click formatting early.
+_cf.FORCED_WIDTH = 80
 import typer
 from rich import print as rprint
 
@@ -111,6 +114,7 @@ app = typer.Typer(
         "iceOS developer CLI\n\n"
         "Global flags: --json, --dry-run, --yes, --verbose (use --help for full details)"
     ),
+    context_settings={"max_content_width": 80},
 )
 logger = setup_logger()
 
