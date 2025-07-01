@@ -42,7 +42,8 @@ def get_ctx(typer_ctx: Any | None = None) -> CLIContext:  # noqa: D401 – helpe
     import typer
 
     if typer_ctx is None:
-        typer_ctx = typer.get_current_context()  # type: ignore[assignment,call-arg]
+        # mypy's Typer stubs lack *get_current_context* – silence the false positive.
+        typer_ctx = typer.get_current_context()  # type: ignore[assignment,call-arg,attr-defined]
 
     if getattr(typer_ctx, "obj", None) is None:
         # When a sub-command is invoked directly (e.g. tests) the callback may
