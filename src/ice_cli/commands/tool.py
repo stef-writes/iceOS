@@ -113,15 +113,15 @@ def tool_new(
         ),
     )
 
+    def _pretty_path(p: Path) -> str:
+        try:
+            return str(p.relative_to(Path.cwd()))
+        except ValueError:
+            return str(p)
+
     # Honour --dry-run flag ---------------------------------------------------
     ctx = get_ctx()
     if getattr(ctx, "dry_run", False):
-        def _pretty_path(p: Path) -> str:
-            try:
-                return str(p.relative_to(Path.cwd()))
-            except ValueError:
-                return str(p)
-
         rprint(f"[yellow]Dry-run:[/] Would create {_pretty_path(target_path)}")
         _emit_event(
             "cli.tool_new.completed",
@@ -132,12 +132,6 @@ def tool_new(
     if target_path.exists() and not force:
         rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
         raise typer.Exit(code=1)
-
-    def _pretty_path(p: Path) -> str:
-        try:
-            return str(p.relative_to(Path.cwd()))
-        except ValueError:
-            return str(p)
 
     try:
         target_path.write_text(_create_tool_template(name))
