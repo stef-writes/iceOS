@@ -117,8 +117,16 @@ except (ModuleNotFoundError, ImportError):  # pragma: no cover
 app = typer.Typer(
     add_completion=False,
     help=(
-        "iceOS developer CLI\n\n"
-        "Global flags: --json, --dry-run, --yes, --verbose (use --help for full details)"
+        "iceOS developer CLI – build, test and run everything iceOS.\n\n"
+        "Common global flags:\n"
+        "  --json       Emit machine-readable JSON where supported.\n"
+        "  --dry-run    Log intended mutations without changing files.\n"
+        "  --yes        Assume affirmative answers for all prompts.\n"
+        "  --verbose    Enable verbose logging.\n\n"
+        "Quick examples:\n"
+        "  ice tool create Echo --dir src/user_tools\n"
+        "  ice run demo_chain.chain.py --watch\n"
+        "  ice ls --json\n"
     ),
     context_settings={"max_content_width": 80},
 )
@@ -206,6 +214,9 @@ def _global_options(
 
     if verbose:
         logger.setLevel("DEBUG")
+        import rich.traceback
+
+        rich.traceback.install(show_locals=False)
 
     # If the user did not provide a sub-command, show the main --help and exit.
     if ctx.invoked_subcommand is None:
@@ -489,7 +500,11 @@ def run_cmd(
 # ---------------------------------------------------------------------------
 
 
-@app.command("ls", help="List tools (shortcut for 'tool ls')")
+@app.command(
+    "ls",
+    help="[DEPRECATED] Use 'ice tool ls' instead.",
+    hidden=True,
+)
 def root_ls(
     json_format: bool = typer.Option(
         False, "--json", "-j", help="Return JSON instead of rich table"
@@ -503,6 +518,14 @@ def root_ls(
     Example::
         $ ice ls --json
     """
+    import click as _click  # local import to avoid top-level requirement
+
+    _click.echo(
+        "[DEPRECATED] 'ice ls' will be removed in a future release. "
+        "Use 'ice tool ls' instead.",
+        err=True,
+    )
+
     svc = _get_tool_service(refresh)
     if json_format:
         import json as _json
@@ -542,11 +565,22 @@ if not getattr(click.Parameter.make_metavar, "_icepatched", False):  # type: ign
 
 
 # ---------------------------------------------------------------------------
-# "sdk" top-level group – opinionated scaffolds -----------------------------
-# ---------------------------------------------------------------------------
+# SDK command group is now housed in *ice_cli.commands.sdk* to keep the
+# root CLI lightweight.  We import and re-export it here for backwards
+# compatibility with code/tests that might reference `ice_cli.cli.sdk_app`.
+# ------------------------------------------------------------------
 
-sdk_app = typer.Typer(help="Opinionated scaffolds for tools, nodes and chains")
+from ice_cli.commands.sdk import sdk_app as sdk_app  # noqa: E402,F401  re-export
+
 app.add_typer(sdk_app, name="sdk")
+
+# NOTE: The original inline implementation has been extracted; any residual
+# helper functions below are retained only for historical reference and are
+# wrapped in an `if False:` guard so they do not register duplicate commands.
+
+# Dummy block to satisfy indentation for legacy guard
+if False:  # pragma: no cover – legacy code path
+    pass
 
 # ---------------------------------------------------------------------------
 # Helper – Node templates ----------------------------------------------------

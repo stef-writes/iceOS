@@ -64,7 +64,17 @@ class {class_name}(BaseTool):
 # Typer app -----------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-tool_app = typer.Typer(help="Commands related to tool development")
+# Expand help text with practical examples to improve discoverability.
+
+tool_app = typer.Typer(
+    help=(
+        "Commands related to tool development.\n\n"
+        "Examples:\n"
+        "  ice tool create Echo --dir src/user_tools\n"
+        "  ice tool ls\n"
+        "  ice tool info echo\n"
+    )
+)
 
 __all__ = ["tool_app", "get_tool_service"]
 
@@ -93,32 +103,16 @@ def get_tool_service(refresh: bool = False) -> ToolService:
 # ---------------------------------------------------------------------------
 
 
-@tool_app.command("new", help="Scaffold a new tool module from a template")
-def tool_new(
-    name: str = typer.Argument(..., help="Class name for the tool (e.g. MyCool)"),
-    directory: Path = typer.Option(
-        Path.cwd(),
-        "--dir",
-        "-d",
-        exists=True,
-        file_okay=False,
-        dir_okay=True,
-        writable=True,
-        help="Destination directory",
-    ),
-    force: bool = typer.Option(
-        False, "--force", "-f", help="Overwrite if file already exists"
-    ),
-):
-    """Generate ``<snake_case>.tool.py`` with boilerplate code."""
+def _write_tool_file(*, name: str, directory: Path, force: bool) -> None:  # type: ignore[override]
+    """Internal helper shared by *tool_new* and *tool_create*."""
 
     target_path = directory / f"{_snake_case(name)}.tool.py"
 
     # Emit started event -------------------------------------------------
     _emit_event(
-        "cli.tool_new.started",
+        "cli.tool_create.started",
         CLICommandEvent(
-            command="tool_new",
+            command="tool_create",
             status="started",
             params={"name": name, "directory": str(directory), "force": force},
         ),
@@ -135,9 +129,9 @@ def tool_new(
     if getattr(ctx, "dry_run", False):
         rprint(f"[yellow]Dry-run:[/] Would create {_pretty_path(target_path)}")
         _emit_event(
-            "cli.tool_new.completed",
+            "cli.tool_create.completed",
             CLICommandEvent(
-                command="tool_new", status="completed", params={"dry_run": True}
+                command="tool_create", status="completed", params={"dry_run": True}
             ),
         )
         raise typer.Exit()
@@ -152,18 +146,49 @@ def tool_new(
         target_path.write_text(_create_tool_template(name))
         rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
         _emit_event(
-            "cli.tool_new.completed",
-            CLICommandEvent(command="tool_new", status="completed"),
+            "cli.tool_create.completed",
+            CLICommandEvent(command="tool_create", status="completed"),
         )
     except Exception as exc:  # noqa: BLE001
         _emit_event(
-            "cli.tool_new.failed",
+            "cli.tool_create.failed",
             CLICommandEvent(
-                command="tool_new", status="failed", params={"error": str(exc)}
+                command="tool_create", status="failed", params={"error": str(exc)}
             ),
         )
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
         raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# `tool create` – preferred alias for legacy `tool new` ----------------------
+# ---------------------------------------------------------------------------
+
+
+@tool_app.command(
+    "create",
+    help="Scaffold a new tool module from a template (preferred).",
+    rich_help_panel="Scaffolding",
+)
+def tool_create(
+    name: str = typer.Argument(..., help="Class name for the tool (e.g. MyCool)"),
+    directory: Path = typer.Option(
+        Path.cwd(),
+        "--dir",
+        "-d",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        help="Destination directory",
+    ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite if file already exists"
+    ),
+) -> None:
+    """Preferred entry-point for scaffolding tools."""
+
+    _write_tool_file(name=name, directory=directory, force=force)
 
 
 # ---------------------------------------------------------------------------
@@ -263,3 +288,39 @@ def tool_test(
     from rich.json import JSON
 
     rprint(JSON.from_data(result))
+
+
+# -------------------------------------------------------------------
+# Deprecated command – `tool new` -----------------------------------
+# -------------------------------------------------------------------
+
+
+@tool_app.command(
+    "new",
+    help="[DEPRECATED] Use 'ice tool create' instead.",
+    hidden=True,
+)
+def tool_new(
+    name: str = typer.Argument(..., help="Class name for the tool (e.g. MyCool)"),
+    directory: Path = typer.Option(
+        Path.cwd(),
+        "--dir",
+        "-d",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        help="Destination directory",
+    ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite if file already exists"
+    ),
+) -> None:
+    """Legacy alias that delegates to :func:`_write_tool_file`."""
+
+    rprint(
+        "[yellow]Deprecated:[/] 'ice tool new' is deprecated. "
+        "Please use 'ice tool create' instead.\n"
+    )
+
+    _write_tool_file(name=name, directory=directory, force=force)

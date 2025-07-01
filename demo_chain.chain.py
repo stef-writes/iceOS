@@ -43,6 +43,7 @@ if __name__ == "__main__":
         persist_intermediate_outputs=True,
     )
     import asyncio
+
     import rich
 
     rich.print(asyncio.run(chain.execute()).model_dump())
