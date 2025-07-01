@@ -191,9 +191,7 @@ def _global_options(
             # Click caches terminal width at first access via *FORCED_WIDTH*.
             # Overwrite it so help text generated *after* we patch COLUMNS
             # still uses a sane width.
-            import click.formatting as _cf  # noqa: WPS433 – runtime patch OK
-
-            _cf.FORCED_WIDTH = 80
+            # (removed local re-import of _cf)
             try:
                 import rich  # noqa: WPS433 – local import to avoid hard dep outside CLI
 
@@ -202,7 +200,7 @@ def _global_options(
                 pass
     except ValueError:
         os.environ["COLUMNS"] = "80"
-        import click.formatting as _cf  # noqa: WPS433
+        # (removed local re-import of _cf)
         _cf.FORCED_WIDTH = 80
 
     if verbose:
