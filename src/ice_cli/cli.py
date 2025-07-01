@@ -16,6 +16,20 @@ watchers that may need to reload commands many times per second.
 from __future__ import annotations
 
 import os
+import re
+import importlib as _importlib
+import importlib.util as _util
+import json
+import shutil
+import subprocess
+import textwrap
+from dataclasses import asdict
+from rich.table import Table
+from ice_cli.context import CLIContext
+from ice_sdk.tools.service import (
+    ToolService,
+)  # noqa: F401 – side-effect import makes built-ins discoverable
+from ice_sdk.utils.logging import setup_logger
 
 # Ensure realistic terminal width *before* importing Rich/Click/Typer so any
 # Consoles instantiated during import use a sane fallback (GitHub Actions
@@ -38,15 +52,13 @@ from types import ModuleType
 from typing import Any, Callable
 
 import click  # 3rd-party
-import click.formatting as _cf  # noqa: WPS433 – ensure available after click import
-# Force reasonable width for all Click formatting early.
-_cf.FORCED_WIDTH = 80
+import click.formatting as _cf  # noqa: WPS433,F401 – ensure available after click import
 import typer
 from rich import print as rprint
 
 # NEW: Load environment variables early so CLI commands inherit API keys ----
 try:
-    from dotenv import load_dotenv  # type: ignore
+    from dotenv import load_dotenv  # type: ignore  # noqa: E402
 
     def _load_dotenv() -> None:  # noqa: D401 – helper
         """Mimic the FastAPI lifespan logic: search CWD for a .env file."""
@@ -65,8 +77,8 @@ except ModuleNotFoundError:  # pragma: no cover – optional dependency
 
 # Watchdog is optional: CLI still works sans --watch ----------------------
 try:
-    from watchdog.events import FileSystemEventHandler  # type: ignore
-    from watchdog.observers import Observer  # type: ignore
+    from watchdog.events import FileSystemEventHandler  # type: ignore  # noqa: E402
+    from watchdog.observers import Observer  # type: ignore  # noqa: E402
 
     _WATCHDOG_AVAILABLE = True
 except (ModuleNotFoundError, ImportError):  # pragma: no cover
@@ -93,12 +105,6 @@ except (ModuleNotFoundError, ImportError):  # pragma: no cover
         def join(self):
             pass
 
-from ice_cli.context import CLIContext
-from ice_sdk.tools.service import (  # noqa: F401 – side-effect import makes built-ins discoverable
-    ToolService,
-)
-from ice_sdk.utils.logging import setup_logger
-
 # ---------------------------------------------------------------------------
 # Global context ------------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -116,8 +122,8 @@ app = typer.Typer(
     ),
     context_settings={"max_content_width": 80},
 )
-logger = setup_logger()
 
+logger = setup_logger()
 
 # ---------------------------------------------------------------------------
 # Global flags callback ------------------------------------------------------
@@ -211,8 +217,6 @@ def _global_options(
         # echo is not subject to Rich's table wrapping, so the substring is
         # always contiguous.
         # ------------------------------------------------------------------
-        import sys  # noqa: WPS433 – local import to avoid at top of file
-
         # Bypass Click/Rich entirely so the line is emitted verbatim and never
         # wrapped, guaranteeing the substring "--json" stays contiguous even
         # at extreme terminal widths (e.g. COLUMNS=5).
@@ -220,8 +224,6 @@ def _global_options(
 
         # Force Click's internal width override so Rich tables never render
         # with <20 columns even if some wrapper re-sets COLUMNS moments ago.
-        import click.formatting as _cf  # noqa: WPS433 – local import
-
         _cf.FORCED_WIDTH = 80
 
         # Typer's rich help prints automatically when we call get_help().
@@ -235,8 +237,6 @@ def _global_options(
 
 def _snake_case(name: str) -> str:
     """Convert *PascalCase* or *camelCase* to ``snake_case``."""
-
-    import re
 
     name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
     name = re.sub(r"([a-z\d])([A-Z])", r"\1_\2", name)
@@ -353,7 +353,6 @@ def tool_ls(refresh: bool = typer.Option(False, "--refresh", "-r", help="Re-scan
     """Print a table of registered tool names and their descriptions."""
 
     svc = _get_tool_service(refresh)
-    from rich.table import Table
 
     table = Table(title="Registered Tools")
     table.add_column("Name", style="cyan", no_wrap=True)
@@ -464,13 +463,9 @@ def _load_module_from_path(path: Path) -> ModuleType:
     if str(path.parent) not in sys.path:
         sys.path.insert(0, str(path.parent))
 
-    import importlib as _importlib
-
     try:
         return _importlib.import_module(safe_module_name)
     except ModuleNotFoundError:
-        import importlib.util as _util
-
         spec = _util.spec_from_file_location(safe_module_name, path)
         if spec and spec.loader:
             module = _util.module_from_spec(spec)
@@ -1110,12 +1105,6 @@ def init_cmd(
             },
         ),
     )
-
-    import json
-    import shutil
-    import subprocess
-    import textwrap
-    from dataclasses import asdict
 
     cwd = Path.cwd()
     ice_dir = cwd / ".ice"
