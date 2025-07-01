@@ -7,6 +7,7 @@ from ice_sdk.tools.base import BaseTool
 
 __all__ = ["KBSearchTool"]
 
+
 class KBSearchTool(BaseTool):
     """Search the mock knowledge base for lines containing the *query* string.
 
@@ -52,4 +53,4 @@ class KBSearchTool(BaseTool):
                     if len(results) >= limit:
                         break
 
-        return {"results": results} 
+        return {"results": results}

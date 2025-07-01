@@ -8,6 +8,7 @@ that integrates with the new agent system while preserving all key functionality
 - Performance features
 - Observability
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -48,6 +49,7 @@ logger = structlog.get_logger(__name__)
 
 class ChainMetrics(BaseModel):
     """Metrics for chain execution."""
+
     total_tokens: int = 0
     total_cost: float = 0.0
     node_metrics: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
@@ -57,7 +59,9 @@ class ChainMetrics(BaseModel):
         if result.usage:
             self.total_tokens += getattr(result.usage, "total_tokens", 0)
             # Support both *cost* and *total_cost* naming variants --------
-            self.total_cost += getattr(result.usage, "total_cost", getattr(result.usage, "cost", 0.0))
+            self.total_cost += getattr(
+                result.usage, "total_cost", getattr(result.usage, "cost", 0.0)
+            )
             self.node_metrics[node_id] = result.usage.model_dump()
 
     def as_dict(self) -> Dict[str, Any]:
@@ -106,7 +110,7 @@ class ScriptChain(BaseScriptChain):
         use_cache: bool = True,
     ) -> None:
         """Initialize script chain.
-        
+
         Args:
             nodes: List of node configurations
             name: Chain name
@@ -165,6 +169,7 @@ class ScriptChain(BaseScriptChain):
         self._chain_tools: List[BaseTool] = tools or []
 
         from ice_sdk.cache import global_cache  # local import to avoid cycles
+
         self._cache = global_cache()
 
         logger.info(
@@ -179,7 +184,9 @@ class ScriptChain(BaseScriptChain):
         results: Dict[str, NodeExecutionResult] = {}
         errors: List[str] = []
 
-        logger.info("Starting execution of chain '%s' (ID: %s)", self.name, self.chain_id)
+        logger.info(
+            "Starting execution of chain '%s' (ID: %s)", self.name, self.chain_id
+        )
 
         with tracer.start_as_current_span(
             "chain.execute",
@@ -192,18 +199,25 @@ class ScriptChain(BaseScriptChain):
             for level_idx, level_num in enumerate(sorted(self.levels.keys()), start=1):
 
                 # External depth guard takes priority --------------------
-                if self._depth_guard and not self._depth_guard(level_idx, self.depth_ceiling):
+                if self._depth_guard and not self._depth_guard(
+                    level_idx, self.depth_ceiling
+                ):
                     errors.append("Depth guard aborted execution")
                     break
 
                 if self.depth_ceiling is not None and level_idx > self.depth_ceiling:
-                    logger.warning("Depth ceiling reached (%s); aborting further levels.", self.depth_ceiling)
+                    logger.warning(
+                        "Depth ceiling reached (%s); aborting further levels.",
+                        self.depth_ceiling,
+                    )
                     errors.append("Depth ceiling reached")
                     break
 
                 level_node_ids = self.levels[level_num]
                 # Filter nodes by branch decisions (condition gating) -----
-                active_node_ids = [nid for nid in level_node_ids if self._is_node_active(nid)]
+                active_node_ids = [
+                    nid for nid in level_node_ids if self._is_node_active(nid)
+                ]
                 level_nodes = [self.nodes[node_id] for node_id in active_node_ids]
 
                 level_results = await self._execute_level(level_nodes, results)
@@ -244,7 +258,9 @@ class ScriptChain(BaseScriptChain):
                         and "result" in result.output
                     ):
                         try:
-                            self._branch_decisions[node_id] = bool(result.output["result"])
+                            self._branch_decisions[node_id] = bool(
+                                result.output["result"]
+                            )
                         except Exception:
                             # Defensive fallback – ignore unexpected conversion issues
                             pass
@@ -259,7 +275,10 @@ class ScriptChain(BaseScriptChain):
             end_time = datetime.utcnow()
             duration = (end_time - start_time).total_seconds()
             logger.info(
-                "Completed chain execution", chain=self.name, chain_id=self.chain_id, duration=duration
+                "Completed chain execution",
+                chain=self.name,
+                chain_id=self.chain_id,
+                duration=duration,
             )
 
             chain_span.set_attribute("success", len(errors) == 0)
@@ -378,15 +397,16 @@ class ScriptChain(BaseScriptChain):
             for placeholder, mapping in node.input_mappings.items():
                 # Support either raw dicts *or* InputMapping instances ----------------
                 if (
-                    (isinstance(mapping, dict) and "source_node_id" in mapping)
-                    or hasattr(mapping, "source_node_id")
-                ):
+                    isinstance(mapping, dict) and "source_node_id" in mapping
+                ) or hasattr(mapping, "source_node_id"):
                     dep_id = mapping["source_node_id"] if isinstance(mapping, dict) else mapping.source_node_id  # type: ignore[index]
                     output_key = mapping["source_output_key"] if isinstance(mapping, dict) else mapping.source_output_key  # type: ignore[index]
                     dep_result = accumulated_results.get(dep_id)
 
                     if not dep_result or not dep_result.success:
-                        validation_errors.append(f"Dependency '{dep_id}' failed or did not run.")
+                        validation_errors.append(
+                            f"Dependency '{dep_id}' failed or did not run."
+                        )
                         continue
 
                     try:
@@ -401,7 +421,8 @@ class ScriptChain(BaseScriptChain):
 
         if validation_errors:
             raise ChainError(
-                f"Node '{node.id}' context validation failed:\n" + "\n".join(validation_errors)
+                f"Node '{node.id}' context validation failed:\n"
+                + "\n".join(validation_errors)
             )
 
         return context
@@ -431,7 +452,9 @@ class ScriptChain(BaseScriptChain):
                 node = self.nodes[node_id]
                 if node_id in failed_nodes:
                     continue
-                depends_on_failed_node = any(dep in failed_nodes for dep in getattr(node, "dependencies", []))
+                depends_on_failed_node = any(
+                    dep in failed_nodes for dep in getattr(node, "dependencies", [])
+                )
                 if not depends_on_failed_node:
                     logger.info(
                         "Chain execution continuing: Node '%s' can still execute independently",
@@ -488,7 +511,9 @@ class ScriptChain(BaseScriptChain):
         """Get execution metrics."""
         return self.metrics.as_dict()
 
-    async def execute_node(self, node_id: str, input_data: Dict[str, Any]) -> NodeExecutionResult:
+    async def execute_node(
+        self, node_id: str, input_data: Dict[str, Any]
+    ) -> NodeExecutionResult:
         """Execute a single node using agent/tool wrappers (overrides BaseScriptChain)."""
         node = self.nodes.get(node_id)
         if node is None:
@@ -500,7 +525,7 @@ class ScriptChain(BaseScriptChain):
         self.context_manager.update_node_context(
             node_id=node_id,
             content=input_data,
-            execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
+            execution_id=self.context_manager.get_context().execution_id,  # type: ignore[attr-defined]
         )
 
         max_retries: int = int(getattr(node, "retries", 0))
@@ -525,7 +550,9 @@ class ScriptChain(BaseScriptChain):
                         from pydantic import BaseModel
 
                         cfg_payload = (
-                            node.model_dump() if isinstance(node, BaseModel) else str(node)
+                            node.model_dump()
+                            if isinstance(node, BaseModel)
+                            else str(node)
                         )
 
                         payload = {
@@ -561,7 +588,9 @@ class ScriptChain(BaseScriptChain):
                     node_span.set_attribute("success", result.success)
                     node_span.set_attribute("retry_count", attempt)
                     if not result.success:
-                        node_span.set_status(Status(StatusCode.ERROR, result.error or ""))
+                        node_span.set_status(
+                            Status(StatusCode.ERROR, result.error or "")
+                        )
 
                 # Store in cache if enabled & succeeded ------------------
                 if cache_key and result.success:
@@ -576,7 +605,7 @@ class ScriptChain(BaseScriptChain):
                     self.context_manager.update_node_context(
                         node_id=node_id,
                         content=result.output,
-                        execution_id=self.context_manager.get_context().execution_id  # type: ignore[attr-defined]
+                        execution_id=self.context_manager.get_context().execution_id,  # type: ignore[attr-defined]
                     )
 
                 # ----------------------------------------------------------
@@ -585,11 +614,11 @@ class ScriptChain(BaseScriptChain):
                 if self.validate_outputs and getattr(node, "output_schema", None):
                     if not self._is_output_valid(node, result.output):
                         result.success = False
-                        err_msg = (
-                            f"Output validation failed for node '{node_id}' against declared schema"
-                        )
+                        err_msg = f"Output validation failed for node '{node_id}' against declared schema"
                         result.error = (
-                            err_msg if result.error is None else result.error + "; " + err_msg
+                            err_msg
+                            if result.error is None
+                            else result.error + "; " + err_msg
                         )
 
                 return result
@@ -602,7 +631,7 @@ class ScriptChain(BaseScriptChain):
                 # ------------------------------------------------------
                 # Exponential backoff before next retry ---------------
                 # ------------------------------------------------------
-                wait_seconds = base_backoff * (2 ** attempt) if base_backoff > 0 else 0
+                wait_seconds = base_backoff * (2**attempt) if base_backoff > 0 else 0
                 if wait_seconds > 0:
                     await asyncio.sleep(wait_seconds)
 
@@ -779,7 +808,11 @@ class ScriptChain(BaseScriptChain):
                 return False
 
             # Outcome FALSE → *true_branch* nodes are disabled -------------
-            if not decision and cond_cfg.true_branch and node_id in cond_cfg.true_branch:
+            if (
+                not decision
+                and cond_cfg.true_branch
+                and node_id in cond_cfg.true_branch
+            ):
                 return False
 
         # ------------------------------------------------------------------
@@ -801,8 +834,9 @@ class ScriptChain(BaseScriptChain):
         self._active_cache[node_id] = True
         return True
 
+
 if TYPE_CHECKING:  # pragma: no cover
     from ice_sdk.interfaces.guardrails import DepthGuard, TokenGuard
 else:  # Runtime no-op fallbacks
     from typing import Any as DepthGuard  # type: ignore
-    from typing import Any as TokenGuard 
+    from typing import Any as TokenGuard

@@ -59,12 +59,14 @@ class BaseLLMHandler(ABC):
             # Bubble up – caller will treat as error path.
             raise
 
-        return json.dumps({
-            "function_call": {
-                "name": name,
-                "arguments": arguments,
+        return json.dumps(
+            {
+                "function_call": {
+                    "name": name,
+                    "arguments": arguments,
+                }
             }
-        })
+        )
 
     @abstractmethod
     async def generate_text(
@@ -81,4 +83,4 @@ class BaseLLMHandler(ABC):
         • usage – dict with prompt/completion/total tokens or None
         • error – error string or None on success
         """
-        raise NotImplementedError 
+        raise NotImplementedError

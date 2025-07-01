@@ -28,4 +28,4 @@ class DepthGuard(Protocol):
     """Decide whether execution can continue at a given depth level."""
 
     def __call__(self, depth: int, ceiling: int | None) -> bool:  # noqa: D401
-        ...  # pragma: no cover 
+        ...  # pragma: no cover

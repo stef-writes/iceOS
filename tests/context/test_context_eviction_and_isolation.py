@@ -40,4 +40,4 @@ def test_lru_eviction_of_old_sessions():
 
     # Fetching s1 again yields a *new* context instance --------------------
     c1_new = mgr.get_context(session_id="s1")
-    assert c1_new is not c1 
+    assert c1_new is not c1

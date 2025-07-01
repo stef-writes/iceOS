@@ -8,6 +8,7 @@ $ python scripts/doctor.py --perf     # include performance smoke tests
 It mirrors the list in HEALTHCHECKS.md. Each check returning a non-zero exit
 status is considered *failure* and aborts the run (unless --keep-going is set).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -52,10 +53,11 @@ CHECKS: List[Check] = [
     Check("Linting (ruff)", "ruff src"),
     Check("Typing (pyright)", "pyright --project config"),
     Check("Unit & integration tests", "make test -j"),
-    Check("Coverage threshold", "pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q"),
-    *(
-        [Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []
+    Check(
+        "Coverage threshold",
+        "pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q",
     ),
+    *([Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []),
     Check("Import-linter rules", "lint-imports --config config/.importlinter"),
     Check("isort check", "isort --check-only src"),
     Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),

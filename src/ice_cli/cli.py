@@ -105,10 +105,10 @@ except (ModuleNotFoundError, ImportError):  # pragma: no cover
         def join(self):
             pass
 
+
 # ---------------------------------------------------------------------------
 # Global context ------------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +128,7 @@ logger = setup_logger()
 # ---------------------------------------------------------------------------
 # Global flags callback ------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 @app.callback(invoke_without_command=True)
 def _global_options(
@@ -232,6 +233,7 @@ def _global_options(
 # ---------------------------------------------------------------------------
 # Helper utilities ----------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 def _snake_case(name: str) -> str:
     """Convert *PascalCase* or *camelCase* to ``snake_case``."""
@@ -371,7 +373,9 @@ def _print_mermaid_graph(chain):  # noqa: D401 – helper
     # Attempt auto-preview via mermaid-cli ------------------------------
     mmdc_path = shutil.which("mmdc")  # NB: binary name of mermaid-cli
     if mmdc_path is None:
-        rprint("[yellow]ℹ Install 'mermaid-cli' (npm i -g @mermaid-js/mermaid-cli) for graph preview.[/]")
+        rprint(
+            "[yellow]ℹ Install 'mermaid-cli' (npm i -g @mermaid-js/mermaid-cli) for graph preview.[/]"
+        )
         return
 
     try:
@@ -379,7 +383,12 @@ def _print_mermaid_graph(chain):  # noqa: D401 – helper
             md_path = Path(tmp) / "graph.mmd"
             svg_path = Path(tmp) / "graph.svg"
             md_path.write_text(mermaid_code)
-            subprocess.run([mmdc_path, "-i", str(md_path), "-o", str(svg_path)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run(
+                [mmdc_path, "-i", str(md_path), "-o", str(svg_path)],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
             webbrowser.open(svg_path.as_uri())
             rprint("[green]✔[/] Opened graph preview in browser.")
     except Exception as exc:  # pragma: no cover – best-effort preview
@@ -419,9 +428,15 @@ async def _cli_run(entry: Path, watch: bool) -> None:
 
 @app.command("run", help="Execute a ScriptChain declared in a Python file")
 def run_cmd(
-    path: Path = typer.Argument(..., exists=True, file_okay=True, dir_okay=False, readable=True),
-    watch: bool = typer.Option(False, "--watch", "-w", help="Auto-reload when source files change"),
-    graph: bool = typer.Option(False, "--graph", "-g", help="Print Mermaid graph instead of executing"),
+    path: Path = typer.Argument(
+        ..., exists=True, file_okay=True, dir_okay=False, readable=True
+    ),
+    watch: bool = typer.Option(
+        False, "--watch", "-w", help="Auto-reload when source files change"
+    ),
+    graph: bool = typer.Option(
+        False, "--graph", "-g", help="Print Mermaid graph instead of executing"
+    ),
 ):
     """Run a ScriptChain defined in *path*.
 
@@ -455,7 +470,9 @@ def run_cmd(
         module = _load_module_from_path(path.resolve())
         try:
             asyncio.run(_execute_chain(module, show_graph=True))
-            _emit_event("cli.run.completed", CLICommandEvent(command="run", status="completed"))
+            _emit_event(
+                "cli.run.completed", CLICommandEvent(command="run", status="completed")
+            )
         except Exception as exc:
             _emit_event(
                 "cli.run.failed",
@@ -469,7 +486,9 @@ def run_cmd(
     else:
         try:
             asyncio.run(_cli_run(path.resolve(), watch))
-            _emit_event("cli.run.completed", CLICommandEvent(command="run", status="completed"))
+            _emit_event(
+                "cli.run.completed", CLICommandEvent(command="run", status="completed")
+            )
         except Exception as exc:
             _emit_event(
                 "cli.run.failed",
@@ -486,10 +505,15 @@ def run_cmd(
 # ``ls`` – top-level alias (shortcut) ---------------------------------------
 # ---------------------------------------------------------------------------
 
+
 @app.command("ls", help="List tools (shortcut for 'tool ls')")
 def root_ls(
-    json_format: bool = typer.Option(False, "--json", "-j", help="Return JSON instead of rich table"),
-    refresh: bool = typer.Option(False, "--refresh", "-r", help="Re-scan project directories"),
+    json_format: bool = typer.Option(
+        False, "--json", "-j", help="Return JSON instead of rich table"
+    ),
+    refresh: bool = typer.Option(
+        False, "--refresh", "-r", help="Re-scan project directories"
+    ),
 ):
     """Convenience wrapper around ``tool ls`` for quicker access.
 
@@ -544,6 +568,7 @@ app.add_typer(sdk_app, name="sdk")
 # ---------------------------------------------------------------------------
 # Helper – Node templates ----------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 def _create_ai_node_template(node_name: str) -> str:
     """Return YAML scaffold for an *AiNode* configuration."""
@@ -604,20 +629,32 @@ def _create_agent_config_template(agent_name: str) -> str:
 # ``create-tool`` (alias for existing `tool new`) ----------------------------
 # ---------------------------------------------------------------------------
 
+
 @sdk_app.command("create-tool", help="Scaffold a new Tool implementation module")
 def sdk_create_tool(
     name: str = typer.Argument(..., help="Class name for the tool (e.g. MyCool)"),
     directory: Path = typer.Option(
-        Path.cwd(), "--dir", "-d", exists=True, file_okay=False, dir_okay=True, writable=True, help="Destination directory"
+        Path.cwd(),
+        "--dir",
+        "-d",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        help="Destination directory",
     ),
-    force: bool = typer.Option(False, "--force", "-f", help="Overwrite if file already exists"),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite if file already exists"
+    ),
 ):
     """Generate a new ``*.tool.py`` module using the same template as `ice tool new`."""
 
     target_path = directory / f"{_snake_case(name)}.tool.py"
 
     if target_path.exists() and not force:
-        rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
+        rprint(
+            f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite."
+        )
         raise typer.Exit(code=1)
 
     # Import the canonical template generator from the *tool* command module
@@ -643,6 +680,7 @@ def sdk_create_tool(
 # ``create-node`` -----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 @sdk_app.command("create-node", help="Scaffold a new node configuration")
 def sdk_create_node(
     name: str = typer.Argument(..., help="Human-readable node name"),
@@ -650,9 +688,18 @@ def sdk_create_node(
         None, "--type", "-t", help="Node type: ai | tool | agent", case_sensitive=False
     ),
     directory: Path = typer.Option(
-        Path.cwd(), "--dir", "-d", exists=True, file_okay=False, dir_okay=True, writable=True, help="Destination directory"
+        Path.cwd(),
+        "--dir",
+        "-d",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        help="Destination directory",
     ),
-    force: bool = typer.Option(False, "--force", "-f", help="Overwrite if file already exists"),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite if file already exists"
+    ),
     interactive: bool = typer.Option(
         False, "--interactive", "-i", help="Prompt for missing parameters interactively"
     ),
@@ -673,7 +720,9 @@ def sdk_create_node(
     type_lower = type_.lower()
 
     if type_lower not in allowed:
-        rprint(f"[red]Error:[/] invalid --type '{type_}'. Must be one of: {', '.join(sorted(allowed))}.")
+        rprint(
+            f"[red]Error:[/] invalid --type '{type_}'. Must be one of: {', '.join(sorted(allowed))}."
+        )
         raise typer.Exit(1)
 
     file_suffix_map = {
@@ -686,7 +735,9 @@ def sdk_create_node(
     target_path = directory / filename
 
     if target_path.exists() and not force:
-        rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
+        rprint(
+            f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite."
+        )
         raise typer.Exit(code=1)
 
     # Build template -------------------------------------------------------
@@ -715,17 +766,31 @@ def sdk_create_node(
 # ``create-chain`` ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 @sdk_app.command("create-chain", help="Scaffold a new Python ScriptChain file")
 def sdk_create_chain(
     name: str = typer.Argument(
         "my_chain", help="Base filename (without .py) for the new chain"
     ),
     directory: Path = typer.Option(
-        Path.cwd(), "--dir", "-d", exists=True, file_okay=False, dir_okay=True, writable=True, help="Destination directory"
+        Path.cwd(),
+        "--dir",
+        "-d",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        help="Destination directory",
     ),
-    force: bool = typer.Option(False, "--force", "-f", help="Overwrite if file already exists"),
-    builder: bool = typer.Option(False, "--builder", "-b", help="Run interactive Chain Builder"),
-    nodes: int | None = typer.Option(None, "--nodes", "-n", min=1, help="Total nodes for the interactive builder"),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite if file already exists"
+    ),
+    builder: bool = typer.Option(
+        False, "--builder", "-b", help="Run interactive Chain Builder"
+    ),
+    nodes: int | None = typer.Option(
+        None, "--nodes", "-n", min=1, help="Total nodes for the interactive builder"
+    ),
 ):
     """Generate a minimal Python file that constructs & executes a ScriptChain."""
 
@@ -733,7 +798,9 @@ def sdk_create_chain(
     target_path = directory / f"{snake}.chain.py"
 
     if target_path.exists() and not force:
-        rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
+        rprint(
+            f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite."
+        )
         raise typer.Exit(code=1)
 
     # ------------------------------------------------------------------
@@ -799,7 +866,9 @@ def sdk_create_chain(
 
             for idx, node in enumerate(draft.nodes):
                 deps = ", ".join(node.get("dependencies", [])) or "-"
-                table.add_row(str(idx), node.get("type", ""), node.get("name", ""), deps)
+                table.add_row(
+                    str(idx), node.get("type", ""), node.get("name", ""), deps
+                )
 
             rprint(table)
         except Exception:  # Fallback – plain text
@@ -831,25 +900,25 @@ def sdk_create_chain(
             "# ---------------------------------------------------------------------------\n"
             "# Example inline tool -------------------------------------------------------\n"
             "# ---------------------------------------------------------------------------\n\n"
-            "@function_tool(name_override=\"echo\")\n"
+            '@function_tool(name_override="echo")\n'
             "async def _echo_tool(ctx: ToolContext, text: str) -> dict[str, Any]:  # type: ignore[override]\n"
-            "    \"\"\"Return the *text* argument as-is so we can observe flow output.\"\"\"\n"
-            "    return {\"echo\": text}\n\n"
+            '    """Return the *text* argument as-is so we can observe flow output."""\n'
+            '    return {"echo": text}\n\n'
             "echo_tool = _echo_tool  # mypy happy cast\n\n"
             "# ---------------------------------------------------------------------------\n"
             "# Node list ---------------------------------------------------------------\n"
             "# ---------------------------------------------------------------------------\n\n"
             "nodes: List[ToolNodeConfig] = [\n"
-            "    ToolNodeConfig(id=\"start\", type=\"tool\", name=\"echo_start\", tool_name=\"echo\", tool_args={\"text\": \"hello\"}),\n"
+            '    ToolNodeConfig(id="start", type="tool", name="echo_start", tool_name="echo", tool_args={"text": "hello"}),\n'
             "]\n\n"
             "# ---------------------------------------------------------------------------\n"
             "# Entry-point -------------------------------------------------------------\n"
             "# ---------------------------------------------------------------------------\n\n"
             "async def main() -> None:\n"
-            "    chain = ScriptChain(nodes=nodes, tools=[echo_tool], name=\"sample-chain\")\n"
+            '    chain = ScriptChain(nodes=nodes, tools=[echo_tool], name="sample-chain")\n'
             "    result = await chain.execute()\n"
             "    print(result.output)\n\n"
-            "if __name__ == \"__main__\":\n"
+            'if __name__ == "__main__":\n'
             "    asyncio.run(main())\n"
         )
 
@@ -868,6 +937,7 @@ def sdk_create_chain(
     except Exception as exc:
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
         raise typer.Exit(code=1)
+
 
 # ---------------------------------------------------------------------------
 # End of sdk group ----------------------------------------------------------
@@ -904,11 +974,18 @@ except (ModuleNotFoundError, ImportError):
 
     ask_fn = _ask_typer  # type: ignore[assignment]
 
+
 @app.command("init", help="Initialise an .ice workspace and developer environment")
 def init_cmd(
-    force: bool = typer.Option(False, "--force", "-f", help="Overwrite existing files where applicable"),
-    install_precommit: bool = typer.Option(True, "--pre-commit/--no-pre-commit", help="Install pre-commit hooks"),
-    openai_key: str | None = typer.Option(None, "--openai-key", help="OpenAI API key to write into .env"),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite existing files where applicable"
+    ),
+    install_precommit: bool = typer.Option(
+        True, "--pre-commit/--no-pre-commit", help="Install pre-commit hooks"
+    ),
+    openai_key: str | None = typer.Option(
+        None, "--openai-key", help="OpenAI API key to write into .env"
+    ),
 ):
     """Set up local dev environment.
 
@@ -942,7 +1019,9 @@ def init_cmd(
         )
         _emit_event(
             "cli.init.completed",
-            CLICommandEvent(command="init", status="completed", params={"dry_run": True}),
+            CLICommandEvent(
+                command="init", status="completed", params={"dry_run": True}
+            ),
         )
         raise typer.Exit()
 
@@ -952,14 +1031,18 @@ def init_cmd(
         ice_dir.mkdir(parents=True)
         rprint(f"[green]✔[/] Created workspace directory {ice_dir.relative_to(cwd)}")
     else:
-        rprint(f"[yellow]ℹ[/] Workspace directory {ice_dir.relative_to(cwd)} already exists.")
+        rprint(
+            f"[yellow]ℹ[/] Workspace directory {ice_dir.relative_to(cwd)} already exists."
+        )
 
     # ------------------------------------------------------------------
     # .env handling -----------------------------------------------------
     # ------------------------------------------------------------------
     env_path = cwd / ".env"
     if env_path.exists() and not force:
-        rprint("[yellow]ℹ[/] .env already exists – not overwritten (use --force to regenerate).")
+        rprint(
+            "[yellow]ℹ[/] .env already exists – not overwritten (use --force to regenerate)."
+        )
     else:
         key = openai_key or os.getenv("OPENAI_API_KEY")
         if key is None:
@@ -989,13 +1072,18 @@ def init_cmd(
             rprint("[yellow]⚠ pre-commit not found – skipping hook installation.[/]")
         else:
             try:
-                subprocess.run(["pre-commit", "install"], check=True, stdout=subprocess.PIPE)
+                subprocess.run(
+                    ["pre-commit", "install"], check=True, stdout=subprocess.PIPE
+                )
                 rprint("[green]✔[/] pre-commit hooks installed.")
             except subprocess.CalledProcessError as exc:  # pragma: no cover
                 rprint(f"[red]✗ Failed to install pre-commit hooks:[/] {exc}")
 
     # Completed ------------------------------------------------------------
-    _emit_event("cli.init.completed", CLICommandEvent(command="init", status="completed"))
+    _emit_event(
+        "cli.init.completed", CLICommandEvent(command="init", status="completed")
+    )
+
 
 # ---------------------------------------------------------------------------
 # Third-party / shared libs ---------------------------------------------------
@@ -1025,6 +1113,7 @@ def _emit_event(name: str, payload: BaseModel) -> None:  # noqa: D401 – simple
     except Exception:  # noqa: BLE001 – best-effort only
         pass
 
+
 # Auto-load webhook subscribers (non-blocking) ------------------------------
 try:
     from ice_cli.webhooks import initialise as _init_webhooks  # noqa: WPS433
@@ -1032,4 +1121,4 @@ try:
     _init_webhooks()
 except Exception:
     # Never fail CLI if optional webhook config parsing blows up
-    pass 
+    pass

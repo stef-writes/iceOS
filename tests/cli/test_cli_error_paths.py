@@ -34,4 +34,4 @@ def test_ls_json_valid_json(monkeypatch):
     # Should parse as JSON list of strings
     data = json.loads(result.stdout)
     assert isinstance(data, list)
-    assert all(isinstance(item, str) for item in data) 
+    assert all(isinstance(item, str) for item in data)

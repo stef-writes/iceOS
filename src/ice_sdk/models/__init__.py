@@ -37,4 +37,4 @@ globals().update(_config.__dict__)
 # ---------------------------------------------------------------------------
 
 sys.modules.setdefault("ice_sdk.models.node_models", _node_models)
-sys.modules.setdefault("ice_sdk.models.config", _config) 
+sys.modules.setdefault("ice_sdk.models.config", _config)

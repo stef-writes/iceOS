@@ -23,6 +23,7 @@ async def _dummy_slack(ctx: ToolContext, channel: str, text: str) -> Dict[str, A
 
 # pylint: disable=unused-argument
 
+
 @pytest.fixture(name="isolated_slack_tool")
 async def fixture_isolated_slack_tool() -> Any:  # type: ignore[override]
     """Returns the dummy slack tool and clears the call-log **after** each test.
@@ -40,9 +41,11 @@ async def fixture_isolated_slack_tool() -> Any:  # type: ignore[override]
     yield _dummy_slack  # noqa: E501 – yield to test
     _CALL_LOG.clear()
 
+
 # ---------------------------------------------------------------------------
 # Dynamic marker assignment --------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 def pytest_collection_modifyitems(config, items):  # noqa: D401
     """Automatically mark *contract* and *property* tests as *slow* so they can
@@ -54,4 +57,4 @@ def pytest_collection_modifyitems(config, items):  # noqa: D401
     for item in items:
         node_path = pathlib.Path(item.fspath.strpath)
         if "contract" in item.keywords or "property" in str(node_path.parts):
-            item.add_marker(pytest.mark.slow)  # type: ignore[attr-defined] 
+            item.add_marker(pytest.mark.slow)  # type: ignore[attr-defined]

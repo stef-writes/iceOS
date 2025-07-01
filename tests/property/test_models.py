@@ -16,4 +16,4 @@ def test_condition_node_roundtrip(cfg: ConditionNodeConfig):
     as_json = cfg.model_dump_json()
     again = ConditionNodeConfig.model_validate_json(as_json)
 
-    assert cfg == again 
+    assert cfg == again

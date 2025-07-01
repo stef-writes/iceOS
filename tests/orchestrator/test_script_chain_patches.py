@@ -33,8 +33,12 @@ async def test_execute_level_handles_exceptions() -> None:
     """A failing tool node should not crash ScriptChain when policy=ALWAYS."""
 
     nodes: List[ToolNodeConfig] = [
-        ToolNodeConfig(id="good", name="good", type="tool", tool_name="good_tool", tool_args={}),
-        ToolNodeConfig(id="bad", name="bad", type="tool", tool_name="bad_tool", tool_args={}),
+        ToolNodeConfig(
+            id="good", name="good", type="tool", tool_name="good_tool", tool_args={}
+        ),
+        ToolNodeConfig(
+            id="bad", name="bad", type="tool", tool_name="bad_tool", tool_args={}
+        ),
     ]
 
     chain = ScriptChain(
@@ -69,4 +73,4 @@ def test_resolve_nested_path_root() -> None:
     data: Dict[str, Any] = {"a": {"b": 1}}
 
     assert _SC._resolve_nested_path(data, ".") == data
-    assert _SC._resolve_nested_path(data, "") == data 
+    assert _SC._resolve_nested_path(data, "") == data

@@ -20,7 +20,6 @@ from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig  # noqa: F40
 # ---------------------------------------------------------------------------
 
 
-
 __all__ = ["ChainDraft", "BuilderEngine", "Question"]
 
 
@@ -180,7 +179,7 @@ class BuilderEngine:  # noqa: D401 – stateless helper
         for idx, node in enumerate(draft.nodes):
             node_id = f"n{idx}"
             if node["type"] == "ai":
-                deps_str = node.get('dependencies', [])
+                deps_str = node.get("dependencies", [])
                 extra = []
                 if "retries" in node:
                     extra.append(f"retries={node['retries']}")
@@ -193,7 +192,7 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                     f"    AiNodeConfig(id=\"{node_id}\", type=\"ai\", name=\"{node['name']}\", model=\"{node.get('model','gpt-3.5-turbo')}\", prompt=\"# TODO\", llm_config={{'provider': 'openai'}}, dependencies={deps_str}{extra_str}),"
                 )
             else:
-                deps_str = node.get('dependencies', [])
+                deps_str = node.get("dependencies", [])
                 extra = []
                 if "retries" in node:
                     extra.append(f"retries={node['retries']}")
@@ -227,7 +226,7 @@ class BuilderEngine:  # noqa: D401 – stateless helper
             node_id = f"n{idx}"
             label = f"{node['type'].upper()}: {node.get('name', '')}".strip()
             lines.append(f"    {node_id}[{label}]")
-            deps = node.get('dependencies')
+            deps = node.get("dependencies")
             if deps:
                 for dep in deps:
                     lines.append(f"    {dep} --> {node_id}")
@@ -267,4 +266,4 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                         f"Node n{idx} depends on n{dep_idx} which is not an earlier node (cycle)."
                     )
 
-        return errors 
+        return errors

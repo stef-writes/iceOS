@@ -43,10 +43,14 @@ def main() -> None:  # noqa: D401
     for filename, model in MODELS.items():
         schema = model.model_json_schema()  # type: ignore[attr-defined]
         # Embedd provenance ---------------------------------------------------
-        schema.setdefault("$comment", f"generated from {model.__module__}:{model.__name__}")
-        (TARGET_DIR / filename).write_text(json.dumps(schema, indent=2, ensure_ascii=False))
+        schema.setdefault(
+            "$comment", f"generated from {model.__module__}:{model.__name__}"
+        )
+        (TARGET_DIR / filename).write_text(
+            json.dumps(schema, indent=2, ensure_ascii=False)
+        )
         print(f"✅  wrote {filename}")
 
 
 if __name__ == "__main__":
-    main() 
+    main()

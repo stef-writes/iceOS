@@ -58,4 +58,4 @@ def global_cache() -> LRUCache:  # noqa: D401
     global _global_cache  # pylint: disable=global-statement
     if _global_cache is None:
         _global_cache = LRUCache(capacity=512)
-    return _global_cache 
+    return _global_cache

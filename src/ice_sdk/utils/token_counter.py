@@ -29,7 +29,9 @@ class TokenCounter:
     }
 
     @classmethod
-    def get_encoding_name(cls, model: str, provider: str | ModelProvider = "openai") -> str:
+    def get_encoding_name(
+        cls, model: str, provider: str | ModelProvider = "openai"
+    ) -> str:
         """Get the encoding name for a model.
 
         Args:
@@ -169,7 +171,11 @@ class TokenCounter:
 
     @classmethod
     def validate_token_limit(
-        cls, text: str, max_tokens: int, model: str, provider: str | ModelProvider = "openai"
+        cls,
+        text: str,
+        max_tokens: int,
+        model: str,
+        provider: str | ModelProvider = "openai",
     ) -> bool:
         """Validate if text is within token limit.
 

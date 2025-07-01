@@ -7,4 +7,4 @@ for _mod in ("tool",):
     except Exception:  # pragma: no cover – defensive
         pass
 
-__all__ = ["tool_app", "get_tool_service"] 
+__all__ = ["tool_app", "get_tool_service"]

@@ -20,4 +20,4 @@ async def test_function_tool_decorator_simple():
     # Verify metadata dict is well-formed
     meta = add.as_dict()
     assert meta["name"] == "add"
-    assert "parameters" in meta and "a" in meta["parameters"] 
+    assert "parameters" in meta and "a" in meta["parameters"]

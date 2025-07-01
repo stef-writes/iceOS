@@ -11,4 +11,4 @@ from .cli import app
 
 if __name__ == "__main__":
     # Typer's .main() helper respects shell completion & exit codes.
-    app() 
+    app()

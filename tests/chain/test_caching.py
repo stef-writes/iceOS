@@ -56,4 +56,4 @@ async def test_lru_cache_skips_second_execution():
     res2 = await chain2.execute()
     assert res2.success is True
     # Tool should **not** be called again thanks to cache -----------------
-    assert tool.calls == 1 
+    assert tool.calls == 1

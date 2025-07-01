@@ -83,9 +83,11 @@ def main() -> None:  # noqa: D401
     all_caps.sort(key=lambda c: c.id)
     catalog = Catalog(generated_at=datetime.utcfromtimestamp(0), capabilities=all_caps)
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_FILE.write_text(catalog.model_dump_json(indent=2, exclude={"generated_at"}) + "\n")
+    OUTPUT_FILE.write_text(
+        catalog.model_dump_json(indent=2, exclude={"generated_at"}) + "\n"
+    )
     print(f"[scripts.gen_catalog] wrote {len(all_caps)} entries", file=sys.stderr)
 
 
 if __name__ == "__main__":
-    main() 
+    main()

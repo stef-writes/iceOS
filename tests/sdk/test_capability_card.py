@@ -1,4 +1,3 @@
-
 from ice_sdk.capabilities import CapabilityCard
 from ice_sdk.tools.builtins.deterministic import SleepTool
 from ice_sdk.tools.service import ToolService
@@ -56,4 +55,7 @@ def test_custom_tool_registration_card():
     svc.register(DummyTool)
 
     cards = list(svc.cards())
-    assert any(card.id == "dummy_tool" and card.description == "Just a dummy for tests" for card in cards) 
+    assert any(
+        card.id == "dummy_tool" and card.description == "Just a dummy for tests"
+        for card in cards
+    )

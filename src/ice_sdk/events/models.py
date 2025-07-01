@@ -27,4 +27,4 @@ class EventEnvelope(BaseModel):
 
     name: str
     payload: BaseModel
-    timestamp: datetime = Field(default_factory=datetime.utcnow) 
+    timestamp: datetime = Field(default_factory=datetime.utcnow)

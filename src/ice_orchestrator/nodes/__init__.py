@@ -48,4 +48,4 @@ _base_mod_name = __name__ + ".base"
 _base_mod = _ModuleType(_base_mod_name)
 _base_mod.BaseNode = BaseNode  # type: ignore[attr-defined]
 
-_sys.modules[_base_mod_name] = _base_mod 
+_sys.modules[_base_mod_name] = _base_mod

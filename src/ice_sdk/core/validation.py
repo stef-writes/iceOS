@@ -8,6 +8,7 @@ of a dict prior to handing it to an LLM.
 External side-effects are forbidden in *core* per Cursor Rule 2 – keep this file
 pure Python with no network / file IO.
 """
+
 from __future__ import annotations
 
 from typing import Any, Mapping, Type
@@ -23,7 +24,9 @@ class SchemaValidationError(ValueError):
     """Raised when `validate_or_raise` detects an invalid payload."""
 
 
-def _validate_with_pydantic_model(data: Any, model: Type[BaseModel]) -> None:  # noqa: D401
+def _validate_with_pydantic_model(
+    data: Any, model: Type[BaseModel]
+) -> None:  # noqa: D401
     """Validate *data* against a Pydantic model class and re-raise uniformly."""
     try:
         model.model_validate(data)  # type: ignore[arg-type]
@@ -77,16 +80,24 @@ def validate_or_raise(data: Any, schema: Any | None = None) -> None:  # noqa: D4
         for key, field_schema in props.items():
             if key not in data:
                 continue  # handled above or optional
-            expected_type = field_schema.get("type") if isinstance(field_schema, Mapping) else None
+            expected_type = (
+                field_schema.get("type") if isinstance(field_schema, Mapping) else None
+            )
             if expected_type == "object" and not isinstance(data[key], Mapping):
-                raise SchemaValidationError(f"Field '{key}' expected object, got {type(data[key]).__name__}")
+                raise SchemaValidationError(
+                    f"Field '{key}' expected object, got {type(data[key]).__name__}"
+                )
             if expected_type == "string" and not isinstance(data[key], str):
-                raise SchemaValidationError(f"Field '{key}' expected string, got {type(data[key]).__name__}")
+                raise SchemaValidationError(
+                    f"Field '{key}' expected string, got {type(data[key]).__name__}"
+                )
             if expected_type == "number" and not isinstance(data[key], (int, float)):
-                raise SchemaValidationError(f"Field '{key}' expected number, got {type(data[key]).__name__}")
+                raise SchemaValidationError(
+                    f"Field '{key}' expected number, got {type(data[key]).__name__}"
+                )
         return
 
     # Unsupported schema type ---------------------------------------------------
     raise TypeError(
         "Unsupported schema type for validate_or_raise: " f"{type(schema).__name__}"
-    ) 
+    )

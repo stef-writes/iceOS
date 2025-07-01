@@ -11,4 +11,6 @@ def test_import_contracts_pass():
 
     exit_code = cli.lint_imports(config_filename=str(cfg_path))
 
-    assert exit_code == 0, "Import-Linter contracts are broken – check the report above." 
+    assert (
+        exit_code == 0
+    ), "Import-Linter contracts are broken – check the report above."

@@ -45,7 +45,9 @@ async def condition_executor(
         # Preferred path – use *restrictedpython* if available -----------
         from restrictedpython import compile_restricted  # type: ignore
 
-        byte_code = compile_restricted(cfg.expression, filename="<condition>", mode="eval")
+        byte_code = compile_restricted(
+            cfg.expression, filename="<condition>", mode="eval"
+        )
         sandbox_globals: Dict[str, Any] = {"__builtins__": {}}
         result = bool(eval(byte_code, sandbox_globals, sandbox_locals))  # noqa: S307
         success = True
@@ -54,7 +56,9 @@ async def condition_executor(
         # Fallback: plain eval with stripped builtins --------------------
         sandbox_globals = {"__builtins__": {}}
         try:
-            result = bool(eval(cfg.expression, sandbox_globals, sandbox_locals))  # noqa: S307
+            result = bool(
+                eval(cfg.expression, sandbox_globals, sandbox_locals)
+            )  # noqa: S307
             success = True
             error_msg = None
         except Exception as exc:  # pylint: disable=broad-except
@@ -83,4 +87,4 @@ async def condition_executor(
         output={"result": result},
         metadata=metadata,
         execution_time=(end - start).total_seconds(),
-    ) 
+    )

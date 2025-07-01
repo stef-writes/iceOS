@@ -47,4 +47,4 @@ if not _TYPE_CHECKING:
 __all__ = [
     "kb_router",
     "KBSearchTool",
-] 
+]

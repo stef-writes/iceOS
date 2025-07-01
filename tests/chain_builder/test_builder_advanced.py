@@ -29,4 +29,4 @@ def test_advanced_settings_render() -> None:  # noqa: D401
     assert "use_cache=False" in source
 
     # Ensure valid Python ---------------------------------------------------
-    ast.parse(source) 
+    ast.parse(source)

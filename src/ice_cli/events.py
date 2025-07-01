@@ -4,6 +4,7 @@ The helper functions in this module are intentionally side-effect-free so they
 can be imported by sub-modules (e.g. *commands.tool*) without triggering Typer
 app initialisation or causing circular imports back to *ice_cli.cli*.
 """
+
 from __future__ import annotations
 
 # stdlib
@@ -36,4 +37,4 @@ def _emit_event(name: str, payload: BaseModel) -> None:  # noqa: D401 – helper
         # telemetry never breaks the user-facing command.
         asyncio.create_task(publish(name, payload))
     except Exception:  # noqa: BLE001 – best-effort only
-        pass 
+        pass

@@ -82,4 +82,6 @@ def test_create_scaffolds_and_run_chain(tmp_path: Path) -> None:  # noqa: D401
         [sys.executable, str(chain_file)], capture_output=True, text=True, check=True
     )
     # Output should contain the echo payload (tool returns {"echo": "hello"})
-    assert '"echo": "hello"' in completed.stdout or "'echo': 'hello'" in completed.stdout 
+    assert (
+        '"echo": "hello"' in completed.stdout or "'echo': 'hello'" in completed.stdout
+    )

@@ -91,12 +91,14 @@ _drafts: Dict[str, Tuple[ChainDraft, float]] = {}
 # Helper functions ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 def _cleanup_expired() -> None:  # noqa: D401 – helper
     """Purge drafts older than the configured TTL."""
     now = time.time()
     expired = [k for k, (_, ts) in _drafts.items() if now - ts > _TTL_SECONDS]
     for k in expired:
         _drafts.pop(k, None)
+
 
 def _get_draft(draft_id: str) -> ChainDraft:
     _cleanup_expired()
@@ -137,10 +139,14 @@ async def submit_answer(req: AnswerRequest):  # noqa: D401
     # ------------------------------------------------------------------
     q_expected = BuilderEngine.next_question(draft)
     if q_expected is None:
-        raise HTTPException(status_code=400, detail="No question pending for this draft")
+        raise HTTPException(
+            status_code=400, detail="No question pending for this draft"
+        )
 
     if req.key != q_expected.key:
-        raise HTTPException(status_code=400, detail=f"Expected key '{q_expected.key}', got '{req.key}'")
+        raise HTTPException(
+            status_code=400, detail=f"Expected key '{q_expected.key}', got '{req.key}'"
+        )
 
     if q_expected.choices and req.answer not in q_expected.choices:
         raise HTTPException(status_code=400, detail="Answer not in allowed choices")
@@ -149,8 +155,14 @@ async def submit_answer(req: AnswerRequest):  # noqa: D401
     BuilderEngine.submit_answer(draft, req.key, req.answer)
 
     next_q = BuilderEngine.next_question(draft)
-    completed = next_q is None and draft.current_step == 0 and len(draft.nodes) >= draft.total_nodes
-    return AnswerResponse(next_question=QuestionModel.from_engine(next_q), completed=completed)
+    completed = (
+        next_q is None
+        and draft.current_step == 0
+        and len(draft.nodes) >= draft.total_nodes
+    )
+    return AnswerResponse(
+        next_question=QuestionModel.from_engine(next_q), completed=completed
+    )
 
 
 @router.get("/render", response_model=RenderResponse)
@@ -208,4 +220,4 @@ async def resume_draft(req: ResumeRequest):  # noqa: D401
 async def cleanup():  # noqa: D401
     """Delete all expired drafts (older than TTL)."""
     _cleanup_expired()
-    return None 
+    return None

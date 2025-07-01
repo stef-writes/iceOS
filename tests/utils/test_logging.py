@@ -8,4 +8,4 @@ def test_setup_logger_idempotent():
     logger2 = setup_logger()
 
     assert logger1 is logger2
-    assert logger1.handlers, "Logger should have at least one handler configured" 
+    assert logger1.handlers, "Logger should have at least one handler configured"

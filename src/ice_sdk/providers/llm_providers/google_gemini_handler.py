@@ -48,14 +48,18 @@ class GoogleGeminiHandler(BaseLLMHandler):
         gen_config = GenerationConfig(**gen_cfg_params)
 
         try:
-            response = await model.generate_content_async(prompt, generation_config=gen_config)
+            response = await model.generate_content_async(
+                prompt, generation_config=gen_config
+            )
         except Exception as exc:  # pragma: no cover
             logger.error("Gemini API error", exc_info=True)
             return "", None, str(exc)
 
         text_content = ""
         if getattr(response, "parts", None):
-            text_content = "".join(p.text for p in response.parts if hasattr(p, "text")).strip()
+            text_content = "".join(
+                p.text for p in response.parts if hasattr(p, "text")
+            ).strip()
         elif getattr(response, "text", None):
             text_content = response.text.strip()
 
@@ -70,4 +74,4 @@ class GoogleGeminiHandler(BaseLLMHandler):
                 "completion_tokens": getattr(_usage, "candidates_token_count", 0),
                 "total_tokens": getattr(_usage, "total_token_count", 0),
             }
-        return text_content, usage_stats, None 
+        return text_content, usage_stats, None

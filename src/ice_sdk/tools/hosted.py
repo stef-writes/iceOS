@@ -1,4 +1,5 @@
 """Hosted tools implementation."""
+
 import asyncio
 import os
 from typing import Any, ClassVar, Dict, List, TypedDict
@@ -19,6 +20,7 @@ class SearchResult(TypedDict):
 
 class WebSearchTool(BaseTool):
     """Tool for searching the web."""
+
     name: ClassVar[str] = "web_search"
     description: ClassVar[str] = "Search the web for information"
     parameters_schema: ClassVar[Dict[str, Any]] = {
@@ -27,22 +29,20 @@ class WebSearchTool(BaseTool):
             "query": {"type": "string", "description": "Search query"},
             "user_location": {
                 "type": "object",
-                "properties": {
-                    "country": {"type": "string"}
-                }
+                "properties": {"country": {"type": "string"}},
             },
             "search_context_size": {
                 "type": "string",
                 "enum": ["low", "medium", "high"],
-                "default": "medium"
-            }
+                "default": "medium",
+            },
         },
-        "required": ["query"]
+        "required": ["query"],
     }
 
     async def run(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
         """Execute web search.
-        
+
         Args:
             query: Search query
             user_location: Optional user location
@@ -97,8 +97,10 @@ class WebSearchTool(BaseTool):
 
         return {"results": results}
 
+
 class FileSearchTool(BaseTool):
     """Tool for searching through vector stores."""
+
     name: ClassVar[str] = "file_search"
     description: ClassVar[str] = "Search through vector stores"
     parameters_schema: ClassVar[Dict[str, Any]] = {
@@ -107,27 +109,21 @@ class FileSearchTool(BaseTool):
             "vector_store_ids": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "IDs of vector stores to search"
+                "description": "IDs of vector stores to search",
             },
-            "query": {
-                "type": "string",
-                "description": "Search query"
-            },
+            "query": {"type": "string", "description": "Search query"},
             "max_num_results": {
                 "type": "integer",
-                "description": "Maximum number of results"
+                "description": "Maximum number of results",
             },
-            "include_search_results": {
-                "type": "boolean",
-                "default": False
-            }
+            "include_search_results": {"type": "boolean", "default": False},
         },
-        "required": ["vector_store_ids", "query"]
+        "required": ["vector_store_ids", "query"],
     }
 
     async def run(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
         """Execute file search.
-        
+
         Args:
             vector_store_ids: IDs of vector stores to search
             query: Search query
@@ -168,7 +164,9 @@ class FileSearchTool(BaseTool):
                     coll.query, query_texts=[query], n_results=max_num_results
                 )  # type: ignore[attr-defined]
             except Exception as exc:  # pragma: no cover – collection issues
-                raise ToolError(f"Vector store query failed for collection '{cid}': {exc}") from exc
+                raise ToolError(
+                    f"Vector store query failed for collection '{cid}': {exc}"
+                ) from exc
 
             ids = res.get("ids", [[]])[0]  # type: ignore[index]
             dists = res.get("distances", [[]])[0]  # type: ignore[index]
@@ -191,8 +189,10 @@ class FileSearchTool(BaseTool):
             return {"results": aggregate_matches[:max_num_results]}
         return {"ids": [m["id"] for m in aggregate_matches[:max_num_results]]}
 
+
 class ComputerTool(BaseTool):
     """Tool for controlling a virtual computer."""
+
     name: ClassVar[str] = "computer"
     description: ClassVar[str] = "Control a virtual computer"
     parameters_schema: ClassVar[Dict[str, Any]] = {
@@ -201,22 +201,13 @@ class ComputerTool(BaseTool):
             "action": {
                 "type": "string",
                 "enum": ["click", "type", "scroll", "screenshot"],
-                "description": "Action to perform"
+                "description": "Action to perform",
             },
-            "x": {
-                "type": "integer",
-                "description": "X coordinate for click/scroll"
-            },
-            "y": {
-                "type": "integer",
-                "description": "Y coordinate for click/scroll"
-            },
-            "text": {
-                "type": "string",
-                "description": "Text to type"
-            }
+            "x": {"type": "integer", "description": "X coordinate for click/scroll"},
+            "y": {"type": "integer", "description": "Y coordinate for click/scroll"},
+            "text": {"type": "string", "description": "Text to type"},
         },
-        "required": ["action"]
+        "required": ["action"],
     }
 
     # Allow dynamic attribute assignment (e.g. self.dimensions)
@@ -224,7 +215,7 @@ class ComputerTool(BaseTool):
 
     def __init__(self, dimensions: tuple[int, int] = (1280, 720)):
         """Initialize computer tool.
-        
+
         Args:
             dimensions: Screen dimensions (width, height)
         """
@@ -233,7 +224,7 @@ class ComputerTool(BaseTool):
 
     async def run(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
         """Execute computer action.
-        
+
         Args:
             action: Action to perform
             x: X coordinate
@@ -285,4 +276,4 @@ class ComputerTool(BaseTool):
         except Exception as exc:  # pragma: no cover – runtime errors
             raise ToolError(f"Computer action failed: {exc}") from exc
 
-        return {"success": False} 
+        return {"success": False}

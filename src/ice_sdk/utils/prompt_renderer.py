@@ -62,4 +62,4 @@ async def render_prompt(template: str, context: Dict[str, Any]) -> str:  # noqa:
         # As a last-resort return the unmodified template to avoid crashing the
         # orchestrator.  The LLM will receive the placeholders verbatim which
         # is still usable in debugging scenarios.
-        return template 
+        return template

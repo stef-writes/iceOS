@@ -49,4 +49,4 @@ async def test_retry_succeeds_on_second_attempt():
     assert result.output is not None
     node_result = result.output["t1"]
     assert node_result.success is True
-    assert node_result.metadata.retry_count == 1 
+    assert node_result.metadata.retry_count == 1

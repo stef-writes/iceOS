@@ -83,4 +83,4 @@ def get_executor(mode: str) -> NodeExecutor:  # noqa: D401
     except KeyError as exc:  # pragma: no cover – defensive branch
         raise KeyError(
             f"Unknown node mode '{mode}'. Did you forget to import its package?"
-        ) from exc 
+        ) from exc

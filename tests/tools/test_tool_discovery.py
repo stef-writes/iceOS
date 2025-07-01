@@ -41,4 +41,4 @@ async def test_discover_and_register(tmp_path: Path):
 
     tool_instance = svc.get("echo")
     result = await tool_instance.run(ctx=None, foo="bar")  # type: ignore[arg-type]
-    assert result == {"foo": "bar"} 
+    assert result == {"foo": "bar"}

@@ -4,6 +4,7 @@ Run via::
 
     python -m scripts.cli.check_json_yaml
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,6 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent  # ../../
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def iter_files(patterns: List[str]):
     for pattern in patterns:
@@ -57,6 +59,7 @@ def check_yaml(path: Path) -> bool:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def build_parser() -> argparse.ArgumentParser:  # noqa: D401
     parser = argparse.ArgumentParser(description="Syntax check for JSON/YAML files.")
@@ -92,4 +95,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main() 
+    main()

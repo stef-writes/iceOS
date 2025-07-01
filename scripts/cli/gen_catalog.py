@@ -6,6 +6,7 @@ breaking existing imports.
 
 In a follow-up release the legacy module will be removed.
 """
+
 from __future__ import annotations
 
 import runpy
@@ -21,4 +22,4 @@ if not LEGACY_PATH.exists():
 
 
 if __name__ == "__main__":
-    runpy.run_path(str(LEGACY_PATH), run_name="__main__") 
+    runpy.run_path(str(LEGACY_PATH), run_name="__main__")

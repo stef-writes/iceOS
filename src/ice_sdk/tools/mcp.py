@@ -1,4 +1,5 @@
 """Model Context Protocol (MCP) integration for tools."""
+
 import asyncio
 import json
 from typing import Any, Dict, List, Optional
@@ -17,16 +18,19 @@ from .base import BaseTool, ToolContext
 
 class MCPServer(BaseModel):
     """MCP server configuration."""
+
     command: str
     args: List[str]
     env: Dict[str, str] = {}
     working_dir: Optional[str] = None
 
+
 class MCPServerStdio:
     """MCP server using stdio for communication."""
+
     def __init__(self, params: Dict[str, Any]):
         """Initialize MCP server.
-        
+
         Args:
             params: Server parameters including command and args
         """
@@ -57,7 +61,7 @@ class MCPServerStdio:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env=self.server.env,
-            cwd=self.server.working_dir
+            cwd=self.server.working_dir,
         )
         return self
 
@@ -69,7 +73,7 @@ class MCPServerStdio:
 
     async def register_tool(self, tool: BaseTool):
         """Register a tool with the MCP server.
-        
+
         Args:
             tool: Tool to register
         """
@@ -80,16 +84,13 @@ class MCPServerStdio:
         assert self.process is not None
 
         # Send tool registration message
-        message = {
-            "type": "register_tool",
-            "tool": tool.as_dict()
-        }
+        message = {"type": "register_tool", "tool": tool.as_dict()}
         await self._send_message(message)
         self.tools.append(tool)
 
     async def _send_message(self, message: Dict[str, Any]):
         """Send a message to the MCP server.
-        
+
         Args:
             message: Message to send
         """
@@ -127,11 +128,13 @@ class MCPServerStdio:
 
         return json.loads(response_bytes.decode())
 
+
 class MCPTool(BaseTool):
     """Base class for MCP tools."""
+
     def __init__(self, server: MCPServerStdio):
         """Initialize MCP tool.
-        
+
         Args:
             server: MCP server instance
         """
@@ -140,7 +143,7 @@ class MCPTool(BaseTool):
 
     async def run(self, ctx: ToolContext, **kwargs) -> Any:  # type: ignore[override]
         """Execute tool through MCP server.
-        
+
         Args:
             ctx: Tool context
             **kwargs: Tool arguments
@@ -149,6 +152,6 @@ class MCPTool(BaseTool):
             "type": "execute_tool",
             "tool": self.name,
             "context": ctx.dict(),
-            "args": kwargs
+            "args": kwargs,
         }
-        return await self.server._send_message(message) 
+        return await self.server._send_message(message)

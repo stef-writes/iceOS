@@ -68,6 +68,7 @@ class AnthropicHandler(BaseLLMHandler):
             usage_stats = {
                 "prompt_tokens": response.usage.input_tokens,
                 "completion_tokens": response.usage.output_tokens,
-                "total_tokens": response.usage.input_tokens + response.usage.output_tokens,
+                "total_tokens": response.usage.input_tokens
+                + response.usage.output_tokens,
             }
-        return text_content, usage_stats, None 
+        return text_content, usage_stats, None

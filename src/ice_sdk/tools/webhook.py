@@ -30,7 +30,9 @@ class WebhookEmitterTool(BaseTool):
     name = "webhook_emitter"
     description = "Send event payloads to a webhook endpoint via HTTP POST."
 
-    async def run(self, **kwargs: Any) -> Any:  # noqa: D401, WPS110 – ctx extracted from kwargs
+    async def run(
+        self, **kwargs: Any
+    ) -> Any:  # noqa: D401, WPS110 – ctx extracted from kwargs
         # Pop context (required by internal contract but not part of BaseTool signature)
         ctx_obj = kwargs.pop("ctx", None)
         if not isinstance(ctx_obj, ToolContext):
@@ -39,7 +41,9 @@ class WebhookEmitterTool(BaseTool):
         args = _WebhookArgs(**kwargs)
 
         async with httpx.AsyncClient(timeout=args.timeout) as client:
-            resp = await client.post(str(args.url), json=ctx_obj.metadata, headers=args.headers)
+            resp = await client.post(
+                str(args.url), json=ctx_obj.metadata, headers=args.headers
+            )
             resp.raise_for_status()
 
-        return {"status_code": resp.status_code} 
+        return {"status_code": resp.status_code}

@@ -5,7 +5,7 @@ from typing import Dict
 import pytest
 
 from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.models.node_models import InputMapping, ToolNodeConfig, NodeExecutionResult
+from ice_sdk.models.node_models import InputMapping, NodeExecutionResult, ToolNodeConfig
 from ice_sdk.tools.base import BaseTool, ToolContext, function_tool
 
 # ---------------------------------------------------------------------------
@@ -71,4 +71,4 @@ async def test_tool_args_placeholder_substitution():
 
     consume_res: NodeExecutionResult = result.output["consume"]  # type: ignore[index]
     assert consume_res.success is True
-    assert consume_res.output == {"echo": "42"} 
+    assert consume_res.output == {"echo": "42"}

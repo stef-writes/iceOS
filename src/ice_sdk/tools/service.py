@@ -45,7 +45,9 @@ class ToolService:  # noqa: D101 – simple façade
     # New feature: file-system discovery of ``*.tool.py`` ----------------
     # ------------------------------------------------------------------
 
-    def discover_and_register(self, directory: str | Path = ".", pattern: str = "*.tool.py") -> None:
+    def discover_and_register(
+        self, directory: str | Path = ".", pattern: str = "*.tool.py"
+    ) -> None:
         """Recursively import and register any *tool* modules found under *directory*.
 
         This implements the Day-3 "auto-registration of `*.tool.py` files" milestone.
@@ -63,6 +65,7 @@ class ToolService:  # noqa: D101 – simple façade
         base_path = Path(directory).resolve()
 
         import sys
+
         if str(base_path) not in sys.path:
             sys.path.insert(0, str(base_path))
 
@@ -73,7 +76,9 @@ class ToolService:  # noqa: D101 – simple façade
             except ValueError:
                 rel_path = py_file.name  # type: ignore[assignment]
 
-            module_name = Path(str(rel_path)).with_suffix("").as_posix().replace("/", ".")
+            module_name = (
+                Path(str(rel_path)).with_suffix("").as_posix().replace("/", ".")
+            )
 
             try:
                 # Attempt normal import first --------------------------------
@@ -82,7 +87,10 @@ class ToolService:  # noqa: D101 – simple façade
                 except ModuleNotFoundError:
                     # Fall back to loading directly from file path ----------
                     import importlib.util
-                    spec = importlib.util.spec_from_file_location(module_name.replace(".", "_"), py_file)
+
+                    spec = importlib.util.spec_from_file_location(
+                        module_name.replace(".", "_"), py_file
+                    )
                     if spec and spec.loader:
                         module = importlib.util.module_from_spec(spec)
                         spec.loader.exec_module(module)  # type: ignore[reportGeneralTypeIssues]
@@ -98,7 +106,9 @@ class ToolService:  # noqa: D101 – simple façade
                     tool_name = getattr(obj, "name", None)
                     try:
                         self.register(obj)
-                        logger.info("Registered tool '%s' from %s", tool_name, module_name)
+                        logger.info(
+                            "Registered tool '%s' from %s", tool_name, module_name
+                        )
                     except ValueError:
                         # Duplicate registration – ignore silently so repeated scans are safe.
                         continue
@@ -168,4 +178,4 @@ class ToolService:  # noqa: D101 – simple façade
             except Exception:  # noqa: BLE001 – best-effort registration
                 # If a single tool fails to register (e.g. due to missing deps)
                 # we ignore it so *ToolService* still provides the others.
-                continue 
+                continue

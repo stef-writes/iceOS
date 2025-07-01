@@ -35,4 +35,4 @@ def test_symbol_exists(symbol):
 
 def test_no_unexpected_exports():
     sdk = importlib.import_module("ice_sdk")
-    assert set(sdk.__all__) == PUBLIC_API, "__all__ diverged from contract" 
+    assert set(sdk.__all__) == PUBLIC_API, "__all__ diverged from contract"

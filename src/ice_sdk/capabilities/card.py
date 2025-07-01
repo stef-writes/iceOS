@@ -85,4 +85,4 @@ class CapabilityCard(BaseModel):
             output_ports=getattr(tool_cls, "output_schema", None),
             tags=getattr(tool_cls, "tags", []),
             version=getattr(tool_cls, "__version__", "0.1.0"),
-        ) 
+        )

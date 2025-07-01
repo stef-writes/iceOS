@@ -6,4 +6,4 @@ def test_hosted_tools_metadata():
         tool = tool_cls()
         assert tool.name
         assert tool.description
-        assert tool.parameters_schema is not None 
+        assert tool.parameters_schema is not None

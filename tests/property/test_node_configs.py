@@ -26,4 +26,4 @@ def test_tool_node_roundtrip(cfg: ToolNodeConfig):
 
     as_json = cfg.model_dump_json()
     again = ToolNodeConfig.model_validate_json(as_json)
-    assert cfg == again 
+    assert cfg == again

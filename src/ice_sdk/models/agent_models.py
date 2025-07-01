@@ -1,4 +1,5 @@
 """Agent models."""
+
 from typing import Any, List, Literal, Optional, Type  # noqa: I001
 
 from pydantic import BaseModel, Field
@@ -8,13 +9,16 @@ from ..tools.base import BaseTool
 
 class ModelSettings(BaseModel):
     """Model settings for agents."""
+
     model: str = Field(..., description="Model name (e.g., gpt-4)")
     temperature: float = Field(0.7, description="Model temperature")
     max_tokens: Optional[int] = Field(None, description="Maximum tokens to generate")
     provider: str = Field("openai", description="Model provider")
 
+
 class AgentConfig(BaseModel):
     """Configuration for an agent."""
+
     name: str = Field(..., description="Agent name")
     instructions: str = Field(..., description="Agent instructions")
     model: str = Field(..., description="Model name")
@@ -26,28 +30,23 @@ class AgentConfig(BaseModel):
     # Experimental v2 knobs (2025-06) -----------------------------------
     # ------------------------------------------------------------------
     max_rounds: int = Field(
-        2,
-        ge=1,
-        description="Maximum planning rounds the agent is allowed to perform."
+        2, ge=1, description="Maximum planning rounds the agent is allowed to perform."
     )
     budget_usd: Optional[float] = Field(
         None,
         gt=0,
-        description="Stop execution when the projected cost exceeds this budget."
+        description="Stop execution when the projected cost exceeds this budget.",
     )
     memory_enabled: bool = Field(
-        False,
-        description="Enable persistence of context between invocations."
+        False, description="Enable persistence of context between invocations."
     )
     failure_policy: Literal["retry", "skip", "abort"] = Field(
-        "abort",
-        description="Behaviour when a tool or LLM call fails."
+        "abort", description="Behaviour when a tool or LLM call fails."
     )
     concurrency: int = Field(
-        1,
-        ge=1,
-        description="Maximum number of tool calls executed concurrently."
+        1, ge=1, description="Maximum number of tool calls executed concurrently."
     )
+
 
 class InputGuardrail(BaseModel):
     """Schema and validation rules for agent inputs.
@@ -57,7 +56,10 @@ class InputGuardrail(BaseModel):
     Future iterations may add richer, rule-based validation.
     """
 
-    rules: dict[str, Any] = Field(default_factory=dict, description="Validation rules expressed as an arbitrary JSON-serialisable structure")
+    rules: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Validation rules expressed as an arbitrary JSON-serialisable structure",
+    )
 
     # ------------------------------------------------------------------
     # Public validation hook -------------------------------------------
@@ -87,13 +89,17 @@ class InputGuardrail(BaseModel):
         # Fallback – assume unknown rules are satisfied ------------------
         return True
 
+
 class OutputGuardrail(BaseModel):
     """Schema and validation rules for agent outputs.
 
     Mirrors :class:`InputGuardrail` but for the *output* side.
     """
 
-    rules: dict[str, Any] = Field(default_factory=dict, description="Validation rules expressed as an arbitrary JSON-serialisable structure")
+    rules: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Validation rules expressed as an arbitrary JSON-serialisable structure",
+    )
 
     def validate(self, data: Any) -> bool:  # type: ignore[override]
         """Validate *data* produced by the agent.
@@ -113,4 +119,4 @@ class OutputGuardrail(BaseModel):
             if extra:
                 return False
 
-        return True 
+        return True

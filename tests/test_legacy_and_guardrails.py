@@ -37,4 +37,4 @@ def test_import_legacy_nodes_module(monkeypatch):
 
     # Importing the nested alias module should also work.
     alias_mod = importlib.import_module("ice_orchestrator.nodes.base")
-    assert alias_mod.BaseNode is legacy_mod.BaseNode 
+    assert alias_mod.BaseNode is legacy_mod.BaseNode

@@ -5,9 +5,11 @@ if _os.getenv("ICE_SDK_ENABLE_LEGACY_IMPORTS", "0") in {"1", "true", "True"}:
     from importlib import import_module as _import_module
 
     _modern = _import_module("ice_sdk.providers.llm_service")
-    globals().update({
-        "LLMService": _modern.LLMService,  # type: ignore[attr-defined]
-    })
+    globals().update(
+        {
+            "LLMService": _modern.LLMService,  # type: ignore[attr-defined]
+        }
+    )
     # Optional sub-package rendezvous
     _os.environ.setdefault("ICE_SDK_LEGACY_IMPORT_WARNING_SHOWN", "1")
 else:
@@ -15,4 +17,4 @@ else:
         "'ice_tools' has been removed. Set ICE_SDK_ENABLE_LEGACY_IMPORTS=1 to temporarily re-enable."
     )
 
-__all__ = ["LLMService"] 
+__all__ = ["LLMService"]

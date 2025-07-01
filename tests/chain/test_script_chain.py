@@ -38,11 +38,15 @@ async def test_script_chain_ai_and_tool(monkeypatch):
         **_kwargs: Any,  # noqa: D401
     ):
         # Return deterministic JSON payload recognised by AgentNode
-        return "OK", {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "total_tokens": 0,
-        }, None
+        return (
+            "OK",
+            {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+            },
+            None,
+        )
 
     monkeypatch.setattr(LLMService, "generate", _fake_generate, raising=False)
 
@@ -83,4 +87,4 @@ async def test_script_chain_ai_and_tool(monkeypatch):
     assert result.output is not None
     assert set(result.output.keys()) == {"tool1", "ai1"}
     assert result.output["tool1"].success is True
-    assert result.output["ai1"].success is True 
+    assert result.output["ai1"].success is True

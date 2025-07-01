@@ -104,4 +104,4 @@ async def test_node_level_cache_disabled() -> None:
         initial_context={"seed": 1},
     )
     await chain2.execute()
-    assert tool.calls == 2  # Cache bypassed again due to node flag 
+    assert tool.calls == 2  # Cache bypassed again due to node flag

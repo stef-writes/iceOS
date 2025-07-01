@@ -76,4 +76,4 @@ class DeepSeekHandler(BaseLLMHandler):
 
         usage_stats = self._usage_from_openai(response)  # type: ignore[arg-type]
 
-        return text_content, usage_stats, None 
+        return text_content, usage_stats, None

@@ -27,4 +27,4 @@ def test_circular_dependency_detection():
     # Error message should list the offending node ids
     msg = str(exc_info.value)
     for nid in ("A", "B", "C"):
-        assert nid in msg 
+        assert nid in msg

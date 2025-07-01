@@ -1,9 +1,10 @@
 import asyncio
+
 import pytest
 
-from ice_sdk.utils.perf import WeightedSemaphore, estimate_complexity
-from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig
 from ice_sdk.models.config import LLMConfig
+from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig
+from ice_sdk.utils.perf import WeightedSemaphore, estimate_complexity
 
 
 @pytest.mark.asyncio
@@ -44,7 +45,9 @@ def test_estimate_complexity_ai_vs_tool():
         llm_config=LLMConfig(model="gpt-4o", provider="openai"),
     )
 
-    tool_cfg = ToolNodeConfig(id="tool-1", name="tool-node", type="tool", tool_name="echo")
+    tool_cfg = ToolNodeConfig(
+        id="tool-1", name="tool-node", type="tool", tool_name="echo"
+    )
 
     assert estimate_complexity(ai_cfg) == 2
-    assert estimate_complexity(tool_cfg) == 1 
+    assert estimate_complexity(tool_cfg) == 1

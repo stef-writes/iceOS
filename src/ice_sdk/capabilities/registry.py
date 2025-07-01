@@ -4,6 +4,7 @@ The registry is NOT a singleton by design; callers create an instance, add
 cards (or pull them from *ToolService.cards()*) and then perform look-ups.
 If we need a process-wide default we can wire it later via *ice_sdk.cache*.
 """
+
 from __future__ import annotations
 
 import fnmatch
@@ -22,7 +23,9 @@ class CapabilityRegistry:  # noqa: D101 – simple data holder
     # ------------------------------------------------------------------
     # Mutation helpers --------------------------------------------------
     # ------------------------------------------------------------------
-    def add(self, card: CapabilityCard, *, overwrite: bool = False) -> None:  # noqa: D401 – verb clause
+    def add(
+        self, card: CapabilityCard, *, overwrite: bool = False
+    ) -> None:  # noqa: D401 – verb clause
         """Register *card* keyed by its ``id``.
 
         Args
@@ -38,7 +41,9 @@ class CapabilityRegistry:  # noqa: D101 – simple data holder
             raise ValueError(f"Capability '{card.id}' already registered")
         self._cards[card.id] = card
 
-    def extend(self, cards: Iterable[CapabilityCard], *, overwrite: bool = False) -> None:
+    def extend(
+        self, cards: Iterable[CapabilityCard], *, overwrite: bool = False
+    ) -> None:
         """Bulk-add *cards* (helper around :py:meth:`add`)."""
         for card in cards:
             self.add(card, overwrite=overwrite)
@@ -92,4 +97,4 @@ class CapabilityRegistry:  # noqa: D101 – simple data holder
         return len(self._cards)
 
     def __iter__(self):  # noqa: D401 – dunder
-        return iter(self._cards.values()) 
+        return iter(self._cards.values())

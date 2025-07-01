@@ -14,7 +14,9 @@ async def test_depth_ceiling_stops_execution():
 
     # Build 3-level linear chain with dummy tool nodes
     nodes = [
-        ToolNodeConfig(id=f"n{i}", type="tool", tool_name="sum", tool_args={"numbers": [i]})
+        ToolNodeConfig(
+            id=f"n{i}", type="tool", tool_name="sum", tool_args={"numbers": [i]}
+        )
         for i in range(3)
     ]
     # establish dependencies
@@ -25,7 +27,14 @@ async def test_depth_ceiling_stops_execution():
 
     ctx_mgr = GraphContextManager()
     ctx_mgr.set_context(GraphContext(session_id="test"))
-    chain = ScriptChain(nodes=nodes, name="depth-test", token_ceiling=None, depth_ceiling=2, tools=[SumTool()], context_manager=ctx_mgr)
+    chain = ScriptChain(
+        nodes=nodes,
+        name="depth-test",
+        token_ceiling=None,
+        depth_ceiling=2,
+        tools=[SumTool()],
+        context_manager=ctx_mgr,
+    )
     result = await chain.execute()
     assert not result.success
-    assert "Depth ceiling" in (result.error or "") 
+    assert "Depth ceiling" in (result.error or "")

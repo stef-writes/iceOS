@@ -20,14 +20,18 @@ class PassiveAgent(AgentNode):
             name=name,
             instructions="You are a passive agent",
             model="gpt-3.5-turbo",
-            model_settings=ModelSettings(model="gpt-3.5-turbo", temperature=0.0, provider="openai"),
+            model_settings=ModelSettings(
+                model="gpt-3.5-turbo", temperature=0.0, provider="openai"
+            ),
             tools=[],
         )
         super().__init__(config=cfg, context_manager=ctx_mgr)
 
     async def execute(self, input: Dict[str, Any]):  # type: ignore[override]
         meta = NodeMetadata(node_id=self.config.name, node_type="agent")  # type: ignore[arg-type]
-        return NodeExecutionResult(success=True, output={"agent": self.config.name}, metadata=meta)
+        return NodeExecutionResult(
+            success=True, output={"agent": self.config.name}, metadata=meta
+        )
 
 
 class RouterAgent(AgentNode):
@@ -62,11 +66,15 @@ async def test_router_agent_forwards(monkeypatch):
         name="router",
         instructions="Route to the correct agent",
         model="gpt-3.5-turbo",
-        model_settings=ModelSettings(model="gpt-3.5-turbo", temperature=0.0, provider="openai"),
+        model_settings=ModelSettings(
+            model="gpt-3.5-turbo", temperature=0.0, provider="openai"
+        ),
         tools=[],
     )
     llm_service = LLMService()
-    router = RouterAgent(config=router_cfg, context_manager=ctx_mgr, llm_service=llm_service)
+    router = RouterAgent(
+        config=router_cfg, context_manager=ctx_mgr, llm_service=llm_service
+    )
 
     # Monkeypatch LLMService.generate to always pick "beta" ------------------
     async def _fake_generate(*_args, **_kwargs):  # noqa: D401
@@ -77,4 +85,4 @@ async def test_router_agent_forwards(monkeypatch):
     result = await router.execute({"foo": "bar"})
 
     assert result.success
-    assert result.output == {"agent": "beta"} 
+    assert result.output == {"agent": "beta"}

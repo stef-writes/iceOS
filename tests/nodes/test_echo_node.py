@@ -28,6 +28,7 @@ class EchoNode(BaseNode):
 # Tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_echo_node_happy_path():
     cfg = EchoNodeConfig(id="echo1", name="Echo")
@@ -50,4 +51,4 @@ async def test_echo_node_validation_error():
 
     bad_ctx = {"wrong": "field"}
     with pytest.raises(ValueError):
-        await node.pre_execute(bad_ctx) 
+        await node.pre_execute(bad_ctx)

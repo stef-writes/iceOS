@@ -93,4 +93,4 @@ It deliberately keeps **zero** business logic – only lightweight imports – s
 it doesn't create dependency inversions (Cursor rule #4).
 """
 
-__version__ = "0.1.0" 
+__version__ = "0.1.0"

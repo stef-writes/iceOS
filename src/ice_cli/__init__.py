@@ -8,4 +8,4 @@ from __future__ import annotations
 
 from .cli import app  # re-export Typer app so entry-point can find it.
 
-__all__ = ["app"] 
+__all__ = ["app"]

@@ -37,10 +37,13 @@ async def publish(event_name: str, payload: BaseModel) -> None:
     envelope = EventEnvelope(name=event_name, payload=payload)
 
     for cb in list(_subscribers.get(event_name, [])):
-        async def _run_callback(callback: Subscriber, env: EventEnvelope) -> None:  # noqa: WPS430
+
+        async def _run_callback(
+            callback: Subscriber, env: EventEnvelope
+        ) -> None:  # noqa: WPS430
             try:
                 await callback(env)
             except Exception:  # noqa: BLE001
                 pass
 
-        asyncio.create_task(_run_callback(cb, envelope)) 
+        asyncio.create_task(_run_callback(cb, envelope))

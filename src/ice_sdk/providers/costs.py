@@ -43,6 +43,7 @@ _PRICING_TABLE: Dict[ModelProvider, Dict[str, Tuple[Decimal, Decimal]]] = {
 # Public helpers -------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 def get_price_per_token(provider: ModelProvider, model: str) -> Tuple[Decimal, Decimal]:
     """Return *(prompt_price, completion_price)* per token for *model*.
 
@@ -66,4 +67,4 @@ def calculate_cost(
     """Return cost in USD (``Decimal``) for the given token counts."""
 
     p_price, c_price = get_price_per_token(provider, model)
-    return (p_price * prompt_tokens) + (c_price * completion_tokens) 
+    return (p_price * prompt_tokens) + (c_price * completion_tokens)

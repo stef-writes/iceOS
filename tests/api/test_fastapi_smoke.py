@@ -1,7 +1,7 @@
+from typing import Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from typing import Generator
 
 from app.main import app
 
@@ -41,4 +41,4 @@ class TestFastAPISmoke:
         assert res.status_code == 404
         # Default JSON schema from FastAPI for 404s
         assert res.json()["detail"] == "Not Found"
-        _assert_cors_headers(res) 
+        _assert_cors_headers(res)

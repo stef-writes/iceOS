@@ -7,4 +7,4 @@ import pytest
 def test_shim_removed(shim):
     """Importing removed compatibility shims must raise ImportError."""
     with pytest.raises(ImportError):
-        importlib.import_module(shim) 
+        importlib.import_module(shim)

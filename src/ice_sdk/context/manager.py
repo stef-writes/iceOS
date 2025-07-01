@@ -1,4 +1,5 @@
 """Context manager for graph execution."""
+
 import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class GraphContext(BaseModel):
     """Context for graph execution."""
+
     session_id: str
     metadata: Dict[str, Any] = {}
     execution_id: Optional[str] = None
@@ -54,13 +56,13 @@ class GraphContextManager:
         self.graph = graph or nx.DiGraph()
         self.store = store or ContextStore()
         self.formatter = formatter or ContextFormatter()
-        self._agents: Dict[str, 'AgentNode'] = {}
+        self._agents: Dict[str, "AgentNode"] = {}
         self._tools: Dict[str, BaseTool] = {}
         # Map of session_id -> GraphContext (acts as LRU cache) --------------
-        self._contexts: 'OrderedDict[str, GraphContext]' = OrderedDict()
+        self._contexts: "OrderedDict[str, GraphContext]" = OrderedDict()
         self._context: Optional[GraphContext] = None
 
-    def register_agent(self, agent: 'AgentNode') -> None:
+    def register_agent(self, agent: "AgentNode") -> None:
         """Register an agent for lookup by other agents."""
         if agent.config.name in self._agents:
             raise ValueError(f"Agent '{agent.config.name}' already registered")
@@ -68,7 +70,7 @@ class GraphContextManager:
 
     def register_tool(self, tool: BaseTool) -> None:
         """Register a tool for use by agents.
-        
+
         Args:
             tool: Tool to register
         """
@@ -76,7 +78,7 @@ class GraphContextManager:
             raise ValueError(f"Tool '{tool.name}' already registered")
         self._tools[tool.name] = tool
 
-    def get_agent(self, name: str) -> Optional['AgentNode']:
+    def get_agent(self, name: str) -> Optional["AgentNode"]:
         """Look up an agent by name."""
         return self._agents.get(name)
 
@@ -84,7 +86,7 @@ class GraphContextManager:
         """Get registered tool by name."""
         return self._tools.get(name)
 
-    def get_all_agents(self) -> Dict[str, 'AgentNode']:
+    def get_all_agents(self) -> Dict[str, "AgentNode"]:
         """Get all registered agents."""
         return dict(self._agents)
 
@@ -116,13 +118,9 @@ class GraphContextManager:
         self._context = context
         self._register_context(context)
 
-    async def execute_tool(
-        self,
-        tool_name: str,
-        **kwargs
-    ) -> Any:
+    async def execute_tool(self, tool_name: str, **kwargs) -> Any:
         """Execute a tool with the current context.
-        
+
         Args:
             tool_name: Name of tool to execute
             **kwargs: Tool arguments
@@ -130,17 +128,17 @@ class GraphContextManager:
         tool = self.get_tool(tool_name)
         if not tool:
             raise ValueError(f"Tool '{tool_name}' not found")
-            
+
         if not self._context:
             raise RuntimeError("No execution context set")
-            
+
         # Create tool context
         tool_ctx = ToolContext(
             agent_id=self._context.session_id,
             session_id=self._context.execution_id or self._context.session_id,
-            metadata=self._context.metadata
+            metadata=self._context.metadata,
         )
-        
+
         # Execute tool
         try:
             result = await tool.run(ctx=tool_ctx, **kwargs)
@@ -177,7 +175,9 @@ class GraphContextManager:
                 except TypeError:
                     serialised = str(content)
 
-            current_tokens = TokenCounter.estimate_tokens(serialised, model="", provider=ModelProvider.CUSTOM)
+            current_tokens = TokenCounter.estimate_tokens(
+                serialised, model="", provider=ModelProvider.CUSTOM
+            )
 
             if self.max_tokens and current_tokens > self.max_tokens:
                 # Truncate string representation to fit token budget (≈4 chars/token)
@@ -209,10 +209,7 @@ class GraphContextManager:
         self.store.clear(node_id)
 
     def format_context(
-        self,
-        content: Any,
-        rule: str,
-        format_specs: Optional[Dict[str, Any]] = None
+        self, content: Any, rule: str, format_specs: Optional[Dict[str, Any]] = None
     ) -> str:
         """Format context content according to rules."""
         return self.formatter.format(content, rule, format_specs)
@@ -221,14 +218,18 @@ class GraphContextManager:
         """Validate context rules against graph structure."""
         for node_id, rule in rules.items():
             if node_id not in self.graph.nodes:
-                logger.warning(f"Context rule specified for non-existent node: {node_id}")
+                logger.warning(
+                    f"Context rule specified for non-existent node: {node_id}"
+                )
                 return False
             if (
                 hasattr(rule, "max_tokens")
                 and rule.max_tokens
                 and rule.max_tokens > self.max_tokens
             ):
-                logger.warning(f"Context rule max_tokens exceeds system limit for node: {node_id}")
+                logger.warning(
+                    f"Context rule max_tokens exceeds system limit for node: {node_id}"
+                )
                 return False
         return True
 
@@ -284,7 +285,9 @@ class GraphContextManager:
         from ice_sdk.utils.token_counter import TokenCounter
 
         def _estimate_tokens(text: str) -> int:
-            return TokenCounter.estimate_tokens(text, model="", provider=ModelProvider.CUSTOM)
+            return TokenCounter.estimate_tokens(
+                text, model="", provider=ModelProvider.CUSTOM
+            )
 
         # ------------------------------------------------------------------
         # Strategy: truncate (cheap) ---------------------------------------
@@ -307,7 +310,9 @@ class GraphContextManager:
                     deterministic_summariser,  # type: ignore
                 )
 
-                summary = deterministic_summariser(content, schema=schema, max_tokens=effective_max_tokens)
+                summary = deterministic_summariser(
+                    content, schema=schema, max_tokens=effective_max_tokens
+                )
                 return summary
             except Exception:  # noqa: BLE001
                 # Fall back to plain truncation when summarisation unavailable

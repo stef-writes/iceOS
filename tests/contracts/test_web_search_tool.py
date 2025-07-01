@@ -24,7 +24,11 @@ async def test_web_search_tool_mocked_serpapi() -> None:
 
     dummy_payload: dict[str, Any] = {
         "organic_results": [
-            {"title": "Example", "link": "https://example.com", "snippet": "Lorem ipsum"}
+            {
+                "title": "Example",
+                "link": "https://example.com",
+                "snippet": "Lorem ipsum",
+            }
         ]
     }
 
@@ -35,4 +39,4 @@ async def test_web_search_tool_mocked_serpapi() -> None:
         result: Any = await tool.run(query="hello world")
 
         assert "results" in result
-        assert result["results"][0]["title"] == "Example"  # type: ignore[index] 
+        assert result["results"][0]["title"] == "Example"  # type: ignore[index]

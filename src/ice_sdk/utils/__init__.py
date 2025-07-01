@@ -1,4 +1,5 @@
 """Utility helpers (logging, error handling, etc.) shared by ice_* packages."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -22,4 +23,4 @@ __all__ = [
     "coerce_types",
 ]
 
-# Lazy imports to avoid unnecessary dependency loading on lightweight clients. 
+# Lazy imports to avoid unnecessary dependency loading on lightweight clients.

@@ -33,6 +33,7 @@ ScriptChain: TypeAlias = ScriptChainLike
 # Helper – build AgentNode from AiNodeConfig (duplicated from ScriptChain._make_agent)
 # ---------------------------------------------------------------------------
 
+
 def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
     """Build or fetch a cached AgentNode instance for *node*."""
     agent_cache: Dict[str, AgentNode] = getattr(chain, "_agent_cache")
@@ -98,8 +99,11 @@ def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
 # "ai" executor ------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 @register_node("ai")
-async def ai_executor(chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]) -> NodeExecutionResult:
+async def ai_executor(
+    chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
+) -> NodeExecutionResult:
     """Executor for LLM-powered *ai* nodes."""
 
     if not isinstance(cfg, AiNodeConfig):
@@ -127,8 +131,11 @@ async def ai_executor(chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]) 
 # "tool" executor ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 @register_node("tool")
-async def tool_executor(chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]) -> NodeExecutionResult:
+async def tool_executor(
+    chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
+) -> NodeExecutionResult:
     """Executor for deterministic tool nodes with context-aware `tool_args`."""
 
     from ice_sdk.models.node_models import ToolNodeConfig
@@ -167,4 +174,4 @@ async def tool_executor(chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
         ),
         execution_time=0.0,
     )
-    return result 
+    return result

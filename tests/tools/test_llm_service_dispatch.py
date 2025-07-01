@@ -9,12 +9,15 @@ from ice_sdk.providers.llm_service import LLMService
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("provider", [
-    ModelProvider.OPENAI,
-    ModelProvider.ANTHROPIC,
-    ModelProvider.GOOGLE,
-    ModelProvider.DEEPSEEK,
-])
+@pytest.mark.parametrize(
+    "provider",
+    [
+        ModelProvider.OPENAI,
+        ModelProvider.ANTHROPIC,
+        ModelProvider.GOOGLE,
+        ModelProvider.DEEPSEEK,
+    ],
+)
 async def test_llm_service_dispatch(monkeypatch, provider):
     """Ensure LLMService dispatches to the correct provider handler and passes
     through the prompt/context intact."""
@@ -38,7 +41,11 @@ async def test_llm_service_dispatch(monkeypatch, provider):
         captured["context"] = context
         captured["tools"] = tools
         # Return text, usage, error (usage & error can be None)
-        return "OK", {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2}, None
+        return (
+            "OK",
+            {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+            None,
+        )
 
     # Monkeypatch the underlying handler for the provider -------------------
     handler = service.handlers[provider]
@@ -56,4 +63,4 @@ async def test_llm_service_dispatch(monkeypatch, provider):
     assert captured["provider"] == provider
     assert captured["prompt"] == "Hello"
     assert captured["context"] == {"foo": "bar"}
-    assert captured["tools"] == [{"name": "noop"}] 
+    assert captured["tools"] == [{"name": "noop"}]

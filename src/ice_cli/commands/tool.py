@@ -20,6 +20,7 @@ from ice_sdk.tools.service import ToolService
 # Helper utilities ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 def _snake_case(name: str) -> str:
     """Convert *PascalCase* or *camelCase* to ``snake_case``."""
 
@@ -91,13 +92,23 @@ def get_tool_service(refresh: bool = False) -> ToolService:
 # `tool new` ---------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 @tool_app.command("new", help="Scaffold a new tool module from a template")
 def tool_new(
     name: str = typer.Argument(..., help="Class name for the tool (e.g. MyCool)"),
     directory: Path = typer.Option(
-        Path.cwd(), "--dir", "-d", exists=True, file_okay=False, dir_okay=True, writable=True, help="Destination directory"
+        Path.cwd(),
+        "--dir",
+        "-d",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        help="Destination directory",
     ),
-    force: bool = typer.Option(False, "--force", "-f", help="Overwrite if file already exists"),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite if file already exists"
+    ),
 ):
     """Generate ``<snake_case>.tool.py`` with boilerplate code."""
 
@@ -125,22 +136,31 @@ def tool_new(
         rprint(f"[yellow]Dry-run:[/] Would create {_pretty_path(target_path)}")
         _emit_event(
             "cli.tool_new.completed",
-            CLICommandEvent(command="tool_new", status="completed", params={"dry_run": True}),
+            CLICommandEvent(
+                command="tool_new", status="completed", params={"dry_run": True}
+            ),
         )
         raise typer.Exit()
 
     if target_path.exists() and not force:
-        rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
+        rprint(
+            f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite."
+        )
         raise typer.Exit(code=1)
 
     try:
         target_path.write_text(_create_tool_template(name))
         rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
-        _emit_event("cli.tool_new.completed", CLICommandEvent(command="tool_new", status="completed"))
+        _emit_event(
+            "cli.tool_new.completed",
+            CLICommandEvent(command="tool_new", status="completed"),
+        )
     except Exception as exc:  # noqa: BLE001
         _emit_event(
             "cli.tool_new.failed",
-            CLICommandEvent(command="tool_new", status="failed", params={"error": str(exc)}),
+            CLICommandEvent(
+                command="tool_new", status="failed", params={"error": str(exc)}
+            ),
         )
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
         raise typer.Exit(code=1)
@@ -150,8 +170,13 @@ def tool_new(
 # `tool ls` ------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 @tool_app.command("ls", help="List all tools available in the current project")
-def tool_ls(refresh: bool = typer.Option(False, "--refresh", "-r", help="Re-scan project directories")) -> None:
+def tool_ls(
+    refresh: bool = typer.Option(
+        False, "--refresh", "-r", help="Re-scan project directories"
+    )
+) -> None:
     """Print a table of registered tool names and their descriptions."""
 
     svc = get_tool_service(refresh)
@@ -170,6 +195,7 @@ def tool_ls(refresh: bool = typer.Option(False, "--refresh", "-r", help="Re-scan
 # ---------------------------------------------------------------------------
 # `tool info` --------------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 @tool_app.command("info", help="Show JSON schema & metadata for a tool")
 def tool_info(name: str = typer.Argument(..., help="Tool name")) -> None:
@@ -195,6 +221,7 @@ def tool_info(name: str = typer.Argument(..., help="Tool name")) -> None:
 # ---------------------------------------------------------------------------
 # `tool test` --------------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 @tool_app.command("test", help="Execute a tool in isolation with optional JSON args")
 def tool_test(
@@ -228,9 +255,11 @@ def tool_test(
             raise typer.Exit(code=1)
 
     async def _run_tool() -> Any:  # type: ignore[override]
-        return await tool_obj.run(ctx=ToolContext(agent_id="cli", session_id="cli"), **kwargs)
+        return await tool_obj.run(
+            ctx=ToolContext(agent_id="cli", session_id="cli"), **kwargs
+        )
 
     result = asyncio.run(_run_tool())  # noqa: S609 – top-level call OK in CLI
     from rich.json import JSON
 
-    rprint(JSON.from_data(result)) 
+    rprint(JSON.from_data(result))

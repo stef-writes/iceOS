@@ -3,6 +3,7 @@
 Utilities deliberately kept free of external dependencies so they work in any
 execution environment.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -37,6 +38,7 @@ def estimate_complexity(node_cfg: Any) -> int:  # noqa: ANN401 – generic for n
 # Weighted semaphore ---------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 class WeightedSemaphore:
     """Async context-manager that acquires *weight* slots from *sem*.
 
@@ -62,4 +64,4 @@ class WeightedSemaphore:
         for _ in range(self._weight):
             self._sem.release()
         # Do not suppress exceptions
-        return False 
+        return False

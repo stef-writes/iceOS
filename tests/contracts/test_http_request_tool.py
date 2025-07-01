@@ -17,7 +17,9 @@ from ice_sdk.tools.builtins.deterministic import HttpRequestTool
 class _Handler(BaseHTTPRequestHandler):
     """Minimal HTTP handler that returns JSON for /get requests."""
 
-    def log_message(self, format: str, *args) -> None:  # noqa: D401,E133 pylint: disable=invalid-name
+    def log_message(
+        self, format: str, *args
+    ) -> None:  # noqa: D401,E133 pylint: disable=invalid-name
         """Silence default stdout logging during tests."""
 
     def do_GET(self) -> None:  # noqa: N802  # method name from BaseHTTPRequestHandler
@@ -60,4 +62,4 @@ async def test_http_request_tool_against_local_server(http_server: str) -> None:
     result: Any = await tool.run(url=f"{http_server}/get", method="GET")
 
     assert result["status_code"] == 200
-    assert "\"url\": \"/get\"" in result["body"] 
+    assert '"url": "/get"' in result["body"]

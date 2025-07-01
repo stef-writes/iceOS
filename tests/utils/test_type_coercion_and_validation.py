@@ -1,16 +1,13 @@
 import pytest
 from pydantic import BaseModel
 
-from ice_sdk.utils.type_coercion import coerce_value, coerce_types
-from ice_sdk.core.validation import (
-    SchemaValidationError,
-    validate_or_raise,
-)
-
+from ice_sdk.core.validation import SchemaValidationError, validate_or_raise
+from ice_sdk.utils.type_coercion import coerce_types, coerce_value
 
 # ---------------------------------------------------------------------------
 # Tests for utils.type_coercion
 # ---------------------------------------------------------------------------
+
 
 def test_coerce_value_basic_types() -> None:
     """coerce_value should correctly convert across the supported primitives."""
@@ -46,7 +43,11 @@ class _PersonModel(BaseModel):
 @pytest.mark.parametrize(
     "output,schema,expected",
     [
-        ({"age": "25", "name": "Alice"}, {"age": "int", "name": "str"}, {"age": 25, "name": "Alice"}),
+        (
+            {"age": "25", "name": "Alice"},
+            {"age": "int", "name": "str"},
+            {"age": 25, "name": "Alice"},
+        ),
         ({"name": "Bob", "age": "30"}, _PersonModel, {"name": "Bob", "age": 30}),
     ],
 )
@@ -116,4 +117,4 @@ def test_validate_or_raise_with_mapping_schema() -> None:
 
     wrong_type = {"title": 123}
     with pytest.raises(SchemaValidationError):
-        validate_or_raise(wrong_type, _JSON_SCHEMA) 
+        validate_or_raise(wrong_type, _JSON_SCHEMA)

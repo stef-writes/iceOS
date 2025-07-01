@@ -45,7 +45,7 @@ class BaseScriptChain(ABC):
         use_cache: bool = True,
     ):
         """Initialize script chain.
-        
+
         Args:
             nodes: List of node configurations
             name: Chain name
@@ -71,12 +71,12 @@ class BaseScriptChain(ABC):
         self.callbacks = callbacks or []
         self.workflow_context = workflow_context or WorkflowExecutionContext()
         self.failure_policy = failure_policy
-        
+
         # Register tools
         if tools:
             for tool in tools:
                 self.context_manager.register_tool(tool)
-        
+
         # Set initial context – always create a workflow-scoped context
         context_metadata = initial_context or {}
         self.context_manager.set_context(
@@ -118,6 +118,8 @@ class BaseScriptChain(ABC):
         pass
 
     @abstractmethod
-    async def execute_node(self, node_id: str, input_data: Dict[str, Any]) -> NodeExecutionResult:
+    async def execute_node(
+        self, node_id: str, input_data: Dict[str, Any]
+    ) -> NodeExecutionResult:
         """Execute a single node and return its :class:`NodeExecutionResult`.  Must be
         implemented by concrete subclasses (e.g. :class:`ScriptChain`)."""

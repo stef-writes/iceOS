@@ -33,8 +33,7 @@ def _make_temp_tool(tmp_path: Path):
     sys.path.insert(0, str(tmp_path))
 
 
-@pytest.mark.parametrize("cmd", [
-    ("tool ls --refresh"), ("tool info hello")])
+@pytest.mark.parametrize("cmd", [("tool ls --refresh"), ("tool info hello")])
 def test_cli_tool_commands(tmp_path: Path, cmd: str):
     _make_temp_tool(tmp_path)
     prev_cwd = Path.cwd()
@@ -44,4 +43,4 @@ def test_cli_tool_commands(tmp_path: Path, cmd: str):
     finally:
         os.chdir(prev_cwd)
     assert result.exit_code == 0, result.output
-    assert "hello" in result.output 
+    assert "hello" in result.output

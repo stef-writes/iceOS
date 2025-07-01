@@ -20,4 +20,4 @@ async def test_publish_subscribe_roundtrip():
     # Give the event loop a tiny slice so create_task callbacks execute
     await asyncio.sleep(0.05)
 
-    assert received == ["test.event"] 
+    assert received == ["test.event"]

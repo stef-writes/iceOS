@@ -4,21 +4,44 @@ repos:
     hooks:
       - id: ruff
         args: ["--fix"]
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.13.2
+        exclude: "^(tests/|scripts/)"
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
     hooks:
       - id: isort
   - repo: https://github.com/psf/black
     rev: 24.3.0
     hooks:
       - id: black
-  - repo: https://github.com/microsoft/pyright-pre-commit
-    rev: v0.1.12
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.402
     hooks:
       - id: pyright
-        args: ["--warnings"]
+        args: ["--warnings", "src"]
+        stages: [manual]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
       - id: mypy
-        args: ["--strict", "src"] 
+        args: ["--strict", "--explicit-package-bases", "src"]
+        stages: [manual]
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff (strict)
+        entry: ruff check src
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: pytest
+        name: pytest
+        entry: pytest -q
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: coverage
+        name: pytest (coverage gate)
+        entry: pytest --cov=ice_sdk --cov=ice_orchestrator --cov-report=term --cov-fail-under=65 -q
+        language: system
+        pass_filenames: false
+        always_run: true 

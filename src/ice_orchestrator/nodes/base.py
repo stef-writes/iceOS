@@ -6,4 +6,4 @@ re-exports *that* class so existing code keeps working without changes.
 
 from ice_sdk.base_node import BaseNode  # noqa: F401
 
-__all__: list[str] = ["BaseNode"] 
+__all__: list[str] = ["BaseNode"]

@@ -58,7 +58,9 @@ class HttpRequestTool(BaseTool):
     """
 
     name: ClassVar[str] = "http_request"
-    description: ClassVar[str] = "Make an HTTP GET/POST request and return the response body (truncated)."
+    description: ClassVar[str] = (
+        "Make an HTTP GET/POST request and return the response body (truncated)."
+    )
     parameters_schema: ClassVar[Dict[str, Any]] = {
         "type": "object",
         "properties": {
@@ -68,7 +70,11 @@ class HttpRequestTool(BaseTool):
                 "default": "GET",
             },
             "url": {"type": "string", "description": "Request URL"},
-            "params": {"type": "object", "description": "Query parameters", "default": {}},
+            "params": {
+                "type": "object",
+                "description": "Query parameters",
+                "default": {},
+            },
             "data": {"type": "object", "description": "POST body data", "default": {}},
             "timeout": {"type": "number", "default": 10.0},
             "attempts": {
@@ -78,8 +84,16 @@ class HttpRequestTool(BaseTool):
                 "maximum": 10,
                 "description": "Number of retry attempts on network failure",
             },
-            "max_bytes": {"type": "integer", "default": 65536, "description": "Maximum bytes to return"},
-            "base64": {"type": "boolean", "default": False, "description": "Return body as base64"},
+            "max_bytes": {
+                "type": "integer",
+                "default": 65536,
+                "description": "Maximum bytes to return",
+            },
+            "base64": {
+                "type": "boolean",
+                "default": False,
+                "description": "Return body as base64",
+            },
         },
         "required": ["url"],
     }
@@ -111,7 +125,9 @@ class HttpRequestTool(BaseTool):
             except Exception as exc:  # pragma: no cover – network errors
                 if attempt == attempts:
                     # Exhausted retries; raise detailed error
-                    raise ToolError(f"HTTP request failed after {attempts} attempts: {exc}") from exc
+                    raise ToolError(
+                        f"HTTP request failed after {attempts} attempts: {exc}"
+                    ) from exc
                 # Simple exponential backoff (0.1, 0.2, 0.4, ...)
                 await asyncio.sleep(0.1 * 2 ** (attempt - 1))
 
@@ -158,4 +174,4 @@ class SumTool(BaseTool):
             total = sum(float(x) for x in numbers)
         except Exception as exc:
             raise ToolError(f"Invalid number in input: {exc}") from exc
-        return {"sum": total} 
+        return {"sum": total}

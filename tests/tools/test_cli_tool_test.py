@@ -11,6 +11,7 @@ from ice_cli.cli import app
 
 runner = CliRunner()
 
+
 def _setup_tool(tmp_path: Path):
     code = dedent(
         """
@@ -36,8 +37,8 @@ def test_cli_tool_test(tmp_path: Path):
     prev = Path.cwd()
     os.chdir(tmp_path)
     try:
-        result = runner.invoke(app, ["tool", "test", "echo", "--args", "{\"foo\":1}"])
+        result = runner.invoke(app, ["tool", "test", "echo", "--args", '{"foo":1}'])
     finally:
         os.chdir(prev)
     assert result.exit_code == 0, result.output
-    assert "foo" in result.output 
+    assert "foo" in result.output

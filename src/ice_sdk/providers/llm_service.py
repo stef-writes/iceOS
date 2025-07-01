@@ -27,8 +27,7 @@ try:
     from openai import error as openai_error  # type: ignore
 except Exception:  # pragma: no cover
     # Provide stub error types when OpenAI package is absent (e.g., during tests).
-    class _StubError(Exception):
-        ...
+    class _StubError(Exception): ...
 
     class _OpenAIErrorModule:  # type: ignore
         RateLimitError = _StubError
@@ -76,10 +75,14 @@ class LLMService:
         provider_key: ModelProvider
         try:
             provider_key = (
-                llm_config.provider
-                if isinstance(llm_config.provider, ModelProvider)
-                else ModelProvider(llm_config.provider)  # type: ignore[arg-type]
-            ) if llm_config.provider else ModelProvider.OPENAI
+                (
+                    llm_config.provider
+                    if isinstance(llm_config.provider, ModelProvider)
+                    else ModelProvider(llm_config.provider)  # type: ignore[arg-type]
+                )
+                if llm_config.provider
+                else ModelProvider.OPENAI
+            )
         except ValueError:
             return "", None, f"Unsupported provider: {llm_config.provider}"
 
@@ -87,7 +90,9 @@ class LLMService:
         if handler is None:
             return "", None, f"No handler for provider: {provider_key}"
 
-        async def _call_handler() -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:
+        async def _call_handler() -> (
+            Tuple[str, Optional[Dict[str, int]], Optional[str]]
+        ):
             try:
                 return await handler.generate_text(
                     llm_config=llm_config,
@@ -114,7 +119,9 @@ class LLMService:
             wait=wait_exponential(multiplier=1, min=1, max=10),
             reraise=True,
         )
-        async def _call_with_retry() -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:
+        async def _call_with_retry() -> (
+            Tuple[str, Optional[Dict[str, int]], Optional[str]]
+        ):
             return await _call_handler()
 
         try:
@@ -129,8 +136,10 @@ class LLMService:
             logger.warning("LLM request failed after retries: %s", err)
             return "", None, str(err)
         except asyncio.TimeoutError:
-            logger.warning("LLM request exceeded overall timeout of %s seconds", timeout_seconds)
+            logger.warning(
+                "LLM request exceeded overall timeout of %s seconds", timeout_seconds
+            )
             return "", None, "Request timed out"
         except Exception as err:  # pylint: disable=broad-except
             logger.error("Unhandled exception in LLMService.generate", exc_info=True)
-            return "", None, str(err) 
+            return "", None, str(err)

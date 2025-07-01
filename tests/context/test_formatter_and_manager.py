@@ -1,4 +1,3 @@
-
 from ice_sdk.context.formatter import ContextFormatter
 from ice_sdk.context.manager import GraphContext, GraphContextManager
 from ice_sdk.context.store import ContextStore
@@ -24,4 +23,4 @@ def test_graph_context_manager_update_and_get(tmp_path):
     data = {"foo": "bar"}
     ctx_mgr.update_node_context(node_id, data)
     retrieved = ctx_mgr.get_node_context(node_id)
-    assert retrieved == data 
+    assert retrieved == data

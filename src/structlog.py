@@ -90,7 +90,9 @@ def configure(*_args: Any, **_kwargs: Any) -> None:  # noqa: D401 – preserve n
 # ---------------------------------------------------------------------------
 
 
-def _identity_processor(*_args: Any, **_kwargs: Any) -> Callable[[Any, str, dict], dict]:
+def _identity_processor(
+    *_args: Any, **_kwargs: Any
+) -> Callable[[Any, str, dict], dict]:
     """Return a processor that passes the event dictionary through unchanged."""
 
     def _processor(_logger: Any, _name: str, event_dict: dict) -> dict:  # noqa: D401
@@ -114,4 +116,4 @@ def make_filtering_bound_logger(*_args: Any, **_kwargs: Any):  # noqa: D401
     def _wrapper(logger: logging.Logger):  # type: ignore[override]
         return logger
 
-    return _wrapper 
+    return _wrapper

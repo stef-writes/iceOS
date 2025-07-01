@@ -3,6 +3,7 @@
 By default the script looks for the string "MIT License" within the first
 10 lines of each ``*.py`` file.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -16,6 +17,7 @@ LICENSE_STRING_DEFAULT = "MIT License"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def file_has_header(path: Path, needle: str, max_lines: int) -> bool:
     try:
@@ -34,6 +36,7 @@ def file_has_header(path: Path, needle: str, max_lines: int) -> bool:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def build_parser() -> argparse.ArgumentParser:  # noqa: D401
     parser = argparse.ArgumentParser(description="License header checker")
@@ -82,4 +85,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main() 
+    main()

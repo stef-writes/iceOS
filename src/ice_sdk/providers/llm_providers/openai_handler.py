@@ -81,4 +81,4 @@ class OpenAIHandler(BaseLLMHandler):
 
         usage_stats = self._usage_from_openai(response)  # type: ignore[arg-type]
 
-        return content_str, usage_stats, None 
+        return content_str, usage_stats, None

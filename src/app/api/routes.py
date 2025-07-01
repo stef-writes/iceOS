@@ -37,6 +37,7 @@ class NodeRequest(BaseModel):
 
 class WorkflowRequest(BaseModel):
     """Workflow execution request."""
+
     nodes: List[NodeConfig]
     name: Optional[str] = None
     max_parallel: int = 5
@@ -63,7 +64,7 @@ async def create_text_generation_node(
                 temperature=request.config.llm_config.temperature,
                 max_tokens=request.config.llm_config.max_tokens,
             ),
-            tools=request.config.tools if hasattr(request.config, 'tools') else [],
+            tools=request.config.tools if hasattr(request.config, "tools") else [],
         )
 
         # Create and execute agent

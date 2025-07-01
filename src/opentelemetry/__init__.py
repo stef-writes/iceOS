@@ -7,6 +7,7 @@ from typing import Any, Literal
 # Minimal *opentelemetry* shim for test/dev environments.
 # ---------------------------------------------------------------------------
 
+
 # A very small Span object that supports the handful of methods used internally.
 class _Span:
     def __enter__(self) -> "_Span":
@@ -60,4 +61,4 @@ trace = _import_module(__name__ + ".trace")  # type: ignore[invalid-name]
 
 __all__ = [
     "trace",
-] 
+]

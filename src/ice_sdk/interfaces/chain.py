@@ -21,4 +21,4 @@ class ScriptChainLike(Protocol):
 
 
 # NOTE: To avoid an import cycle, we import AgentNode lazily in TYPE_CHECKING
-# blocks by using a forward reference string above. 
+# blocks by using a forward reference string above.

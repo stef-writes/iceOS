@@ -14,6 +14,7 @@ Key differences to the legacy implementation:
   ``mode`` parameter for :pyfunc:`~pydantic.BaseModel.model_json_schema` is not
   available (pre-v2.6) the call silently falls back to the legacy signature.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -49,6 +50,7 @@ MODELS: Dict[str, Type[BaseModel]] = {
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _dump_schema(model: Type[BaseModel], out_path: pathlib.Path) -> None:  # noqa: D401
     """Write the JSON schema of *model* to *out_path*."""
 
@@ -66,6 +68,7 @@ def _dump_schema(model: Type[BaseModel], out_path: pathlib.Path) -> None:  # noq
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def build_arg_parser() -> argparse.ArgumentParser:  # noqa: D401
     parser = argparse.ArgumentParser(
@@ -95,4 +98,4 @@ def main() -> None:  # noqa: D401 (imperative mood)
 
 
 if __name__ == "__main__":
-    main() 
+    main()

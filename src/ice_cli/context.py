@@ -13,10 +13,10 @@ class CLIContext:
     """
 
     json_output: bool = False  # Default to machine-readable JSON instead of Rich tables
-    dry_run: bool = False      # Do not perform mutations – just log intended actions
-    yes: bool = False          # Assume *yes* for all confirmation prompts
-    verbose: bool = False      # Increase log verbosity
-    emit_events: bool = True   # Disable with --no-events
+    dry_run: bool = False  # Do not perform mutations – just log intended actions
+    yes: bool = False  # Assume *yes* for all confirmation prompts
+    verbose: bool = False  # Increase log verbosity
+    emit_events: bool = True  # Disable with --no-events
 
 
 # ---------------------------------------------------------------------------
@@ -50,4 +50,4 @@ def get_ctx(typer_ctx: Any | None = None) -> CLIContext:  # noqa: D401 – helpe
         # not have run – create a default context so attribute access is safe.
         setattr(typer_ctx, "obj", CLIContext())
 
-    return getattr(typer_ctx, "obj") 
+    return getattr(typer_ctx, "obj")

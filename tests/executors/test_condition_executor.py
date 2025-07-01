@@ -16,7 +16,9 @@ class DummyChain:  # minimal stub satisfying ScriptChainLike
 
 @pytest.mark.asyncio
 async def test_condition_true() -> None:
-    cfg = ConditionNodeConfig(id="cond1", name="cond1", type="condition", expression="True")
+    cfg = ConditionNodeConfig(
+        id="cond1", name="cond1", type="condition", expression="True"
+    )
     result = await condition_executor(DummyChain(), cfg, {})  # type: ignore[arg-type]
     assert result.success is True
     assert result.output == {"result": True}
@@ -24,7 +26,9 @@ async def test_condition_true() -> None:
 
 @pytest.mark.asyncio
 async def test_condition_false() -> None:
-    cfg = ConditionNodeConfig(id="cond2", name="cond2", type="condition", expression="False")
+    cfg = ConditionNodeConfig(
+        id="cond2", name="cond2", type="condition", expression="False"
+    )
     result = await condition_executor(DummyChain(), cfg, {})  # type: ignore[arg-type]
     assert result.success is True  # evaluation succeeds even if result False
     assert result.output == {"result": False}
@@ -32,7 +36,9 @@ async def test_condition_false() -> None:
 
 @pytest.mark.asyncio
 async def test_condition_error() -> None:
-    cfg = ConditionNodeConfig(id="cond3", name="cond3", type="condition", expression="1/0")
+    cfg = ConditionNodeConfig(
+        id="cond3", name="cond3", type="condition", expression="1/0"
+    )
     result = await condition_executor(DummyChain(), cfg, {})  # type: ignore[arg-type]
     assert result.success is False
-    assert result.error is not None 
+    assert result.error is not None

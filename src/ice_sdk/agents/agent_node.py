@@ -12,17 +12,18 @@ from ..tools.base import BaseTool
 # Context-local stack of agent names to detect cycles -------------------------
 _AGENT_CALL_STACK: ContextVar[list[str]] = ContextVar("_AGENT_CALL_STACK", default=[])
 
+
 class AgentNode:
     """Agent node that can execute tools and generate responses."""
-    
+
     def __init__(
         self,
         config: AgentConfig,
         context_manager: GraphContextManager,
-        llm_service: Any = None
+        llm_service: Any = None,
     ):
         """Initialize agent node.
-        
+
         Args:
             config: Agent configuration
             context_manager: Context manager
@@ -39,11 +40,12 @@ class AgentNode:
 
     def as_tool(self, name: str, description: str) -> BaseTool:
         """Convert agent to tool.
-        
+
         Args:
             name: Tool name
             description: Tool description
         """
+
         class AgentTool(BaseTool):
             name: ClassVar[str] = name  # type: ignore[misc]
             description: ClassVar[str] = description  # type: ignore[misc]
@@ -52,7 +54,7 @@ class AgentNode:
                 "properties": {
                     "input": {"type": "object", "description": "Input to agent"}
                 },
-                "required": ["input"]
+                "required": ["input"],
             }
 
             # The parent ``AgentNode`` instance is patched onto the tool after
@@ -94,7 +96,7 @@ class AgentNode:
 
     async def execute(self, input: Dict[str, Any]) -> NodeExecutionResult:
         """Execute agent with input.
-        
+
         Args:
             input: Input to agent
         """
@@ -120,7 +122,9 @@ class AgentNode:
             validate_or_raise(input, getattr(self.config, "input_schema", None))  # type: ignore[arg-type]
         except SchemaValidationError as exc:
             metadata = NodeMetadata(  # type: ignore[call-arg]
-                node_id=self.config.name, node_type="agent", start_time=datetime.utcnow()
+                node_id=self.config.name,
+                node_type="agent",
+                start_time=datetime.utcnow(),
             )
             return NodeExecutionResult(  # type: ignore[call-arg]
                 success=False, error=str(exc), metadata=metadata
@@ -129,7 +133,9 @@ class AgentNode:
         # ------------------------------------------------------------------
         # 2. Prepare prompt & LLM service -----------------------------------
         # ------------------------------------------------------------------
-        self.llm_service = self.llm_service or self.context_manager.get_tool("__llm_service__")  # may be None
+        self.llm_service = self.llm_service or self.context_manager.get_tool(
+            "__llm_service__"
+        )  # may be None
         if self.llm_service is None:
             # Fallback – instantiate lazily to avoid import cycles at module top.
             from ..providers.llm_service import LLMService
@@ -137,7 +143,11 @@ class AgentNode:
             self.llm_service = LLMService()
 
         system_prompt = self.config.instructions
-        user_content = json.dumps(input, ensure_ascii=False) if not isinstance(input, str) else input
+        user_content = (
+            json.dumps(input, ensure_ascii=False)
+            if not isinstance(input, str)
+            else input
+        )
         conversation: list[dict[str, str]] = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content},
@@ -165,13 +175,19 @@ class AgentNode:
         # 3. LLM–tool loop --------------------------------------------------
         # ------------------------------------------------------------------
         MAX_ROUNDS = self.config.max_rounds  # honour per-agent override
-        aggregate_usage: dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+        aggregate_usage: dict[str, int] = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+        }
 
         tool_result_cache: dict[str, Any] = {}
         final_output: Any | None = None
 
         for round_idx in range(MAX_ROUNDS):
-            prompt = "\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in conversation])
+            prompt = "\n".join(
+                [f"{msg['role'].upper()}: {msg['content']}" for msg in conversation]
+            )
 
             text, usage, error = await self.llm_service.generate(  # type: ignore[attr-defined]
                 llm_config=llm_config,
@@ -226,7 +242,9 @@ class AgentNode:
                 # 3a. Tool whitelist enforcement -----------------------------------
                 # ------------------------------------------------------------------
                 if self.tools and tool_name not in [t.name for t in self.tools]:
-                    err_msg = f"Tool '{tool_name}' is not allowed by agent configuration"
+                    err_msg = (
+                        f"Tool '{tool_name}' is not allowed by agent configuration"
+                    )
                     logger.error(err_msg)
                     return NodeExecutionResult(  # type: ignore[call-arg]
                         success=False,
@@ -287,4 +305,4 @@ class AgentNode:
             metadata=metadata,
             usage=usage_meta,
             execution_time=duration,
-        ) 
+        )

@@ -59,4 +59,4 @@ def test_builder_engine_render_valid_python() -> None:
     assert mermaid.startswith("graph LR")
     # Expect 2 nodes represented
     assert "[TOOL:" in mermaid.upper()
-    assert "[AI:" in mermaid.upper() 
+    assert "[AI:" in mermaid.upper()

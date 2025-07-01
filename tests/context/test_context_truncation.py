@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from ice_sdk.context.manager import GraphContext, GraphContextManager
 from ice_sdk.context.store import ContextStore
 
@@ -22,4 +21,4 @@ def test_update_node_context_truncates_long_payload(tmp_path):
 
     assert isinstance(persisted, str)
     assert len(persisted) <= 4  # budget enforced
-    assert persisted == long_text[:4] 
+    assert persisted == long_text[:4]

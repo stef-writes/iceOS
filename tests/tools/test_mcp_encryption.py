@@ -35,8 +35,10 @@ async def test_mcp_encrypted_roundtrip():
     assert Fernet is not None  # for mypy/ruff
     key: bytes = Fernet.generate_key()
 
-    async with MCPServerStdio({"command": cmd, "args": args, "encryption_key": key}) as server:
+    async with MCPServerStdio(
+        {"command": cmd, "args": args, "encryption_key": key}
+    ) as server:
         # Send a simple ping-pong payload through the encrypted channel
         payload = {"ping": "pong"}
         response = await server._send_message(payload)  # type: ignore[attr-access]
-        assert response == payload 
+        assert response == payload

@@ -1,4 +1,3 @@
-
 import pytest
 
 from ice_sdk.tools.builtins import SleepTool, SumTool
@@ -16,4 +15,4 @@ async def test_sum_tool_adds_numbers():
     tool = SumTool()
     numbers = [1, 2, 3.5]
     result = await tool.run(numbers=numbers)
-    assert result == {"sum": sum(numbers)} 
+    assert result == {"sum": sum(numbers)}

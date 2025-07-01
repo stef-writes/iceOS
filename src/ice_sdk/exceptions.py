@@ -49,7 +49,13 @@ class CoreError(RuntimeError):
         payload: Optional additional data to attach to the error for programmatic handling.
     """
 
-    def __init__(self, code: ErrorCode, message: Optional[str] = None, *, payload: Any | None = None):
+    def __init__(
+        self,
+        code: ErrorCode,
+        message: Optional[str] = None,
+        *,
+        payload: Any | None = None,
+    ):
         self.code = code
         self.payload = payload
         super().__init__(message or code.describe())
@@ -74,4 +80,4 @@ class MCPTransportError(CoreError):
             ErrorCode.MCP_TRANSPORT_FAILURE,
             f"Secure MCP transport failed: {original_exc}",
             payload={"exc": original_exc},
-        ) 
+        )

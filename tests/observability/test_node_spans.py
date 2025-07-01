@@ -45,4 +45,4 @@ async def test_node_execute_span_emitted():
 
     spans = exporter.get_finished_spans()
     # Ensure at least one node.execute span exists ------------------------
-    assert any(span.name == "node.execute" for span in spans) 
+    assert any(span.name == "node.execute" for span in spans)

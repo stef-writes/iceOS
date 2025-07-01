@@ -83,7 +83,9 @@ def _make_handler(cfg: dict):
     headers = cfg.get("headers", {})
 
     async def _handler(env: EventEnvelope):  # noqa: D401 – conforms to Subscriber
-        ctx = ToolContext(agent_id="cli", session_id="webhook", metadata=env.model_dump())
+        ctx = ToolContext(
+            agent_id="cli", session_id="webhook", metadata=env.model_dump()
+        )
         await tool.run(ctx=ctx, url=url, headers=headers)
 
     return _handler
@@ -113,4 +115,4 @@ def initialise() -> None:  # noqa: D401 – imperative helper
 
 # Run eagerly when module imported by CLI entry-point -----------------------
 if __name__ == "__main__":  # pragma: no cover
-    initialise() 
+    initialise()

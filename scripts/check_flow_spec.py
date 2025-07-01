@@ -52,8 +52,8 @@ def main() -> None:  # noqa: D401
         sys.stderr.write("\n".join(errors) + "\n")
         sys.exit(1)
 
-    print("All FlowSpec files valid (", len(list(FLOW_DIR.rglob('*.json'))), "files)")
+    print("All FlowSpec files valid (", len(list(FLOW_DIR.rglob("*.json"))), "files)")
 
 
 if __name__ == "__main__":
-    main() 
+    main()

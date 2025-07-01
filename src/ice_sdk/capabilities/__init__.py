@@ -10,4 +10,4 @@ from .registry import CapabilityRegistry
 __all__: list[str] = [
     "CapabilityCard",
     "CapabilityRegistry",
-] 
+]

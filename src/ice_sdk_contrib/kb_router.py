@@ -33,6 +33,7 @@ KB_ROOT: Path = Path("knowledge_base")  # Lazily created on first request
 # Schemas -------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 class UploadResponse(BaseModel):
     file_id: str = Field(..., description="UUID assigned to the stored file")
     filename: str = Field(..., description="Original filename")
@@ -48,6 +49,7 @@ class IngestResponse(BaseModel):
 # Internals -----------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 def _ensure_kb_dir() -> None:  # noqa: D401 – helper
     """Ensure `knowledge_base/` directory exists."""
     KB_ROOT.mkdir(parents=True, exist_ok=True)
@@ -56,6 +58,7 @@ def _ensure_kb_dir() -> None:  # noqa: D401 – helper
 # ---------------------------------------------------------------------------
 # Routes --------------------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 @router.post("/upload", response_model=UploadResponse, status_code=201)
 async def upload_file(file: UploadFile = File(...)) -> UploadResponse:  # noqa: D401
@@ -97,4 +100,4 @@ async def ingest_file(file_id: str) -> IngestResponse:  # noqa: D401
         for chunk in chunks:
             handle.write(chunk + "\n")
 
-    return IngestResponse(ok=True, chunks=len(chunks)) 
+    return IngestResponse(ok=True, chunks=len(chunks))

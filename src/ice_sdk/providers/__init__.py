@@ -61,4 +61,4 @@ _llm_pkg = "ice_sdk.providers.llm_providers"
 OpenAIHandler = cast(Any, _LazyModuleProxy(f"{_llm_pkg}.openai_handler"))
 AnthropicHandler = cast(Any, _LazyModuleProxy(f"{_llm_pkg}.anthropic_handler"))
 GoogleGeminiHandler = cast(Any, _LazyModuleProxy(f"{_llm_pkg}.google_gemini_handler"))
-DeepSeekHandler = cast(Any, _LazyModuleProxy(f"{_llm_pkg}.deepseek_handler")) 
+DeepSeekHandler = cast(Any, _LazyModuleProxy(f"{_llm_pkg}.deepseek_handler"))

@@ -25,4 +25,4 @@ async def test_render_prompt_str_format_fallback(monkeypatch):
 
     template = "Hello {name}"
     result = await render_prompt(template, {"name": "Bob"})
-    assert result == "Hello Bob" 
+    assert result == "Hello Bob"
