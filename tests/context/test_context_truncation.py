@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import tempfile
 
 from ice_sdk.context.manager import GraphContext, GraphContextManager
 from ice_sdk.context.store import ContextStore

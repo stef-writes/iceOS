@@ -1,4 +1,3 @@
-import json
 
 from ice_sdk.context.formatter import ContextFormatter
 from ice_sdk.context.manager import GraphContext, GraphContextManager

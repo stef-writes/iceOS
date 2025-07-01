@@ -1,4 +1,3 @@
-import pytest
 
 from ice_sdk.capabilities import CapabilityCard
 from ice_sdk.tools.builtins.deterministic import SleepTool

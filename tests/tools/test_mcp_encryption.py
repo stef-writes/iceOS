@@ -1,4 +1,3 @@
-import asyncio
 from shutil import which
 
 import pytest

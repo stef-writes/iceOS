@@ -10,11 +10,11 @@ import typer
 from rich import print as rprint
 from rich.table import Table
 
-from ice_cli.events import _emit_event
 from ice_cli.context import get_ctx  # access global CLIContext
-from ice_sdk.tools.service import ToolService
+from ice_cli.events import _emit_event
 from ice_sdk.events.models import CLICommandEvent
 from ice_sdk.tools.base import ToolContext
+from ice_sdk.tools.service import ToolService
 
 # ---------------------------------------------------------------------------
 # Helper utilities ----------------------------------------------------------

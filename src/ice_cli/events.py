@@ -1,11 +1,10 @@
-from __future__ import annotations
-
 """Shared event utilities for ice_cli.
 
 The helper functions in this module are intentionally side-effect-free so they
 can be imported by sub-modules (e.g. *commands.tool*) without triggering Typer
 app initialisation or causing circular imports back to *ice_cli.cli*.
 """
+from __future__ import annotations
 
 # stdlib
 import asyncio
@@ -13,9 +12,10 @@ import asyncio
 # 3rd-party
 from pydantic import BaseModel
 
+from ice_cli.context import get_ctx  # noqa: WPS433
+
 # Project
 from ice_sdk.events.dispatcher import publish  # noqa: WPS433
-from ice_cli.context import get_ctx  # noqa: WPS433
 
 __all__ = ["_emit_event"]
 

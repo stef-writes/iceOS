@@ -15,16 +15,20 @@ watchers that may need to reload commands many times per second.
 # Start of module -----------------------------------------------------------
 from __future__ import annotations
 
-import os
-import re
 import importlib as _importlib
 import importlib.util as _util
 import json
+import os
+import re
 import shutil
 import subprocess
 import textwrap
 from dataclasses import asdict
+
 from rich import print as rprint
+
+from ice_cli.commands.tool import get_tool_service as _get_tool_service
+from ice_cli.commands.tool import tool_app
 from ice_cli.context import CLIContext, get_ctx
 from ice_sdk.utils.logging import setup_logger
 
@@ -247,10 +251,6 @@ def _snake_case(name: str) -> str:
 # application so the add_typer call can attach the group immediately.
 
 # noqa comment to appease ruff E402 (import after app setup)
-from ice_cli.commands.tool import (  # noqa: E402
-    tool_app,  # noqa: WPS433 – re-exported for backwards-compat
-    get_tool_service as _get_tool_service,
-)
 
 # Register the group under its original name – behaviour remains identical.
 app.add_typer(tool_app, name="tool")
@@ -621,7 +621,9 @@ def sdk_create_tool(
         raise typer.Exit(code=1)
 
     # Import the canonical template generator from the *tool* command module
-    from ice_cli.commands.tool import _create_tool_template as _tpl  # local import to avoid heavy dependency at module load
+    from ice_cli.commands.tool import (
+        _create_tool_template as _tpl,  # local import to avoid heavy dependency at module load
+    )
 
     def _pretty_path(p: Path) -> str:
         try:
