@@ -26,9 +26,6 @@ import textwrap
 from dataclasses import asdict
 from rich.table import Table
 from ice_cli.context import CLIContext
-from ice_sdk.tools.service import (
-    ToolService,
-)  # noqa: F401 – side-effect import makes built-ins discoverable
 from ice_sdk.utils.logging import setup_logger
 
 # Ensure realistic terminal width *before* importing Rich/Click/Typer so any
@@ -241,199 +238,27 @@ def _snake_case(name: str) -> str:
     return name.replace("-", "_").lower()
 
 
-def _create_tool_template(tool_name: str) -> str:
-    """Return a ready-to-write Python template for a new Tool class."""
-
-    snake = _snake_case(tool_name)
-    class_name = tool_name if tool_name.endswith("Tool") else f"{tool_name}Tool"
-
-    return f"""from __future__ import annotations
-
-from typing import Any
-
-from ice_sdk.tools.base import BaseTool, ToolContext
-
-
-class {class_name}(BaseTool):
-    \"\"\"{class_name} – describe what the tool does.\"\"\"
-
-    name = \"{snake}\"
-    description = "Describe what the tool does"
-
-    async def run(self, ctx: ToolContext, **kwargs: Any) -> Any:  # noqa: D401
-        \"\"\"Execute the tool.
-
-        Args:
-            ctx: Execution context injected by the orchestrator.
-            **kwargs: Parameters defined by the agent/node.
-        \"\"\"
-        # IMPLEMENT YOUR TOOL LOGIC HERE -----------------------------------
-        return {{"echo": kwargs}}
-"""
-
-
 # ---------------------------------------------------------------------------
-# "tool" command group -----------------------------------------------------
+# Externalised sub-command groups -------------------------------------------
 # ---------------------------------------------------------------------------
 
-tool_app = typer.Typer(help="Commands related to tool development")
+# The bulky *tool* command set now lives in a dedicated module under
+# ``ice_cli.commands`` to keep this file lean and improve overall
+# maintainability.  We import the Typer app _after_ instantiating the root
+# application so the add_typer call can attach the group immediately.
+
+from ice_cli.commands.tool import (
+    tool_app,  # noqa: WPS433 – re-exported for backwards-compat
+    get_tool_service as _get_tool_service,
+)
+
+# Register the group under its original name – behaviour remains identical.
 app.add_typer(tool_app, name="tool")
 
 
-# Keep a singleton ToolService to avoid repeated disk scans -------------
-_tool_service: ToolService | None = None
-
-
-def _get_tool_service(refresh: bool = False) -> ToolService:
-    """Return a memoised ToolService with auto-discovered project tools."""
-
-    global _tool_service  # noqa: PLW0603 – simple module-level cache
-
-    if _tool_service is None or refresh:
-        svc = ToolService()
-        # Discover project-local tools relative to CWD ------------------
-        svc.discover_and_register(Path.cwd())
-        _tool_service = svc
-    return _tool_service
-
-
-@tool_app.command("new", help="Scaffold a new tool module from a template")
-def tool_new(
-    name: str = typer.Argument(..., help="Class name for the tool (e.g. MyCool)") ,
-    directory: Path = typer.Option(
-        Path.cwd(), "--dir", "-d", exists=True, file_okay=False, dir_okay=True, writable=True, help="Destination directory"
-    ),
-    force: bool = typer.Option(False, "--force", "-f", help="Overwrite if file already exists"),
-):
-    """Generate ``<snake_case>.tool.py`` with boilerplate code."""
-
-    target_path = directory / f"{_snake_case(name)}.tool.py"
-
-    # Emit started event -------------------------------------------------
-    _emit_event(
-        "cli.tool_new.started",
-        CLICommandEvent(
-            command="tool_new",
-            status="started",
-            params={"name": name, "directory": str(directory), "force": force},
-        ),
-    )
-
-    if target_path.exists() and not force:
-        rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
-        raise typer.Exit(code=1)
-
-    def _pretty_path(p: Path) -> str:
-        try:
-            return str(p.relative_to(Path.cwd()))
-        except ValueError:
-            return str(p)
-
-    try:
-        target_path.write_text(_create_tool_template(name))
-        rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
-        _emit_event("cli.tool_new.completed", CLICommandEvent(command="tool_new", status="completed"))
-    except Exception as exc:
-        _emit_event(
-            "cli.tool_new.failed",
-            CLICommandEvent(command="tool_new", status="failed", params={"error": str(exc)}),
-        )
-        rprint(f"[red]✗ Failed to write template:[/] {exc}")
-        raise typer.Exit(code=1)
-
-
 # ---------------------------------------------------------------------------
-# ``ls`` – list available tools -------------------------------------------
+# Original in-file implementation removed – see ice_cli.commands.tool -------
 # ---------------------------------------------------------------------------
-
-@tool_app.command("ls", help="List all tools available in the current project")
-def tool_ls(refresh: bool = typer.Option(False, "--refresh", "-r", help="Re-scan project directories")):
-    """Print a table of registered tool names and their descriptions."""
-
-    svc = _get_tool_service(refresh)
-
-    table = Table(title="Registered Tools")
-    table.add_column("Name", style="cyan", no_wrap=True)
-    table.add_column("Description", style="green")
-
-    for name in sorted(svc.available_tools()):
-        tool_obj = svc.get(name)
-        table.add_row(name, getattr(tool_obj, "description", ""))
-
-    rprint(table)
-
-
-# ---------------------------------------------------------------------------
-# ``info`` – show details for a given tool ----------------------------------
-# ---------------------------------------------------------------------------
-
-@tool_app.command("info", help="Show JSON schema & metadata for a tool")
-def tool_info(name: str = typer.Argument(..., help="Tool name")):
-    """Display detailed metadata for *name*."""
-
-    svc = _get_tool_service()
-    try:
-        tool_obj = svc.get(name)
-    except KeyError:
-        # May be stale cache – perform a one-off refresh and retry ----------
-        svc = _get_tool_service(refresh=True)
-        try:
-            tool_obj = svc.get(name)
-        except KeyError:
-            rprint(f"[red]Tool '{name}' not found.[/]")
-            raise typer.Exit(code=1)
-
-    from rich.json import JSON
-    rprint(JSON.from_data(tool_obj.as_dict()))
-
-
-# ---------------------------------------------------------------------------
-# ``test`` – execute tool standalone --------------------------------------
-# ---------------------------------------------------------------------------
-
-@tool_app.command("test", help="Execute a tool in isolation with optional JSON args")
-def tool_test(
-    name: str = typer.Argument(..., help="Tool name"),
-    args: str = typer.Option("{}", "--args", "-a", help="JSON string of arguments"),
-) -> None:
-    """Run *name* and pretty-print its output.
-
-    Example::
-
-        $ ice tool test calculator --args '{"a":1,"b":2}'
-    """
-
-    import json
-
-    from ice_sdk.tools.base import ToolContext
-
-    try:
-        kwargs = json.loads(args)
-        if not isinstance(kwargs, dict):  # pragma: no cover – edge-case
-            raise ValueError
-    except Exception:
-        rprint("[red]--args must be a valid JSON object string.[/]")
-        raise typer.Exit(code=1)
-
-    svc = _get_tool_service()
-    try:
-        tool_obj = svc.get(name)
-    except KeyError:
-        svc = _get_tool_service(refresh=True)
-        try:
-            tool_obj = svc.get(name)
-        except KeyError:
-            rprint(f"[red]Tool '{name}' not found.[/]")
-            raise typer.Exit(code=1)
-
-    async def _run_tool() -> Any:  # type: ignore[override]
-        return await tool_obj.run(ctx=ToolContext(agent_id="cli", session_id="cli"), **kwargs)
-
-    result = asyncio.run(_run_tool())  # noqa: S609 – top-level call OK in CLI
-    from rich.json import JSON
-
-    rprint(JSON.from_data(result))
-
 
 # ---------------------------------------------------------------------------
 # ``run`` command -----------------------------------------------------------
@@ -795,6 +620,9 @@ def sdk_create_tool(
         rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
         raise typer.Exit(code=1)
 
+    # Import the canonical template generator from the *tool* command module
+    from ice_cli.commands.tool import _create_tool_template as _tpl  # local import to avoid heavy dependency at module load
+
     def _pretty_path(p: Path) -> str:
         try:
             return str(p.relative_to(Path.cwd()))
@@ -802,7 +630,7 @@ def sdk_create_tool(
             return str(p)
 
     try:
-        target_path.write_text(_create_tool_template(name))
+        target_path.write_text(_tpl(name))
         rprint(f"[green]✔[/] Created {_pretty_path(target_path)}")
     except Exception as exc:
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
