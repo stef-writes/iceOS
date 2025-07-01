@@ -1132,4 +1132,19 @@ try:
     _init_webhooks()
 except Exception:
     # Never fail CLI if optional webhook config parsing blows up
-    pass 
+    pass
+
+# ---------------------------------------------------------------------------
+# Defensive: ensure reasonable terminal width for help formatting -----------
+# ---------------------------------------------------------------------------
+# When the COLUMNS environment variable is set to an extremely small value
+# (e.g. the GitHub Actions pseudo-TTY sometimes reports 5) Rich may reflow
+# words mid-token, splitting option names like "--json" to "--j\nson".  That
+# breaks substring assertions in our tests.  Guarantee a sane lower bound.
+
+try:
+    cols = int(os.getenv("COLUMNS", "0"))
+    if cols < 20:  # enforce minimum width large enough for option tokens
+        os.environ["COLUMNS"] = "80"
+except ValueError:
+    os.environ["COLUMNS"] = "80" 
