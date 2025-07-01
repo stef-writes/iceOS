@@ -12,10 +12,25 @@ functions so it remains fast to import – an important property for file
 watchers that may need to reload commands many times per second.
 """
 
+# Start of module -----------------------------------------------------------
 from __future__ import annotations
 
-import asyncio
+# Ensure realistic terminal width *before* importing Rich/Click/Typer so any
+# Consoles instantiated during import use a sane fallback (GitHub Actions
+# can report COLUMNS=5 which causes option names like "--json" to be split).
+
 import os
+
+try:
+    _cols = int(os.getenv("COLUMNS", "0"))
+    if _cols < 20:
+        os.environ["COLUMNS"] = "80"
+except ValueError:
+    os.environ["COLUMNS"] = "80"
+
+# -------------------------------------------------------------------------
+
+import asyncio
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -1132,19 +1147,4 @@ try:
     _init_webhooks()
 except Exception:
     # Never fail CLI if optional webhook config parsing blows up
-    pass
-
-# ---------------------------------------------------------------------------
-# Defensive: ensure reasonable terminal width for help formatting -----------
-# ---------------------------------------------------------------------------
-# When the COLUMNS environment variable is set to an extremely small value
-# (e.g. the GitHub Actions pseudo-TTY sometimes reports 5) Rich may reflow
-# words mid-token, splitting option names like "--json" to "--j\nson".  That
-# breaks substring assertions in our tests.  Guarantee a sane lower bound.
-
-try:
-    cols = int(os.getenv("COLUMNS", "0"))
-    if cols < 20:  # enforce minimum width large enough for option tokens
-        os.environ["COLUMNS"] = "80"
-except ValueError:
-    os.environ["COLUMNS"] = "80" 
+    pass 
