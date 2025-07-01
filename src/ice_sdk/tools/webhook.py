@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """WebhookEmitterTool – send event payloads to an HTTP endpoint.
 
 The tool is purposefully thin: it **only** performs network IO, satisfying the
 repo rule that external side-effects live inside Tool implementations.
 """
+
+from __future__ import annotations
 
 from typing import Any, Dict, Optional
 

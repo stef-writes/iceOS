@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Auto-load webhook definitions from ``.ice/webhooks.yaml``.
 
 Each entry in the YAML file should look like:
@@ -17,10 +15,11 @@ webhooks:
 Only *exact* event names are supported for now (wildcards ignored).
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
 
-import asyncio
 import logging
 import os
 
