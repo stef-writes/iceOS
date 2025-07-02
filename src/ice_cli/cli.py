@@ -1164,3 +1164,61 @@ try:
 except Exception:
     # Never fail CLI if optional webhook config parsing blows up
     pass
+
+# ---------------------------------------------------------------------------
+# Demo – Google Search -------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@app.command(
+    "demo-google-search",
+    help="Run the Web Search demo ScriptChain (SerpAPI) with a live query",
+)
+def demo_google_search(
+    query: str = typer.Argument(..., help="Search query to run through the demo"),
+):
+    """Execute *cli_demo/google_chain.chain.py* with the provided *query*.
+
+    This command dynamically imports the demo chain definition, injects the
+    user-provided *query* into the initial context, executes the chain and
+    prints the structured JSON result.  It requires a valid ``SERPAPI_KEY``
+    environment variable (or entry in a *.env* file) so the *web_search* Tool
+    can access SerpAPI.
+    """
+
+    import asyncio
+    from pathlib import Path
+
+    # ------------------------------------------------------------------
+    # Dynamically load the demo chain module ----------------------------
+    # ------------------------------------------------------------------
+    demo_path = Path("cli_demo/google_chain.chain.py").resolve()
+
+    try:
+        module = _load_module_from_path(demo_path)
+    except FileNotFoundError:
+        rprint(f"[red]Demo chain not found at {demo_path}.[/]")
+        raise typer.Exit(1)
+
+    # Retrieve the chain factory/helper --------------------------------
+    if hasattr(module, "GoogleSearchDemoChain"):
+        ChainCls = getattr(module, "GoogleSearchDemoChain")
+        chain = ChainCls({"search_query": query})
+    elif hasattr(module, "get_chain") and callable(getattr(module, "get_chain")):
+        # Fallback: use factory then patch context ----------------------
+        chain = getattr(module, "get_chain")()
+        # Overwrite the search query inside initial context
+        chain.initial_context["search_query"] = query  # type: ignore[attr-defined]
+    else:
+        rprint("[red]Unable to locate GoogleSearchDemoChain in module.[/]")
+        raise typer.Exit(1)
+
+    # ------------------------------------------------------------------
+    # Execute chain -----------------------------------------------------
+    # ------------------------------------------------------------------
+    try:
+        result = asyncio.run(chain.execute())
+        rprint(result.model_dump())
+    except Exception as exc:
+        rprint(f"[red]Chain execution failed:[/] {exc}")
+        raise typer.Exit(1)
