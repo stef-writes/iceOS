@@ -31,6 +31,23 @@ class BaseMemory(ABC):
     ) -> List[Tuple[str, float]]:  # noqa: D401
         """Return top-*k* ``(content, score)`` pairs ranked by similarity."""
 
+    # ------------------------------------------------------------------
+    # Synchronous vector-centric helpers (legacy compatibility) ----------
+    # ------------------------------------------------------------------
+    @abstractmethod
+    def store(self, key: str, vector: List[float]) -> None:  # type: ignore[override]
+        """Persist a raw *vector* with associated *key*.
+
+        This synchronous variant is useful in lightweight unit-tests where
+        an event-loop might not be available.  Concrete adapters should map
+        the call to their underlying asynchronous implementation whenever
+        possible so they remain the single source-of-truth.
+        """
+
+    @abstractmethod
+    def recall(self, query: List[float], top_k: int = 5) -> List[str]:  # noqa: D401
+        """Return up to *top_k* keys ranked by similarity against *query*."""
+
 
 class NullMemory(BaseMemory):
     """No-op adapter used as default when no memory is configured."""
@@ -43,6 +60,16 @@ class NullMemory(BaseMemory):
     async def retrieve(
         self, query: str, k: int = 5
     ) -> List[Tuple[str, float]]:  # noqa: D401
+        return []
+
+    # ------------------------------------------------------------------
+    # Synchronous wrappers ---------------------------------------------
+    # ------------------------------------------------------------------
+    def store(self, *args, **kwargs) -> None:  # type: ignore[override]
+        """No-op store – used by unit-tests exercising dependency injection."""
+
+    def recall(self, *args, **kwargs) -> List[str]:  # type: ignore[override]
+        """Always return an empty list to signify no stored vectors."""
         return []
 
 
@@ -115,3 +142,39 @@ class SQLiteVectorMemory(BaseMemory):
             sum(x * x for x in b[:size])
         )
         return dot / denom if denom else 0.0
+
+    # ------------------------------------------------------------------
+    # Synchronous vector API --------------------------------------------
+    # ------------------------------------------------------------------
+    def store(self, key: str, vector: List[float]) -> None:  # type: ignore[override]
+        """Persist *vector* directly bypassing text encoding.
+
+        This helper maps the synchronous signature onto the existing
+        asynchronous storage logic while avoiding any event-loop juggling.
+        """
+        blob = sqlite3.Binary(json.dumps(vector).encode())
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO memory (content, vector) VALUES (?, ?)", (key, blob)
+            )
+
+    def recall(self, query: List[float], top_k: int = 5) -> List[str]:  # noqa: D401
+        rows = self.conn.execute("SELECT content, vector FROM memory").fetchall()
+        scored: list[tuple[str, float]] = []
+        for content, blob in rows:
+            vec = json.loads(blob)
+            score = self._cosine(query, vec)
+            scored.append((content, score))
+        scored.sort(key=lambda t: t[1], reverse=True)
+        return [c for c, _ in scored[:top_k]]
+
+
+# ----------------------------------------------------------------------
+# Public re-exports -----------------------------------------------------
+# ----------------------------------------------------------------------
+
+__all__: list[str] = [
+    "BaseMemory",
+    "NullMemory",
+    "SQLiteVectorMemory",
+]

@@ -11,7 +11,11 @@ from ..tools.base import BaseTool, ToolContext
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
-from .memory import BaseMemory, NullMemory
+from .memory import (  # noqa: F401 – optional adapter
+    BaseMemory,
+    NullMemory,
+    SQLiteVectorMemory,
+)
 from .store import ContextStore
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -62,7 +66,7 @@ class GraphContextManager:
         self.store = store or ContextStore()
         self.formatter = formatter or ContextFormatter()
         # Memory adapter ---------------------------------------------------
-        self.memory: BaseMemory = memory or NullMemory()
+        self.memory: BaseMemory = memory or SQLiteVectorMemory()
         self._agents: Dict[str, "AgentNode"] = {}
         self._tools: Dict[str, BaseTool] = {}
         # Map of session_id -> GraphContext (acts as LRU cache) --------------
