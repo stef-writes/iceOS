@@ -148,10 +148,32 @@ class AgentNode:
             if not isinstance(input, str)
             else input
         )
-        conversation: list[dict[str, str]] = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content},
-        ]
+        # --------------------------------------------------------------
+        # Load & trim persistent conversation history ------------------
+        # --------------------------------------------------------------
+        history: List[dict[str, str]] = []
+        summary_text: str | None = None
+        if self.config.memory_enabled:
+            previous = self.context_manager.get_node_context(self.config.name)
+            if isinstance(previous, list):
+                history = previous[-(self.config.memory_window * 2) :]
+            # Retrieve existing long-term summary -----------------------
+            summary_text = self.context_manager.get_node_context(
+                f"{self.config.name}__summary"
+            )
+
+        summary_block: list[dict[str, str]] = (
+            [{"role": "system", "content": f"Conversation summary: {summary_text}"}]
+            if summary_text
+            else []
+        )
+
+        conversation: list[dict[str, str]] = (
+            [{"role": "system", "content": system_prompt}]
+            + summary_block
+            + history
+            + [{"role": "user", "content": user_content}]
+        )
 
         # Helpful metadata holder ------------------------------------------------
         metadata = NodeMetadata(  # type: ignore[call-arg]
@@ -298,6 +320,32 @@ class AgentNode:
 
         metadata.end_time = datetime.utcnow()
         metadata.duration = duration
+
+        # --------------------------------------------------------------
+        # Persist trimmed conversation history for future invocations ---
+        # --------------------------------------------------------------
+        if self.config.memory_enabled:
+            # Summarise *overflow* messages when dialog grows too large ----
+            if len(conversation) > self.config.memory_window * 4:
+                overflow = conversation[: -self.config.memory_window * 2]
+                try:
+                    summary = self.context_manager.smart_context_compression(
+                        overflow, strategy="summarize", max_tokens=200
+                    )
+                    self.context_manager.update_node_context(
+                        f"{self.config.name}__summary", summary
+                    )
+                except Exception:
+                    pass  # summary is best-effort
+
+            try:
+                self.context_manager.update_node_context(
+                    self.config.name,
+                    conversation[-(self.config.memory_window * 2) :],
+                )
+            except Exception:
+                # Persistence errors must never break agent execution
+                pass
 
         return NodeExecutionResult(  # type: ignore[call-arg]
             success=True,

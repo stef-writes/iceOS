@@ -13,8 +13,8 @@ def test_from_tool_cls():
     assert card.name == "sleep"  # SleepTool defines name = "sleep"
     assert card.description  # non-empty
     assert card.parameters_schema is not None
-    # SleepTool has no explicit tags; default []
-    assert card.tags == []
+    # SleepTool defines taxonomy tags
+    assert card.tags == ["utility", "time"]
 
 
 def test_toolservice_cards_exposes_builtins():

@@ -40,6 +40,11 @@ class AgentConfig(BaseModel):
     memory_enabled: bool = Field(
         False, description="Enable persistence of context between invocations."
     )
+    memory_window: int = Field(
+        8,
+        ge=1,
+        description="Number of dialog exchanges (user+assistant) to retain in memory.",
+    )
     failure_policy: Literal["retry", "skip", "abort"] = Field(
         "abort", description="Behaviour when a tool or LLM call fails."
     )

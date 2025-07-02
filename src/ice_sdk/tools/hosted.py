@@ -39,6 +39,26 @@ class WebSearchTool(BaseTool):
         },
         "required": ["query"],
     }
+    tags: ClassVar[List[str]] = ["web", "search", "information"]
+
+    output_schema: ClassVar[Dict[str, Any]] = {
+        "type": "object",
+        "properties": {
+            "results": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "url": {"type": "string"},
+                        "snippet": {"type": "string"},
+                    },
+                    "required": ["title", "url"],
+                },
+            }
+        },
+        "required": ["results"],
+    }
 
     async def run(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
         """Execute web search.
@@ -119,6 +139,25 @@ class FileSearchTool(BaseTool):
             "include_search_results": {"type": "boolean", "default": False},
         },
         "required": ["vector_store_ids", "query"],
+    }
+    tags: ClassVar[List[str]] = ["data", "vector", "search"]
+
+    output_schema: ClassVar[Dict[str, Any]] = {
+        "type": "object",
+        "properties": {
+            "results": {
+                "type": "array",
+                "items": {"type": "object"},
+            },
+            "ids": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+        },
+        "oneOf": [
+            {"required": ["results"]},
+            {"required": ["ids"]},
+        ],
     }
 
     async def run(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
@@ -221,6 +260,17 @@ class ComputerTool(BaseTool):
         """
         super().__init__()
         self.dimensions = dimensions
+
+    tags: ClassVar[List[str]] = ["automation", "ui", "system"]
+
+    output_schema: ClassVar[Dict[str, Any]] = {
+        "type": "object",
+        "properties": {
+            "success": {"type": "boolean"},
+            "image_base64": {"type": "string"},
+        },
+        "required": ["success"],
+    }
 
     async def run(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
         """Execute computer action.

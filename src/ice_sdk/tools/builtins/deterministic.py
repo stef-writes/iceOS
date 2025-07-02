@@ -18,6 +18,7 @@ __all__ = [
     "SleepTool",
     "HttpRequestTool",
     "SumTool",
+    "deterministic_summariser",
 ]
 
 
@@ -40,6 +41,20 @@ class SleepTool(BaseTool):
             }
         },
         "required": ["seconds"],
+    }
+    # Capability taxonomy -------------------------------------------------
+    tags: ClassVar[List[str]] = ["utility", "time"]
+
+    # Explicit output schema ---------------------------------------------
+    output_schema: ClassVar[Dict[str, Any]] = {
+        "type": "object",
+        "properties": {
+            "slept": {
+                "type": "number",
+                "description": "Duration the tool paused in seconds",
+            }
+        },
+        "required": ["slept"],
     }
 
     async def run(self, **kwargs) -> Dict[str, Any]:  # type: ignore[override]
@@ -96,6 +111,19 @@ class HttpRequestTool(BaseTool):
             },
         },
         "required": ["url"],
+    }
+    # Capability taxonomy -------------------------------------------------
+    tags: ClassVar[List[str]] = ["web", "http", "io"]
+
+    output_schema: ClassVar[Dict[str, Any]] = {
+        "type": "object",
+        "properties": {
+            "status_code": {"type": "integer"},
+            "headers": {"type": "object"},
+            "body": {"type": "string"},
+            "truncated": {"type": "boolean"},
+        },
+        "required": ["status_code", "body"],
     }
 
     async def run(self, **kwargs) -> Dict[str, Any]:  # type: ignore[override]
@@ -165,6 +193,15 @@ class SumTool(BaseTool):
         },
         "required": ["numbers"],
     }
+    tags: ClassVar[List[str]] = ["math", "utility"]
+
+    output_schema: ClassVar[Dict[str, Any]] = {
+        "type": "object",
+        "properties": {
+            "sum": {"type": "number", "description": "Total of input numbers"},
+        },
+        "required": ["sum"],
+    }
 
     async def run(self, **kwargs) -> Dict[str, Any]:  # type: ignore[override]
         numbers: List[float] = kwargs.get("numbers", [])
@@ -175,3 +212,47 @@ class SumTool(BaseTool):
         except Exception as exc:
             raise ToolError(f"Invalid number in input: {exc}") from exc
         return {"sum": total}
+
+
+# ---------------------------------------------------------------------------
+# Helper: deterministic_summariser -----------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def deterministic_summariser(
+    content: Any,
+    *,
+    schema: Dict[str, Any] | None = None,  # noqa: D401 – align with GCManager API
+    max_tokens: int | None = None,
+) -> str:
+    """Return a cheap text summary without external dependencies.
+
+    Strategy (v1):
+    1. Convert *content* to string (JSON dump for mappings / sequences).
+    2. Keep the first ~*max_tokens* tokens (≈4 chars per token) and append an ellipsis.
+
+    This is **not** semantic summarisation but provides deterministic
+    compression that never calls an LLM – good enough for long-term memory
+    where fidelity is less critical than footprint.
+    """
+
+    import json
+
+    # Fallback safety ----------------------------------------------------
+    try:
+        text = (
+            content
+            if isinstance(content, str)
+            else json.dumps(content, ensure_ascii=False, default=str)
+        )
+    except Exception:  # noqa: BLE001 – best-effort conversion
+        text = str(content)
+
+    if max_tokens is None:
+        max_tokens = 400
+
+    char_budget = max_tokens * 4  # rough heuristic
+    if len(text) <= char_budget:
+        return text
+
+    return text[: char_budget - 3] + "…"

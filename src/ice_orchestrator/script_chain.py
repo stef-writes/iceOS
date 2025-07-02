@@ -93,6 +93,7 @@ class ScriptChain(BaseScriptChain):
         nodes: List[NodeConfig],
         name: Optional[str] = None,
         *,
+        version: str = "1.0.0",
         context_manager: Optional[GraphContextManager] = None,
         callbacks: Optional[List[Any]] = None,
         max_parallel: int = 5,
@@ -115,6 +116,7 @@ class ScriptChain(BaseScriptChain):
         Args:
             nodes: List of node configurations
             name: Chain name
+            version: Chain version
             context_manager: Context manager
             callbacks: List of callbacks
             max_parallel: Maximum parallel executions
@@ -133,6 +135,8 @@ class ScriptChain(BaseScriptChain):
             use_cache: Chain-level cache toggle
         """
         self.chain_id = chain_id or f"chain_{datetime.utcnow().isoformat()}"
+        # Semantic version for migration tracking -----------------------
+        self.version: str = version
         super().__init__(
             nodes,
             name,
@@ -839,6 +843,68 @@ class ScriptChain(BaseScriptChain):
 
         self._active_cache[node_id] = True
         return True
+
+    # ------------------------------------------------------------------
+    # Factory helpers ---------------------------------------------------
+    # ------------------------------------------------------------------
+
+    @classmethod
+    async def from_dict(
+        cls,
+        payload: Dict[str, Any],
+        *,
+        target_version: str = "1.0.0",
+        **kwargs: Any,
+    ) -> "ScriptChain":
+        """Create a ScriptChain from JSON-compatible *payload*.
+
+        The helper calls :pyclass:`ice_orchestrator.chain_migrator.ChainMigrator`
+        to upgrade older workflow specs before instantiation.
+        """
+
+        # Import lazily to avoid cycles ----------------------------------
+        from ice_orchestrator.chain_migrator import ChainMigrator
+
+        # 1. Run migration (no-op when already up-to-date) ---------------
+        try:
+            payload = await ChainMigrator.migrate(payload, target_version)
+        except NotImplementedError as exc:
+            # Bubble-up – caller decides whether to abort or run legacy
+            raise RuntimeError(str(exc)) from exc
+
+        # 2. Parse nodes --------------------------------------------------
+        nodes_raw = payload.get("nodes", [])
+        if not nodes_raw:
+            raise ValueError("Workflow payload must contain 'nodes' key")
+
+        # Discriminated union parsing (manual to avoid Annotated typing issues)
+        from ice_sdk.models.node_models import (
+            AiNodeConfig,
+            ConditionNodeConfig,
+            ToolNodeConfig,
+        )
+
+        _parser_map = {
+            "ai": AiNodeConfig,
+            "tool": ToolNodeConfig,
+            "condition": ConditionNodeConfig,
+        }
+
+        nodes = []
+        for nd in nodes_raw:
+            node_type = nd.get("type")
+            parser_cls = _parser_map.get(node_type)
+            if parser_cls is None:
+                raise ValueError(f"Unknown node type '{node_type}' in workflow spec")
+            nodes.append(parser_cls.model_validate(nd))
+
+        # 3. Instantiate chain -------------------------------------------
+        return cls(
+            nodes=nodes,
+            name=payload.get("name"),
+            version=payload.get("version", target_version),
+            **kwargs,
+        )
 
 
 if TYPE_CHECKING:  # pragma: no cover

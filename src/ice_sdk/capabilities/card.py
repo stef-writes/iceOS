@@ -61,8 +61,8 @@ class CapabilityCard(BaseModel):
     name: str
     description: str
     parameters_schema: Dict[str, Any] | None = None
-    input_ports: Dict[str, str] | None = None
-    output_ports: Dict[str, str] | None = None
+    input_ports: Dict[str, Any] | None = None
+    output_ports: Dict[str, Any] | None = None
     tags: list[str] = []
     version: str = "0.1.0"
     icon: str | None = None

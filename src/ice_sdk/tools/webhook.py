@@ -6,7 +6,7 @@ repo rule that external side-effects live inside Tool implementations.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 import httpx
 from pydantic import AnyHttpUrl, BaseModel, Field
@@ -29,6 +29,17 @@ class WebhookEmitterTool(BaseTool):
 
     name = "webhook_emitter"
     description = "Send event payloads to a webhook endpoint via HTTP POST."
+
+    # Taxonomy & output schema -----------------------------------------
+    tags: ClassVar[list[str]] = ["integration", "webhook", "event"]
+
+    output_schema: ClassVar[Dict[str, Any]] = {
+        "type": "object",
+        "properties": {
+            "status_code": {"type": "integer"},
+        },
+        "required": ["status_code"],
+    }
 
     async def run(
         self, **kwargs: Any
