@@ -28,3 +28,9 @@ except (
     ModuleNotFoundError
 ):  # pragma: no cover – defender when file missing in older envs
     pass
+
+# Register *loop* node executor -------------------------------------------
+try:
+    import_module("ice_sdk.executors.loop")
+except ModuleNotFoundError:  # pragma: no cover
+    pass

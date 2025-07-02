@@ -8,7 +8,10 @@ import networkx as nx
 from pydantic import BaseModel, Field
 
 from ..tools.base import BaseTool, ToolContext
+
+# Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
+from .memory import BaseMemory, NullMemory
 from .store import ContextStore
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -41,6 +44,7 @@ class GraphContextManager:
         graph: Optional[nx.DiGraph] = None,
         store: Optional[ContextStore] = None,
         formatter: Optional[ContextFormatter] = None,
+        memory: Optional[BaseMemory] = None,
     ):
         """Create a ``GraphContextManager``.
 
@@ -57,6 +61,8 @@ class GraphContextManager:
         self.graph = graph or nx.DiGraph()
         self.store = store or ContextStore()
         self.formatter = formatter or ContextFormatter()
+        # Memory adapter ---------------------------------------------------
+        self.memory: BaseMemory = memory or NullMemory()
         self._agents: Dict[str, "AgentNode"] = {}
         self._tools: Dict[str, BaseTool] = {}
         # Map of session_id -> GraphContext (acts as LRU cache) --------------

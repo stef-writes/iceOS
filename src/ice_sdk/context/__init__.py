@@ -6,8 +6,17 @@ from ice_sdk.context.manager import GraphContextManager  # noqa: F401
 from ice_sdk.context.scoped_context_store import ScopedContextStore  # noqa: F401
 from ice_sdk.context.session_state import SessionState  # noqa: F401
 
+from .memory import (  # re-export for convenience
+    BaseMemory,
+    NullMemory,
+    SQLiteVectorMemory,
+)
+
 __all__: list[str] = [
     "GraphContextManager",
     "SessionState",
     "ScopedContextStore",
+    "BaseMemory",
+    "SQLiteVectorMemory",
+    "NullMemory",
 ]

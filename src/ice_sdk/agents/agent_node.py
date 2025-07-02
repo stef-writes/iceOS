@@ -354,3 +354,24 @@ class AgentNode:
             usage=usage_meta,
             execution_time=duration,
         )
+
+    # ------------------------------------------------------------------
+    # Memory helpers ----------------------------------------------------
+    # ------------------------------------------------------------------
+
+    async def recall(self, query: str, k: int = 5):  # noqa: D401 – helper name
+        """Retrieve similar snippets from the pluggable memory adapter.
+
+        Example
+        -------
+        >>> snippets = await agent.recall("Paris", k=3)
+        >>> for text, score in snippets:
+        ...     print(text, score)
+        """
+        try:
+            memory = getattr(self.context_manager, "memory", None)
+            if memory is None:
+                return []
+            return await memory.retrieve(query, k=k)  # type: ignore[attr-defined]
+        except Exception:  # pragma: no cover – defensive blanket
+            return []
