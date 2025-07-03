@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import csv
+import io
 import json
 import re
 from pathlib import Path
@@ -310,7 +311,9 @@ class PdfExtractTool(BaseTool):
         pdf_bytes = await self._load_pdf_bytes(source)
 
         try:
-            reader = await asyncio.to_thread(PdfReader, pdf_bytes)
+            # Wrap raw bytes in BytesIO so *PdfReader* receives a file-like
+            # object which matches its type signature (str | IO | Path).
+            reader = await asyncio.to_thread(PdfReader, io.BytesIO(pdf_bytes))
         except Exception as exc:  # pragma: no cover – corrupted PDF
             raise ToolError(f"Failed to parse PDF: {exc}") from exc
 
