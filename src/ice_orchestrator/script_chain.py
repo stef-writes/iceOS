@@ -844,6 +844,52 @@ class ScriptChain(BaseScriptChain):
         self._active_cache[node_id] = True
         return True
 
+    # -----------------------------------------------------------------
+    # Validation utilities --------------------------------------------
+    # -----------------------------------------------------------------
+
+    def validate_chain(self) -> list[str]:
+        """Run a set of static validations and return a list of error messages.
+
+        The method does **not** raise; callers can decide whether to abort or
+        continue based on returned errors.  Down-stream integrations (e.g. CLI
+        or API endpoints) may present the aggregated errors to end-users.
+        """
+
+        errors: list[str] = []
+        errors.extend(self._validate_node_versions())
+        errors.extend(self._check_license_compliance())
+        errors.extend(self._detect_sensitive_data_flows())
+        return errors
+
+    # -----------------------------------------------------------------
+    # Private validation helpers --------------------------------------
+    # -----------------------------------------------------------------
+
+    def _validate_node_versions(self) -> list[str]:
+        """Ensure every node declares a non-empty *version* attribute."""
+
+        errs: list[str] = []
+        for node in self.nodes.values():
+            version = getattr(node, "version", None)
+            # Fall back to metadata.version when top-level attr missing -------
+            if version is None and getattr(node, "metadata", None):
+                version = getattr(node.metadata, "version", None)
+
+            if not version:
+                errs.append(f"Node '{node.id}' is missing version metadata.")
+        return errs
+
+    def _check_license_compliance(self) -> list[str]:
+        """Placeholder for future OSS/enterprise license checks."""
+        # TODO(issue-123): Implement SBOM scanning & license validation
+        return []
+
+    def _detect_sensitive_data_flows(self) -> list[str]:
+        """Placeholder for PII / GDPR data-flow analysis."""
+        # TODO(issue-124): Integrate with privacy analysis engine
+        return []
+
     # ------------------------------------------------------------------
     # Factory helpers ---------------------------------------------------
     # ------------------------------------------------------------------

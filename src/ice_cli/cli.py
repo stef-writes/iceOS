@@ -349,15 +349,22 @@ def _print_mermaid_graph(chain):  # noqa: D401 – helper
 
     lines: list[str] = ["graph TD"]
 
-    # Ensure all nodes present even if they have no deps -----------------
-    node_ids = [n.id for n in chain.nodes]  # type: ignore[attr-defined]
-    for nid in node_ids:
-        lines.append(f"  {nid}(( {nid} ))")
+    # ------------------------------------------------------------------
+    # Iterate over ``chain.nodes`` which is a *dict[str, NodeConfig]* ---
+    # ------------------------------------------------------------------
+    # Earlier versions assumed ``chain.nodes`` was a list and attempted to
+    # access ``n.id`` directly which raised ``AttributeError`` because the
+    # iterator returned the *keys* (node IDs).  We now iterate over the
+    # items ensuring we have access to both the ID and the node object.
 
-    # Add edges for dependencies ---------------------------------------
-    for node in chain.nodes:  # type: ignore[attr-defined]
+    # Ensure all nodes are present even if they have no dependencies ----
+    for node_id in chain.nodes.keys():  # type: ignore[attr-defined]
+        lines.append(f"  {node_id}(( {node_id} ))")
+
+    # Add edges for declared dependencies ------------------------------
+    for node_id, node in chain.nodes.items():  # type: ignore[attr-defined]
         for dep in getattr(node, "dependencies", []):
-            lines.append(f"  {dep} --> {node.id}")
+            lines.append(f"  {dep} --> {node_id}")
 
     mermaid_code = "\n".join(lines)
 
@@ -1177,7 +1184,7 @@ except Exception:
 def demo_google_search(
     query: str = typer.Argument(..., help="Search query to run through the demo"),
 ):
-    """Execute *cli_demo/google_chain.chain.py* with the provided *query*.
+    """Execute *cli_demo/google_search_demo/google_chain.chain.py* with the provided *query*.
 
     This command dynamically imports the demo chain definition, injects the
     user-provided *query* into the initial context, executes the chain and
@@ -1192,7 +1199,7 @@ def demo_google_search(
     # ------------------------------------------------------------------
     # Dynamically load the demo chain module ----------------------------
     # ------------------------------------------------------------------
-    demo_path = Path("cli_demo/google_chain.chain.py").resolve()
+    demo_path = Path("cli_demo/google_search_demo/google_chain.chain.py").resolve()
 
     try:
         module = _load_module_from_path(demo_path)

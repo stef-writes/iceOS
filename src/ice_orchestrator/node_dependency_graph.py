@@ -36,6 +36,12 @@ class DependencyGraph:
         except nx.NetworkXNoCycle:
             pass
 
+        # --------------------------------------------------------------
+        # Security & compliance validations ----------------------------
+        # --------------------------------------------------------------
+        self._validate_no_sensitive_data_flows(nodes)
+        self._enforce_airgap_compliance(nodes)
+
     def _assign_levels(self, nodes: List[Any]):
         node_map = {node.id: node for node in nodes}
         for node_id in nx.topological_sort(self.graph):
@@ -117,6 +123,37 @@ class DependencyGraph:
                         f"of node '{dep_id}', but '{top_level_key}' is not in its output schema. "
                         f"Available keys: {list(output_keys)}"
                     )
+
+    # -----------------------------------------------------------------
+    # Security helpers -------------------------------------------------
+    # -----------------------------------------------------------------
+
+    def _validate_no_sensitive_data_flows(self, nodes: List[Any]):
+        """Placeholder – Ensure nodes flagged as *contains_sensitive_data*
+        do not feed into external calls without explicit approval."""
+
+        for node in nodes:
+            if getattr(node, "contains_sensitive_data", False):
+                for succ in self.get_node_dependents(node.id):
+                    succ_node = next((n for n in nodes if n.id == succ), None)
+                    if succ_node and getattr(succ_node, "requires_external_io", False):
+                        raise ValueError(
+                            f"Sensitive data from node '{node.id}' flows into external I/O node '{succ}'."
+                        )
+
+    def _enforce_airgap_compliance(self, nodes: List[Any]):
+        """Placeholder hook to prevent nodes that need internet access when
+        running in *air-gapped* environments.  Actual enforcement should be
+        provided by deployment config; this is a best-effort static guard."""
+
+        if not any(getattr(n, "airgap_mode", False) for n in nodes):
+            return
+
+        for node in nodes:
+            if getattr(node, "requires_external_io", False):
+                raise ValueError(
+                    f"Air-gap compliance violation: node '{node.id}' requires external I/O."
+                )
 
     # ---------------------------------------------------------------------
     # Developer ergonomics -------------------------------------------------

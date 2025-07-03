@@ -1,6 +1,7 @@
-from src.ice_orchestrator.script_chain import ScriptChain
-from src.ice_sdk.models.config import LLMConfig
-from src.ice_sdk.models.node_models import AiNodeConfig, InputMapping, ToolNodeConfig
+from ice_orchestrator.script_chain import ScriptChain
+from ice_sdk.models.config import LLMConfig, ModelProvider
+from ice_sdk.models.node_models import AiNodeConfig, InputMapping, ToolNodeConfig
+from ice_sdk.tools.hosted import WebSearchTool
 
 # Template Google Search tool node (we copy & override at runtime)
 _google_search_node_template = ToolNodeConfig(
@@ -24,6 +25,7 @@ summarize_node = AiNodeConfig(
     name="Summarize Results",
     type="ai",
     model="deepseek-chat",
+    provider=ModelProvider.DEEPSEEK,
     prompt="Summarize these search results: {search_results}",
     llm_config=LLMConfig(provider="deepseek", model="deepseek-chat"),
     dependencies=["web_search"],
@@ -55,6 +57,8 @@ class GoogleSearchDemoChain(ScriptChain):
             "GOOGLE_CSE_ID", user_inputs.get("GOOGLE_CSE_ID", "")
         )
 
+        google_search_node.output_schema = {"results": list}
+
         super().__init__(
             nodes=[google_search_node, summarize_node],
             name="google_search_demo",
@@ -66,8 +70,6 @@ class GoogleSearchDemoChain(ScriptChain):
         # ------------------------------------------------------------------
         try:
             # Register SerpAPI-backed web_search tool so *tool* nodes can execute it
-            from src.ice_sdk.tools.hosted import WebSearchTool
-
             self.context_manager.register_tool(WebSearchTool())
         except ValueError:
             # Duplicate registration – safe to ignore when reloading in watch mode
@@ -82,7 +84,7 @@ def get_chain() -> GoogleSearchDemoChain:  # noqa: D401 – simple factory
 
     The search query can be provided via the ``SEARCH_QUERY`` environment
     variable.  If not set we fall back to a sensible default so running
-    ``ice run cli_demo/google_chain.chain.py`` works out-of-the-box.
+    ``ice run cli_demo/google_search_demo/google_chain.chain.py`` works out-of-the-box.
     """
 
     import os

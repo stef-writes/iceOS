@@ -1,4 +1,19 @@
-from typing import Any, Dict, Optional
+# ---------------------------------------------------------------------------
+# Lightweight state persistence & batching ----------------------------------
+# ---------------------------------------------------------------------------
+import asyncio
+import time
+from typing import Any, Dict, List, Optional, Tuple
+
+# A minimal callable protocol for a *bulk_save* method so we avoid mandatory
+# concrete store dependencies.  Any custom implementation merely needs a
+# coroutine ``bulk_save`` accepting ``List[Tuple[str, Dict[str, Any]]]``.
+
+
+class _BulkSaveProtocol:  # pragma: no cover – runtime duck-typing helper
+    async def bulk_save(self, data: List[Tuple[str, Dict[str, Any]]]):  # noqa: D401
+        """Persist *data* atomically.  Implement in concrete store."""
+        raise NotImplementedError
 
 
 class WorkflowExecutionContext:
@@ -12,15 +27,59 @@ class WorkflowExecutionContext:
         require_json_output: bool = False,
         strict_validation: bool = False,
         user_preferences: Optional[Dict[str, Any]] = None,
+        *,
+        store: Optional[_BulkSaveProtocol] = None,
+        flush_threshold: int = 10,
         **kwargs,
     ):
         self.mode = mode  # e.g., 'tool-calling', 'chat', 'summarization', etc.
         self.require_json_output = require_json_output
         self.strict_validation = strict_validation
         self.user_preferences = user_preferences or {}
-        # Store any additional context fields
+
+        # ------------------------------------------------------------------
+        # Internal write-buffer for batched persistence --------------------
+        # ------------------------------------------------------------------
+        self._store: Optional[_BulkSaveProtocol] = store
+        self._flush_threshold: int = max(1, int(flush_threshold))
+        self._write_buffer: List[Tuple[str, Dict[str, Any]]] = []
+        self._last_flush_ns: float = time.perf_counter_ns()
+
+        # Store any additional context fields so previous API remains intact
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    # ------------------------------------------------------------------
+    # Persistence helpers ----------------------------------------------
+    # ------------------------------------------------------------------
+
+    async def persist_state(self, key: str, state: Dict[str, Any]) -> None:
+        """Queue *state* for persistence.  Flushes automatically when the
+        write-buffer reaches *flush_threshold* items.  If no *store* is
+        configured, the call becomes a no-op so existing usage is safe."""
+
+        if self._store is None:
+            return  # graceful degradation – nothing to persist
+
+        self._write_buffer.append((key, state))
+
+        if len(self._write_buffer) >= self._flush_threshold:
+            await self._flush()
+
+    async def _flush(self) -> None:
+        """Persist all queued states using ``bulk_save`` then clear buffer."""
+
+        if self._store is None or not self._write_buffer:
+            self._write_buffer.clear()
+            return
+
+        try:
+            await self._store.bulk_save(self._write_buffer)
+        finally:
+            self._write_buffer.clear()
+            self._last_flush_ns = time.perf_counter_ns()
+            # Give event-loop a chance – avoid starving in tight loops
+            await asyncio.sleep(0)
 
     def as_dict(self) -> Dict[str, Any]:
         return {

@@ -284,4 +284,98 @@ def sdk_create_chain(
         rprint(f"[green]✔[/] Created {_pretty_path}")
     except Exception as exc:  # noqa: BLE001
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
-        raise typer.Exit(code=1) 
+        raise typer.Exit(code=1)
+
+
+# ---------------------------------------------------------------------------
+# Chain helpers -------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def _load_chain_from_py(path: Path):  # noqa: D401 – utility
+    """Import *path* and return first ScriptChain found (or *None*)."""
+
+    import sys as _sys
+    from importlib import import_module as _import_module
+    from importlib import util as _util
+
+    from ice_orchestrator.script_chain import ScriptChain  # noqa: E402 – local import
+
+    if not path.exists():
+        raise FileNotFoundError(path)
+
+    module_name = path.stem.replace(".", "_")
+
+    # Ensure idempotent reload ------------------------------------------------
+    if module_name in _sys.modules:
+        del _sys.modules[module_name]
+
+    if str(path.parent) not in _sys.path:
+        _sys.path.insert(0, str(path.parent))
+
+    try:
+        module = _import_module(module_name)
+    except ModuleNotFoundError:
+        spec = _util.spec_from_file_location(module_name, path)
+        if spec and spec.loader:
+            module = _util.module_from_spec(spec)
+            _sys.modules[module_name] = module
+            spec.loader.exec_module(module)  # type: ignore[arg-type]
+        else:
+            raise
+
+    chain = None
+    if hasattr(module, "chain") and isinstance(getattr(module, "chain"), ScriptChain):
+        chain = getattr(module, "chain")
+    elif hasattr(module, "get_chain") and callable(getattr(module, "get_chain")):
+        maybe = getattr(module, "get_chain")()
+        if isinstance(maybe, ScriptChain):
+            chain = maybe
+
+    return chain
+
+
+# ---------------------------------------------------------------------------
+# chain-validate ------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@sdk_app.command("chain-validate", help="Validate a ScriptChain declared in a Python file")
+def sdk_chain_validate(
+    file: Path = typer.Argument(
+        ..., exists=True, file_okay=True, dir_okay=False, readable=True
+    ),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output JSON"),
+):
+    """Static validation for chain definitions.
+
+    Returns exit code 0 when no errors found, otherwise prints errors and exits
+    with code 1 so CI pipelines can fail on invalid chains.
+    """
+
+    from rich import print as _rprint
+
+    chain = _load_chain_from_py(file)
+    if chain is None:
+        _rprint(f"[red]Error:[/] No ScriptChain found in {file}.")
+        raise typer.Exit(code=1)
+
+    errors = []
+    if hasattr(chain, "validate_chain") and callable(chain.validate_chain):
+        errors = chain.validate_chain()  # type: ignore[assignment]
+    else:
+        _rprint("[yellow]⚠ Chain has no validate_chain() method – skipping checks.[/]")
+
+    if errors:
+        if json_output:
+            import json as _json
+
+            _rprint(_json.dumps({"errors": errors}, indent=2))
+        else:
+            _rprint("[red]Validation errors:[/]")
+            for err in errors:
+                _rprint(f" • {err}")
+        raise typer.Exit(code=1)
+
+    _rprint("[green]✔ Chain is valid.[/]")
+    raise typer.Exit(code=0) 
