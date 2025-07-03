@@ -1,6 +1,21 @@
+# ruff: noqa: E402
 from __future__ import annotations
 
+import sys
+from pathlib import Path as _Path
 from typing import List
+
+# ---------------------------------------------------------------------------
+# Import setup --------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+# Ensure the repository root is on ``sys.path`` so the absolute package import
+# below works even when this file is executed via ``ice run`` which loads the
+# module directly from its path (hence without a package context).
+_PROJECT_ROOT = str(_Path(__file__).resolve().parents[2])
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 from cli_demo.brand_demo.frosty_tools import (
     FormatOptimizerTool,

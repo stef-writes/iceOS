@@ -68,3 +68,56 @@ def calculate_cost(
 
     p_price, c_price = get_price_per_token(provider, model)
     return (p_price * prompt_tokens) + (c_price * completion_tokens)
+
+
+class DemoBudgetEnforcer:
+    """Lightweight guard that enforces hard resource ceilings for demos.
+
+    This is *not* a substitute for full usage tracking but provides an
+    easy-to-reach safety mechanism for demo code that might otherwise rack up
+    unexpected provider costs during workshops or tutorials.
+    """
+
+    MAX_LLM_CALLS: int = 3
+    MAX_TOOL_EXECUTIONS: int = 5
+
+    def __init__(self) -> None:
+        self._llm_calls = 0
+        self._tool_execs = 0
+
+    # ------------------------------------------------------------------
+    # Event hooks -------------------------------------------------------
+    # ------------------------------------------------------------------
+    def register_llm_call(self) -> None:
+        """Increment LLM call counter and raise if over the cap."""
+
+        self._llm_calls += 1
+        if self._llm_calls > self.MAX_LLM_CALLS:
+            raise RuntimeError(
+                "Demo exceeded allowed LLM call budget (max=%d)" % self.MAX_LLM_CALLS,
+            )
+
+    def register_tool_execution(self) -> None:
+        """Increment tool execution counter and raise if over the cap."""
+
+        self._tool_execs += 1
+        if self._tool_execs > self.MAX_TOOL_EXECUTIONS:
+            raise RuntimeError(
+                "Demo exceeded allowed tool execution budget (max=%d)"
+                % self.MAX_TOOL_EXECUTIONS,
+            )
+
+    # ------------------------------------------------------------------
+    # Introspection helpers --------------------------------------------
+    # ------------------------------------------------------------------
+    @property
+    def llm_calls(self) -> int:  # noqa: D401 – simple getter
+        """Return the number of LLM calls recorded so far."""
+
+        return self._llm_calls
+
+    @property
+    def tool_execs(self) -> int:  # noqa: D401 – simple getter
+        """Return the number of tool executions recorded so far."""
+
+        return self._tool_execs

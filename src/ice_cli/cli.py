@@ -371,6 +371,12 @@ def _print_mermaid_graph(chain):  # noqa: D401 – helper
     # Always print fenced block to console ------------------------------
     rprint("```mermaid\n" + mermaid_code + "\n```")
 
+    # Respect environment opt-out --------------------------------------
+    import os as _os  # local import to avoid at module top
+
+    if _os.getenv("ICE_NO_GRAPH_PREVIEW", "0") == "1":
+        return  # Skip preview generation entirely
+
     # Attempt auto-preview via mermaid-cli ------------------------------
     mmdc_path = shutil.which("mmdc")  # NB: binary name of mermaid-cli
     if mmdc_path is None:
@@ -427,79 +433,107 @@ async def _cli_run(entry: Path, watch: bool) -> None:
         observer.join()
 
 
-@app.command("run", help="Execute a ScriptChain declared in a Python file")
+@app.command("run", help="Execute a ScriptChain from file or module")
 def run_cmd(
-    path: Path = typer.Argument(
-        ..., exists=True, file_okay=True, dir_okay=False, readable=True
+    path: Path | None = typer.Argument(
+        None,
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        help="Path to a Python file containing a ScriptChain (omit when using --module)",
+    ),
+    module: str | None = typer.Option(
+        None,
+        "--module",
+        "-m",
+        help="Fully-qualified module path containing a ScriptChain (e.g. cli_demo.brand_demo)",
     ),
     watch: bool = typer.Option(
-        False, "--watch", "-w", help="Auto-reload when source files change"
+        False,
+        "--watch",
+        "-w",
+        help="Auto-reload on source changes (file mode only)",
     ),
     graph: bool = typer.Option(
-        False, "--graph", "-g", help="Print Mermaid graph instead of executing"
+        False,
+        "--graph",
+        "-g",
+        help="Print Mermaid graph instead of executing",
+    ),
+    no_preview: bool = typer.Option(
+        False,
+        "--no-preview",
+        help="With --graph, skip browser auto-preview even if mermaid-cli is installed",
     ),
 ):
-    """Run a ScriptChain defined in *path*.
+    """Run a ScriptChain from *path* or *module*."""
 
-    Example::
+    # ------------------------------------------------------------------
+    # Basic argument validation ----------------------------------------
+    # ------------------------------------------------------------------
+    if (path is None and module is None) or (path is not None and module is not None):
+        rprint("[red]Provide either a PATH argument or --module, but not both.[/]")
+        raise typer.Exit(1)
 
-        $ ice run examples/my_chain.py --watch
-    """
+    # Disable preview via env var so downstream helpers pick it up -----
+    if no_preview:
+        os.environ["ICE_NO_GRAPH_PREVIEW"] = "1"
 
-    # -------------------------------------------------------------------
-    # Emit *started* event ------------------------------------------------
-    # -------------------------------------------------------------------
+    # Emit *started* telemetry event -----------------------------------
     _emit_event(
         "cli.run.started",
         CLICommandEvent(
             command="run",
             status="started",
             params={
-                "path": str(path),
+                "path": str(path) if path else None,
+                "module": module,
                 "watch": watch,
                 "graph": graph,
+                "no_preview": no_preview,
             },
         ),
     )
 
-    if graph and watch:
-        rprint("[red]--graph and --watch cannot be combined.[/]")
-        raise typer.Exit(1)
+    try:
+        # --------------------------------------------------------------
+        # Module execution --------------------------------------------
+        # --------------------------------------------------------------
+        if module is not None:
+            if watch:
+                rprint("[yellow]Watch mode is not supported for --module execution.[/]")
+            entry_mod = _importlib.import_module(module)
+            asyncio.run(_execute_chain(entry_mod, show_graph=graph))
 
-    if graph:
-        # Directly print graph without watch functionality
-        module = _load_module_from_path(path.resolve())
-        try:
-            asyncio.run(_execute_chain(module, show_graph=True))
-            _emit_event(
-                "cli.run.completed", CLICommandEvent(command="run", status="completed")
-            )
-        except Exception as exc:
-            _emit_event(
-                "cli.run.failed",
-                CLICommandEvent(
-                    command="run",
-                    status="failed",
-                    params={"error": str(exc)},
-                ),
-            )
-            raise
-    else:
-        try:
-            asyncio.run(_cli_run(path.resolve(), watch))
-            _emit_event(
-                "cli.run.completed", CLICommandEvent(command="run", status="completed")
-            )
-        except Exception as exc:
-            _emit_event(
-                "cli.run.failed",
-                CLICommandEvent(
-                    command="run",
-                    status="failed",
-                    params={"error": str(exc)},
-                ),
-            )
-            raise
+        # --------------------------------------------------------------
+        # File-based execution ----------------------------------------
+        # --------------------------------------------------------------
+        else:
+            assert path is not None  # mypy safeguard
+            if graph and watch:
+                rprint("[red]--graph and --watch cannot be combined.[/]")
+                raise typer.Exit(1)
+
+            if graph:
+                entry_mod = _load_module_from_path(path.resolve())
+                asyncio.run(_execute_chain(entry_mod, show_graph=True))
+            else:
+                asyncio.run(_cli_run(path.resolve(), watch))
+
+        _emit_event(
+            "cli.run.completed", CLICommandEvent(command="run", status="completed")
+        )
+    except Exception as exc:
+        _emit_event(
+            "cli.run.failed",
+            CLICommandEvent(
+                command="run",
+                status="failed",
+                params={"error": str(exc)},
+            ),
+        )
+        raise
 
 
 # ---------------------------------------------------------------------------

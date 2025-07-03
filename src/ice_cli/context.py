@@ -51,3 +51,21 @@ def get_ctx(typer_ctx: Any | None = None) -> CLIContext:  # noqa: D401 – helpe
         setattr(typer_ctx, "obj", CLIContext())
 
     return getattr(typer_ctx, "obj")
+
+
+def validate_layer_boundaries() -> None:  # noqa: D401 – helper
+    """Raise ``ImportError`` if demo code crosses forbidden layer boundaries.
+
+    Design rule (#4 in repo rules): demo packages under ``cli_demo.*`` must not
+    import from ``ice_sdk.*`` directly.  This lightweight runtime guard can be
+    invoked at the top of demo entry-points to ensure boundaries remain intact
+    even when linters or import-linter are mis-configured.
+    """
+
+    import sys
+
+    for module_name in sys.modules:
+        if module_name.startswith("cli_demo.") and ".ice_sdk" in module_name:
+            raise ImportError(
+                "Demo packages may not import internal SDK modules (layer boundary violation).",
+            )
