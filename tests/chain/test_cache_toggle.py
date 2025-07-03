@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Unit tests verifying ScriptChain's cache toggle behaviour.
 
 The built-in LRU cache should be bypassed when either the *chain-level*
@@ -7,6 +5,8 @@ The built-in LRU cache should be bypassed when either the *chain-level*
 ``use_cache`` attribute is disabled.  These tests complement
 ``test_caching.py`` which covers the default (cache-enabled) path.
 """
+
+from __future__ import annotations
 
 from typing import Any
 

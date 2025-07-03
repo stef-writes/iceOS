@@ -7,7 +7,6 @@ import pytest  # type: ignore
 
 try:
     import respx  # type: ignore
-    from httpx import Response  # type: ignore
 except ModuleNotFoundError:
     pytest.skip("respx not installed", allow_module_level=True)
 

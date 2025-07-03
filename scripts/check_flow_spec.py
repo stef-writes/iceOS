@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """CI helper script to validate all FlowSpec JSON files under *examples/flows/*
 against ``schemas/flow_spec_v0.1.json``.
 
@@ -7,6 +5,8 @@ Usage
 -----
 python -m scripts.check_flow_spec  # exits non-zero on first validation error
 """
+
+from __future__ import annotations
 
 import json
 import sys

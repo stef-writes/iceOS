@@ -1,10 +1,10 @@
-line-length = 99
-src = ["src", "tests", "scripts"]
+line-length = 88
+target-version = "py310"
+exclude = ["site", "htmlcov"]
 
 # Ignore vendored / generated / env directories
 extend-exclude = [
     ".venv",
     "dist",
     "build",
-    "htmlcov",
 ]

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Utility script to generate JSON-Schema files from Pydantic models.
 
 Run with::
@@ -9,6 +7,8 @@ Run with::
 The script writes schema files into ``schemas/runtime`` relative to the
 repository root.
 """
+
+from __future__ import annotations
 
 import json
 from pathlib import Path

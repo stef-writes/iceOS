@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Integration tests for the new *ice sdk create-* scaffolds.
 
 These tests use Typer's *CliRunner* to invoke the CLI the same way a user
@@ -7,6 +5,8 @@ would on the command-line.  We deliberately execute the generated `*.chain.py`
 script to prove that the scaffolded artefacts run end-to-end without manual
 edits.
 """
+
+from __future__ import annotations
 
 import subprocess
 import sys

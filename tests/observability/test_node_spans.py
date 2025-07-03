@@ -4,18 +4,19 @@ from typing import Any
 
 import pytest
 
+# Pre-import modules required for tests --------------------------------
+from ice_orchestrator.script_chain import ScriptChain
+from ice_sdk.models.node_models import ToolNodeConfig
+from ice_sdk.tools.base import BaseTool
 from opentelemetry import trace
 
 # Skip if opentelemetry SDK missing -----------------------------------
 otlp = pytest.importorskip("opentelemetry.sdk")
 
-from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.models.node_models import ToolNodeConfig
-from ice_sdk.tools.base import BaseTool
-
-# Now safe to import ---------------------------------------------------
-from opentelemetry.sdk.trace import TracerProvider  # type: ignore[import-not-found]
-from opentelemetry.sdk.trace.export import (  # type: ignore[import-not-found]
+from opentelemetry.sdk.trace import (  # noqa: E402  # type: ignore[import-not-found]
+    TracerProvider,
+)
+from opentelemetry.sdk.trace.export import (  # noqa: E402  # type: ignore[import-not-found]
     InMemorySpanExporter,
     SimpleSpanProcessor,
 )

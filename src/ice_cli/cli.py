@@ -371,11 +371,11 @@ def _print_mermaid_graph(chain):  # noqa: D401 – helper
     # Always print fenced block to console ------------------------------
     rprint("```mermaid\n" + mermaid_code + "\n```")
 
-    # Respect environment opt-out --------------------------------------
-    import os as _os  # local import to avoid at module top
+    # Respect environment flag: only launch preview when ICE_GRAPH_PREVIEW=1
+    import os as _os  # local import to avoid module-level side effect
 
-    if _os.getenv("ICE_NO_GRAPH_PREVIEW", "0") == "1":
-        return  # Skip preview generation entirely
+    if _os.getenv("ICE_GRAPH_PREVIEW", "0") != "1":
+        return  # Do not open browser unless explicitly requested
 
     # Attempt auto-preview via mermaid-cli ------------------------------
     mmdc_path = shutil.which("mmdc")  # NB: binary name of mermaid-cli
@@ -461,10 +461,10 @@ def run_cmd(
         "-g",
         help="Print Mermaid graph instead of executing",
     ),
-    no_preview: bool = typer.Option(
+    preview: bool = typer.Option(
         False,
-        "--no-preview",
-        help="With --graph, skip browser auto-preview even if mermaid-cli is installed",
+        "--preview",
+        help="With --graph, additionally open the SVG in the browser (opt-in)",
     ),
 ):
     """Run a ScriptChain from *path* or *module*."""
@@ -476,9 +476,14 @@ def run_cmd(
         rprint("[red]Provide either a PATH argument or --module, but not both.[/]")
         raise typer.Exit(1)
 
-    # Disable preview via env var so downstream helpers pick it up -----
-    if no_preview:
-        os.environ["ICE_NO_GRAPH_PREVIEW"] = "1"
+    # Toggle environment flags so downstream renderer {_print_mermaid_graph}
+    # can decide whether to launch the browser.  We flip the logic: preview is
+    # *disabled* by default and only enabled when ICE_GRAPH_PREVIEW=1 is set.
+
+    if preview:
+        os.environ["ICE_GRAPH_PREVIEW"] = "1"
+        # Clear potential *no* flag so precedence is unambiguous.
+        os.environ.pop("ICE_NO_GRAPH_PREVIEW", None)
 
     # Emit *started* telemetry event -----------------------------------
     _emit_event(
@@ -491,7 +496,7 @@ def run_cmd(
                 "module": module,
                 "watch": watch,
                 "graph": graph,
-                "no_preview": no_preview,
+                "preview": preview,
             },
         ),
     )
@@ -923,19 +928,27 @@ def sdk_create_chain(
 
             # Attempt auto-preview via mermaid-cli (mmdc)
             mmdc_path = shutil.which("mmdc")
+            import os as _os  # local import to avoid module-level side effect
+
             if mmdc_path is not None:
-                with tempfile.TemporaryDirectory() as tmp:
-                    md_path = Path(tmp) / "graph.mmd"
-                    svg_path = Path(tmp) / "graph.svg"
-                    md_path.write_text(mermaid)
-                    subprocess.run(
-                        [mmdc_path, "-i", str(md_path), "-o", str(svg_path)],
-                        check=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
+                # Only open browser if ICE_GRAPH_PREVIEW=1
+                if _os.getenv("ICE_GRAPH_PREVIEW", "0") == "1":
+                    with tempfile.TemporaryDirectory() as tmp:
+                        md_path = Path(tmp) / "graph.mmd"
+                        svg_path = Path(tmp) / "graph.svg"
+                        md_path.write_text(mermaid)
+                        subprocess.run(
+                            [mmdc_path, "-i", str(md_path), "-o", str(svg_path)],
+                            check=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                        )
+                        webbrowser.open(svg_path.as_uri())
+                        rprint("[green]✔[/] Opened graph preview in browser.")
+                else:
+                    rprint(
+                        "[yellow]ℹ Skipping browser preview (set ICE_GRAPH_PREVIEW=1 or use --preview to enable).[/]"
                     )
-                    webbrowser.open(svg_path.as_uri())
-                    rprint("[green]✔[/] Opened graph preview in browser.")
             else:
                 rprint(
                     "[yellow]ℹ Install 'mermaid-cli' (npm i -g @mermaid-js/mermaid-cli) for graph preview.[/]"

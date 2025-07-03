@@ -28,11 +28,15 @@ def test_lru_eviction_of_old_sessions():
     mgr = GraphContextManager(max_sessions=2)
 
     c1 = mgr.get_context(session_id="s1")
-    c2 = mgr.get_context(session_id="s2")
+    _c2 = mgr.get_context(
+        session_id="s2"
+    )  # noqa: F841 – variable used for side effects
     # Both contexts tracked ------------------------------------------------
     assert list(mgr._contexts.keys()) == ["s1", "s2"]
 
-    c3 = mgr.get_context(session_id="s3")
+    _c3 = mgr.get_context(
+        session_id="s3"
+    )  # noqa: F841 – variable used for side effects
     # LRU eviction should have dropped "s1"
     assert "s1" not in mgr._contexts
     assert list(mgr._contexts.keys()) == ["s2", "s3"]
