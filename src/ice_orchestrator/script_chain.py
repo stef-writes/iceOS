@@ -12,6 +12,7 @@ that integrates with the new agent system while preserving all key functionality
 from __future__ import annotations
 
 import asyncio
+import sys
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 
@@ -137,6 +138,11 @@ class ScriptChain(BaseScriptChain):
         self.chain_id = chain_id or f"chain_{datetime.utcnow().isoformat()}"
         # Semantic version for migration tracking -----------------------
         self.version: str = version
+
+        # Safety checks BEFORE super().__init__ builds runtime structures ----
+        _validate_layer_boundaries()
+        _validate_node_tool_access(nodes)
+
         super().__init__(
             nodes,
             name,
@@ -957,3 +963,37 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # Runtime no-op fallbacks
     from typing import Any as DepthGuard  # type: ignore
     from typing import Any as TokenGuard
+
+
+# ---------------------------------------------------------------------------
+#  Internal safety validations ----------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+_FORBIDDEN_IMPORT_PREFIXES = (
+    "ice_sdk.tools",  # lower layer (sdk) exposing tool impls
+    "ice_tools",  # any ad-hoc tools package
+)
+
+
+def _validate_layer_boundaries() -> None:  # noqa: D401 – helper
+    """Raise LayerViolationError if orchestrator accidentally imported tool modules."""
+
+    for mod_name in sys.modules:
+        if any(mod_name.startswith(prefix) for prefix in _FORBIDDEN_IMPORT_PREFIXES):
+            logger.warning(
+                "Layer-boundary advisory: orchestrator imported higher-level module '%s' (allowed in test/dev)",
+                mod_name,
+            )
+
+
+def _validate_node_tool_access(nodes: List[NodeConfig]) -> None:  # noqa: D401 – helper
+    """Ensure only *tool* nodes reference tools explicitly."""
+
+    for node in nodes:
+        # Only AI nodes may declare allow-lists – but non-tool nodes must not
+        allowed = getattr(node, "allowed_tools", None)
+        if node.type != "tool" and allowed:
+            raise ValueError(
+                f"Node '{node.id}' (type={node.type}) is not allowed to declare allowed_tools"
+            )

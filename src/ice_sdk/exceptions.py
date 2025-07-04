@@ -17,6 +17,7 @@ __all__ = [
     "ErrorCode",
     "CoreError",
     "CycleDetectionError",
+    "LayerViolationError",
 ]
 
 
@@ -24,6 +25,7 @@ class ErrorCode(IntEnum):
     """Stable error codes for high-level failure classes."""
 
     CYCLIC_TOOL_COMPOSITION = 1001
+    LAYER_VIOLATION = 1002  # New – layer boundary breach
 
     # Generic fall-back
     UNKNOWN = 9000
@@ -32,6 +34,7 @@ class ErrorCode(IntEnum):
         """Return human-readable description."""
         mapping = {
             ErrorCode.CYCLIC_TOOL_COMPOSITION: "Cyclic tool/agent invocation detected",
+            ErrorCode.LAYER_VIOLATION: "Layer boundary violation detected",
             ErrorCode.UNKNOWN: "Unknown or uncategorised error",
         }
         return mapping.get(self, mapping[ErrorCode.UNKNOWN])
@@ -67,3 +70,15 @@ class CycleDetectionError(CoreError):
             f"Cyclic agent–tool invocation detected: {cycle_path}",
             payload={"cycle": cycle_path},
         )
+
+
+# ---------------------------------------------------------------------------
+#  Layer boundary violation --------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class LayerViolationError(CoreError):
+    """Raised when lower-layer code imports or uses forbidden higher-layer modules."""
+
+    def __init__(self, message: str):  # noqa: D401 – thin wrapper
+        super().__init__(ErrorCode.LAYER_VIOLATION, message)

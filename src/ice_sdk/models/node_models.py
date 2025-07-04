@@ -308,9 +308,14 @@ class AiNodeConfig(BaseNodeConfig):
         default=None,
         description="List of ToolConfig objects describing callable tools available to the node",
     )
+    # Restrictive allow-list – if None, the node cannot call tools
+    allowed_tools: Optional[List[str]] = Field(
+        default=None,
+        description="Explicit list of tool names this AI node is permitted to invoke. None means no tool access.",
+    )
     tool_args: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Default arguments for the tool when invoked via tool_name",
+        description="Keyword arguments passed into the tool call when this node is executed as a *tool*.",
     )
 
 
