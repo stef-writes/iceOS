@@ -80,7 +80,7 @@ _topic_mapper_node = AiNodeConfig(
         top_p=0.9,
     ),
     input_schema={"topic": str},
-    output_schema={"sub_questions": list[str]},
+    output_schema={"sub_questions": list},
     dependencies=["generate_query"],
     input_mappings={
         "topic": InputMapping(
@@ -141,7 +141,7 @@ _summarize_results_node = AiNodeConfig(
         )
     },
     input_schema={"search_results": list},
-    output_schema={"summary_points": list[str]},
+    output_schema={"summary_points": list},
     timeout_seconds=25,
     retries=2,
 )
@@ -178,7 +178,7 @@ _extract_points_node = AiNodeConfig(
         )
     },
     input_schema={"search_results": list},
-    output_schema={"key_points": list[str]},
+    output_schema={"key_points": list},
     timeout_seconds=30,
     retries=2,
 )
@@ -217,7 +217,7 @@ _outline_node = AiNodeConfig(
             source_output_key="key_points",
         )
     },
-    input_schema={"key_points": list[str]},
+    input_schema={"key_points": list},
     output_schema={"outline": str},
     timeout_seconds=45,
     retries=2,
@@ -246,8 +246,8 @@ _outline_reviewer = AiNodeConfig(
         )
     },
     output_schema={
-        "weaknesses": list[str],
-        "missing_sections": list[str],
+        "weaknesses": list,
+        "missing_sections": list,
         "score": float,
     },
 )
@@ -350,7 +350,7 @@ _keyword_density_node = ToolNodeConfig(
     },
     input_schema={
         "styled_text": str,
-        "keywords": list[str],
+        "keywords": list,
     },
     output_schema={
         "density": dict,
