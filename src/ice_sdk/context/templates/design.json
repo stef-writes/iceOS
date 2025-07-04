@@ -1,0 +1,13 @@
+{
+    "system": "Flow Design Session",
+    "variables": {
+        "current_step": "requirements_gathering",
+        "identified_tools": [],
+        "draft_nodes": [],
+        "validation_errors": []
+    },
+    "memory": {
+        "type": "sqlite",
+        "max_history": 10
+    }
+} 
