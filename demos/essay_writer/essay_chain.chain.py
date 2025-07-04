@@ -66,14 +66,15 @@ _topic_mapper_node = AiNodeConfig(
     id="topic_mapper",
     name="Topic Decomposer",
     type="ai",
-    model="deepseek-chat",
+    model="gpt-4o",
+    provider=ModelProvider.OPENAI,
     prompt=(
         "Decompose the essay topic into 3–7 research sub-questions covering what, why, impact, "
         "controversy, and future outlook. Return ONLY a JSON array of strings. Topic: {topic}"
     ),
     llm_config=LLMConfig(
-        provider=ModelProvider.DEEPSEEK,
-        model="deepseek-chat",
+        provider=ModelProvider.OPENAI,
+        model="gpt-4o",
         temperature=0.2,
         max_tokens=256,
         top_p=0.9,
@@ -114,14 +115,15 @@ _summarize_results_node = AiNodeConfig(
     id="summarize_results",
     name="Summarize Search Results",
     type="ai",
-    model="deepseek-chat",
+    model="gpt-4o",
+    provider=ModelProvider.OPENAI,
     prompt=(
         "Summarize these search results in 5 bullet points: {search_results}.\n"
         'Return a PLAIN JSON object, no markdown, with key \'summary_points\', e.g. {\\"summary_points\\": [\\"point1\\", ...]}'
     ),
     llm_config=LLMConfig(
-        provider=ModelProvider.DEEPSEEK,
-        model="deepseek-chat",
+        provider=ModelProvider.OPENAI,
+        model="gpt-4o",
         temperature=0.25,
         max_tokens=512,
         top_p=0.9,
@@ -149,15 +151,15 @@ _extract_points_node = AiNodeConfig(
     id="extract_key_points",
     name="Extract Key Points",
     type="ai",
-    model="deepseek-chat",
-    provider=ModelProvider.DEEPSEEK,
+    model="claude-3-haiku-20240307",
+    provider=ModelProvider.ANTHROPIC,
     prompt=(
         "From these search results: {search_results}\n"
         'Extract the 7 most important facts or data points. Return PLAIN JSON (no markdown) in the form {\\"key_points\\": [\\"point1\\", ...]}'
     ),
     llm_config=LLMConfig(
-        provider=ModelProvider.DEEPSEEK,
-        model="deepseek-chat",
+        provider=ModelProvider.ANTHROPIC,
+        model="claude-3-haiku-20240307",
         temperature=0.2,
         max_tokens=1024,
         top_p=0.85,
@@ -186,8 +188,8 @@ _outline_node = AiNodeConfig(
     id="build_outline",
     name="Build Outline",
     type="ai",
-    model="deepseek-chat",
-    provider=ModelProvider.DEEPSEEK,
+    model="gpt-4o",
+    provider=ModelProvider.OPENAI,
     prompt=(
         "Using the following key points:\n{key_points}\n\n"
         "Draft a detailed, hierarchical essay outline (e.g. I., II., III. with sub-levels A., 1., a.).\n\n"
@@ -196,8 +198,8 @@ _outline_node = AiNodeConfig(
         '{"outline": "I. Introduction\\n   A. Background\\n   B. Thesis\\nII. Key Point 1\\n   A. Supporting detail"}'
     ),
     llm_config=LLMConfig(
-        provider=ModelProvider.DEEPSEEK,
-        model="deepseek-chat",
+        provider=ModelProvider.OPENAI,
+        model="gpt-4o",
         temperature=0.4,
         max_tokens=2048,
         top_p=0.95,
@@ -226,14 +228,15 @@ _outline_reviewer = AiNodeConfig(
     id="outline_critic",
     name="Outline Critic",
     type="ai",
-    model="deepseek-chat",
+    model="claude-2",
+    provider=ModelProvider.ANTHROPIC,
     prompt=(
         "You are a meticulous academic peer reviewer. Analyse the outline below for gaps, logical "
         "flaws, redundancy, or imbalance. Respond in JSON with keys 'weaknesses', 'missing_sections', "
         "and 'score' (0-10). Outline:\n{outline}"
     ),
     llm_config=LLMConfig(
-        provider=ModelProvider.DEEPSEEK, model="deepseek-chat", temperature=0.0
+        provider=ModelProvider.ANTHROPIC, model="claude-2", temperature=0.0
     ),
     dependencies=["build_outline"],
     input_mappings={
@@ -254,12 +257,13 @@ _outline_refiner = AiNodeConfig(
     id="outline_refiner",
     name="Outline Refiner",
     type="ai",
-    model="deepseek-chat",
+    model="gpt-4o",
+    provider=ModelProvider.OPENAI,
     prompt=(
         "Original outline:\n{outline}\n\nCritique:\n{critique}\n\nProduce an improved outline that addresses all weaknesses and missing sections."
     ),
     llm_config=LLMConfig(
-        provider=ModelProvider.DEEPSEEK, model="deepseek-chat", temperature=0.6
+        provider=ModelProvider.OPENAI, model="gpt-4o", temperature=0.6
     ),
     dependencies=["outline_critic", "build_outline"],
     input_mappings={
@@ -282,6 +286,7 @@ _diagram_drafter = AiNodeConfig(
     name="Diagram Drafter",
     type="ai",
     model="deepseek-chat",
+    provider=ModelProvider.DEEPSEEK,
     prompt=(
         "Convert the following outline into Mermaid 'graph TD' code representing the logical flow:\n{outline}"
     ),
