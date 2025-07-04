@@ -9,11 +9,9 @@ from __future__ import annotations
 from typing import Dict, List, Tuple
 
 from ice_sdk.agents.flow_design_agent import (
-    _DummyResponse,  # type: ignore – internal test stub
+    _DummyResponse,  # type: ignore[attr-defined]
 )
-from ice_sdk.agents.flow_design_agent import (
-    _DummySession,  # type: ignore – internal test stub
-)
+from ice_sdk.agents.flow_design_agent import _DummySession  # type: ignore[attr-defined]
 from ice_sdk.agents.flow_design_agent import FlowDesignAgent, TestContextStore
 
 from .session import WorkflowSession

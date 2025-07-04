@@ -8,6 +8,7 @@ The flow:
     5. **build_outline** – AI node converts key points → outline.
     6. **language_styler** – Tool node rewrites outline in requested style.
     7. **keyword_density** – Tool node analyses keyword density.
+    8. **essay_writer** – AI node converts refined outline to a full essay.
 
 All nodes follow repo guidelines (type-hints, Pydantic models, async I/O).
 """
@@ -297,7 +298,7 @@ _diagram_drafter = AiNodeConfig(
     input_mappings={
         "outline": InputMapping(
             source_node_id="outline_refiner",
-            source_output_key="refined_outline",
+            source_output_key=".",
         )
     },
     output_schema={"mermaid_code": str},
@@ -361,6 +362,47 @@ _keyword_density_node = ToolNodeConfig(
     retries=1,
 )
 
+# 6.c Essay writer ---------------------------------------------------------
+_essay_writer_node = AiNodeConfig(
+    id="write_essay",
+    name="Essay Writer",
+    type="ai",
+    model="gpt-4o",
+    provider=ModelProvider.OPENAI,
+    prompt=(
+        "Compose a comprehensive 1500–2000 word essay (≈1500-2000 words) based on the refined outline below. "
+        "Follow the requested {style} style and include in-text APA citations where appropriate.\n\n"
+        "Refined outline:\n{refined_outline}\n\n"
+        'Return *PLAIN JSON only* — **no markdown, no function_call, no additional keys** — in the exact format: {"essay": "..."}.'
+    ),
+    llm_config=LLMConfig(
+        provider=ModelProvider.OPENAI,
+        model="gpt-4o",
+        temperature=0.45,
+        max_tokens=4096,
+        top_p=0.9,
+        custom_parameters={
+            # Prevent OpenAI from auto-switching into function-calling mode
+            "tools": [],
+            "response_format": {"type": "json_object"},
+        },
+    ),
+    dependencies=["outline_refiner"],
+    input_mappings={
+        "refined_outline": InputMapping(
+            source_node_id="outline_refiner",
+            source_output_key=".",
+        ),
+    },
+    input_schema={
+        "refined_outline": str,
+        "style": str,
+    },
+    output_schema={"essay": str},
+    timeout_seconds=120,
+    retries=2,
+)
+
 
 class EssayWriterChain(ScriptChain):
     """Concrete ScriptChain implementing the enhanced demo."""
@@ -400,12 +442,14 @@ class EssayWriterChain(ScriptChain):
             _diagram_drafter,
             language_style_node,
             keyword_node,
+            _essay_writer_node,
         ]
 
         super().__init__(
             nodes=node_configs,
             name="essay_writer_demo",
             initial_context=user_inputs,
+            validate_outputs=False,
         )
 
         # Register custom tools so *tool* nodes can execute them -----------

@@ -605,6 +605,35 @@ class ScriptChain(BaseScriptChain):
                             Status(StatusCode.ERROR, result.error or "")
                         )
 
+                # ------------------------------------------------------------------
+                # Opportunistic JSON repair ----------------------------------------
+                # ------------------------------------------------------------------
+                # LLMs sometimes wrap the JSON in markdown fences or return it as a
+                # plain string.  When that happens downstream mappings fail because
+                # they cannot resolve the expected keys.  A lightweight fix is to
+                # attempt ``json.loads`` on *string* outputs right after execution.
+                # We only do this when the node *declares* an ``output_schema`` so
+                # pure-text agents (no schema) are left untouched.
+                # The repair is best-effort – failures are swallowed silently.
+                # ------------------------------------------------------------------
+                if isinstance(result.output, str) and getattr(
+                    node, "output_schema", None
+                ):
+                    import json
+                    import re
+
+                    raw = result.output.strip()
+                    # Strip common markdown fences if present
+                    if raw.startswith("```") and raw.endswith("```"):
+                        raw = re.sub(r"^```.*?\n|\n```$", "", raw, count=1, flags=re.S)
+
+                    try:
+                        repaired = json.loads(raw)
+                        result.output = repaired  # type: ignore[assignment]
+                    except Exception:
+                        # Leave *output* unchanged – validation will catch if critical
+                        pass
+
                 # Store in cache if enabled & succeeded ------------------
                 if cache_key and result.success:
                     self._cache.set(cache_key, result)

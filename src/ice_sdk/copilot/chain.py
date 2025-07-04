@@ -8,7 +8,7 @@ Copilot.  It can be executed via ``ice run ...`` or imported from
 from __future__ import annotations
 
 from importlib import import_module
-from typing import List
+from typing import TYPE_CHECKING, Any, List, Type, cast
 
 from ice_sdk.copilot.tools import (
     FormatOptimizerTool,
@@ -28,7 +28,14 @@ from ice_sdk.models.node_models import (
 # This runtime import keeps the module decoupled at the type-checker level and
 # preserves existing behaviour when *ice_orchestrator* is available.
 
-ScriptChain = import_module("ice_orchestrator").ScriptChain  # type: ignore[attr-defined]
+# Resolve *ScriptChain* differently for type checking vs runtime to satisfy mypy
+if TYPE_CHECKING:
+    # Minimal stub so MyPy recognises it as a *class*
+    class ScriptChain:  # noqa: D401 – typing stub
+        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+
+else:
+    ScriptChain = cast(Type[Any], import_module("ice_orchestrator").ScriptChain)  # type: ignore[attr-defined]
 
 
 def _build_nodes(topic: str) -> List[NodeConfig]:  # noqa: D401
