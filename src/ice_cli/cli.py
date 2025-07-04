@@ -435,8 +435,7 @@ async def _cli_run(entry: Path, watch: bool) -> None:
 
 @app.command("run", help="Execute a ScriptChain from file or module")
 def run_cmd(
-    path: Path
-    | None = typer.Argument(
+    path: Path | None = typer.Argument(
         None,
         exists=True,
         file_okay=True,
@@ -444,8 +443,7 @@ def run_cmd(
         readable=True,
         help="Path to a Python file containing a ScriptChain (omit when using --module)",
     ),
-    module: str
-    | None = typer.Option(
+    module: str | None = typer.Option(
         None,
         "--module",
         "-m",
@@ -853,8 +851,7 @@ def sdk_create_chain(
     builder: bool = typer.Option(
         False, "--builder", "-b", help="Run interactive Chain Builder"
     ),
-    nodes: int
-    | None = typer.Option(
+    nodes: int | None = typer.Option(
         None, "--nodes", "-n", min=1, help="Total nodes for the interactive builder"
     ),
 ):
@@ -1082,8 +1079,7 @@ def init_cmd(
     install_precommit: bool = typer.Option(
         True, "--pre-commit/--no-pre-commit", help="Install pre-commit hooks"
     ),
-    openai_key: str
-    | None = typer.Option(
+    openai_key: str | None = typer.Option(
         None, "--openai-key", help="OpenAI API key to write into .env"
     ),
 ):
@@ -1280,3 +1276,10 @@ def demo_google_search(
     except Exception as exc:
         rprint(f"[red]Chain execution failed:[/] {exc}")
         raise typer.Exit(1)
+
+
+from ice_sdk.copilot.cli import (  # noqa: E402 – imported late to avoid heavy deps
+    copilot_app,
+)
+
+app.add_typer(copilot_app, name="copilot")

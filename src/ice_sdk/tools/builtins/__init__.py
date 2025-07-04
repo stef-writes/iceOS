@@ -10,6 +10,7 @@ next major version.
 """
 
 from .deterministic import HttpRequestTool, SleepTool, SumTool
+from .essay_tools import KeywordDensityTool, LanguageStyleAdapterTool
 from .file_tools import CsvLoaderTool, JsonQueryTool, PdfExtractTool
 
 # Public re-export for convenience -------------------------------------------------
@@ -20,4 +21,6 @@ __all__: list[str] = [
     "CsvLoaderTool",
     "JsonQueryTool",
     "PdfExtractTool",
+    "LanguageStyleAdapterTool",
+    "KeywordDensityTool",
 ]

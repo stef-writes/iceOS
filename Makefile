@@ -41,8 +41,9 @@ refresh-docs:
 	$(PYTHON) scripts/gen_catalog.py
 	$(PYTHON) scripts/gen_overview.py
 
+# Robust quoting so paths with spaces/parentheses do not break ----------------
 doctor:
-	$(PYTHON) scripts/doctor.py
+	"$(PYTHON)" scripts/doctor.py
 
 coverage:
 	$(PYTHON) -m pytest

@@ -243,8 +243,10 @@ class AgentNode:
 
             # Try to parse JSON tool call -----------------------------------
             try:
-                payload = json.loads(text)
-            except json.JSONDecodeError:
+                from .utils import extract_json
+
+                payload = extract_json(text)
+            except Exception:
                 # Consider raw text the final answer
                 final_output = text
                 break

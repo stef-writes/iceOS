@@ -73,9 +73,9 @@ class HttpRequestTool(BaseTool):
     """
 
     name: ClassVar[str] = "http_request"
-    description: ClassVar[
-        str
-    ] = "Make an HTTP GET/POST request and return the response body (truncated)."
+    description: ClassVar[str] = (
+        "Make an HTTP GET/POST request and return the response body (truncated)."
+    )
     parameters_schema: ClassVar[Dict[str, Any]] = {
         "type": "object",
         "properties": {

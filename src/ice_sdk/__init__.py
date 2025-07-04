@@ -13,6 +13,8 @@ from .tools.base import BaseTool, ToolContext, ToolError, function_tool  # noqa:
 from .tools.hosted import ComputerTool, FileSearchTool, WebSearchTool  # noqa: F401
 from .tools.service import ToolService  # noqa: F401
 
+# NOTE: Lazy import of IceCopilot to avoid circular dependencies with ice_orchestrator.
+
 __all__ = [
     # Core abstractions
     "BaseNode",
@@ -27,3 +29,14 @@ __all__ = [
     # Context
     "GraphContextManager",
 ]
+
+# Provide lazy attribute for IceCopilot ------------------------------------------------
+
+
+def __getattr__(name: str):  # noqa: D401 – module hook
+    if name == "IceCopilot":
+        from importlib import import_module
+
+        copilot_mod = import_module("ice_sdk.copilot")
+        return getattr(copilot_mod, "IceCopilot")
+    raise AttributeError(name)

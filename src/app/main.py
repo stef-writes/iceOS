@@ -76,9 +76,9 @@ async def lifespan(app: FastAPI):
     for key_name in api_keys_to_load:
         key_value = os.getenv(key_name)
         if key_value is not None and key_value.strip():  # Check for non-empty string
-            os.environ[
-                key_name
-            ] = key_value  # Make it available to any SDK that might look for it
+            os.environ[key_name] = (
+                key_value  # Make it available to any SDK that might look for it
+            )
             api_keys_to_load[key_name] = True  # Mark as found
             logger.info(f"{key_name} loaded from environment.")
         else:
