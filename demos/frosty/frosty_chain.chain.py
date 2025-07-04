@@ -17,7 +17,7 @@ _PROJECT_ROOT = str(_Path(__file__).resolve().parents[2])
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from cli_demo.brand_demo.frosty_tools import (
+from demos.frosty.frosty_tools import (
     FormatOptimizerTool,
     PlatformSplitterTool,
     VoiceApplierTool,
