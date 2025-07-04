@@ -70,7 +70,7 @@ _topic_mapper_node = AiNodeConfig(
     provider=ModelProvider.OPENAI,
     prompt=(
         "Decompose the essay topic into 3–7 research sub-questions covering what, why, impact, "
-        "controversy, and future outlook. Return ONLY a JSON array of strings. Topic: {topic}"
+        'controversy, and future outlook. Respond with a PLAIN JSON object matching this schema: {\\"sub_questions\\": [\\"...\\"]}. Topic: {topic}'
     ),
     llm_config=LLMConfig(
         provider=ModelProvider.OPENAI,
@@ -228,15 +228,15 @@ _outline_reviewer = AiNodeConfig(
     id="outline_critic",
     name="Outline Critic",
     type="ai",
-    model="claude-2",
-    provider=ModelProvider.ANTHROPIC,
+    model="gpt-4o",
+    provider=ModelProvider.OPENAI,
     prompt=(
         "You are a meticulous academic peer reviewer. Analyse the outline below for gaps, logical "
         "flaws, redundancy, or imbalance. Respond in JSON with keys 'weaknesses', 'missing_sections', "
         "and 'score' (0-10). Outline:\n{outline}"
     ),
     llm_config=LLMConfig(
-        provider=ModelProvider.ANTHROPIC, model="claude-2", temperature=0.0
+        provider=ModelProvider.OPENAI, model="gpt-4o", temperature=0.0
     ),
     dependencies=["build_outline"],
     input_mappings={
@@ -353,8 +353,9 @@ _keyword_density_node = ToolNodeConfig(
         "keywords": list[str],
     },
     output_schema={
-        "density_report": dict,
-        "passes_threshold": bool,
+        "density": dict,
+        "total_words": int,
+        "highlighted_html": str,
     },
     timeout_seconds=15,
     retries=1,
