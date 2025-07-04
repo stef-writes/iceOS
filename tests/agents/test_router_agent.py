@@ -5,32 +5,34 @@ from typing import Any, Dict
 import pytest
 
 from ice_sdk.agents.agent_node import AgentNode
-from ice_sdk.context.manager import GraphContextManager
+from ice_sdk.context import AsyncGraphContextManager
 from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 from ice_sdk.models.config import LLMConfig
 from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
 from ice_sdk.providers.llm_service import LLMService
 
+# pyright: ignore[reportMissingParameter,reportGeneralTypeIssues]
+
 
 class PassiveAgent(AgentNode):
     """A deterministic agent that just returns its *name* in the output."""
 
-    def __init__(self, name: str, ctx_mgr: GraphContextManager):
+    def __init__(self, name: str, ctx_mgr: AsyncGraphContextManager):
         cfg = AgentConfig(
             name=name,
             instructions="You are a passive agent",
             model="gpt-3.5-turbo",
             model_settings=ModelSettings(
-                model="gpt-3.5-turbo", temperature=0.0, provider="openai"
+                model="gpt-3.5-turbo", temperature=0.0, provider="openai", max_tokens=16
             ),
-            tools=[],
+            tools=[],  # type: ignore[call-arg]
         )
         super().__init__(config=cfg, context_manager=ctx_mgr)
 
     async def execute(self, input: Dict[str, Any]):  # type: ignore[override]
         meta = NodeMetadata(node_id=self.config.name, node_type="agent")  # type: ignore[arg-type]
         return NodeExecutionResult(
-            success=True, output={"agent": self.config.name}, metadata=meta
+            success=True, output={"agent": self.config.name}, metadata=meta  # type: ignore[call-arg]
         )
 
 
@@ -53,7 +55,7 @@ class RouterAgent(AgentNode):
 
 @pytest.mark.asyncio
 async def test_router_agent_forwards(monkeypatch):
-    ctx_mgr = GraphContextManager()
+    ctx_mgr = AsyncGraphContextManager()
 
     # Register passive agents ------------------------------------------------
     alpha = PassiveAgent("alpha", ctx_mgr)
@@ -67,9 +69,9 @@ async def test_router_agent_forwards(monkeypatch):
         instructions="Route to the correct agent",
         model="gpt-3.5-turbo",
         model_settings=ModelSettings(
-            model="gpt-3.5-turbo", temperature=0.0, provider="openai"
+            model="gpt-3.5-turbo", temperature=0.0, provider="openai", max_tokens=16
         ),
-        tools=[],
+        tools=[],  # type: ignore[call-arg]
     )
     llm_service = LLMService()
     router = RouterAgent(

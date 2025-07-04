@@ -70,7 +70,7 @@ anthropic = "0.19.0"
 # Patched versions resolving CVE-2024-24762 (FastAPI) and CVE-2024-24762 (python-multipart)
 fastapi = ">=0.109.1,<0.200"
 google-generativeai = "0.4.0"
-httpx = "^0.27.0"
+httpx = "<0.25.0,>=0.24.0"
 # Optional deps for new tools -----------------------------
 jmespath = "^1.0.1"
 pypdf = "^3.17.0"
@@ -146,6 +146,42 @@ ice = "ice_cli.cli:app"
 llm_openai = ["openai", "tiktoken"]
 llm_anthropic = ["anthropic"]
 llm_gemini = ["google-generativeai"]
+
+# Alias for test & lint dependencies when installing via `pip` instead of Poetry
+dev = [
+  "coverage",
+  "pytest",
+  "pytest-asyncio",
+  "pytest-benchmark",
+  "pytest-cov",
+  "pytest-html",
+  "pytest-metadata",
+  "pytest-mock",
+  "pytest-randomly",
+  "pytest-timeout",
+  "pytest-xdist",
+  "black",
+  "flake8",
+  "isort",
+  "mypy",
+  "ruff",
+  "types-PyYAML",
+  "pyright",
+  "import-linter",
+  "hypothesis",
+  "mutmut",
+  "testcontainers",
+  "respx",
+  "questionary",
+  "mkdocs",
+  "mkdocs-material",
+  "mkdocstrings",
+  "mkdocstrings-python",
+  "mkdocs-include-markdown-plugin",
+  "mkdocs-autorefs",
+  "griffe",
+  "pre-commit",
+]
 
 # ---------------------------------------------------------------------------
 # Static typing configuration (pyright) -------------------------------------

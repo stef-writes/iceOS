@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from ice_sdk.context.manager import GraphContextManager  # noqa: F401
 from ice_sdk.context.scoped_context_store import ScopedContextStore  # noqa: F401
 from ice_sdk.context.session_state import SessionState  # noqa: F401
 
+from .async_manager import AsyncGraphContextManager  # noqa: F401
+from .async_manager import GraphContextManager  # async-first implementation
 from .memory import (  # re-export for convenience
     BaseMemory,
     NullMemory,
@@ -19,4 +20,5 @@ __all__: list[str] = [
     "BaseMemory",
     "SQLiteVectorMemory",
     "NullMemory",
+    "AsyncGraphContextManager",
 ]

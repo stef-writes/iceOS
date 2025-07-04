@@ -17,7 +17,6 @@ __all__ = [
     "ErrorCode",
     "CoreError",
     "CycleDetectionError",
-    "MCPTransportError",
 ]
 
 
@@ -25,7 +24,6 @@ class ErrorCode(IntEnum):
     """Stable error codes for high-level failure classes."""
 
     CYCLIC_TOOL_COMPOSITION = 1001
-    MCP_TRANSPORT_FAILURE = 1101
 
     # Generic fall-back
     UNKNOWN = 9000
@@ -34,7 +32,6 @@ class ErrorCode(IntEnum):
         """Return human-readable description."""
         mapping = {
             ErrorCode.CYCLIC_TOOL_COMPOSITION: "Cyclic tool/agent invocation detected",
-            ErrorCode.MCP_TRANSPORT_FAILURE: "Secure transport failure while communicating with MCP server",
             ErrorCode.UNKNOWN: "Unknown or uncategorised error",
         }
         return mapping.get(self, mapping[ErrorCode.UNKNOWN])
@@ -69,15 +66,4 @@ class CycleDetectionError(CoreError):
             ErrorCode.CYCLIC_TOOL_COMPOSITION,
             f"Cyclic agent–tool invocation detected: {cycle_path}",
             payload={"cycle": cycle_path},
-        )
-
-
-class MCPTransportError(CoreError):
-    """Raised when encrypted transport with the MCP server fails."""
-
-    def __init__(self, original_exc: Exception):
-        super().__init__(
-            ErrorCode.MCP_TRANSPORT_FAILURE,
-            f"Secure MCP transport failed: {original_exc}",
-            payload={"exc": original_exc},
         )

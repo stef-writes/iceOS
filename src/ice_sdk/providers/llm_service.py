@@ -27,7 +27,8 @@ try:
     from openai import error as openai_error  # type: ignore
 except Exception:  # pragma: no cover
     # Provide stub error types when OpenAI package is absent (e.g., during tests).
-    class _StubError(Exception): ...
+    class _StubError(Exception):
+        ...
 
     class _OpenAIErrorModule:  # type: ignore
         RateLimitError = _StubError

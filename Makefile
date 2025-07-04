@@ -1,6 +1,6 @@
 # Makefile for iceOS – high-level dev tasks
 
-PYTHON := python
+PYTHON := $(shell which python)
 PIP := pip
 
 .PHONY: help install lint type test coverage mutation refresh-docs doctor clean docs deep-clean
@@ -20,7 +20,7 @@ help:
 	@echo "  deep-clean     Remove build/test artifacts, caches, logs, compiled files and local data"
 
 install:
-	$(PIP) install -e .[test]
+	$(PIP) install -e ".[dev]"
 
 lint:
 	ruff check src
@@ -35,7 +35,7 @@ type:
 	mypy src
 
 test:
-	pytest -q
+	$(PYTHON) -m pytest -q
 
 refresh-docs:
 	$(PYTHON) scripts/gen_catalog.py
@@ -45,7 +45,7 @@ doctor:
 	$(PYTHON) scripts/doctor.py
 
 coverage:
-	pytest
+	$(PYTHON) -m pytest
 
 mutation:
 	mutmut run --paths-to-mutate src --tests-dir tests

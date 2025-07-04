@@ -23,7 +23,7 @@ from ice_orchestrator.chain_errors import ChainError
 from ice_orchestrator.node_dependency_graph import DependencyGraph
 from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 from ice_sdk.agents.agent_node import AgentNode
-from ice_sdk.context.manager import GraphContextManager
+from ice_sdk.context import GraphContextManager
 from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 from ice_sdk.models.node_models import (
     AiNodeConfig,
@@ -205,7 +205,6 @@ class ScriptChain(BaseScriptChain):
             },
         ) as chain_span:
             for level_idx, level_num in enumerate(sorted(self.levels.keys()), start=1):
-
                 # External depth guard takes priority --------------------
                 if self._depth_guard and not self._depth_guard(
                     level_idx, self.depth_ceiling

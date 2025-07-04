@@ -9,10 +9,13 @@ breaking the stable API.
 
 from __future__ import annotations
 
+import inspect  # NEW
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterable, Type
 
-from .base import BaseTool
+from pydantic import BaseModel  # NEW IMPORT
+
+from .base import BaseTool, ToolContext
 
 if TYPE_CHECKING:  # pragma: no cover – for type checkers only
     from ice_sdk.capabilities.card import (  # noqa: WPS433 – optional import
@@ -20,6 +23,14 @@ if TYPE_CHECKING:  # pragma: no cover – for type checkers only
     )
 
 __all__ = ["ToolService"]
+
+
+class ToolRequest(BaseModel):
+    """Payload model for executing a tool via the public API."""
+
+    tool_name: str
+    inputs: dict[str, Any] = {}
+    context: dict[str, Any] | None = None
 
 
 class ToolService:  # noqa: D101 – simple façade
@@ -57,7 +68,6 @@ class ToolService:  # noqa: D101 – simple façade
         """
 
         import importlib
-        import inspect
         import logging
 
         logger = logging.getLogger(__name__)
@@ -153,6 +163,35 @@ class ToolService:  # noqa: D101 – simple façade
 
         for tool_cls in self._registry.values():
             yield CapabilityCard.from_tool_cls(tool_cls)
+
+    # ------------------------------------------------------------------
+    # Direct execution API ---------------------------------------------
+    # ------------------------------------------------------------------
+    async def execute(self, request: "ToolRequest") -> dict[str, Any]:
+        """Execute the *tool* described by *request* and return its result.
+
+        This replaces the now-deprecated MCP indirection layer with a direct
+        registry lookup followed by an asynchronous ``run`` call on the tool
+        instance. Schema validation (if any) should be enforced by individual
+        tool implementations.
+        """
+
+        # Instantiate the requested tool (raises *KeyError* if unknown)
+        tool = self.get(request.tool_name)
+
+        # Merge context into kwargs if the tool accepts a ``ctx`` parameter
+        run_sig = inspect.signature(tool.run)  # type: ignore[attr-defined]
+        kwargs = dict(request.inputs)
+        if "ctx" in run_sig.parameters and request.context is not None:
+            kwargs["ctx"] = ToolContext(**request.context)  # type: ignore[call-arg]
+
+        # Execute – handle sync & async implementations transparently
+        if inspect.iscoroutinefunction(tool.run):  # type: ignore
+            result = await tool.run(**kwargs)  # type: ignore[arg-type]
+        else:  # pragma: no cover – most tools are async but guard anyway
+            result = tool.run(**kwargs)  # type: ignore[arg-type]
+
+        return {"data": result, "tool": tool.name}
 
     # ------------------------------------------------------------------
     # Internals

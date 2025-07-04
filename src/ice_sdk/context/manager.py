@@ -1,11 +1,15 @@
 """Context manager for graph execution."""
 
+import inspect
 import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import networkx as nx
 from pydantic import BaseModel, Field
+
+# Unified tool execution via ToolService -------------------------------
+from ice_sdk.tools.service import ToolRequest, ToolService
 
 from ..tools.base import BaseTool, ToolContext
 
@@ -49,6 +53,7 @@ class GraphContextManager:
         store: Optional[ContextStore] = None,
         formatter: Optional[ContextFormatter] = None,
         memory: Optional[BaseMemory] = None,
+        tool_service: Optional[ToolService] = None,
     ):
         """Create a ``GraphContextManager``.
 
@@ -73,6 +78,9 @@ class GraphContextManager:
         self._contexts: "OrderedDict[str, GraphContext]" = OrderedDict()
         self._context: Optional[GraphContext] = None
 
+        # Unified ToolService instance ----------------------------------
+        self.tool_service: ToolService = tool_service or ToolService()
+
     def register_agent(self, agent: "AgentNode") -> None:
         """Register an agent for lookup by other agents."""
         if agent.config.name in self._agents:
@@ -88,6 +96,13 @@ class GraphContextManager:
         if tool.name in self._tools:
             raise ValueError(f"Tool '{tool.name}' already registered")
         self._tools[tool.name] = tool
+
+        # Register tool CLASS with ToolService for unified execution ----
+        try:
+            self.tool_service.register(tool.__class__)
+        except ValueError:
+            # Ignore duplicate class registration
+            pass
 
     def get_agent(self, name: str) -> Optional["AgentNode"]:
         """Look up an agent by name."""
@@ -136,26 +151,51 @@ class GraphContextManager:
             tool_name: Name of tool to execute
             **kwargs: Tool arguments
         """
-        tool = self.get_tool(tool_name)
-        if not tool:
-            raise ValueError(f"Tool '{tool_name}' not found")
-
+        # Ensure we are within an execution context -----------------------
         if not self._context:
             raise RuntimeError("No execution context set")
 
-        # Create tool context
-        tool_ctx = ToolContext(
-            agent_id=self._context.session_id,
-            session_id=self._context.execution_id or self._context.session_id,
-            metadata=self._context.metadata,
-        )
+        # Build minimal ctx dict expected by ToolService → ToolContext
+        ctx_payload = {
+            "agent_id": self._context.session_id,
+            "session_id": self._context.execution_id or self._context.session_id,
+            "metadata": self._context.metadata,
+        }
 
-        # Execute tool
+        # Prefer pre-instantiated tool instance when available -------------
+        stateful_tool = self._tools.get(tool_name)
+        if stateful_tool is not None:
+            try:
+                call_kwargs = dict(kwargs)
+                call_kwargs["ctx"] = ToolContext(**ctx_payload)  # type: ignore[arg-type]
+
+                try:
+                    if inspect.iscoroutinefunction(stateful_tool.run):  # type: ignore
+                        result = await stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                    else:
+                        result = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                except TypeError as exc:
+                    if "ctx" in str(exc):
+                        # Retry without ctx when tool doesn't expect it ----
+                        call_kwargs.pop("ctx", None)
+                        if inspect.iscoroutinefunction(stateful_tool.run):  # type: ignore
+                            result = await stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                        else:
+                            result = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                    else:
+                        raise
+                return result
+            except Exception as e:
+                logger.error("Tool execution failed (stateful path): %s", e)
+                raise
+
+        request = ToolRequest(tool_name=tool_name, inputs=kwargs, context=ctx_payload)
+
         try:
-            result = await tool.run(ctx=tool_ctx, **kwargs)
-            return result
+            result_wrapper = await self.tool_service.execute(request)
+            return result_wrapper["data"]
         except Exception as e:
-            logger.error(f"Tool execution failed: {str(e)}")
+            logger.error("Tool execution failed via ToolService: %s", e)
             raise
 
     def update_node_context(

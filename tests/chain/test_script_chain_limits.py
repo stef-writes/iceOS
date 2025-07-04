@@ -1,7 +1,9 @@
+# pyright: reportGeneralTypeIssues=false
 import pytest
 
 from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.context.manager import GraphContext, GraphContextManager
+from ice_sdk.context import GraphContextManager
+from ice_sdk.context.manager import GraphContext
 from ice_sdk.models.node_models import ToolNodeConfig
 from ice_sdk.tools.builtins import SumTool
 from ice_sdk.tools.service import ToolService
@@ -13,9 +15,13 @@ async def test_depth_ceiling_stops_execution():
     ts.register(SumTool)  # already registered but safe
 
     # Build 3-level linear chain with dummy tool nodes
-    nodes = [
+    nodes = [  # type: ignore[var-annotated]
         ToolNodeConfig(
-            id=f"n{i}", type="tool", tool_name="sum", tool_args={"numbers": [i]}
+            id=f"n{i}",
+            name=f"node{i}",
+            type="tool",
+            tool_name="sum",
+            tool_args={"numbers": [i]},
         )
         for i in range(3)
     ]
@@ -27,7 +33,7 @@ async def test_depth_ceiling_stops_execution():
 
     ctx_mgr = GraphContextManager()
     ctx_mgr.set_context(GraphContext(session_id="test"))
-    chain = ScriptChain(
+    chain = ScriptChain(  # type: ignore[arg-type]
         nodes=nodes,
         name="depth-test",
         token_ceiling=None,

@@ -129,12 +129,14 @@ async def execute_workflow(request: WorkflowRequest) -> Dict[str, Any]:
 @router.get("/nodes/{node_id}/context")
 async def get_node_context(
     node_id: str,
-    limit: int | None = Query(
+    limit: int
+    | None = Query(
         None,
         ge=1,
         description="Max number of keys to return (dicts will be truncated).",
     ),
-    after: str | None = Query(
+    after: str
+    | None = Query(
         None, description="Pagination cursor – last key from previous page."
     ),
     context_manager=Depends(get_context_manager),

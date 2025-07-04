@@ -4,7 +4,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from ice_sdk.context.manager import GraphContext, GraphContextManager
+from ice_sdk.context import GraphContextManager
+from ice_sdk.context.manager import GraphContext
 from ice_sdk.models.node_models import NodeConfig, NodeExecutionResult
 from ice_sdk.tools.base import BaseTool
 

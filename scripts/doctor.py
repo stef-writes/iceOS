@@ -50,12 +50,12 @@ class Check:
 # ---------------------------------------------------------------------------
 
 CHECKS: List[Check] = [
-    Check("Linting (ruff)", "ruff src"),
+    Check("Linting (ruff)", "ruff check src"),
     Check("Typing (pyright)", "pyright --project config"),
-    Check("Unit & integration tests", "make test -j"),
+    Check("Unit & integration tests", "python -m pytest -q"),
     Check(
         "Coverage threshold",
-        "pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q",
+        "python -m pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q",
     ),
     *([Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []),
     Check("Import-linter rules", "lint-imports --config config/.importlinter"),

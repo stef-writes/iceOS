@@ -43,9 +43,9 @@ class ContextStore(BaseContextStore):
                 json.dump({}, f)
         self.context_cache: Dict[str, Dict[str, Any]] = {}
         self._load_context()
-        self.hooks: List[Callable[[str, str, Any], None]] = (
-            []
-        )  # hooks for observability
+        self.hooks: List[
+            Callable[[str, str, Any], None]
+        ] = []  # hooks for observability
         self.formatter = formatter or ContextFormatter()
 
     def register_hook(self, hook: Callable[[str, str, Any], None]):

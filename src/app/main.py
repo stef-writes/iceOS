@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.builder import router as builder_router
 from app.api.routes import router
 from ice_sdk import ToolService
-from ice_sdk.context.manager import GraphContextManager
+from ice_sdk.context import GraphContextManager
 from ice_sdk.utils.errors import add_exception_handlers
 from ice_sdk.utils.logging import setup_logger
 from ice_sdk_contrib.kb_router import router as kb_router
@@ -76,9 +76,9 @@ async def lifespan(app: FastAPI):
     for key_name in api_keys_to_load:
         key_value = os.getenv(key_name)
         if key_value is not None and key_value.strip():  # Check for non-empty string
-            os.environ[key_name] = (
-                key_value  # Make it available to any SDK that might look for it
-            )
+            os.environ[
+                key_name
+            ] = key_value  # Make it available to any SDK that might look for it
             api_keys_to_load[key_name] = True  # Mark as found
             logger.info(f"{key_name} loaded from environment.")
         else:

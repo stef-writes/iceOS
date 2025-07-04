@@ -13,7 +13,43 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-import dpath.util
+# ---------------------------------------------------------------------------
+# Optional dependency: dpath ------------------------------------------------
+# ---------------------------------------------------------------------------
+try:
+    import dpath.util as _dpath_util  # type: ignore
+
+    def _get_nested(obj: Any, path: str, *, separator: str = ".") -> Any:
+        """Proxy to *dpath.util.get* when the library is available."""
+
+        return _dpath_util.get(obj, path, separator=separator)
+
+except ModuleNotFoundError:  # pragma: no cover – soft fallback
+
+    def _get_nested(obj: Any, path: str, *, separator: str = ".") -> Any:  # type: ignore[return-value]
+        """Lightweight fallback that supports **exact** key paths only.
+
+        Wildcards and advanced selectors are **not** supported without the
+        optional *dpath* dependency.  The behaviour is good enough for basic
+        tests but raises a clear :class:`ImportError` when an unsupported
+        path expression is encountered.
+        """
+
+        if "*" in path:
+            raise ImportError(
+                "dpath is required for wildcard path validation but is not\n"
+                "installed.  Run `pip install dpath` or install iceOS with\n"
+                "the extra dependencies via `pip install 'iceos[dpath]'`."
+            )
+
+        current = obj
+        for segment in path.split(separator):
+            if isinstance(current, dict) and segment in current:
+                current = current[segment]
+            else:
+                raise KeyError(path)
+        return current
+
 
 __all__ = ["validate_nested_output"]
 
@@ -40,7 +76,7 @@ def validate_nested_output(
 
     for key_path, expected_type in schema.items():
         try:
-            value = dpath.util.get(output, key_path, separator=".")
+            value = _get_nested(output, key_path, separator=".")
             if not isinstance(value, expected_type):
                 errors.append(
                     f"Path '{key_path}': Expected {expected_type.__name__}, "

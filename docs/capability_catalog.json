@@ -56,11 +56,6 @@
       "path": "src/ice_sdk/tools/hosted.py"
     },
     {
-      "id": "src.ice_sdk.tools.mcp.MCPTool",
-      "kind": "tool",
-      "path": "src/ice_sdk/tools/mcp.py"
-    },
-    {
       "id": "src.ice_sdk.tools.webhook.WebhookEmitterTool",
       "kind": "tool",
       "path": "src/ice_sdk/tools/webhook.py"
