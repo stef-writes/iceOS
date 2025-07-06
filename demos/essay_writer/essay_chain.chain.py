@@ -232,9 +232,13 @@ _outline_reviewer = AiNodeConfig(
     model="gpt-4o",
     provider=ModelProvider.OPENAI,
     prompt=(
-        "You are a meticulous academic peer reviewer. Analyse the outline below for gaps, logical "
-        "flaws, redundancy, or imbalance. Respond in JSON with keys 'weaknesses', 'missing_sections', "
-        "and 'score' (0-10). Outline:\n{outline}"
+        """You are a meticulous academic peer reviewer. Analyse the outline below for gaps, logical flaws, redundancy, or imbalance.
+
+Return *PLAIN JSON only* (no markdown, no code fences) with this exact schema:
+{"weaknesses": ["..."], "missing_sections": ["..."], "score": 7}
+
+Outline to critique:
+{outline}"""
     ),
     llm_config=LLMConfig(
         provider=ModelProvider.OPENAI, model="gpt-4o", temperature=0.0
@@ -249,7 +253,7 @@ _outline_reviewer = AiNodeConfig(
     output_schema={
         "weaknesses": list,
         "missing_sections": list,
-        "score": float,
+        "score": (int, float),
     },
 )
 
@@ -258,13 +262,28 @@ _outline_refiner = AiNodeConfig(
     id="outline_refiner",
     name="Outline Refiner",
     type="ai",
-    model="gpt-4o",
+    model="gpt-3.5-turbo",
     provider=ModelProvider.OPENAI,
     prompt=(
-        "Original outline:\n{outline}\n\nCritique:\n{critique}\n\nProduce an improved outline that addresses all weaknesses and missing sections."
+        """Original outline:
+{outline}
+
+Critique:
+{critique}
+
+Respond *ONLY* with valid JSON (no markdown, no code fences, no extra keys or commentary) that matches this structure:
+{{\"refined_outline\": \"I. Introduction\\n   A. ...\"}}"""
     ),
+    output_schema={"refined_outline": str},
     llm_config=LLMConfig(
-        provider=ModelProvider.OPENAI, model="gpt-4o", temperature=0.6
+        provider=ModelProvider.OPENAI,
+        model="gpt-3.5-turbo",
+        temperature=0.7,
+        max_tokens=1500,
+        custom_parameters={
+            "system_message": "You are an academic editor returning strictly valid JSON ONLY.",
+            "response_format": {"type": "json_object"},
+        },
     ),
     dependencies=["outline_critic", "build_outline"],
     input_mappings={
@@ -277,7 +296,6 @@ _outline_refiner = AiNodeConfig(
             source_output_key="weaknesses",
         ),
     },
-    output_schema={"refined_outline": str},
     retries=1,
 )
 
@@ -289,7 +307,11 @@ _diagram_drafter = AiNodeConfig(
     model="deepseek-chat",
     provider=ModelProvider.DEEPSEEK,
     prompt=(
-        "Convert the following outline into Mermaid 'graph TD' code representing the logical flow:\n{outline}"
+        """Convert the following outline into Mermaid 'graph TD' code representing the logical flow:
+{outline}
+
+Respond with *PLAIN JSON only* (no markdown, no code fences) matching this schema:
+{{\"mermaid_code\": \"graph TD; ...\"}}"""
     ),
     llm_config=LLMConfig(
         provider=ModelProvider.DEEPSEEK, model="deepseek-chat", temperature=0.3
@@ -298,7 +320,7 @@ _diagram_drafter = AiNodeConfig(
     input_mappings={
         "outline": InputMapping(
             source_node_id="outline_refiner",
-            source_output_key=".",
+            source_output_key="refined_outline",
         )
     },
     output_schema={"mermaid_code": str},
@@ -391,7 +413,7 @@ _essay_writer_node = AiNodeConfig(
     input_mappings={
         "refined_outline": InputMapping(
             source_node_id="outline_refiner",
-            source_output_key=".",
+            source_output_key="refined_outline",
         ),
     },
     input_schema={
@@ -411,13 +433,23 @@ class EssayWriterChain(ScriptChain):
         user_inputs = user_inputs or {}
 
         # ------------------------------------------------------------------
-        # Instantiate nodes (deepcopy works around shared mutable defaults) --
+        # Build node copies with correct context mappings -------------------
         # ------------------------------------------------------------------
+        generate_query_node = deepcopy(_generate_query_node)
+        if "topic" in user_inputs:
+            # Map *topic* directly from provided user inputs (constant value)
+            generate_query_node.input_mappings = {"topic": user_inputs["topic"]}
+
+        topic_mapper_node = deepcopy(_topic_mapper_node)
+        # Remove unnecessary dependency on *generate_query* and map topic from inputs
+        topic_mapper_node.dependencies = []
+        if "topic" in user_inputs:
+            topic_mapper_node.input_mappings = {"topic": user_inputs["topic"]}
+
         web_search_node = deepcopy(_web_search_template)
-        # If the user supplies explicit topic → bypass query generation
+        # If the user supplies explicit search_query → bypass query generation
         if "search_query" in user_inputs:
             web_search_node.tool_args["query"] = user_inputs["search_query"]
-            # Also skip dependency mapping in that case ------------------
             web_search_node.input_mappings = {}
             web_search_node.dependencies = []
 
@@ -429,27 +461,46 @@ class EssayWriterChain(ScriptChain):
         if "keywords" in user_inputs and isinstance(user_inputs["keywords"], list):
             keyword_node.tool_args["keywords"] = user_inputs["keywords"]
 
+        # Refined outline consumers ----------------------------------------
+        diagram_drafter_node = deepcopy(_diagram_drafter)
+        diagram_drafter_node.input_mappings = {
+            "outline": InputMapping(
+                source_node_id="outline_refiner",
+                source_output_key="refined_outline",
+            )
+        }
+
+        essay_writer_node = deepcopy(_essay_writer_node)
+        essay_writer_node.input_mappings = {
+            "refined_outline": InputMapping(
+                source_node_id="outline_refiner",
+                source_output_key="refined_outline",
+            ),
+        }
+        if "style" in user_inputs:
+            essay_writer_node.input_mappings["style"] = user_inputs["style"]
+
         # ------------------------------------------------------------------
         node_configs = [
-            _generate_query_node,
-            _topic_mapper_node,
+            generate_query_node,
+            topic_mapper_node,
             web_search_node,
             _summarize_results_node,
             _extract_points_node,
             _outline_node,
             _outline_reviewer,
             _outline_refiner,
-            _diagram_drafter,
+            diagram_drafter_node,
             language_style_node,
             keyword_node,
-            _essay_writer_node,
+            essay_writer_node,
         ]
 
         super().__init__(
             nodes=node_configs,
             name="essay_writer_demo",
             initial_context=user_inputs,
-            validate_outputs=False,
+            validate_outputs=True,
         )
 
         # Register custom tools so *tool* nodes can execute them -----------

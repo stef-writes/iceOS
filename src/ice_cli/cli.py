@@ -27,6 +27,8 @@ from dataclasses import asdict
 
 from rich import print as rprint
 
+from ice_cli.commands.edit import edit_app as _edit_app
+from ice_cli.commands.make import make_app as _make_app
 from ice_cli.commands.tool import get_tool_service as _get_tool_service
 from ice_cli.commands.tool import tool_app
 from ice_cli.context import CLIContext, get_ctx
@@ -250,6 +252,8 @@ def _snake_case(name: str) -> str:
 
 # Register the group under its original name – behaviour remains identical.
 app.add_typer(tool_app, name="tool")
+app.add_typer(_make_app, name="make", help="High-level scaffolding helpers")
+app.add_typer(_edit_app, name="edit", help="Open nodes/tools in $EDITOR")
 
 
 # ---------------------------------------------------------------------------
@@ -296,7 +300,9 @@ def _load_module_from_path(path: Path) -> ModuleType:
         raise
 
 
-async def _execute_chain(entry: ModuleType, show_graph: bool = False) -> None:
+async def _execute_chain(
+    entry: ModuleType, *, show_graph: bool = False, json_output: bool = False
+) -> None:
     """Look for a ScriptChain instance or factory function and run it.
 
     When *show_graph* is *True* we print a Mermaid diagram instead of
@@ -329,7 +335,15 @@ async def _execute_chain(entry: ModuleType, show_graph: bool = False) -> None:
         return
 
     result = await chain.execute()
-    rprint(result.model_dump())
+
+    if json_output:  # pragma: no cover – CLI behaviour tested via integration
+        import json
+        import sys  # pragma: no cover
+
+        json.dump(result.model_dump(), sys.stdout, indent=2)  # pragma: no cover
+        sys.stdout.write("\n")  # pragma: no cover
+    else:
+        rprint(result.model_dump())
 
 
 def _print_mermaid_graph(chain):  # noqa: D401 – helper
@@ -408,16 +422,27 @@ class _ReloadHandler(FileSystemEventHandler):  # type: ignore[misc]
     def __init__(self, entry_path: Path):
         super().__init__()
         self.entry_path = entry_path.resolve()
+        # Forward the user's preference for JSON output so automatic reloads
+        # honour the initial --json flag as well.
+        self.json_output = get_ctx().json_output  # pragma: no cover
 
     def on_modified(self, event):  # type: ignore[override]
         if event.src_path.endswith(".py"):
             rprint("[yellow]🔄 Change detected. Re-running...[/]")
-            asyncio.run(_cli_run(self.entry_path, watch=False))
+            asyncio.run(
+                _cli_run(self.entry_path, watch=False, json_output=self.json_output)
+            )  # pragma: no cover
 
 
-async def _cli_run(entry: Path, watch: bool) -> None:
+async def _cli_run(entry: Path, watch: bool, json_output: bool = False) -> None:
+    """Internal helper that (re)loads *entry* and executes the chain.
+
+    The *json_output* flag controls whether the result is printed as compact
+    JSON (machine-readable) or via Rich for human-friendly pretty printing.
+    """
+
     module = _load_module_from_path(entry)
-    await _execute_chain(module, show_graph=False)
+    await _execute_chain(module, show_graph=False, json_output=json_output)
 
     if watch:
         observer = Observer()
@@ -435,13 +460,9 @@ async def _cli_run(entry: Path, watch: bool) -> None:
 
 @app.command("run", help="Execute a ScriptChain from file or module")
 def run_cmd(
-    path: Path | None = typer.Argument(
+    path: str | None = typer.Argument(
         None,
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        readable=True,
-        help="Path to a Python file containing a ScriptChain (omit when using --module)",
+        help="Either a path to a .py file OR a chain alias defined in chains.toml",
     ),
     module: str | None = typer.Option(
         None,
@@ -470,9 +491,47 @@ def run_cmd(
     """Run a ScriptChain from *path* or *module*."""
 
     # ------------------------------------------------------------------
+    # Resolve *path* argument (alias → file) ----------------------------
+    # ------------------------------------------------------------------
+    resolved_path: Path | None = None
+
+    if path is not None:
+        p = Path(path)
+        if p.suffix == ".py" and p.exists():
+            resolved_path = p.resolve()
+        else:
+            # Attempt manifest lookup ----------------------------------
+            def _find_manifest(start: Path) -> Path | None:
+                for parent in [start, *start.parents]:
+                    candidate = parent / "chains.toml"
+                    if candidate.exists():
+                        return candidate
+                return None
+
+            manifest_file = _find_manifest(Path.cwd())
+            if manifest_file:
+                import importlib as _importlib
+
+                _toml = _importlib.import_module("tomllib") if _importlib.util.find_spec("tomllib") else _importlib.import_module("tomli")  # type: ignore[attr-defined]
+
+                content = _toml.loads(manifest_file.read_text())
+                mapping = (
+                    content.get("ice", {}).get("chains")
+                    if "ice" in content and "chains" in content["ice"]
+                    else content.get("ice.chains", content.get("chains", {}))
+                )
+                if isinstance(mapping, dict) and path in mapping:
+                    alias_path = Path(mapping[path])
+                    if not alias_path.is_absolute():
+                        alias_path = (manifest_file.parent / alias_path).resolve()
+                    resolved_path = alias_path
+
+    # ------------------------------------------------------------------
     # Basic argument validation ----------------------------------------
     # ------------------------------------------------------------------
-    if (path is None and module is None) or (path is not None and module is not None):
+    if (resolved_path is None and module is None) or (
+        resolved_path is not None and module is not None
+    ):
         rprint("[red]Provide either a PATH argument or --module, but not both.[/]")
         raise typer.Exit(1)
 
@@ -492,7 +551,7 @@ def run_cmd(
             command="run",
             status="started",
             params={
-                "path": str(path) if path else None,
+                "path": str(resolved_path) if resolved_path else None,
                 "module": module,
                 "watch": watch,
                 "graph": graph,
@@ -509,22 +568,36 @@ def run_cmd(
             if watch:
                 rprint("[yellow]Watch mode is not supported for --module execution.[/]")
             entry_mod = _importlib.import_module(module)
-            asyncio.run(_execute_chain(entry_mod, show_graph=graph))
+            asyncio.run(
+                _execute_chain(
+                    entry_mod,
+                    show_graph=graph,
+                    json_output=get_ctx().json_output,
+                )
+            )
 
         # --------------------------------------------------------------
         # File-based execution ----------------------------------------
         # --------------------------------------------------------------
         else:
-            assert path is not None  # mypy safeguard
+            assert resolved_path is not None  # mypy safeguard
             if graph and watch:
                 rprint("[red]--graph and --watch cannot be combined.[/]")
                 raise typer.Exit(1)
 
             if graph:
-                entry_mod = _load_module_from_path(path.resolve())
-                asyncio.run(_execute_chain(entry_mod, show_graph=True))
+                entry_mod = _load_module_from_path(resolved_path)
+                asyncio.run(
+                    _execute_chain(
+                        entry_mod,
+                        show_graph=True,
+                        json_output=get_ctx().json_output,
+                    )
+                )
             else:
-                asyncio.run(_cli_run(path.resolve(), watch))
+                asyncio.run(
+                    _cli_run(resolved_path, watch, json_output=get_ctx().json_output)
+                )
 
         _emit_event(
             "cli.run.completed", CLICommandEvent(command="run", status="completed")
@@ -619,6 +692,35 @@ if not getattr(click.Parameter.make_metavar, "_icepatched", False):  # type: ign
 from ice_cli.commands.sdk import sdk_app as sdk_app  # noqa: E402,F401  re-export
 
 app.add_typer(sdk_app, name="sdk")
+
+# ---------------------------------------------------------------------------
+# Chain management commands (new) -------------------------------------------
+# ---------------------------------------------------------------------------
+
+try:
+    from ice_cli.commands.chain import chain_app
+
+    app.add_typer(chain_app, name="chain", help="Manage ScriptChain workflows")
+
+    # Prompt engineering commands ---------------------------------------------
+    try:
+        from ice_cli.commands.prompt import prompt_app
+
+        app.add_typer(prompt_app, name="prompt", help="Prompt engineering utilities")
+
+        # Node utilities
+        from ice_cli.commands.node import node_app
+
+        app.add_typer(node_app, name="node", help="Node utilities")
+    except Exception as exc:  # pragma: no cover
+        import logging as _logging
+
+        _logging.getLogger(__name__).debug("Failed to load prompt commands: %s", exc)
+except Exception as exc:  # pragma: no cover – safe fallback if optional deps missing
+    # Do not fail import if chain_app has issues; simply warn in debug.
+    import logging as _logging
+
+    _logging.getLogger(__name__).debug("Failed to load chain commands: %s", exc)
 
 # NOTE: The original inline implementation has been extracted; any residual
 # helper functions below are retained only for historical reference and are

@@ -37,12 +37,19 @@ nodes: List[ToolNodeConfig] = [
 ]
 
 # ---------------------------------------------------------------------------
+# Export Chain instance for CLI/SDK discovery -------------------------------
+# ---------------------------------------------------------------------------
+
+# Providing a top-level `chain` variable allows `ice chain run` and friends to
+# auto-discover the ScriptChain without executing the module as a script.
+chain = ScriptChain(nodes=nodes, tools=[echo_tool], name="sample-chain")
+
+# ---------------------------------------------------------------------------
 # Entry-point -------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
 
 async def main() -> None:
-    chain = ScriptChain(nodes=nodes, tools=[echo_tool], name="sample-chain")
     result = await chain.execute()
     print(result.output)
 

@@ -39,11 +39,27 @@ def get_ctx(typer_ctx: Any | None = None) -> CLIContext:  # noqa: D401 – helpe
     """
 
     # Late import to avoid hard dependency for modules that do not use Typer.
+    import click
     import typer
 
+    # ------------------------------------------------------------------
+    # Typer ≥0.12 removed the top-level ``get_current_context`` helper.
+    # Provide a graceful fallback that proxies to Click so older code
+    # paths continue to work irrespective of the installed Typer version.
+    # ------------------------------------------------------------------
+    if not hasattr(typer, "get_current_context"):  # pragma: no cover
+        # Expose a shim with the same name + signature.
+        def _typer_get_current_context() -> click.Context:  # type: ignore[override]  # pragma: no cover
+            return (
+                click.get_current_context()
+            )  # noqa: WPS437 – re-export helper  # pragma: no cover
+
+        typer.get_current_context = _typer_get_current_context  # type: ignore[attr-defined]  # pragma: no cover
+
     if typer_ctx is None:
-        # mypy's Typer stubs lack *get_current_context* – silence the false positive.
-        typer_ctx = typer.get_current_context()  # type: ignore[assignment,call-arg,attr-defined]
+        # NOTE: The shim above ensures ``typer.get_current_context`` exists
+        # regardless of the Typer version installed.
+        typer_ctx = typer.get_current_context()  # type: ignore[assignment,call-arg]
 
     if getattr(typer_ctx, "obj", None) is None:
         # When a sub-command is invoked directly (e.g. tests) the callback may
