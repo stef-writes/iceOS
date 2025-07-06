@@ -90,7 +90,23 @@ class DependencyGraph:
         for node in nodes:
             # Check input mappings to ensure they reference valid dependencies and output keys
             for placeholder, mapping in getattr(node, "input_mappings", {}).items():
-                dep_id = mapping.source_node_id
+                # Skip validation when mapping is a literal/static value (str, int, etc.)
+                # Only InputMapping objects or dicts with explicit "source_node_id" participate
+                if not (
+                    hasattr(mapping, "source_node_id")
+                    or (isinstance(mapping, dict) and "source_node_id" in mapping)
+                ):
+                    # This placeholder is bound to a constant – no dependency validation needed
+                    continue
+
+                if hasattr(mapping, "source_node_id"):
+                    dep_id = mapping.source_node_id  # type: ignore[attr-defined]
+                    output_key = mapping.source_output_key  # type: ignore[attr-defined]
+                else:
+                    # ``mapping`` is a ``dict`` with the required keys (validated above)
+                    dep_id = mapping["source_node_id"]  # type: ignore[index]
+                    output_key = mapping["source_output_key"]  # type: ignore[index]
+
                 if dep_id not in self.get_node_dependencies(node.id):
                     raise ValueError(
                         f"Node '{node.id}' has an input mapping for '{placeholder}' from '{dep_id}', which is not a direct dependency."
@@ -112,14 +128,11 @@ class DependencyGraph:
 
                 # The source_output_key can be nested, e.g., 'data.result'.
                 # We'll check the top-level key for now.
-                top_level_key = mapping.source_output_key.split(".")[0]
+                top_level_key = output_key.split(".")[0]
 
-                if (
-                    top_level_key not in output_keys
-                    and mapping.source_output_key != "."
-                ):
+                if top_level_key not in output_keys and output_key != ".":
                     raise ValueError(
-                        f"Node '{node.id}' expects input for '{placeholder}' from key '{mapping.source_output_key}' "
+                        f"Node '{node.id}' expects input for '{placeholder}' from key '{output_key}' "
                         f"of node '{dep_id}', but '{top_level_key}' is not in its output schema. "
                         f"Available keys: {list(output_keys)}"
                     )

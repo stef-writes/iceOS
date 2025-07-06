@@ -225,7 +225,49 @@ def sdk_create_node(
             else target_path
         )
         rprint(f"[green]✔[/] Created {_pretty_path}")
-    except Exception as exc:  # noqa: BLE001
+
+        # --------------------------------------------------------------
+        # Auto-register alias in chains.toml ---------------------------
+        # --------------------------------------------------------------
+        try:
+            from pathlib import Path as _Path
+
+            manifest = _Path.cwd() / "chains.toml"
+            alias = _snake_case(name)  # use snake_case filename as default alias
+
+            # Compute path relative to manifest for portability
+            rel_path = target_path.relative_to(manifest.parent)
+
+            alias_line = f'{alias} = "{rel_path}"'
+
+            if not manifest.exists():
+                manifest.write_text("[ice.chains]\n" + alias_line)
+            else:
+                txt = manifest.read_text()
+                if alias_line.strip() not in txt:
+                    if "[ice.chains]" in txt:
+                        lines = txt.splitlines(keepends=True)
+                        idx = next(
+                            i
+                            for i, line in enumerate(lines)
+                            if line.strip() == "[ice.chains]"
+                        )
+                        # find insertion point – before next header or EOF
+                        insert = idx + 1
+                        while insert < len(lines) and not lines[insert].startswith("["):
+                            insert += 1
+                        lines.insert(insert, alias_line)
+                        manifest.write_text("".join(lines))
+                    else:
+                        manifest.write_text(txt + "\n[ice.chains]\n" + alias_line)
+
+                # Inform user ------------------------------------------------
+            rprint(
+                f"[green]✔[/] Added alias '{alias}' to chains.toml – try: ice run {alias}"
+            )
+        except Exception as exc:  # noqa: BLE001 – non-fatal
+            rprint(f"[yellow]⚠ Could not update chains.toml:[/] {exc}")
+    except Exception as exc:
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
         raise typer.Exit(code=1)
 
@@ -282,7 +324,43 @@ def sdk_create_chain(
         target_path.write_text(basic_content)
         _pretty_path = target_path.relative_to(Path.cwd()) if target_path.is_absolute() else target_path
         rprint(f"[green]✔[/] Created {_pretty_path}")
-    except Exception as exc:  # noqa: BLE001
+
+        # --------------------------------------------------------------
+        # Auto-register alias in chains.toml ---------------------------
+        # --------------------------------------------------------------
+        try:
+            from pathlib import Path as _Path
+
+            manifest = _Path.cwd() / "chains.toml"
+            alias = _snake_case(name)  # use snake_case filename as default alias
+
+            # Compute path relative to manifest for portability
+            rel_path = target_path.relative_to(manifest.parent)
+
+            alias_line = f'{alias} = "{rel_path}"'
+
+            if not manifest.exists():
+                manifest.write_text("[ice.chains]\n" + alias_line)
+            else:
+                txt = manifest.read_text()
+                if alias_line.strip() not in txt:
+                    if "[ice.chains]" in txt:
+                        lines = txt.splitlines(keepends=True)
+                        idx = next(i for i, line in enumerate(lines) if line.strip() == "[ice.chains]")
+                        # find insertion point – before next header or EOF
+                        insert = idx + 1
+                        while insert < len(lines) and not lines[insert].startswith("["):
+                            insert += 1
+                        lines.insert(insert, alias_line)
+                        manifest.write_text("".join(lines))
+                    else:
+                        manifest.write_text(txt + "\n[ice.chains]\n" + alias_line)
+
+                # Inform user ------------------------------------------------
+            rprint(f"[green]✔[/] Added alias '{alias}' to chains.toml – try: ice run {alias}")
+        except Exception as exc:  # noqa: BLE001 – non-fatal
+            rprint(f"[yellow]⚠ Could not update chains.toml:[/] {exc}")
+    except Exception as exc:
         rprint(f"[red]✗ Failed to write template:[/] {exc}")
         raise typer.Exit(code=1)
 

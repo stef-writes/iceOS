@@ -3,6 +3,7 @@
 import inspect
 import logging
 from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import networkx as nx
@@ -80,6 +81,19 @@ class GraphContextManager:
 
         # Unified ToolService instance ----------------------------------
         self.tool_service: ToolService = tool_service or ToolService()
+
+        # ------------------------------------------------------------------
+        # Auto-discover project-local `*.tool.py` modules so ScriptChains
+        # automatically pick up newly scaffolded tools without explicit
+        # registration calls in the chain constructor (#workflow-automation).
+        # ------------------------------------------------------------------
+        try:
+            # Scan from CWD – assumes chains/nodes/tools live under workspace.
+            self.tool_service.discover_and_register(Path.cwd())
+        except Exception:  # noqa: BLE001 – best-effort, never hard-fail
+            # Any import error is logged inside ToolService; we silently
+            # continue so orchestrator startup is resilient.
+            pass
 
     def register_agent(self, agent: "AgentNode") -> None:
         """Register an agent for lookup by other agents."""

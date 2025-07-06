@@ -780,6 +780,25 @@ class ScriptChain(BaseScriptChain):
         if not schema:
             return True
 
+        # --------------------------------------------------------------
+        # Attempt to coerce *str* outputs into JSON when a schema exists
+        # --------------------------------------------------------------
+        # Many LLM calls return raw strings even when the prompt asks for
+        # JSON.  To provide a consistent developer experience, we try to
+        # parse such strings as JSON **once** before any further type
+        # validation.  When parsing fails, the output is considered
+        # invalid for schema-validated nodes so downstream mappings do
+        # not break at runtime.
+        if isinstance(output, str):
+            try:
+                import json  # local import to avoid startup overhead
+
+                output = json.loads(output)
+            except json.JSONDecodeError:
+                # Raw string could not be parsed – treat as validation
+                # failure so callers can surface helpful error messages.
+                return False
+
         # ------------------------------------------------------------------
         # 1. Pydantic model --------------------------------------------------
         # ------------------------------------------------------------------
