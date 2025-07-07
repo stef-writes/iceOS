@@ -7,13 +7,16 @@ render_mermaid(), validate().
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, asdict
-from typing import List, Optional
-from pathlib import Path
 import json
 import textwrap
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import List, Optional
 
-from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig  # noqa: F401 – typings only
+from ice_sdk.models.node_models import (  # noqa: F401 – typings only
+    AiNodeConfig,
+    ToolNodeConfig,
+)
 
 __all__ = [
     "ChainDraft",
@@ -177,11 +180,17 @@ class BuilderEngine:  # noqa: D401 – stateless helper
         for idx, node in enumerate(draft.nodes):
             node_id = f"n{idx}"
             deps_str = node.get("dependencies", [])
-            extra_str = (", " + ", ".join(BuilderEngine._common_node_extras(node))) if BuilderEngine._common_node_extras(node) else ""
+            extra_str = (
+                (", " + ", ".join(BuilderEngine._common_node_extras(node)))
+                if BuilderEngine._common_node_extras(node)
+                else ""
+            )
             if node["type"] == "ai":
                 tools_str = ""
                 if node.get("tools"):
-                    tools_list = "[" + ", ".join([f'\"{t}\"' for t in node["tools"]]) + "]"
+                    tools_list = (
+                        "[" + ", ".join([f'"{t}"' for t in node["tools"]]) + "]"
+                    )
                     tools_str = f", tools={tools_list}"
                 node_lines.append(
                     f"    AiNodeConfig(id=\"{node_id}\", type=\"ai\", name=\"{node['name']}\", model=\"{node.get('model','gpt-3.5-turbo')}\", prompt=\"# TODO\", llm_config={{'provider': 'openai'}}, dependencies={deps_str}{tools_str}{extra_str}),"
@@ -202,8 +211,8 @@ class BuilderEngine:  # noqa: D401 – stateless helper
             "nodes: List[AiNodeConfig | ToolNodeConfig] = [\n"
             f"{nodes_block}\n"  # noqa: E501
             "]\n\n"
-            f"chain = ScriptChain(nodes=nodes, tools=[SumTool()], name=\"{draft.name}\", persist_intermediate_outputs={draft.persist_interm_outputs if draft.persist_interm_outputs is not None else True})\n\n"
-            "if __name__ == \"__main__\":\n    import asyncio, rich; rich.print(asyncio.run(chain.execute()).model_dump())\n"
+            f'chain = ScriptChain(nodes=nodes, tools=[SumTool()], name="{draft.name}", persist_intermediate_outputs={draft.persist_interm_outputs if draft.persist_interm_outputs is not None else True})\n\n'
+            'if __name__ == "__main__":\n    import asyncio, rich; rich.print(asyncio.run(chain.execute()).model_dump())\n'
         )
         return textwrap.dedent(template)
 
@@ -244,4 +253,4 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                     errors.append(
                         f"Node n{idx} depends on n{dep_idx} which is not an earlier node (cycle)."
                     )
-        return errors 
+        return errors

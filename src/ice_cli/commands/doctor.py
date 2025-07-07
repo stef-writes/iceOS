@@ -2,9 +2,9 @@ from __future__ import annotations
 
 """`ice doctor` – basic quality and CI helpers (lint, type-check, tests)."""
 
-import subprocess
 import shlex
 import shutil
+import subprocess
 from dataclasses import dataclass
 
 import typer  # type: ignore
@@ -67,13 +67,9 @@ _CHECKS: list[_Check] = [
     _Check("Unit & integration tests", "pytest -q"),
     _Check(
         "Coverage threshold",
-        (
-            "pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q"
-        ),
+        ("pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q"),
     ),
-    *(
-        [_Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []
-    ),
+    *([_Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []),
     _Check("Import-linter rules", "lint-imports --config config/.importlinter"),
     _Check("isort check", "isort --check-only src"),
     _Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),
