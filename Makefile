@@ -72,4 +72,4 @@ deep-clean: clean
 	rm -rf docs/generated 
 
 lock-check:
-	poetry lock --no-update --no-interaction 
+	poetry lock --no-interaction 
