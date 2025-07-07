@@ -27,7 +27,10 @@ ALLOWED: set[str] = {
 def _uses_import_module(path: pathlib.Path) -> bool:  # noqa: D401 – small helper
     """Return *True* when *path* contains a call to `importlib.import_module`."""
     try:
-        tree = ast.parse(path.read_text())
+        try:
+            tree = ast.parse(path.read_text())
+        except UnicodeDecodeError:
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
     except SyntaxError:
         # Skip files that fail to parse for any reason (unlikely in CI)
         return False

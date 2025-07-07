@@ -76,6 +76,12 @@ def test_no_openai_models():
         current_file = path
         try:
             tree = ast.parse(path.read_text())
+        except UnicodeDecodeError:
+            # On Windows default cp1252 may fail – fall back to UTF-8 with errors ignored
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
+            except Exception:
+                continue
         except SyntaxError:
             # Skip files that fail to parse (unlikely in tests environment)
             continue
