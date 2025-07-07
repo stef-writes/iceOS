@@ -3409,7 +3409,6 @@ files = [
     {file = "PyYAML-6.0.2-cp39-cp39-win_amd64.whl", hash = "sha256:39693e1f8320ae4f43943590b49779ffb98acb81f788220ea932a6b6c51004d8"},
     {file = "pyyaml-6.0.2.tar.gz", hash = "sha256:d584d9ec91ad65861cc08d42e834324ef890a082e591037abe114850ff7bbc3e"},
 ]
-markers = {main = "extra == \"llm-anthropic\""}
 
 [[package]]
 name = "pyyaml-env-tag"
@@ -4657,4 +4656,4 @@ llm-openai = ["openai", "tiktoken"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "dc126fa0fbe9512aa3cf53604cc5888e14b653b03b8b6832f782d3dd8746e96e"
+content-hash = "215070e267f2cf446e77812afaf90075131f9f1fa1fbca7100219b3b5ba276b4"
