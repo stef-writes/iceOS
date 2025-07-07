@@ -1,110 +1,24 @@
-"""Comprehensive health-check runner for the iceOS repo.
+"""DEPRECATED – use `ice doctor all` instead.
 
-Usage
------
-$ python scripts/doctor.py            # run all checks
-$ python scripts/doctor.py --perf     # include performance smoke tests
-
-It mirrors the list in HEALTHCHECKS.md. Each check returning a non-zero exit
-status is considered *failure* and aborts the run (unless --keep-going is set).
+This stub exists solely for CI backward-compatibility.
 """
 
 from __future__ import annotations
 
-import argparse
-import shlex
-import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
-from pathlib import Path
-from typing import List
+import warnings
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-
-
-@dataclass
-class Check:
-    label: str
-    command: str
-    perf_only: bool = False  # Run only if --perf flag is set
-
-    def run(self) -> int:
-        """Execute the check returning the exit code."""
-
-        print(f"\n▶ {self.label}\n$ {self.command}")
-        result = subprocess.run(
-            shlex.split(self.command),
-            cwd=REPO_ROOT,
-            capture_output=False,
-        )
-        if result.returncode == 0:
-            print("✅ PASSED")
-        else:
-            print(f"❌ FAILED (exit={result.returncode})")
-        return result.returncode
+warnings.warn(
+    "`scripts/doctor.py` is deprecated; use `ice doctor all`.  This stub will be removed in a future release.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
-# ---------------------------------------------------------------------------
-# Check registry
-# ---------------------------------------------------------------------------
-
-CHECKS: List[Check] = [
-    Check("Linting (ruff)", "ruff check src"),
-    Check("Typing (pyright)", "pyright --project config"),
-    Check("Unit & integration tests", "python -m pytest -q"),
-    Check(
-        "Coverage threshold",
-        "python -m pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q",
-    ),
-    *([Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []),
-    Check("Import-linter rules", "lint-imports --config config/.importlinter"),
-    Check("isort check", "isort --check-only src"),
-    Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),
-    Check("FlowSpec examples schema", "python scripts/check_flow_spec.py"),
-    Check("Performance smoke", "pytest --benchmark-only -q", perf_only=True),
-]
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
-
-def parse_args() -> argparse.Namespace:  # noqa: D401
-    parser = argparse.ArgumentParser(description="iceOS doctor – repo healthchecks")
-    parser.add_argument(
-        "--perf",
-        action="store_true",
-        help="Include performance heavy checks (benchmarks)",
-    )
-    parser.add_argument(
-        "--keep-going",
-        action="store_true",
-        help="Run all checks even if previous failed",
-    )
-    return parser.parse_args()
-
-
-# ---------------------------------------------------------------------------
-# Entrypoint
-# ---------------------------------------------------------------------------
-
-
-def main() -> None:  # noqa: D401 (imperative mood)
-    args = parse_args()
-    failed = False
-
-    for check in CHECKS:
-        if check.perf_only and not args.perf:
-            continue
-        exit_code = check.run()
-        if exit_code != 0:
-            failed = True
-            if not args.keep_going:
-                sys.exit(exit_code)
-
-    sys.exit(1 if failed else 0)
+def main() -> None:  # noqa: D401 – light wrapper
+    cmd = [sys.executable, "-m", "ice_cli.cli", "doctor", "all", *sys.argv[1:]]
+    subprocess.run(cmd, check=False)
 
 
 if __name__ == "__main__":

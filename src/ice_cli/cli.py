@@ -21,7 +21,7 @@ import re
 import shutil
 import subprocess
 
-from rich import print as rprint
+from rich import print as rprint  # type: ignore
 
 from ice_cli.context import CLIContext
 from ice_sdk.utils.logging import setup_logger
@@ -43,9 +43,9 @@ except ValueError:
 import sys
 from pathlib import Path
 
-import click  # 3rd-party
-import click.formatting as _cf  # noqa: WPS433,F401 – ensure available after click import
-import typer
+import click  # type: ignore  # 3rd-party
+import click.formatting as _cf  # type: ignore # noqa: WPS433,F401 – ensure available after click import
+import typer  # type: ignore
 
 # NEW: Load environment variables early so CLI commands inherit API keys ----
 try:
@@ -170,17 +170,25 @@ def _snake_case(name: str) -> str:
 # Some versions of Typer call ``click.Parameter.make_metavar()`` without the
 # required *ctx* argument causing a ``TypeError`` when running ``--help`` via
 # *CliRunner*.  Patch the method at import-time to accept an optional context.
-if not getattr(click.Parameter.make_metavar, "_icepatched", False):  # type: ignore[attr-defined]
-    _orig_make_metavar = click.Parameter.make_metavar  # type: ignore[assignment]
+try:
+    if not getattr(click.Parameter.make_metavar, "_icepatched", False):  # type: ignore[attr-defined]
+        _orig_make_metavar = click.Parameter.make_metavar  # type: ignore[assignment]
 
-    def _patched_make_metavar(self: click.Parameter, ctx: click.Context | None = None):  # type: ignore[override]
-        if ctx is None:
-            # Create a minimal dummy Context when none was provided
-            ctx = click.Context(click.Command(name="_dummy"))
-        return _orig_make_metavar(self, ctx)
+        def _patched_make_metavar(self: click.Parameter, ctx: click.Context | None = None):  # type: ignore[override]
+            if ctx is None:
+                # Create a minimal dummy Context when none was provided
+                ctx = click.Context(click.Command(name="_dummy"))
+            try:
+                return _orig_make_metavar(self, ctx)
+            except TypeError:
+                # Fallback for older Click versions that don't take ctx
+                return _orig_make_metavar(self)
 
-    _patched_make_metavar._icepatched = True  # type: ignore[attr-defined]
-    click.Parameter.make_metavar = _patched_make_metavar  # type: ignore[assignment]
+        _patched_make_metavar._icepatched = True  # type: ignore[attr-defined]
+        click.Parameter.make_metavar = _patched_make_metavar  # type: ignore[assignment]
+except Exception:
+    # Silently fail if patch doesn't work - CLI will still function
+    pass
 
 
 # ---------------------------------------------------------------------------
@@ -293,7 +301,7 @@ def create_resource(
 
     elif resource_type_lower == "node":
         target_path = directory / f"{name}.ainode.yaml"
-    if target_path.exists() and not force:
+        if target_path.exists() and not force:
             rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
             raise typer.Exit(1)
 
@@ -352,7 +360,7 @@ def run_workflow(
 
         payload = {"success": success, "output": result.stdout.strip()}
         rprint(_json.dumps(payload))
-        else:
+    else:
         rprint(result.stdout)
 
 
@@ -404,7 +412,7 @@ def edit_resource(
                 break
     if not resource_path.exists():
         rprint(f"[red]Error:[/] Resource '{resource}' not found")
-                raise typer.Exit(1)
+        raise typer.Exit(1)
     editor = os.getenv("EDITOR", "code")
     subprocess.run([editor, str(resource_path)])
     rprint(f"[green]✔[/] Opened {resource_path} in {editor}")
@@ -434,7 +442,7 @@ def delete_resource(
                 break
     if not resource_path.exists():
         rprint(f"[red]Error:[/] Resource '{resource}' not found")
-            raise typer.Exit(1)
+        raise typer.Exit(1)
     if not force:
         confirm = typer.confirm(f"Delete {resource_path}?")
         if not confirm:
@@ -470,34 +478,11 @@ app.add_typer(copilot_app, name="copilot", help="AI-powered workflow assistant")
 # Quality and maintenance commands ------------------------------------------
 # ---------------------------------------------------------------------------
 
-quality_app = typer.Typer(add_completion=False, help="Quality checks")
+# Quality assurance helpers (lint/type/test)
+from ice_cli.commands.doctor import doctor_app as quality_app  # noqa: E402
 
-@quality_app.command("lint")
-def doctor_lint():
-    """Run Ruff auto-fix."""
-    subprocess.run(["ruff", "src", "--fix"], check=False)
-    rprint("[green]✔[/] Linting complete")
-
-@quality_app.command("type")
-def doctor_type():
-    """Run type checking."""
-    subprocess.run(["mypy", "src"], check=False)
-    rprint("[green]✔[/] Type checking complete")
-
-@quality_app.command("test")
-def doctor_test():
-    """Run tests."""
-    subprocess.run(["pytest", "tests", "-v"], check=False)
-    rprint("[green]✔[/] Tests complete")
-
-@quality_app.command("all")
-def doctor_all():
-    """Run all quality checks."""
-    doctor_lint()
-    doctor_type()
-    doctor_test()
-
-app.add_typer(quality_app, name="doctor", rich_help_panel="Quality")
+# Misc maintenance utilities ported from scripts/cli/*
+from ice_cli.commands.maint import maint_app  # noqa: E402
 
 update_app = typer.Typer(add_completion=False, help="Self-update helpers")
 
@@ -506,7 +491,13 @@ def update_templates():
     """Update project templates."""
     rprint("[yellow]Template updates not yet implemented.[/]")
 
+# Mount quality sub-app (lint/type/test)
+app.add_typer(quality_app, name="doctor", rich_help_panel="Quality")
+
 app.add_typer(update_app, name="update", rich_help_panel="Maintenance")
+
+# New: maintenance helpers sub-app ----------------------------------------
+app.add_typer(maint_app, name="maint", rich_help_panel="Maintenance")
 
 
 # ---------------------------------------------------------------------------

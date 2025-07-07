@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies (incl. dev)
         run: poetry install --with dev --no-interaction --no-root
 
+      - name: Verify lockfile in sync
+        run: make lock-check
+
       - name: Pre-commit (all files)
         run: poetry run pre-commit run --all-files --show-diff-on-failure
 
