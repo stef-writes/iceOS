@@ -48,6 +48,7 @@ refresh-docs:
 # Comprehensive quality gate (lint + type + test + optional perf)
 doctor:
 	poetry run ice doctor all
+	poetry run pre-commit run --all-files --show-diff-on-failure
 
 coverage:
 	poetry run pytest

@@ -81,3 +81,25 @@ def gen_catalog():  # noqa: D401 – CLI entry-point
 @maint_app.command("gen-overview", help="Generate high-level docs overview page")
 def gen_overview():  # noqa: D401 – CLI entry-point
     _call_module("scripts.cli.gen_overview")
+
+
+# ---------------------------------------------------------------------------
+# Newly migrated helpers from legacy scripts/ -------------------------------
+# ---------------------------------------------------------------------------
+
+
+@maint_app.command(
+    "validate-flow-spec", help="Validate FlowSpec example files against schema"
+)
+def validate_flow_spec():  # noqa: D401 – CLI entry-point
+    _call_module("scripts.check_flow_spec")
+
+
+@maint_app.command("generate-schemas", help="Regenerate runtime JSON schemas")
+def generate_schemas():  # noqa: D401 – CLI entry-point
+    _call_module("scripts.generate_schemas")
+
+
+@maint_app.command("export-chain-run", help="Export a chain run result to JSON")
+def export_chain_run():  # noqa: D401 – CLI entry-point
+    _call_module("scripts.export_chain_run")
