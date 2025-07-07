@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies (incl. dev)
         run: poetry install --with dev --no-interaction --no-root
 
+      - name: Pre-commit (all files)
+        run: poetry run pre-commit run --all-files --show-diff-on-failure
+
       - name: Quality gate (lint, type, tests)
         run: poetry run make doctor
 
