@@ -14,12 +14,13 @@ watchers that may need to reload commands many times per second.
 """
 
 # Start of module -----------------------------------------------------------
-from __future__ import annotations
+# from __future__ import annotations
 
 import os
 import re
 import shutil
 import subprocess
+from typing import Any
 
 from rich import print as rprint  # type: ignore
 
@@ -181,10 +182,11 @@ try:
                 # Create a minimal dummy Context when none was provided
                 ctx = click.Context(click.Command(name="_dummy"))
             try:
-                return _orig_make_metavar(self, ctx)
+                _fn: Any = _orig_make_metavar  # type: ignore[assignment]
+                return _fn(self, ctx)  # type: ignore[reportCallIssue]
             except TypeError:
-                # Fallback for older Click versions that don't take ctx
-                return _orig_make_metavar(self)
+                # Older Click versions expect only *self*
+                return _orig_make_metavar(self)  # type: ignore[reportCallIssue]
 
         _patched_make_metavar._icepatched = True  # type: ignore[attr-defined]
         click.Parameter.make_metavar = _patched_make_metavar  # type: ignore[assignment]
