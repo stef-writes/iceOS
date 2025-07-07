@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """`ice doctor` – basic quality and CI helpers (lint, type-check, tests)."""
 
+import platform
 import shlex
 import shutil
 import subprocess
@@ -9,6 +10,16 @@ from dataclasses import dataclass
 
 import typer  # type: ignore
 from rich import print as rprint  # type: ignore
+
+# ---------------------------------------------------------------------------
+# Platform-safe icons (Windows CI consoles choke on emoji / unicode arrows) --
+# ---------------------------------------------------------------------------
+
+_SUPPORTS_UTF = platform.system() != "Windows"
+
+_BULLET = "▶" if _SUPPORTS_UTF else ">"
+_CHECKMARK = "✅" if _SUPPORTS_UTF else "OK"
+_CROSS = "❌" if _SUPPORTS_UTF else "X"
 
 
 def _run(cmd: list[str]):  # noqa: D401 – helper
@@ -51,12 +62,12 @@ class _Check:  # noqa: D401 – internal container
     perf_only: bool = False  # include only when --perf flag passed
 
     def run(self) -> int:  # noqa: D401 – helper
-        rprint(f"\n▶ {self.label}\n[cyan]$ {self.command}[/]")
+        rprint(f"\n{_BULLET} {self.label}\n[cyan]$ {self.command}[/]")
         result = subprocess.run(shlex.split(self.command), check=False)
         if result.returncode == 0:
-            rprint("[green]✅ PASSED[/]")
+            rprint(f"{_CHECKMARK} PASSED")
         else:
-            rprint(f"[red]❌ FAILED[/] (exit={result.returncode})")
+            rprint(f"{_CROSS} FAILED (exit={result.returncode})")
         return result.returncode
 
 
@@ -110,4 +121,4 @@ def doctor_all(
     if failed:
         raise typer.Exit(1)
 
-    rprint("[bold green]\nAll checks passed ✅[/]")
+    rprint(f"[bold green]\nAll checks passed {_CHECKMARK}[/]")
