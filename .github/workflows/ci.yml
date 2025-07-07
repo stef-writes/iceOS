@@ -2,20 +2,22 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11"]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.10', '3.11']
+    runs-on: ${{ matrix.os }}
 
-      - name: Set up Python ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -24,33 +26,11 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
-      - name: Install dependencies (poetry)
-        run: poetry install --with dev --no-interaction
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
 
-      - name: Run Ruff
-        run: poetry run ruff check src
+      - name: Quality gate (lint, type, tests)
+        run: make doctor
 
-      - name: Run Mypy
-        run: poetry run mypy src
-
-      - name: Run Pyright
-        run: poetry run pyright --project config
-
-      - name: Run Import-Linter contracts
-        run: poetry run lint-imports --config config/.importlinter
-
-      - name: Run unit tests
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: poetry run pytest -q -m "not slow"
-
-      - name: Run full health-check matrix (make doctor)
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: poetry run make doctor
-
-      - name: CLI help sanity check
-        run: poetry run python src/app/main.py --help 
-
-      - name: Build app image
-        run: docker build -t ghcr.io/iceos/iceos:${{ github.sha }} . 
+      - name: Unit tests
+        run: make test 

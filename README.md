@@ -8,193 +8,254 @@
 
 ---
 
-## 1. Why iceOS?
+## 🎯 **What We're Building**
 
-Modern AI products require orchestrating many moving parts: calling multiple LLMs, deterministic tools, branching logic, retries, auditing, cost control and more. Stitching this together from scratch means gluing SDKs, schedulers and guard-rails – every team re-implements the same boilerplate and still ends up with brittle pipes.
+**iceOS** is the **"Docker for AI workflows"** - a developer-first orchestration engine that lets you build complex AI systems as declarative DAGs with production-ready tooling.
 
-**iceOS** is an open-source operating layer that turns these moving parts into a declarative workflow DAG executed by an async engine with built-in guard-rails:
-
-* **Composable Nodes** – Ingress (webhook), LLM, Tool, Condition, Agent, Sink.  
-* **Type-Safe SDK** – Pydantic-powered contracts catch integration bugs before runtime.  
-* **Deep Guard-Rails** – depth, token & semantic limits plus pluggable policy hooks.  
-* **Level-Parallel Executor** – maximises concurrency without violating dependencies.  
-* **Self-Optimising Runtime** – telemetry loop learns & rewrites flows for latency/cost.
-
-_Result: teams focus on product logic, not plumbing._
+Think of it as **"Kubernetes for AI agents"** - you define your workflow in code, and iceOS handles the execution, scaling, monitoring, and reliability.
 
 ---
 
-## 2. What Can You Build Today?
+## 🚀 **Why iceOS? (The Problem We Solve)**
 
-| Use-Case | Nodes Used | Outcome |
-|----------|-----------|---------|
-| **Weekly Research Digest** | Webhook → FileSearch → LLM (summarise) → Email | PDF folder summarised & mailed every Friday |
-| **GitHub Issue Triager**   | GitHub Ingress → Agent → Label Tool           | Issues labelled & prioritised in seconds |
-| **Slack Knowledge Bot**    | Slack → Agent (LLM + WebSearch) → Slack       | Org-wide Q&A with source citations |
-| **ETL Data Pipeline**      | SQL Fetch → Condition → Validator → S3 Sink   | Valid, versioned dataset ready for BI |
+Every AI product team faces the same challenges:
+- **Glue Code**: Stitching together OpenAI + LangChain + custom tools
+- **Boilerplate**: Re-implementing retry logic, caching, cost controls
+- **Debugging**: No visibility into complex multi-step AI workflows
+- **Production**: Missing guardrails, monitoring, and error handling
+
+**iceOS solves this** by providing a **production-ready orchestration engine** with built-in:
+- ✅ Retry logic & circuit breakers
+- ✅ Cost tracking & token management  
+- ✅ OpenTelemetry tracing
+- ✅ Type-safe node configurations
+- ✅ Plugin ecosystem for tools
 
 ---
 
-## 3. Quick Start (2 min)
+## 🏗️ **Current State: Developer-First Foundation**
+
+### **What's Built Today**
+```python
+# Define your workflow as a DAG
+from ice_orchestrator import ScriptChain
+from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig
+
+nodes = [
+    AiNodeConfig(id="analyzer", prompt="Analyze: {{input}}"),
+    ToolNodeConfig(id="email", tool_name="EmailTool", dependencies=["analyzer"])
+]
+
+# Execute with production tooling
+chain = ScriptChain(nodes=nodes)
+result = await chain.execute()
+```
+
+### **Core Capabilities**
+- **Node Types**: AI, Tool, Condition, Agent, Webhook
+- **Execution Engine**: Level-based parallel execution
+- **Developer Tools**: CLI, type checking, auto-discovery
+- **Production Features**: Caching, retries, cost tracking, tracing
+
+---
+
+## 🎯 **Vision: "Figma for AI Workflows"**
+
+**Phase 1: Developer Foundation** ✅ *(Current)*
+- Robust orchestration engine
+- Growing tool ecosystem  
+- CLI-first developer experience
+
+**Phase 2: Visual Layer** 🚧 *(Next)*
+- Infinite canvas whiteboard
+- Drag & drop node composition
+- Text-to-workflow generation
+- Real-time collaboration
+
+**Phase 3: AI-Powered** 🔮 *(Future)*
+- "Frosty Copilot" - AI assistant for workflow design
+- Auto-optimization based on telemetry
+- Self-improving workflows
+
+---
+
+## 🛠️ **Quick Start (2 min)**
 
 ```bash
-# 1. Run an out-of-the-box demo chain
+# 1. Install iceOS
+pip install iceos
+
+# 2. Create your first workflow
+ice create tool HelloTool             # scaffolds HelloTool.tool.py
+ice create chain hello_chain          # scaffolds hello_chain.chain.py
+ice run hello_chain.chain.py          # executes the chain
+
+# 3. Or run the demo (optional)
 python scripts/demo_run_chain.py
-
-# 2. Create your own flow from scratch
-ice sdk create-tool HelloTool             # scaffolds hello_tool.tool.py
-ice sdk create-node HelloNode --type ai   # scaffolds hello_node.ainode.yaml
-ice sdk create-chain hello_chain          # scaffolds hello_chain.chain.py
-python hello_chain.chain.py               # executes the chain
 ```
 
-### Docker one-liner
-
-Prefer containers?  Build and run the API without a local Python tool-chain:
-
+### **Docker Option**
 ```bash
-# Build image (only needs to run once)
 docker build -t iceos .
-
-# Run FastAPI server on port 8000
 docker run --rm -p 8000:8000 iceos
-
-# Open http://localhost:8000/docs in your browser
-```
-
-The `Dockerfile` installs **runtime-only** dependencies, so the resulting image
-is ~230 MB and boots the `uvicorn` server automatically.
-
----
-
-## 4. Architecture at a Glance
-
-```mermaid
-graph TD
-  UI["CLI / Canvas / API"] --> ORCH["Async Orchestrator"]
-  ORCH --> SDK["Type-Safe SDK"]
-  SDK --> NODES["Modular Nodes"]
-  ORCH --> CACHE["Result Cache"]
-  ORCH --> METRICS["Telemetry"]
-  NODES --> EXT["External APIs & LLM Providers"]
+# Visit http://localhost:8000/docs
 ```
 
 ---
 
-## 5. Key Differentiators
+## 🏛️ **Architecture**
 
-1. **Guard-Rails First** – Enterprise-grade policies baked in; not an after-thought.  
-2. **Pythonic DX** – IDE auto-completion, Ruff, MyPy & Pyright enforced out-of-the-box.  
-3. **Async Level Parallelism** – <40 µs overhead per node; scales to hundreds of tools.  
-4. **Plug-in Ecosystem** – Discover & install nodes with `ice sdk create-node`.
-
----
-
-## 6. Roadmap Snapshot (H2 2025)
-
-| Quarter | Milestone | Highlights |
-|---------|-----------|------------|
-| Q3 → v0.3 | **Frozen Public SDK** | Manylinux wheels, generated API docs |
-| Q3 | **Developer CLI GA** | `ice new`, hot-reload, auto-registration |
-| Q4 | **Frosty Copilot α** | NL canvas that generates live workflows |
-| Q4 | **Marketplace α** | Verified node registry & auto-update |
-
----
-
-## 7. Product Vision (12-Month Outlook)
-1. **Frosty Copilot** – a natural-language canvas that generates, explains and refactors workflows.  
-2. **Guard-railed Runtime** – depth, token & semantic limits with pluggable policy hooks.  
-3. **Extensible Ecosystem** – verified node marketplace, shareable workflow library, versioned `IceWorkflowSpec`.  
-4. **Self-Improving Engine** – telemetry-driven optimisers that rewrite DAGs for latency, cost and accuracy.
-
-### Long-Term Milestones
-| Horizon | Milestone | Description |
-| ------- | --------- | ----------- |
-| 6 mo    | **Copilot GA** | WYSIWYG canvas with NL authoring & live verifier feedback |
-| 9 mo    | **Marketplace v1** | Verified node registry, revenue-share model, auto-update mechanism |
-| 12 mo   | **Self-Optimising Orchestrator** | Runtime telemetry loop that predicts & applies optimal execution plans |
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Developer Interface                      │
+│  CLI Commands  │  API Endpoints  │  Visual Canvas (v2)   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 iceOS Runtime Engine                       │
+│  • ScriptChain execution                                  │
+│  • OpenTelemetry tracing                                  │
+│  • Cost management                                        │
+│  • Circuit breakers                                       │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Node Ecosystem                          │
+│  AI Nodes  │  Tool Nodes  │  Condition Nodes  │  Agents  │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 8. Competitive Landscape (June 2025)
-| Dimension          | Workflow86                              | LangGraph              | n8n (+AI ext.)       | **iceOS (0.2-alpha)** |
-| ------------------ | --------------------------------------- | ---------------------- | -------------------- | --------------------- |
-| Licence / deploy   | Closed-source SaaS                      | MIT, library           | AGPL core + cloud    | **MIT OSS**           |
-| Primary UX         | Chat → visual canvas                    | Code (Python/TS)       | Visual canvas + chat | Code (Pydantic)       |
-| Text→flow maturity | GA (describe/upload)                    | DIY                    | GA via extension     | **Planned "Frosty Copilot"** |
-| Target workflows   | Business ops & forms                    | Multi-agent LLM graphs | API/data automations | Agentic + event-driven AI |
-| Guard-rails        | Version-controlled runs, human approval | Build your own         | Basic retries        | Depth/token/semantic hooks |
-| Extensibility      | JS/Python code node                     | Any Python callable    | 400+ nodes           | Python tools; entry-point auto-reg |
+## 🎯 **Roadmap: Close to Major Milestone**
+
+### **Q3 2025: ScriptChain Runtime GA** 🚧 *(Current Focus)*
+- **Target**: Production-ready orchestration engine
+- **Status**: 75% complete - need final coverage push
+- **Milestone**: 95%+ test coverage, circuit breakers, performance optimization
+
+### **Q4 2025: Developer CLI GA** 📋
+- **Target**: Complete CLI experience for workflow development
+- **Features**: Interactive builders, hot-reload, auto-registration
+- **Milestone**: `ice chain wizard` → `ice chain run --watch`
+
+### **Q1 2026: Visual Layer Alpha** 🎨
+- **Target**: First visual workflow designer
+- **Features**: Drag & drop, infinite canvas, real-time preview
+- **Milestone**: "Figma for AI workflows" MVP
+
+### **Q2 2026: Frosty Copilot Beta** 🤖
+- **Target**: AI-powered workflow generation
+- **Features**: Text-to-workflow, auto-optimization, collaboration
+- **Milestone**: Natural language workflow creation
 
 ---
 
-## 9. Current Capabilities (v0.x)
-| Layer | Implemented Highlights |
-|-------|------------------------|
-| **FastAPI Application** (`src/app`) | • Root health-check `/` • V1 API endpoints for executing a single node or a full chain |
-| **Orchestration Engine** (`ice_orchestrator`) | • Async `ScriptChain` executes `AiNode` & `ToolNode` DAGs • Basic dependency graph |
-| **Core SDK** (`ice_sdk`) | • Pydantic node / tool configs • `AgentNode` wrapper for LLM calls • `LLMService` with OpenAI, Anthropic, Gemini & DeepSeek handlers |
-| **Tools** (`ice_sdk.tools`) | • `BaseTool` abstraction • Hosted: `WebSearchTool`, `FileSearchTool`, `ComputerTool` • Deterministic: `SleepTool`, `HttpRequestTool`, `SumTool` |
-| **Contrib Package** (`ice_sdk_contrib`) | • Mock Knowledge-Base REST router (`/api/v1/kb/*`) • `KBSearchTool` for demo vector-less lookup • Additional generic helpers (coming soon) |
-| **Quality Tooling** | • Ruff & isort • Black • MyPy (strict) • Pyright • Import-linter contracts • Pre-commit auto-format • Unit & integration tests |
+## 🏆 **Competitive Advantages**
+
+| Feature | LangChain | n8n | **iceOS** |
+|---------|-----------|-----|-----------|
+| **Architecture** | Library | Visual | **Engine + CLI** |
+| **Production** | DIY | Basic | **Built-in** |
+| **Developer UX** | Code-only | No-code | **CLI-first** |
+| **Extensibility** | Python | 400+ nodes | **Plugin ecosystem** |
+| **Guardrails** | None | Basic | **Enterprise-grade** |
 
 ---
 
-## 10. Community & Support
+## 🛠️ **Current Capabilities**
 
-• **Slack** – join `ice-community.slack.com` for questions & pairing  
-• **GitHub Discussions** – roadmap input & showcase your flows  
-• **Commercial Support** – email `team@iceos.ai` for SLA packages  
+### **Orchestration Engine** ✅
+- Async ScriptChain execution
+- Level-based parallel processing
+- Dependency resolution
+- Failure policies & retry logic
+
+### **Node Ecosystem** ✅
+- AI nodes (OpenAI, Anthropic, Gemini, DeepSeek)
+- Tool nodes (HTTP, File, Email, Custom)
+- Condition nodes (branching logic)
+- Agent nodes (multi-turn conversations)
+
+### **Developer Tools** ✅
+- CLI with auto-discovery
+- Type-safe configurations
+- Hot-reload development
+- Comprehensive testing
+
+### **Production Features** ✅
+- OpenTelemetry tracing
+- Cost tracking & token management
+- Caching & performance optimization
+- Error handling & circuit breakers
 
 ---
 
-## 11. Licence
+## 🚀 **Getting Started**
 
-iceOS is **MIT-licensed** – free for personal & commercial use. We welcome contributions via issues & pull requests!
-
----
-
-### Development
-
-Run the full test-suite locally:
-
+### **For Developers**
 ```bash
+# Install
+pip install iceos
+
+# Create your first tool
+ice create tool MyTool
+
+# Create your first chain
+ice create chain my_workflow
+
+# Execute the workflow
+ice run my_workflow.chain.py
+```
+
+### **For Teams**
+```bash
+# Set up CI/CD
 make test
-```
-
-Lint & type-check:
-
-```bash
 make lint
+make doctor
+
+# Deploy to production
+docker build -t iceos .
+docker run -p 8000:8000 iceos
 ```
 
-Clean up artefacts:
+---
+
+## 🤝 **Community & Support**
+
+- **GitHub Discussions**: Share workflows, get help
+- **Slack**: `ice-community.slack.com` for real-time chat
+- **Commercial Support**: `team@iceos.ai` for enterprise needs
+
+---
+
+## 📄 **License**
+
+iceOS is **MIT-licensed** - free for personal & commercial use. We welcome contributions!
+
+---
+
+## 🧪 **Development**
 
 ```bash
+# Full test suite
+make test
+
+# Lint & type check
+make lint
+
+# Health check (everything)
+make doctor
+
+# Clean up
 make clean
 ```
 
-# End-to-end dev sanity check (runs lint, type, tests, import contracts, etc.)
-make doctor
-```
-
-### Knowledge-Base demo endpoints
-
-Once the FastAPI server is running you can:
-
-```bash
-# 1) Upload any text file (returns file_id)
-curl -F "file=@README.md" http://localhost:8000/api/v1/kb/upload
-
-# 2) Ingest the uploaded file into the demo index
-curl -X POST http://localhost:8000/api/v1/kb/ingest/<file_id>
-
-# 3) Query via tool (CLI)
-ice tool test kb_search -a '{"query":"workflow"}'
-```
-
-Replace the internals with a real vector DB by overriding `ice_sdk_contrib.kb_router` & `KBSearchTool`.
-
 ---
 
-> *Last updated: June 2025*
+> **We're close to our first major product milestone!** The ScriptChain runtime is nearly production-ready, and we're building the foundation for the visual layer that will democratize AI workflow creation.
+
+> *Last updated: July 2025*

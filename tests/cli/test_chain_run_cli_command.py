@@ -59,7 +59,7 @@ def test_cli_chain_run_json(tmp_path: Path) -> None:
 
     runner = CliRunner()
 
-    result = runner.invoke(app, ["chain", "run", str(chain_file), "--json"])
+    result = runner.invoke(app, ["run", str(chain_file), "--json"])
 
     assert result.exit_code == 0, result.stderr
 

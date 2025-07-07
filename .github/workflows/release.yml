@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Release
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  build-and-publish:
+  publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,19 +18,18 @@ jobs:
           python-version: '3.10'
 
       - name: Install Poetry
-        run: pip install poetry==1.8.3
+        run: pip install poetry
 
-      - name: Build wheel and sdist
+      - name: Build
         run: poetry build
 
-      - name: Publish to TestPyPI (dry-run)
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          password: ${{ secrets.TEST_PYPI_TOKEN }}
-          skip-existing: true
+      - name: Publish to Test PyPI
+        env:
+          POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: poetry publish --repository testpypi --no-interaction --skip-existing
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          password: ${{ secrets.PYPI_TOKEN }} 
+          tag_name: ${{ github.ref_name }}
+          body_path: CHANGELOG.md 
