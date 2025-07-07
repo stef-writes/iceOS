@@ -40,10 +40,8 @@ except ValueError:
 
 # -------------------------------------------------------------------------
 
-import asyncio
 import sys
 from pathlib import Path
-from typing import Any, Callable
 
 import click  # 3rd-party
 import click.formatting as _cf  # noqa: WPS433,F401 – ensure available after click import
