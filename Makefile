@@ -43,7 +43,7 @@ refresh-docs:
 
 # Robust quoting so paths with spaces/parentheses do not break ----------------
 doctor:
-	poetry run "$(PYTHON)" scripts/doctor.py
+	poetry run python scripts/doctor.py
 
 coverage:
 	poetry run pytest
