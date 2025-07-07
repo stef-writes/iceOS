@@ -18,9 +18,14 @@ async def test_prompt_placeholder_validation():
         dependencies=[],
     )
 
-    chain = ScriptChain(nodes=[node], name="invalid", persist_intermediate_outputs=False, use_cache=False)
+    chain = ScriptChain(
+        nodes=[node],
+        name="invalid",
+        persist_intermediate_outputs=False,
+        use_cache=False,
+    )
 
     result = await chain.execute()
 
     assert result.success is False
-    assert result.error is not None 
+    assert result.error is not None

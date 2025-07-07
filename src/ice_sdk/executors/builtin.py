@@ -10,9 +10,10 @@ It registers executors for the two node modes that ship with the SDK:
 * ``tool`` – deterministic tool invocation
 """
 
+# Standard library imports -----------------------------------------------------
+import re
 from datetime import datetime
 from typing import Any, Dict, TypeAlias
-import re
 
 from ice_sdk.agents.agent_node import AgentNode
 from ice_sdk.interfaces.chain import ScriptChainLike

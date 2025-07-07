@@ -65,11 +65,11 @@ class ChainFactory:  # noqa: D101 – internal utility
             nodes.append(parser_cls.model_validate(nd))
 
         # 3. Instantiate chain -------------------------------------------
-        from ice_orchestrator.script_chain import ScriptChain
-        from ice_sdk.models.node_models import ChainMetadata
-
         import hashlib
         import json
+
+        from ice_orchestrator.script_chain import ScriptChain
+        from ice_sdk.models.node_models import ChainMetadata
 
         # Compute basic DAG statistics & topology hash ------------------
         node_count = len(nodes)
