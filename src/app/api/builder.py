@@ -4,10 +4,10 @@ import time
 import uuid
 from typing import Dict, Optional, Tuple
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException  # type: ignore
+from pydantic import BaseModel, Field  # type: ignore
 
-from ice_cli.chain_builder.engine import (  # type: ignore
+from ice_sdk.chain_builder.engine import (
     BuilderEngine,
     ChainDraft,
     Question,

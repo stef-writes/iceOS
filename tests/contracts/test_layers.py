@@ -3,7 +3,13 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from importlinter import cli
+# Skip if dependency unavailable (CI environments without dev extras)
+import pytest  # type: ignore
+
+importlinter_cli = pytest.importorskip("importlinter.cli", reason="importlinter not installed")
+
+# Purposely import lazily after the skip check
+from importlinter import cli as _cli  # type: ignore
 
 
 def test_import_contracts_pass():
@@ -16,7 +22,8 @@ def test_import_contracts_pass():
     if cache_dir.exists():
         shutil.rmtree(cache_dir)
 
-    exit_code = cli.lint_imports(config_filename=str(cfg_path))
+    # Use resolved CLI
+    exit_code = _cli.lint_imports(config_filename=str(cfg_path))
 
     assert (
         exit_code == 0

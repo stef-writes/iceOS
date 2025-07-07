@@ -3,9 +3,12 @@ from __future__ import annotations
 """`ice doctor` – basic quality and CI helpers (lint, type-check, tests)."""
 
 import subprocess
+import shlex
+import shutil
+from dataclasses import dataclass
 
-import typer
-from rich import print as rprint
+import typer  # type: ignore
+from rich import print as rprint  # type: ignore
 
 
 def _run(cmd: list[str]):  # noqa: D401 – helper
@@ -41,10 +44,74 @@ def doctor_test():
     _run(["pytest", "-q"])
 
 
-@doctor_app.command("all")
-def doctor_all():
-    """Run lint + type + test in sequence."""
+@dataclass(slots=True)
+class _Check:  # noqa: D401 – internal container
+    label: str
+    command: str
+    perf_only: bool = False  # include only when --perf flag passed
 
-    doctor_lint()
-    doctor_type()
-    doctor_test()
+    def run(self) -> int:  # noqa: D401 – helper
+        rprint(f"\n▶ {self.label}\n[cyan]$ {self.command}[/]")
+        result = subprocess.run(shlex.split(self.command), check=False)
+        if result.returncode == 0:
+            rprint("[green]✅ PASSED[/]")
+        else:
+            rprint(f"[red]❌ FAILED[/] (exit={result.returncode})")
+        return result.returncode
+
+
+# NOTE: Keep in sync with project HEALTHCHECKS.md ---------------------------
+_CHECKS: list[_Check] = [
+    _Check("Linting (ruff)", "ruff check src"),
+    _Check("Typing (pyright)", "pyright --project config"),
+    _Check("Unit & integration tests", "pytest -q"),
+    _Check(
+        "Coverage threshold",
+        (
+            "pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q"
+        ),
+    ),
+    *(
+        [_Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []
+    ),
+    _Check("Import-linter rules", "lint-imports --config config/.importlinter"),
+    _Check("isort check", "isort --check-only src"),
+    _Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),
+    _Check("FlowSpec examples schema", "python scripts/check_flow_spec.py"),
+    _Check("Performance smoke", "pytest --benchmark-only -q", perf_only=True),
+]
+
+
+@doctor_app.command("all")
+def doctor_all(
+    perf: bool = typer.Option(
+        False, "--perf", help="Include performance-heavy checks (benchmarks)"
+    ),
+    keep_going: bool = typer.Option(
+        False,
+        "--keep-going",
+        help="Run all checks even if earlier ones fail",
+    ),
+):
+    """Run the full health-check suite.
+
+    By default stops at first failure.  Pass ``--keep-going`` to run the whole
+    list and aggregate the exit status.  Use ``--perf`` to include the extra
+    performance smoke benchmarks.
+    """
+
+    failed = False
+
+    for chk in _CHECKS:
+        if chk.perf_only and not perf:
+            continue
+        exit_code = chk.run()
+        if exit_code != 0:
+            failed = True
+            if not keep_going:
+                raise typer.Exit(exit_code)
+
+    if failed:
+        raise typer.Exit(1)
+
+    rprint("[bold green]\nAll checks passed ✅[/]")

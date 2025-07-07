@@ -89,7 +89,7 @@ class IceCopilot(FlowDesignAgent):  # noqa: D401
         presence of words like "api" / "database" to choose a ToolNode vs
         AiNode scaffold.
         """
-        from ice_cli.chain_builder.engine import BuilderEngine
+        from ice_sdk.chain_builder.engine import BuilderEngine
 
         draft = BuilderEngine.start(total_nodes=1, chain_name="auto_chain")
         draft.persist_interm_outputs = False

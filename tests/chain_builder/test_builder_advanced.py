@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from ice_cli.chain_builder.engine import BuilderEngine
+from ice_sdk.chain_builder.engine import BuilderEngine  # type: ignore
 
 
 def test_advanced_settings_render() -> None:  # noqa: D401

@@ -3,7 +3,7 @@
 PYTHON := $(shell which python)
 PIP := pip
 
-.PHONY: help install lint type test coverage mutation refresh-docs doctor clean docs deep-clean
+.PHONY: help install lint type test coverage mutation refresh-docs doctor clean docs deep-clean lock-check
 
 help:
 	@echo "Available targets:"
@@ -18,32 +18,36 @@ help:
 	@echo "  clean          Remove .pyc, build, and coverage artifacts"
 	@echo "  docs           Build documentation site (output to site/)"
 	@echo "  deep-clean     Remove build/test artifacts, caches, logs, compiled files and local data"
+	@echo "  lock-check     Check if dependencies are locked"
 
 install:
-	poetry install --with dev --no-interaction --no-root
+	poetry install --with dev --no-interaction
 
+# Linting
 lint:
-	poetry run ruff check src
-	poetry run isort --check-only src
-	poetry run mypy src
+	poetry run ice doctor lint
 
 format:
 	poetry run black src scripts tests
 	poetry run isort src scripts tests
 
+# Type checking
 type:
-	poetry run mypy src
+	poetry run ice doctor type
 
+typecheck: type  # alias for docs compatibility
+
+# Testing
 test:
-	poetry run pytest -q
+	poetry run ice doctor test
 
 refresh-docs:
 	$(PYTHON) scripts/gen_catalog.py
 	$(PYTHON) scripts/gen_overview.py
 
-# Robust quoting so paths with spaces/parentheses do not break ----------------
+# Comprehensive quality gate (lint + type + test + optional perf)
 doctor:
-	poetry run python scripts/doctor.py
+	poetry run ice doctor all
 
 coverage:
 	poetry run pytest
@@ -66,3 +70,6 @@ deep-clean: clean
 	rm -rf .venv venv ENV
 	rm -rf site
 	rm -rf docs/generated 
+
+lock-check:
+	poetry lock --check 

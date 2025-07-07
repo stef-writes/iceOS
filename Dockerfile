@@ -27,4 +27,4 @@ ENV PYTHONPATH=/app/src
 EXPOSE 8000
 
 # Launch the API server
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"] 

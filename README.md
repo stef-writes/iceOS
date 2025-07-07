@@ -241,6 +241,10 @@ iceOS is **MIT-licensed** - free for personal & commercial use. We welcome contr
 ## 🧪 **Development**
 
 ```bash
+# Contributor quick-start (one-time setup)
+poetry install --with dev
+make doctor
+
 # Full test suite
 make test
 

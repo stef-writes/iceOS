@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ast
 
-from ice_cli.chain_builder.engine import BuilderEngine
+from ice_sdk.chain_builder.engine import BuilderEngine  # type: ignore
 
 
 def _feed_answers(draft, answers):  # noqa: D401 – helper
