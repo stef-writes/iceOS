@@ -7,11 +7,10 @@ These commands were previously stand-alone *argparse* scripts located in
 same UX surface, global flags and help text as the rest of our CLI.
 """
 
-import importlib
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 import typer  # type: ignore
 from rich import print as rprint  # type: ignore
@@ -23,7 +22,9 @@ __all__ = ["maint_app"]
 # ---------------------------------------------------------------------------
 
 
-def _call_module(module_path: str, *extra_argv: str, capture: bool = False) -> None:  # noqa: D401
+def _call_module(
+    module_path: str, *extra_argv: str, capture: bool = False
+) -> None:  # noqa: D401
     """Execute *module_path* via :pymod:`python -m` so shebangs still work.
 
     This keeps the existing scripts untouched while enabling a unified
@@ -79,4 +80,4 @@ def gen_catalog():  # noqa: D401 – CLI entry-point
 
 @maint_app.command("gen-overview", help="Generate high-level docs overview page")
 def gen_overview():  # noqa: D401 – CLI entry-point
-    _call_module("scripts.cli.gen_overview") 
+    _call_module("scripts.cli.gen_overview")
