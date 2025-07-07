@@ -20,22 +20,22 @@ help:
 	@echo "  deep-clean     Remove build/test artifacts, caches, logs, compiled files and local data"
 
 install:
-	$(PIP) install -e ".[dev]"
+	poetry install --with dev --no-interaction --no-root
 
 lint:
-	ruff check src
-	isort --check-only src
-	mypy src
+	poetry run ruff check src
+	poetry run isort --check-only src
+	poetry run mypy src
 
 format:
-	black src scripts tests
-	isort src scripts tests
+	poetry run black src scripts tests
+	poetry run isort src scripts tests
 
 type:
-	mypy src
+	poetry run mypy src
 
 test:
-	$(PYTHON) -m pytest -q
+	poetry run pytest -q
 
 refresh-docs:
 	$(PYTHON) scripts/gen_catalog.py
@@ -43,13 +43,13 @@ refresh-docs:
 
 # Robust quoting so paths with spaces/parentheses do not break ----------------
 doctor:
-	"$(PYTHON)" scripts/doctor.py
+	poetry run "$(PYTHON)" scripts/doctor.py
 
 coverage:
-	$(PYTHON) -m pytest
+	poetry run pytest
 
 mutation:
-	mutmut run --paths-to-mutate src --tests-dir tests
+	poetry run mutmut run --paths-to-mutate src --tests-dir tests
 
 clean:
 	rm -rf .pytest_cache dist build *.egg-info
