@@ -16,11 +16,15 @@ Why introduce this module now?
 
 from __future__ import annotations
 
-from typing import Any, Dict, Literal, Type
+from typing import TYPE_CHECKING, Any, Dict, Literal, Type
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ice_sdk.tools.base import BaseTool
+
+# Type-checking imports ------------------------------------------------------
+if TYPE_CHECKING:  # pragma: no cover – import only for type checkers
+    from ice_sdk.models.node_models import AiNodeConfig, ChainMetadata
 
 # ---------------------------------------------------------------------------
 # Public model ----------------------------------------------------------------
@@ -75,6 +79,18 @@ class CapabilityCard(BaseModel):
     purpose: str | None = None
     examples: list[Dict[str, Any]] | None = None
 
+    # Copilot planning aids ---------------------------------------------------
+    complexity: int | None = Field(
+        default=None,
+        ge=1,
+        le=5,
+        description="Rough cost / latency bucket (1 = trivial, 5 = expensive)",
+    )
+    required_tools: list[str] | None = None
+    output_schema: Dict[str, Any] | None = None
+    embedding: list[float] | None = None  # Sentence embedding of purpose+desc
+    risk_level: Literal["low", "medium", "high"] | None = None
+
     # ------------------------------------------------------------------
     # Factory helpers ---------------------------------------------------
     # ------------------------------------------------------------------
@@ -94,4 +110,60 @@ class CapabilityCard(BaseModel):
             version=getattr(tool_cls, "__version__", "0.1.0"),
             purpose=getattr(tool_cls, "purpose", None),
             examples=getattr(tool_cls, "examples", None),
+            complexity=getattr(tool_cls, "complexity", None),
+            output_schema=getattr(tool_cls, "output_schema", None),
+        )
+
+    # ------------------------------------------------------------------
+    # Node/chain helpers -------------------------------------------------
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def from_ai_node_cfg(cls, node_cfg: "AiNodeConfig") -> "CapabilityCard":
+        """Build a card from an :class:`AiNodeConfig`."""
+
+        # Avoid heavy dependencies – import lazily ---------------------
+        from ice_sdk.models.node_models import (  # noqa: WPS433 – runtime import
+            AiNodeConfig,
+        )
+
+        assert isinstance(node_cfg, AiNodeConfig), "Expected AiNodeConfig"
+
+        metadata = node_cfg.metadata or None
+
+        return cls(
+            id=node_cfg.id,
+            kind="ai_node",
+            name=node_cfg.name or node_cfg.id,
+            description=(metadata.description or "" if metadata else ""),
+            purpose=(metadata.description if metadata else None),
+            tags=(metadata.tags if metadata else []),
+            required_tools=node_cfg.allowed_tools,
+            output_schema=(
+                node_cfg.output_schema
+                if isinstance(node_cfg.output_schema, dict)
+                else None
+            ),
+            examples=None,
+        )
+
+    @classmethod
+    def from_chain_metadata(cls, chain_meta: "ChainMetadata") -> "CapabilityCard":
+        """Generate a card from :class:`ChainMetadata`."""
+
+        from ice_sdk.models.node_models import (  # noqa: WPS433 – runtime import
+            ChainMetadata,
+        )
+
+        assert isinstance(chain_meta, ChainMetadata)
+
+        return cls(
+            id=chain_meta.chain_id,
+            kind="other",
+            name=chain_meta.name,
+            description=chain_meta.description,
+            tags=chain_meta.tags,
+            complexity=None,
+            examples=None,
+            purpose="Reusable workflow",
         )

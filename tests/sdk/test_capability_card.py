@@ -89,3 +89,32 @@ def test_card_purpose_examples_mapping():
 
     assert card.purpose == VerboseTool.purpose
     assert card.examples == VerboseTool.examples
+
+
+# ---------------------------------------------------------------------------
+# AiNode → CapabilityCard ---------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def test_ai_node_capability_card():
+    """AiNodeConfig should map into a CapabilityCard via helper."""
+
+    from ice_sdk.models.config import LLMConfig
+    from ice_sdk.models.node_models import AiNodeConfig
+
+    node = AiNodeConfig(
+        id="summary_ai",
+        name="SummarisePDF",
+        model="gpt-3.5-turbo",
+        prompt="Summarise {text}",
+        llm_config=LLMConfig(),
+        allowed_tools=["web_search"],
+        output_schema={"type": "object", "properties": {"summary": {"type": "string"}}},
+    )
+
+    card = CapabilityCard.from_ai_node_cfg(node)
+
+    assert card.id == "summary_ai"
+    assert card.kind == "ai_node"
+    assert card.required_tools == ["web_search"]
+    assert card.output_schema is not None
