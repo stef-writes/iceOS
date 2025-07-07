@@ -1,4 +1,3 @@
-import fcntl
 import json
 import logging
 import os
@@ -10,6 +9,22 @@ from .formatter import ContextFormatter
 from .store_base import BaseContextStore
 
 logger = logging.getLogger(__name__)
+
+# fcntl is Unix-only; provide a no-op fallback on Windows
+try:
+    import fcntl  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover – Windows compatibility
+
+    class _FcntlStub:
+        """Stub replacement for the Unix-only fcntl module (Windows)."""
+
+        LOCK_SH = LOCK_EX = LOCK_UN = 0
+
+        @staticmethod
+        def flock(fd: int, op: int) -> None:  # noqa: D401 – mimic fcntl API
+            """No-op flock replacement – file locking is skipped on Windows."""
+
+    fcntl = _FcntlStub()  # type: ignore
 
 
 class ContextStoreError(Exception):
