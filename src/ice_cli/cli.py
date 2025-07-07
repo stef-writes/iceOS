@@ -16,7 +16,6 @@ watchers that may need to reload commands many times per second.
 # Start of module -----------------------------------------------------------
 from __future__ import annotations
 
-import json
 import os
 import re
 import shutil
@@ -25,7 +24,6 @@ import subprocess
 from rich import print as rprint
 
 from ice_cli.context import CLIContext
-from ice_sdk.plugin_discovery import load_module_from_path
 from ice_sdk.utils.logging import setup_logger
 
 # Ensure realistic terminal width *before* importing Rich/Click/Typer so any
@@ -226,10 +224,10 @@ GOOGLE_API_KEY=your_google_api_key_here
         env_path.write_text(env_content)
         rprint(f"[green]✔[/] Created {env_path}")
     rprint(f"[green]✔[/] Project '{name}' initialized successfully!")
-    rprint(f"[blue]Next steps:[/]")
+    rprint("[blue]Next steps:[/]")
     rprint(f"  cd {name}")
-    rprint(f"  ice create chain my_first_workflow")
-    rprint(f"  ice run my_first_workflow.chain.py")
+    rprint("  ice create chain my_first_workflow")
+    rprint("  ice run my_first_workflow.chain.py")
 
 
 @app.command("create", help="Create a new resource")
@@ -320,7 +318,7 @@ def run_workflow(
     # Run the chain file as a script
     result = subprocess.run([sys.executable, str(chain_path)], capture_output=True, text=True)
     if result.returncode != 0:
-        rprint(f"[red]Error running workflow:[/]")
+        rprint("[red]Error running workflow:[/]")
         rprint(result.stderr)
         raise typer.Exit(result.returncode)
     rprint(result.stdout)
