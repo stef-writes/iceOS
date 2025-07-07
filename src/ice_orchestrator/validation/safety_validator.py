@@ -49,9 +49,21 @@ class SafetyValidator:  # noqa: D101 – internal utility
         """Ensure only *tool* nodes reference tools explicitly."""
 
         for node in nodes:
-            # Only AI nodes may declare allow-lists – but non-tool nodes must not
             allowed = getattr(node, "allowed_tools", None)
-            if node.type != "tool" and allowed:
-                raise ValueError(
-                    f"Node '{node.id}' (type={node.type}) is not allowed to declare allowed_tools"
-                )
+
+            # Skip when no allow-list declared ----------------------------------
+            if not allowed:
+                continue
+
+            if node.type == "ai":
+                # Legitimate use-case – AI node wants to limit which registered
+                # tools it may call.  No validation needed here; enforcement
+                # happens inside the agent executor at runtime.
+                continue
+
+            # Any other node type is not allowed to carry *allowed_tools* for
+            # now.  Condition and Tool nodes should execute deterministically
+            # without further nested tool calls.
+            raise ValueError(
+                f"Node '{node.id}' (type={node.type}) cannot declare allowed_tools"
+            )

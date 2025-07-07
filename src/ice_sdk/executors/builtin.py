@@ -61,6 +61,14 @@ def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
             if t_obj is not None:
                 tool_map[t_obj.name] = t_obj
 
+    # -----------------------------------------------------------------------
+    # 4. Apply explicit *allowed_tools* whitelist on the node config ---------
+    # -----------------------------------------------------------------------
+
+    if node.allowed_tools is not None:
+        allowed_set = set(node.allowed_tools)
+        tool_map = {name: t for name, t in tool_map.items() if name in allowed_set}
+
     tools: list[BaseTool] = list(tool_map.values())
 
     model_settings = ModelSettings(

@@ -38,6 +38,14 @@ class BaseTool(BaseModel):
     parameters_schema: ClassVar[Dict[str, Any] | None] = None
     output_schema: ClassVar[Dict[str, Any] | None] = None
 
+    # Extended metadata for discovery / copilot --------------------------------
+    # ``purpose``   – one-sentence natural language summary of *why* to use the
+    #                 tool (search-friendly, displayed in UIs).
+    # ``examples``  – list of small input/output pairs or prompt snippets that
+    #                 demonstrate typical usage.
+    purpose: ClassVar[str | None] = None
+    examples: ClassVar[list[dict[str, Any]] | None] = None
+
     async def run(self, **kwargs) -> Any:
         """Execute the tool with the given arguments."""
         raise NotImplementedError

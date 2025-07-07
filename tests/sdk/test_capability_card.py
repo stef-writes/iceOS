@@ -59,3 +59,33 @@ def test_custom_tool_registration_card():
         card.id == "dummy_tool" and card.description == "Just a dummy for tests"
         for card in cards
     )
+
+
+# ---------------------------------------------------------------------------
+# New: purpose / examples fields -------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def test_card_purpose_examples_mapping():
+    """CapabilityCard should capture purpose/examples when provided by Tool."""
+
+    from ice_sdk.tools.base import BaseTool, ToolContext
+
+    class VerboseTool(BaseTool):
+        name = "verbose_tool"
+        description = "Verbose tool for testing purpose field"
+        purpose = "Demonstrates how purpose and examples are surfaced."
+        examples = [
+            {
+                "input": {"text": "hello"},
+                "output": {"text": "HELLO"},
+            }
+        ]
+
+        async def run(self, ctx: ToolContext, *, text: str):  # type: ignore[override]
+            return {"text": text.upper()}
+
+    card = CapabilityCard.from_tool_cls(VerboseTool)
+
+    assert card.purpose == VerboseTool.purpose
+    assert card.examples == VerboseTool.examples

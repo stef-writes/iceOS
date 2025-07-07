@@ -79,6 +79,12 @@ class CapabilityRegistry:  # noqa: D101 – simple data holder
                 return True
             if regex.search(card.description.lower()):
                 return True
+            if card.purpose and regex.search(card.purpose.lower()):
+                return True
+            if card.examples and any(
+                regex.search(str(sample).lower()) for sample in card.examples
+            ):
+                return True
             if any(tag.lower() == query_low for tag in card.tags):
                 return True
             # fallback to fnmatch on id & tags --------------------------

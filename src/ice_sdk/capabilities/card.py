@@ -69,6 +69,13 @@ class CapabilityCard(BaseModel):
     docs_url: str | None = None
 
     # ------------------------------------------------------------------
+    # Copilot-friendly extras -------------------------------------------
+    # ------------------------------------------------------------------
+
+    purpose: str | None = None
+    examples: list[Dict[str, Any]] | None = None
+
+    # ------------------------------------------------------------------
     # Factory helpers ---------------------------------------------------
     # ------------------------------------------------------------------
 
@@ -85,4 +92,6 @@ class CapabilityCard(BaseModel):
             output_ports=getattr(tool_cls, "output_schema", None),
             tags=getattr(tool_cls, "tags", []),
             version=getattr(tool_cls, "__version__", "0.1.0"),
+            purpose=getattr(tool_cls, "purpose", None),
+            examples=getattr(tool_cls, "examples", None),
         )
