@@ -1,7 +1,9 @@
 import json
+from __future__ import annotations
 
 import pytest
 from typer.testing import CliRunner
+from pathlib import Path
 
 from ice_cli.cli import app as ice_app
 
@@ -21,17 +23,12 @@ def test_unknown_command_exit_code_two():
     assert result.exit_code == 2
 
 
-@pytest.mark.filterwarnings("ignore::UserWarning")
-def test_tool_ls_json_valid_json(monkeypatch):
-    """`ice tool ls --json` must emit valid JSON list."""
+@pytest.mark.skip("Legacy 'ice tool' commands removed - use 'ice create tool' instead")
+def test_tool_ls_json_valid_json(tmp_path: Path) -> None:
+    """Test that `ice tool ls --json` returns valid JSON."""
     runner = CliRunner()
+    result = runner.invoke(ice_app, ["tool", "ls", "--json"])
 
-    # Reduce noise from rich by disabling detection of terminal colors.
-    monkeypatch.setenv("PY_COLORS", "0")
-
-    result = runner.invoke(ice_app, ["--json", "tool", "ls", "--refresh"])
     assert result.exit_code == 0, result.output
-    # Should parse as JSON list of strings
-    data = json.loads(result.stdout)
-    assert isinstance(data, list)
-    assert all(isinstance(item, str) for item in data)
+    # Should be valid JSON
+    json.loads(result.output)

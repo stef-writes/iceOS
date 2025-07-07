@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import os
 from pathlib import Path
 from textwrap import dedent
@@ -31,6 +33,7 @@ def _setup_tool(tmp_path: Path):
     # Don't modify sys.path - let the discovery work naturally
 
 
+@pytest.mark.skip("Legacy 'ice tool' commands removed - use 'ice create tool' instead")
 def test_cli_tool_test(tmp_path: Path):
     _setup_tool(tmp_path)
     prev = Path.cwd()

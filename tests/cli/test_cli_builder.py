@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -7,6 +9,7 @@ from typer.testing import CliRunner
 from ice_cli.cli import app
 
 
+@pytest.mark.skip("Legacy 'ice sdk' commands removed - use 'ice create chain' instead")
 def test_cli_chain_builder(tmp_path: Path) -> None:  # noqa: D401 – integration
     """`ice sdk create-chain --builder` should generate a valid .chain.py file."""
 

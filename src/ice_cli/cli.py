@@ -293,7 +293,7 @@ def create_resource(
 
     elif resource_type_lower == "node":
         target_path = directory / f"{name}.ainode.yaml"
-        if target_path.exists() and not force:
+    if target_path.exists() and not force:
             rprint(f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite.")
             raise typer.Exit(1)
 
@@ -341,11 +341,19 @@ def run_workflow(
         raise typer.Exit(1)
     # Run the chain file as a script
     result = subprocess.run([sys.executable, str(chain_path)], capture_output=True, text=True)
+    success = result.returncode == 0
     if result.returncode != 0:
         rprint("[red]Error running workflow:[/]")
         rprint(result.stderr)
         raise typer.Exit(result.returncode)
-    rprint(result.stdout)
+
+    if json_output:
+        import json as _json
+
+        payload = {"success": success, "output": result.stdout.strip()}
+        rprint(_json.dumps(payload))
+        else:
+        rprint(result.stdout)
 
 
 @app.command("ls", help="List resources")
@@ -396,7 +404,7 @@ def edit_resource(
                 break
     if not resource_path.exists():
         rprint(f"[red]Error:[/] Resource '{resource}' not found")
-        raise typer.Exit(1)
+                raise typer.Exit(1)
     editor = os.getenv("EDITOR", "code")
     subprocess.run([editor, str(resource_path)])
     rprint(f"[green]✔[/] Opened {resource_path} in {editor}")
@@ -426,7 +434,7 @@ def delete_resource(
                 break
     if not resource_path.exists():
         rprint(f"[red]Error:[/] Resource '{resource}' not found")
-        raise typer.Exit(1)
+            raise typer.Exit(1)
     if not force:
         confirm = typer.confirm(f"Delete {resource_path}?")
         if not confirm:
@@ -500,173 +508,6 @@ def update_templates():
 
 app.add_typer(update_app, name="update", rich_help_panel="Maintenance")
 
-
-# ---------------------------------------------------------------------------
-# Legacy command aliases (backwards-compat for test-suite) -------------------
-# ---------------------------------------------------------------------------
-
-import json as _json  # noqa: WPS433 – internal use only
-from typing import Optional as _Optional  # noqa: WPS433
-
-
-tool_app = typer.Typer(hidden=True, help="[DEPRECATED] Legacy tool commands")
-
-
-@tool_app.command("ls", help="List available tools")
-def tool_ls(refresh: bool = typer.Option(False, "--refresh", help="Re-scan filesystem")):
-    """List tools registered in ToolService."""
-    from ice_sdk.tools.service import ToolService
-
-    svc = ToolService()
-    if refresh:
-        svc.discover_and_register(Path.cwd())
-
-    for name in sorted(svc.available_tools()):
-        rprint(name)
-
-
-@tool_app.command("info", help="Show info about a tool")
-def tool_info(name: str):
-    from ice_sdk.tools.service import ToolService
-
-    svc = ToolService()
-    svc.discover_and_register(Path.cwd())
-    try:
-        tool = svc.get(name)
-    except KeyError:
-        rprint(f"[red]Tool '{name}' not found[/]")
-        raise typer.Exit(1)
-
-    rprint(f"[green]✔[/] {tool.name} – {tool.description}")
-
-
-@tool_app.command("test", help="Execute a tool with given JSON args")
-def tool_test(
-    name: str,
-    args: _Optional[str] = typer.Option("{}", "--args", help="JSON-encoded tool inputs"),
-):
-    """Run *tool* and pretty-print its result."""
-    from ice_sdk.tools.service import ToolRequest, ToolService
-
-    svc = ToolService()
-    svc.discover_and_register(Path.cwd())
-
-    try:
-        payload = _json.loads(args or "{}")
-    except Exception as exc:  # noqa: BLE001
-        rprint(f"[red]Invalid JSON for --args: {exc}[/]")
-        raise typer.Exit(1)
-
-    async def _exec() -> dict:  # noqa: WPS430
-        return await svc.execute(ToolRequest(tool_name=name, inputs=payload))
-
-    import asyncio as _asyncio  # local import to avoid global unused-import
-
-    result = _asyncio.run(_exec())
-    rprint(result)
-
-
-app.add_typer(tool_app, name="tool")
-
-# ---------------------------------------------------------------------------
-# SDK legacy commands -------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-sdk_app = typer.Typer(hidden=True, help="[DEPRECATED] Legacy sdk commands")
-
-
-@sdk_app.command("chain-validate", help="Validate a .chain.py workflow file")
-def sdk_chain_validate(path: Path):
-    if not path.exists():
-        rprint(f"[red]File '{path}' not found[/]")
-        raise typer.Exit(1)
-
-    # Very light sanity check: ensure file is importable / syntactically valid
-    try:
-        compile(path.read_text(), str(path), "exec")
-    except SyntaxError as exc:
-        rprint(f"[red]Syntax error:[/] {exc}")
-        raise typer.Exit(1)
-
-    rprint("Chain is valid ✅")
-
-
-@sdk_app.command("create-chain", help="Scaffold a new .chain.py file")
-def sdk_create_chain(
-    name: str,
-    dir: Path = typer.Option(Path.cwd(), "--dir", help="Destination directory"),
-    force: bool = typer.Option(False, "--force", "-f"),
-    builder: bool = typer.Option(False, "--builder", help="Interactive builder (ignored)"),
-    nodes: int = typer.Option(0, "--nodes", help="Number of nodes to scaffold"),
-):
-    target = dir / f"{name}.chain.py"
-    if target.exists() and not force:
-        rprint(f"[red]File {target} exists – use --force to overwrite[/]")
-        raise typer.Exit(1)
-
-    content = (
-        '"""Auto-generated chain stub"""\n\n'
-        "from ice_orchestrator.script_chain import ScriptChain\n\n"
-        "chain = ScriptChain(nodes=[], name=\"demo\")\n"
-    )
-    target.write_text(content)
-    rprint(f"[green]✔[/] Created {target}")
-
-
-app.add_typer(sdk_app, name="sdk")
-
-# ---------------------------------------------------------------------------
-# Prompt legacy commands -----------------------------------------------------
-# ---------------------------------------------------------------------------
-
-prompt_app = typer.Typer(hidden=True, help="[DEPRECATED] Legacy prompt commands")
-
-
-_PROMPT_EXT = ".prompt.txt"
-
-
-@prompt_app.command("create", help="Create a prompt template")
-def prompt_create(
-    name: str,
-    template: str = typer.Option("", "--template", help="Prompt body"),
-    dir: Path = typer.Option(Path.cwd(), "--dir", help="Destination directory"),
-):
-    target = dir / f"{name}{_PROMPT_EXT}"
-    target.write_text(template or "")
-    rprint(f"[green]✔[/] Created {target}")
-
-
-@prompt_app.command("ls", help="List prompts")
-def prompt_ls(dir: Path = typer.Option(Path.cwd(), "--dir", help="Search directory")):
-    for p in dir.glob(f"*{_PROMPT_EXT}"):
-        rprint(p.stem)
-
-
-@prompt_app.command("test", help="Render a prompt with JSON input")
-def prompt_test(
-    name: str,
-    input: str = typer.Option("{}", "--input", help="JSON-encoded variables"),
-    dir: Path = typer.Option(Path.cwd(), "--dir", help="Template directory"),
-):
-    import string as _string
-
-    path = dir / f"{name}{_PROMPT_EXT}"
-    if not path.exists():
-        rprint(f"[red]Prompt '{name}' not found in {dir}[/]")
-        raise typer.Exit(1)
-
-    try:
-        values = _json.loads(input)
-    except Exception as exc:  # noqa: BLE001
-        rprint(f"[red]Invalid JSON: {exc}[/]")
-        raise typer.Exit(1)
-
-    tpl = _string.Template(path.read_text())
-    rendered = tpl.safe_substitute(values)
-    rprint(rendered)
-
-
-app.add_typer(prompt_app, name="prompt")
 
 # ---------------------------------------------------------------------------
 # Main entry point ---------------------------------------------------------

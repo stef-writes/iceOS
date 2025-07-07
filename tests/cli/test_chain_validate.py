@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -27,6 +29,7 @@ def _write_minimal_chain(path: Path) -> None:
     path.write_text(content)
 
 
+@pytest.mark.skip("Legacy 'ice sdk' commands removed - use 'ice create chain' instead")
 def test_sdk_chain_validate_pass(tmp_path: Path) -> None:  # noqa: D401
     chain_file = tmp_path / "hello.chain.py"
     _write_minimal_chain(chain_file)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 # ruff: noqa: E402
 
 """Smoke tests for the new `ice prompt` commands."""
@@ -12,6 +14,7 @@ from typer.testing import CliRunner
 from ice_cli.cli import app
 
 
+@pytest.mark.skip("Legacy 'ice prompt' commands removed - use 'ice create' instead")
 def test_prompt_create_ls(tmp_path: Path) -> None:  # noqa: D401
     runner = CliRunner()
     # create

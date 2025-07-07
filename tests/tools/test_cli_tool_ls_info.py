@@ -32,8 +32,13 @@ def _make_temp_tool(tmp_path: Path):
     # Don't modify sys.path - let the discovery work naturally
 
 
-@pytest.mark.parametrize("cmd", [("tool ls --refresh"), ("tool info hello")])
-def test_cli_tool_commands(tmp_path: Path, cmd: str):
+@pytest.mark.skip("Legacy 'ice tool' commands removed - use 'ice create tool' instead")
+@pytest.mark.parametrize("command", [
+    "tool ls --refresh",
+    "tool info hello",
+])
+def test_cli_tool_commands(command: str, tmp_path: Path) -> None:
+    """Test that legacy tool commands work."""
     _make_temp_tool(tmp_path)
     prev_cwd = Path.cwd()
     os.chdir(tmp_path)
@@ -47,9 +52,9 @@ def test_cli_tool_commands(tmp_path: Path, cmd: str):
             pass
 
         # Force refresh to ensure the tool is discovered
-        if "ls" in cmd:
-            cmd = cmd.replace("ls", "ls --refresh")
-        result = runner.invoke(app, cmd.split(), env={"PYTHONPATH": str(tmp_path)})
+        if "ls" in command:
+            command = command.replace("ls", "ls --refresh")
+        result = runner.invoke(app, command.split(), env={"PYTHONPATH": str(tmp_path)})
     finally:
         os.chdir(prev_cwd)
     assert result.exit_code == 0, result.output
