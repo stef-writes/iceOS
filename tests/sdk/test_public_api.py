@@ -23,6 +23,12 @@ PUBLIC_API = {
     "MessageTemplate",
     # Context abstraction
     "GraphContextManager",
+    # Extensions
+    "extensions",
+    # Copilot helper (added in DI refactor)
+    "IceCopilot",
+    # Service locator
+    "ServiceLocator",
 }
 
 

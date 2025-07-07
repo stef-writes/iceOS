@@ -14,7 +14,7 @@ from ice_sdk.tools.base import BaseTool
 class EchoTool(BaseTool):
     """Simple echo tool used in integration tests."""
 
-    name = "echo"
+    name = "echo_test"
     description = "Echo tool – returns input verbatim"
 
     async def run(self, **kwargs: Any):  # type: ignore[override]
@@ -56,7 +56,7 @@ async def test_script_chain_ai_and_tool(monkeypatch):
     tool_cfg = ToolNodeConfig(
         id="tool1",
         name="EchoTool",
-        tool_name="echo",
+        tool_name="echo_test",
     )
 
     ai_cfg = AiNodeConfig(

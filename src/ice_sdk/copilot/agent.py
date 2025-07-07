@@ -81,3 +81,26 @@ class IceCopilot(FlowDesignAgent):  # noqa: D401
             "model": "gpt-4o",
             "tools": [],
         }
+
+    async def generate_chain_draft(self, brief: str):  # noqa: D401
+        """Return a quick heuristic ChainDraft based on *brief*.
+
+        An LLM-backed version will replace this, but for now we detect the
+        presence of words like "api" / "database" to choose a ToolNode vs
+        AiNode scaffold.
+        """
+        from ice_cli.chain_builder.engine import BuilderEngine
+
+        draft = BuilderEngine.start(total_nodes=1, chain_name="auto_chain")
+        draft.persist_interm_outputs = False
+
+        node_type = "tool" if "api" in brief.lower() else "ai"
+        draft.nodes.append(
+            {
+                "type": node_type,
+                "name": "auto_node",
+                "model": "gpt-4o" if node_type == "ai" else None,
+                "dependencies": [],
+            }
+        )
+        return draft

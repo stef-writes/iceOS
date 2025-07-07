@@ -71,3 +71,19 @@ a pluggable store once the buffer reaches `flush_threshold`.
 
 ## License
 Apache-2.0 – see `LICENSE` at repo root. 
+
+## Module Structure (v1.1+)
+
+```
+ ice_orchestrator/
+ ├─ core/           # Core orchestration logic (script_chain, chain_factory)
+ ├─ execution/      # Runtime helpers (executor, agent_factory, metrics)
+ ├─ graph/          # DAG helpers (dependency_graph, level_resolver)
+ ├─ utils/          # Pure helpers (context_builder)
+ ├─ validation/     # Static & runtime validation helpers
+ ├─ errors/         # Exception hierarchy
+ ├─ migration/      # Spec up/down-grade helpers
+ └─ nodes/          # Node implementations
+```
+
+> See `API_GUIDE.md` for public class reference. 

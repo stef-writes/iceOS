@@ -1,6 +1,8 @@
 from contextvars import ContextVar  # Track agent call stack across coroutines
 from typing import Any, ClassVar, Dict, List, Optional
 
+from ice_sdk.services import ServiceLocator  # new
+
 from ..context.manager import GraphContextManager
 from ..exceptions import CycleDetectionError
 from ..models.agent_models import AgentConfig
@@ -133,14 +135,19 @@ class AgentNode:
         # ------------------------------------------------------------------
         # 2. Prepare prompt & LLM service -----------------------------------
         # ------------------------------------------------------------------
-        self.llm_service = self.llm_service or self.context_manager.get_tool(
-            "__llm_service__"
-        )  # may be None
         if self.llm_service is None:
-            # Fallback – instantiate lazily to avoid import cycles at module top.
-            from ..providers.llm_service import LLMService
+            # Try global ServiceLocator first ---------------------------------
+            try:
+                self.llm_service = ServiceLocator.get("llm_service")  # type: ignore[assignment]
+            except KeyError:
+                # Fall back to context_manager tool registry ------------------
+                self.llm_service = self.context_manager.get_tool("__llm_service__")  # type: ignore[assignment]
 
-            self.llm_service = LLMService()
+            if self.llm_service is None:  # pragma: no cover – final fallback
+                from ..providers.llm_service import LLMService
+
+                self.llm_service = LLMService()
+                ServiceLocator.register("llm_service", self.llm_service)
 
         system_prompt = self.config.instructions
         user_content = (

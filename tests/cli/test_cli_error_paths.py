@@ -22,14 +22,14 @@ def test_unknown_command_exit_code_two():
 
 
 @pytest.mark.filterwarnings("ignore::UserWarning")
-def test_ls_json_valid_json(monkeypatch):
-    """`ice ls --json` must emit valid JSON list."""
+def test_tool_ls_json_valid_json(monkeypatch):
+    """`ice tool ls --json` must emit valid JSON list."""
     runner = CliRunner()
 
     # Reduce noise from rich by disabling detection of terminal colors.
     monkeypatch.setenv("PY_COLORS", "0")
 
-    result = runner.invoke(ice_app, ["ls", "--json", "--refresh"])
+    result = runner.invoke(ice_app, ["--json", "tool", "ls", "--refresh"])
     assert result.exit_code == 0, result.output
     # Should parse as JSON list of strings
     data = json.loads(result.stdout)

@@ -5,15 +5,13 @@ from typing import Any
 
 import pytest
 
-from ice_orchestrator.node_dependency_graph import (
-    CircularDependencyError,
-    DependencyGraph,
-)
-from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
+from ice_orchestrator.errors.chain_errors import CircularDependencyError
+from ice_orchestrator.graph.dependency_graph import DependencyGraph
 from ice_sdk.models.node_models import AiNodeConfig, LLMConfig, ModelProvider
 from ice_sdk.orchestrator.workflow_execution_context import (
     _BulkSaveProtocol,  # type: ignore
 )
+from ice_sdk.orchestrator.workflow_execution_context import WorkflowExecutionContext
 
 # ---------------------------------------------------------------------------
 # Helpers --------------------------------------------------------------------

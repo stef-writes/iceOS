@@ -8,24 +8,33 @@
 - **`app`** – Gaffer - AI Workflow Orchestration System
 - **`app.api`** – API package for Gaffer
 - **`ice_cli`** – Command-line interface for iceOS (``ice``).
+- **`ice_cli.apps`** – (no description)
 - **`ice_cli.chain_builder`** – (no description)
 - **`ice_cli.commands`** – (no description)
+- **`ice_cli.utils`** – (no description)
 - **`ice_orchestrator`** – Ice Orchestrator package.
+- **`ice_orchestrator.core`** – (no description)
+- **`ice_orchestrator.errors`** – (no description)
+- **`ice_orchestrator.execution`** – (no description)
+- **`ice_orchestrator.graph`** – (no description)
 - **`ice_orchestrator.nodes`** – Legacy import-path compatibility for `ice_orchestrator.nodes.*`.
+- **`ice_orchestrator.utils`** – (no description)
+- **`ice_orchestrator.validation`** – (no description)
 - **`ice_sdk`** – iceOS SDK.
 - **`ice_sdk.agents`** – Agent-based workflow orchestration.
 - **`ice_sdk.cache`** – (no description)
 - **`ice_sdk.capabilities`** – Capability utilities package.
 - **`ice_sdk.context`** – Context management helpers (session state, stores, etc.) shared by agents and orchestrator.
+- **`ice_sdk.copilot`** – ICE Copilot – central Socratic assistant.
 - **`ice_sdk.core`** – Core utilities for ice_sdk (validation, retries, helpers).
+- **`ice_sdk.dsl`** – (no description)
 - **`ice_sdk.events`** – Event subsystem for iceOS.
 - **`ice_sdk.executors`** – Executors package.
+- **`ice_sdk.extensions`** – (no description)
 - **`ice_sdk.interfaces`** – Light-weight interfaces (Protocol definitions) that inner ice_sdk exposes
 - **`ice_sdk.models`** – ice_sdk.models – Pydantic model re-exports
+- **`ice_sdk.orchestrator`** – (no description)
 - **`ice_sdk.providers`** – (no description)
 - **`ice_sdk.tools`** – (no description)
 - **`ice_sdk.utils`** – Utility helpers (logging, error handling, etc.) shared by ice_* packages.
-- **`ice_sdk_contrib`** – (no description)
-- **`ice_tools`** – (no description)
 - **`iceos`** – iceos meta-package
-- **`opentelemetry`** – (no description)

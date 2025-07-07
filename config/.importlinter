@@ -2,7 +2,9 @@
 root_packages=
     ice_sdk
     ice_orchestrator
+    ice_cli
     app
+include_external_packages=True
 
 [importlinter:contract:ice-sdk-no-app]
 name=ice_sdk must not depend on app
@@ -21,4 +23,4 @@ type=layers
 layers=
     app
     ice_orchestrator
-    ice_sdk 
+    ice_sdk

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 from textwrap import dedent
 
@@ -29,7 +28,7 @@ def _setup_tool(tmp_path: Path):
     )
     p = tmp_path / "echo.tool.py"
     p.write_text(code)
-    sys.path.insert(0, str(tmp_path))
+    # Don't modify sys.path - let the discovery work naturally
 
 
 def test_cli_tool_test(tmp_path: Path):
@@ -37,6 +36,14 @@ def test_cli_tool_test(tmp_path: Path):
     prev = Path.cwd()
     os.chdir(tmp_path)
     try:
+        # Clear any cached tool service to force fresh discovery
+        from ice_sdk.services import ServiceLocator
+
+        try:
+            ServiceLocator.clear()
+        except Exception:
+            pass
+
         result = runner.invoke(app, ["tool", "test", "echo", "--args", '{"foo":1}'])
     finally:
         os.chdir(prev)

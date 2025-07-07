@@ -24,6 +24,8 @@ respect repo rule #4 (no *app.* imports inside *ice_sdk.*).
 import asyncio
 import json
 import os as _os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional
@@ -31,7 +33,7 @@ from typing import List, Optional
 import typer
 from rich import print as rprint
 
-from ice_cli.cli import _print_mermaid_graph  # local import
+from ice_cli.utils import _print_mermaid_graph
 
 # Avoid circular import: import lazily inside *chain_create* command
 from ice_orchestrator.script_chain import ScriptChain  # local import
@@ -202,6 +204,7 @@ def chain_run(
                 # ensure llm_config exists
                 llm_conf = getattr(node_cfg, "llm_config", {}) or {}
                 # Try to parse value to int/float if possible
+                v_parsed: int | float | str
                 if v.isdigit():
                     v_parsed = int(v)
                 else:
@@ -289,3 +292,88 @@ def chain_export(
     else:
         out.write_text(serialized, encoding="utf-8")
         rprint(f"[green]✔ Wrote results → {out}")
+
+
+# ---------------------------------------------------------------------------
+# Additional utility commands ported from the original *cli.py* ------------
+# ---------------------------------------------------------------------------
+
+
+@chain_app.command("ls", help="List *.chain.py files in current directory")
+def chain_ls() -> None:
+    """Find all ScriptChain Python files under the current working directory."""
+
+    chains = sorted(Path.cwd().rglob("*.chain.py"))
+    if not chains:
+        rprint("[yellow]No chains found.[/]")
+        return
+
+    for c in chains:
+        try:
+            display = c.relative_to(Path.cwd())
+        except ValueError:
+            display = c
+        rprint(f"• {display}")
+
+
+@chain_app.command("delete", help="Delete a ScriptChain file")
+def chain_delete(
+    path: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    force: bool = typer.Option(False, "--force", "-f", help="Delete without prompt"),
+):
+    """Remove *path* from disk, asking for confirmation unless --force is set."""
+
+    if not force and not typer.confirm(f"Delete {path}?", abort=True):
+        return
+    path.unlink()
+    try:
+        display = path.relative_to(Path.cwd())
+    except ValueError:
+        display = path
+    rprint(f"[green]✔[/] Deleted {display}")
+
+
+@chain_app.command("edit", help="Open a ScriptChain in $EDITOR")
+def chain_edit(
+    path: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+):
+    """Spawn $EDITOR so the user can make changes to *path*."""
+
+    editor = _os.getenv("EDITOR") or ("code" if shutil.which("code") else "nano")
+    try:
+        subprocess.run([editor, str(path)], check=False)
+    except Exception as exc:  # noqa: BLE001
+        rprint(f"[red]Failed to open editor:[/] {exc}")
+
+
+@chain_app.command("diagram", help="Print Mermaid graph for a ScriptChain")
+def chain_diagram(
+    path: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    open_preview: bool = typer.Option(
+        False,
+        "--open",
+        help="Open SVG preview if mermaid-cli is installed",
+    ),
+):
+    """Generate a Mermaid diagram for *path* and optionally open an SVG preview."""
+
+    import importlib.util as _util
+
+    spec = _util.spec_from_file_location(path.stem, path)
+    if spec is None or spec.loader is None:
+        rprint(f"[red]Unable to import {path}.[/]")
+        raise typer.Exit(1)
+
+    module = _util.module_from_spec(spec)
+    spec.loader.exec_module(module)  # type: ignore[arg-type]
+
+    chain_obj = getattr(module, "chain", None)
+    if chain_obj is None and hasattr(module, "get_chain"):
+        chain_obj = module.get_chain()
+    if chain_obj is None:
+        rprint("[red]No ScriptChain object found in module.[/]")
+        raise typer.Exit(1)
+
+    if open_preview:
+        _os.environ["ICE_GRAPH_PREVIEW"] = "1"
+    _print_mermaid_graph(chain_obj)

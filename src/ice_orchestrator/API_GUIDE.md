@@ -53,5 +53,17 @@ ice-cli chain run --file my_chain.yaml --input '{"name": "Mia"}'
 2. **Stores** – Provide an async class with `bulk_save()` for persistence.
 3. **Metrics** – Hook into `ice_sdk.utils.perf` for custom timing.
 
+## Package Map (v1.1+)
+
+| Package | Purpose |
+|---------|---------|
+| `ice_orchestrator.core` | `ScriptChain`, `ChainFactory` |
+| `ice_orchestrator.execution` | `NodeExecutor`, `AgentFactory`, `ChainMetrics` |
+| `ice_orchestrator.graph` | `DependencyGraph`, `BranchGatingResolver` |
+| `ice_orchestrator.utils` | `ContextBuilder` and future helpers |
+| `ice_orchestrator.validation` | `ChainValidator`, `SchemaValidator`, `SafetyValidator` |
+| `ice_orchestrator.errors` | Exception hierarchy shared across modules |
+| `ice_orchestrator.migration` | Chain version migration helpers |
+
 ---
-> For additional details see the full developer docs under `docs/architecture`. 
+> For additional details see the full developer docs under `docs/`.

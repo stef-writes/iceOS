@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from pathlib import Path
 from typing import Any
 
@@ -12,21 +11,15 @@ from rich.table import Table
 
 from ice_cli.context import get_ctx  # access global CLIContext
 from ice_cli.events import _emit_event
+from ice_cli.utils import snake_case as _snake_case  # centralised helper
 from ice_sdk.events.models import CLICommandEvent
+from ice_sdk.services import ServiceLocator  # new
 from ice_sdk.tools.base import ToolContext
 from ice_sdk.tools.service import ToolService
 
 # ---------------------------------------------------------------------------
 # Helper utilities ----------------------------------------------------------
 # ---------------------------------------------------------------------------
-
-
-def _snake_case(name: str) -> str:
-    """Convert *PascalCase* or *camelCase* to ``snake_case``."""
-
-    name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
-    name = re.sub(r"([a-z\d])([A-Z])", r"\1_\2", name)
-    return name.replace("-", "_").lower()
 
 
 def _create_tool_template(tool_name: str) -> str:
@@ -86,15 +79,41 @@ _tool_service: ToolService | None = None
 
 
 def get_tool_service(refresh: bool = False) -> ToolService:
-    """Return a memoised ToolService with auto-discovered project tools."""
+    """Return a memoised ToolService with auto-discovered project tools.
+
+    The helper keeps a module-local cache for performance. However, test
+    suites routinely wipe the :class:`~ice_sdk.services.ServiceLocator`
+    registry via :py:meth:`ServiceLocator.clear`.  In that scenario the
+    *cached* reference becomes *dangling* (no longer present in the global
+    locator) which may cause stale data or missing tool registrations in
+    subsequent calls.
+
+    We therefore verify the cached instance is still registered and reset it
+    if the locator was cleared.
+    """
 
     global _tool_service  # noqa: PLW0603 – module level cache is fine here
 
+    # Detect locator reset -------------------------------------------------
+    if not refresh and _tool_service is not None:
+        try:
+            ServiceLocator.get("tool_service")
+        except KeyError:
+            # Global registry was cleared – drop stale cache so we rebuild.
+            _tool_service = None
+
+    # Build or refresh -----------------------------------------------------
     if _tool_service is None or refresh:
-        svc = ToolService()
-        # Discover project-local tools relative to CWD ------------------
-        svc.discover_and_register(Path.cwd())
-        _tool_service = svc
+        try:
+            _tool_service = ServiceLocator.get("tool_service")
+        except KeyError:
+            svc = ToolService()
+            # Discover project-local tools relative to CWD ------------------
+            svc.discover_and_register(Path.cwd())
+            ServiceLocator.register("tool_service", svc)
+            _tool_service = svc
+
+    assert _tool_service is not None
     return _tool_service
 
 
@@ -206,6 +225,15 @@ def tool_ls(
 
     svc = get_tool_service(refresh)
 
+    # Check if JSON output is requested via global flag
+    ctx = get_ctx()
+    if getattr(ctx, "json_output", False):
+        import json
+
+        tools = sorted(svc.available_tools())
+        typer.echo(json.dumps(tools))
+        return
+
     table = Table(title="Registered Tools")
     table.add_column("Name", style="cyan", no_wrap=True)
     table.add_column("Description", style="green")
@@ -288,39 +316,3 @@ def tool_test(
     from rich.json import JSON
 
     rprint(JSON.from_data(result))
-
-
-# -------------------------------------------------------------------
-# Deprecated command – `tool new` -----------------------------------
-# -------------------------------------------------------------------
-
-
-@tool_app.command(
-    "new",
-    help="[DEPRECATED] Use 'ice tool create' instead.",
-    hidden=True,
-)
-def tool_new(
-    name: str = typer.Argument(..., help="Class name for the tool (e.g. MyCool)"),
-    directory: Path = typer.Option(
-        Path.cwd(),
-        "--dir",
-        "-d",
-        exists=True,
-        file_okay=False,
-        dir_okay=True,
-        writable=True,
-        help="Destination directory",
-    ),
-    force: bool = typer.Option(
-        False, "--force", "-f", help="Overwrite if file already exists"
-    ),
-) -> None:
-    """Legacy alias that delegates to :func:`_write_tool_file`."""
-
-    rprint(
-        "[yellow]Deprecated:[/] 'ice tool new' is deprecated. "
-        "Please use 'ice tool create' instead.\n"
-    )
-
-    _write_tool_file(name=name, directory=directory, force=force)

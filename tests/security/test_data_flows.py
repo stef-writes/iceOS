@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from ice_orchestrator.node_dependency_graph import DependencyGraph
+from ice_orchestrator.graph.dependency_graph import DependencyGraph
 
 # ---------------------------------------------------------------------------
 # Helpers -------------------------------------------------------------------

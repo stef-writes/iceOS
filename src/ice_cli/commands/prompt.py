@@ -11,7 +11,7 @@ from jsonschema import Draft202012Validator, ValidationError  # type: ignore
 from rich import print as rprint
 from rich.table import Table
 
-from ice_cli.cli import _snake_case  # reuse helper
+from ice_cli.utils import snake_case as _snake_case  # shared helper
 
 # Everything is pure file I/O so we respect repo rule #2 (side-effects only
 # inside CLI Tool implementations).

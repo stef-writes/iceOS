@@ -2,11 +2,13 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from typing import cast as _cast
 from uuid import uuid4
 
 from ice_sdk.context import GraphContextManager
 from ice_sdk.context.manager import GraphContext
 from ice_sdk.models.node_models import NodeConfig, NodeExecutionResult
+from ice_sdk.services import ServiceLocator
 from ice_sdk.tools.base import BaseTool
 
 from .workflow_execution_context import WorkflowExecutionContext
@@ -67,7 +69,14 @@ class BaseScriptChain(ABC):
 
         self.nodes = {node.id: node for node in nodes}
         self.name = name or "script_chain"
-        self.context_manager = context_manager or GraphContextManager()
+        if context_manager is None:
+            try:
+                context_manager = ServiceLocator.get("context_manager")
+            except KeyError:
+                context_manager = GraphContextManager()
+                ServiceLocator.register("context_manager", context_manager)
+
+        self.context_manager = _cast(GraphContextManager, context_manager)
         self.max_parallel = max_parallel
         self.persist_intermediate_outputs = persist_intermediate_outputs
         self.callbacks = callbacks or []

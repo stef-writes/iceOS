@@ -10,4 +10,14 @@ Use the navigation on the left (or the ↑ menu on mobile) to browse.
 * Data scientists prototyping chains locally before scaling.
 * DevOps teams deploying the FastAPI server to production.
 
-If you are just getting started, head over to the **Quick Start**. 
+## What's New
+
+iceOS v1(A) features a **modular architecture** with:
+- **ScriptChain**: Core workflow orchestration with level-based parallelism
+- **Modular CLI**: Clean separation of concerns with specialized command modules
+- **Agent System**: AI-powered workflow design and execution
+- **Tool Ecosystem**: Extensible tool framework with built-in and hosted tools
+
+If you are just getting started, head over to the **Quick Start**.
+
+# Add a note about the new modular CLI structure and point to the updated Quick Start and CLI Reference docs. 

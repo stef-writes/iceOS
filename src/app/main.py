@@ -15,9 +15,11 @@ from app.api.builder import router as builder_router
 from app.api.routes import router
 from ice_sdk import ToolService
 from ice_sdk.context import GraphContextManager
+from ice_sdk.extensions.kb_router import router as kb_router
+from ice_sdk.providers.llm_service import LLMService
+from ice_sdk.services import ServiceLocator
 from ice_sdk.utils.errors import add_exception_handlers
 from ice_sdk.utils.logging import setup_logger
-from ice_sdk_contrib.kb_router import router as kb_router
 
 # Setup logging
 logger = setup_logger()
@@ -41,6 +43,11 @@ async def lifespan(app: FastAPI):
     # Create singleton services and attach to app state so they can be injected elsewhere.
     tool_service = ToolService()
     ctx_manager = GraphContextManager()
+
+    # Register in global ServiceLocator ------------------------------------
+    ServiceLocator.register("tool_service", tool_service)
+    ServiceLocator.register("context_manager", ctx_manager)
+    ServiceLocator.register("llm_service", LLMService())
 
     # Register built-in tools (best-effort) -----------------------------
     for tool_name in tool_service.available_tools():

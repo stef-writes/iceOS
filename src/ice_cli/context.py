@@ -59,7 +59,7 @@ def get_ctx(typer_ctx: Any | None = None) -> CLIContext:  # noqa: D401 – helpe
     if typer_ctx is None:
         # NOTE: The shim above ensures ``typer.get_current_context`` exists
         # regardless of the Typer version installed.
-        typer_ctx = typer.get_current_context()  # type: ignore[assignment,call-arg]
+        typer_ctx = typer.get_current_context()  # type: ignore[assignment,call-arg,attr-defined]
 
     if getattr(typer_ctx, "obj", None) is None:
         # When a sub-command is invoked directly (e.g. tests) the callback may

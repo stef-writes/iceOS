@@ -79,3 +79,8 @@ docs/generated/
 
 # Runtime drafts
 .ice/ 
+
+# Generated MkDocs site
+site/ 
+# Ignore pytest coverage artifacts
+.coverage*

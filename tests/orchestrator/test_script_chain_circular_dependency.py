@@ -1,6 +1,6 @@
 import pytest
 
-from ice_orchestrator.chain_errors import CircularDependencyError
+from ice_orchestrator.errors.chain_errors import CircularDependencyError
 from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk.models.node_models import ToolNodeConfig
 

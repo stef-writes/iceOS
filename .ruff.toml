@@ -8,3 +8,7 @@ extend-exclude = [
     "dist",
     "build",
 ]
+
+[per-file-ignores]
+"src/ice_cli/**/*.py" = ["E402", "F811", "F821"]
+"tests/observability/*.py" = ["F401", "F403", "F821"]

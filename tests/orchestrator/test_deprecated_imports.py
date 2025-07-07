@@ -1,7 +1,7 @@
 def test_deprecated_base_script_chain_import() -> None:
-    """Importing deprecated shim should expose the same symbols."""
+    """Importing from canonical location should expose the same symbols."""
 
-    from ice_orchestrator.base_script_chain import (  # noqa: WPS433
+    from ice_sdk.orchestrator.base_script_chain import (  # noqa: WPS433
         BaseScriptChain,
         FailurePolicy,
     )

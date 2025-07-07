@@ -2,12 +2,16 @@ import pytest
 
 from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk.models.node_models import ToolNodeConfig
+from ice_sdk.services import ServiceLocator
 from ice_sdk.tools.builtins.deterministic import SumTool
 
 
 @pytest.mark.asyncio
 async def test_tool_node_sum_execution() -> None:
     """ScriptChain should execute a ToolNode backed by SumTool and return correct sum."""
+
+    # Ensure clean registry ------------------------------------------------------
+    ServiceLocator.clear()
 
     # Register deterministic tool ------------------------------------------------
     sum_tool = SumTool()

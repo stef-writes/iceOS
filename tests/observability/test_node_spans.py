@@ -3,23 +3,28 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from opentelemetry import trace
 
 # Pre-import modules required for tests --------------------------------
 from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk.models.node_models import ToolNodeConfig
 from ice_sdk.tools.base import BaseTool
-from opentelemetry import trace
 
 # Skip if opentelemetry SDK missing -----------------------------------
 otlp = pytest.importorskip("opentelemetry.sdk")
 
-from opentelemetry.sdk.trace import (  # noqa: E402  # type: ignore[import-not-found]
-    TracerProvider,
-)
-from opentelemetry.sdk.trace.export import (  # noqa: E402  # type: ignore[import-not-found]
-    InMemorySpanExporter,
-    SimpleSpanProcessor,
-)
+# Attempt to import SDK classes – skip test if unavailable (optional dependency)
+try:
+    from opentelemetry.sdk.trace import TracerProvider  # type: ignore  # noqa: F401
+    from opentelemetry.sdk.trace.export import (  # type: ignore  # noqa: F401
+        InMemorySpanExporter,
+        SimpleSpanProcessor,
+    )
+except Exception:  # pragma: no cover – let pytest handle skip
+    pytest.skip(
+        "OpenTelemetry SDK with InMemorySpanExporter unavailable",
+        allow_module_level=True,
+    )
 
 
 class DummyTool(BaseTool):

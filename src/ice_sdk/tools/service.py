@@ -67,61 +67,20 @@ class ToolService:  # noqa: D101 – simple façade
         will not raise – duplicate tool names are ignored with a warning.
         """
 
-        import importlib
         import logging
 
         logger = logging.getLogger(__name__)
 
+        from ice_sdk.plugin_discovery import discover_tools
+
         base_path = Path(directory).resolve()
 
-        import sys
-
-        if str(base_path) not in sys.path:
-            sys.path.insert(0, str(base_path))
-
-        for py_file in base_path.rglob(pattern):
-            # Compute importable module path (assuming it is on sys.path)
+        for tool_cls in discover_tools(base_path):
             try:
-                rel_path = py_file.relative_to(base_path)
+                self.register(tool_cls)
+                logger.info("Registered tool '%s'", tool_cls.name)
             except ValueError:
-                rel_path = py_file.name  # type: ignore[assignment]
-
-            module_name = (
-                Path(str(rel_path)).with_suffix("").as_posix().replace("/", ".")
-            )
-
-            try:
-                # Attempt normal import first --------------------------------
-                try:
-                    module = importlib.import_module(module_name)
-                except ModuleNotFoundError:
-                    # Fall back to loading directly from file path ----------
-                    import importlib.util
-
-                    spec = importlib.util.spec_from_file_location(
-                        module_name.replace(".", "_"), py_file
-                    )
-                    if spec and spec.loader:
-                        module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(module)  # type: ignore[reportGeneralTypeIssues]
-                    else:
-                        raise
-            except Exception as exc:
-                logger.warning("Could not import %s: %s", module_name, exc)
                 continue
-
-            # Inspect module attributes for *tool* subclasses -------------
-            for obj in module.__dict__.values():
-                if inspect.isclass(obj) and issubclass(obj, BaseTool):
-                    tool_name = getattr(obj, "name", None)
-                    try:
-                        self.register(obj)
-                        logger.info(
-                            "Registered tool '%s' from %s", tool_name, module_name
-                        )
-                    except ValueError:
-                        # Duplicate registration – ignore silently so repeated scans are safe.
-                        continue
 
     # ---------------------------------------------------------------------
     # Public API

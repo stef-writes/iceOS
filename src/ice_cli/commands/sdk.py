@@ -14,19 +14,11 @@ from typing import Optional
 import typer
 from rich import print as rprint
 
+from ice_cli.utils import snake_case as _snake_case  # centralized helper
+
 # ruff: noqa: E402
 
 # Internal utilities ---------------------------------------------------------
-
-
-def _snake_case(name: str) -> str:
-    """Convert *PascalCase* or *camelCase* to ``snake_case``."""
-
-    import re
-
-    name = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name)
-    name = re.sub(r"([a-z\d])([A-Z])", r"\1_\2", name)
-    return name.replace("-", "_").lower()
 
 
 # Template helpers -----------------------------------------------------------

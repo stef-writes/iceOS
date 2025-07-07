@@ -13,6 +13,9 @@ tests once added.
 """
 
 import json
+import os as _os  # new for $EDITOR lookup
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any, Dict
 
@@ -93,3 +96,46 @@ def set_llm(
     else:
         _save_yaml(node_file, data)
         rprint(f"[green]✔ Patched[/] {_pretty(node_file)}")
+
+
+# ---------------------------------------------------------------------------
+# Additional convenience commands migrated from legacy *cli.py* --------------
+# ---------------------------------------------------------------------------
+
+
+@node_app.command("edit", help="Open a node YAML in $EDITOR")
+def node_edit(
+    node_file: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+):
+    """Open *node_file* in the user's preferred editor (defaults to `code`)."""
+
+    editor = _os.getenv("EDITOR") or ("code" if shutil.which("code") else "nano")
+    subprocess.run([editor, str(node_file)], check=False)
+
+
+@node_app.command("delete", help="Delete a node YAML (and optional sibling .py)")
+def node_delete(
+    node_file: Path = typer.Argument(..., exists=True, dir_okay=False),
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation"),
+    remove_py: bool = typer.Option(
+        False, "--impl", help="Also remove sibling .py file"
+    ),
+):
+    """Delete the YAML configuration and, optionally, its Python implementation."""
+
+    if not force and not typer.confirm(f"Delete {node_file}?", abort=True):
+        return
+
+    node_file.unlink()
+
+    if remove_py:
+        py_path = node_file.with_suffix(".py")
+        if py_path.exists():
+            py_path.unlink()
+
+    try:
+        display = node_file.relative_to(Path.cwd())
+    except ValueError:
+        display = node_file
+
+    rprint(f"[green]✔[/] Deleted {display}")

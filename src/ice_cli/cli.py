@@ -15,23 +15,26 @@ watchers that may need to reload commands many times per second.
 # Start of module -----------------------------------------------------------
 from __future__ import annotations
 
-import importlib as _importlib
-import importlib.util as _util
 import json
 import os
 import re
 import shutil
 import subprocess
-import textwrap
-from dataclasses import asdict
 
 from rich import print as rprint
 
+from ice_cli.apps import (
+    chain_app,
+    connect_app,
+    flow_app,
+    space_app,
+    tool_app,
+    update_app,
+)
 from ice_cli.commands.edit import edit_app as _edit_app
 from ice_cli.commands.make import make_app as _make_app
-from ice_cli.commands.tool import get_tool_service as _get_tool_service
-from ice_cli.commands.tool import tool_app
-from ice_cli.context import CLIContext, get_ctx
+from ice_cli.context import CLIContext
+from ice_sdk.plugin_discovery import load_module_from_path
 from ice_sdk.utils.logging import setup_logger
 
 # Ensure realistic terminal width *before* importing Rich/Click/Typer so any
@@ -51,7 +54,6 @@ except ValueError:
 import asyncio
 import sys
 from pathlib import Path
-from types import ModuleType
 from typing import Any, Callable
 
 import click  # 3rd-party
@@ -76,36 +78,6 @@ try:
 except ModuleNotFoundError:  # pragma: no cover – optional dependency
     # *python-dotenv* not installed – proceed without automatic env loading.
     pass
-
-# Watchdog is optional: CLI still works sans --watch ----------------------
-try:
-    from watchdog.events import FileSystemEventHandler  # type: ignore  # noqa: E402
-    from watchdog.observers import Observer  # type: ignore  # noqa: E402
-
-    _WATCHDOG_AVAILABLE = True
-except (ModuleNotFoundError, ImportError):  # pragma: no cover
-    _WATCHDOG_AVAILABLE = False
-
-    class FileSystemEventHandler:  # type: ignore
-        """Fallback stub when *watchdog* is missing."""
-
-        def __init__(self, *args, **kwargs):
-            pass
-
-    class Observer:  # type: ignore
-        """Stubbed *watchdog.observers.Observer* when dependency absent."""
-
-        def schedule(self, *args, **kwargs):
-            pass
-
-        def start(self):
-            rprint("[yellow]Watch mode disabled – *watchdog* not installed.[/]")
-
-        def stop(self):
-            pass
-
-        def join(self):
-            pass
 
 
 # ---------------------------------------------------------------------------
@@ -265,87 +237,6 @@ app.add_typer(_edit_app, name="edit", help="Open nodes/tools in $EDITOR")
 # ---------------------------------------------------------------------------
 
 
-def _load_module_from_path(path: Path) -> ModuleType:
-    """Dynamically import Python module from *path* and return it."""
-
-    if not path.exists():
-        raise FileNotFoundError(path)
-
-    module_name = path.stem
-
-    # When filename contains dots (e.g. hello_chain.chain.py) treat it as a
-    # *single* module name by replacing dots with underscores so we avoid
-    # ``my_chain.chain`` import errors.
-    safe_module_name = module_name.replace(".", "_")
-
-    # Drop previous import if exists --------------------------------------
-    if safe_module_name in sys.modules:
-        del sys.modules[safe_module_name]
-
-    # Ensure the parent directory is on sys.path so relative imports work.
-    if str(path.parent) not in sys.path:
-        sys.path.insert(0, str(path.parent))
-
-    try:
-        return _importlib.import_module(safe_module_name)
-    except ModuleNotFoundError:
-        spec = _util.spec_from_file_location(safe_module_name, path)
-        if spec and spec.loader:
-            module = _util.module_from_spec(spec)
-            sys.modules[safe_module_name] = module
-            spec.loader.exec_module(module)  # type: ignore[reportGeneralTypeIssues]
-            return module
-
-        # If we reach here, loading failed
-        raise
-
-
-async def _execute_chain(
-    entry: ModuleType, *, show_graph: bool = False, json_output: bool = False
-) -> None:
-    """Look for a ScriptChain instance or factory function and run it.
-
-    When *show_graph* is *True* we print a Mermaid diagram instead of
-    executing the chain so users get a quick visual preview.
-    """
-
-    from ice_orchestrator.script_chain import (
-        ScriptChain,  # local import to avoid cycles
-    )
-
-    chain: Any | None = None
-
-    # Common patterns: ``chain = ScriptChain(...)`` OR ``def get_chain()``
-    if hasattr(entry, "chain") and isinstance(getattr(entry, "chain"), ScriptChain):
-        chain = getattr(entry, "chain")
-    elif hasattr(entry, "get_chain") and callable(getattr(entry, "get_chain")):
-        maybe_chain = getattr(entry, "get_chain")()
-        if isinstance(maybe_chain, ScriptChain):
-            chain = maybe_chain
-
-    if chain is None:
-        rprint("[red]No ScriptChain found in the provided file.[/]")
-        return
-
-    # ------------------------------------------------------------------
-    # Graph preview mode ------------------------------------------------
-    # ------------------------------------------------------------------
-    if show_graph:
-        _print_mermaid_graph(chain)
-        return
-
-    result = await chain.execute()
-
-    if json_output:  # pragma: no cover – CLI behaviour tested via integration
-        import json
-        import sys  # pragma: no cover
-
-        json.dump(result.model_dump(), sys.stdout, indent=2)  # pragma: no cover
-        sys.stdout.write("\n")  # pragma: no cover
-    else:
-        rprint(result.model_dump())
-
-
 def _print_mermaid_graph(chain):  # noqa: D401 – helper
     """Render *chain* as a Mermaid `graph TD` diagram.
 
@@ -416,251 +307,9 @@ def _print_mermaid_graph(chain):  # noqa: D401 – helper
         rprint(f"[yellow]⚠ Failed to generate preview:[/] {exc}")
 
 
-class _ReloadHandler(FileSystemEventHandler):  # type: ignore[misc]
-    """Watchdog handler that re-executes the chain on file changes."""
-
-    def __init__(self, entry_path: Path):
-        super().__init__()
-        self.entry_path = entry_path.resolve()
-        # Forward the user's preference for JSON output so automatic reloads
-        # honour the initial --json flag as well.
-        self.json_output = get_ctx().json_output  # pragma: no cover
-
-    def on_modified(self, event):  # type: ignore[override]
-        if event.src_path.endswith(".py"):
-            rprint("[yellow]🔄 Change detected. Re-running...[/]")
-            asyncio.run(
-                _cli_run(self.entry_path, watch=False, json_output=self.json_output)
-            )  # pragma: no cover
-
-
-async def _cli_run(entry: Path, watch: bool, json_output: bool = False) -> None:
-    """Internal helper that (re)loads *entry* and executes the chain.
-
-    The *json_output* flag controls whether the result is printed as compact
-    JSON (machine-readable) or via Rich for human-friendly pretty printing.
-    """
-
-    module = _load_module_from_path(entry)
-    await _execute_chain(module, show_graph=False, json_output=json_output)
-
-    if watch:
-        observer = Observer()
-        handler = _ReloadHandler(entry)
-        observer.schedule(handler, str(entry.parent), recursive=True)
-        observer.start()
-        rprint("[green]Watching for changes (press Ctrl+C to quit)...[/]")
-        try:
-            while True:
-                await asyncio.sleep(1)
-        except KeyboardInterrupt:
-            observer.stop()
-        observer.join()
-
-
-@app.command("run", help="Execute a ScriptChain from file or module")
-def run_cmd(
-    path: str | None = typer.Argument(
-        None,
-        help="Either a path to a .py file OR a chain alias defined in chains.toml",
-    ),
-    module: str | None = typer.Option(
-        None,
-        "--module",
-        "-m",
-        help="Fully-qualified module path containing a ScriptChain (e.g. cli_demo.brand_demo)",
-    ),
-    watch: bool = typer.Option(
-        False,
-        "--watch",
-        "-w",
-        help="Auto-reload on source changes (file mode only)",
-    ),
-    graph: bool = typer.Option(
-        False,
-        "--graph",
-        "-g",
-        help="Print Mermaid graph instead of executing",
-    ),
-    preview: bool = typer.Option(
-        False,
-        "--preview",
-        help="With --graph, additionally open the SVG in the browser (opt-in)",
-    ),
-):
-    """Run a ScriptChain from *path* or *module*."""
-
-    # ------------------------------------------------------------------
-    # Resolve *path* argument (alias → file) ----------------------------
-    # ------------------------------------------------------------------
-    resolved_path: Path | None = None
-
-    if path is not None:
-        p = Path(path)
-        if p.suffix == ".py" and p.exists():
-            resolved_path = p.resolve()
-        else:
-            # Attempt manifest lookup ----------------------------------
-            def _find_manifest(start: Path) -> Path | None:
-                for parent in [start, *start.parents]:
-                    candidate = parent / "chains.toml"
-                    if candidate.exists():
-                        return candidate
-                return None
-
-            manifest_file = _find_manifest(Path.cwd())
-            if manifest_file:
-                import importlib as _importlib
-
-                _toml = _importlib.import_module("tomllib") if _importlib.util.find_spec("tomllib") else _importlib.import_module("tomli")  # type: ignore[attr-defined]
-
-                content = _toml.loads(manifest_file.read_text())
-                mapping = (
-                    content.get("ice", {}).get("chains")
-                    if "ice" in content and "chains" in content["ice"]
-                    else content.get("ice.chains", content.get("chains", {}))
-                )
-                if isinstance(mapping, dict) and path in mapping:
-                    alias_path = Path(mapping[path])
-                    if not alias_path.is_absolute():
-                        alias_path = (manifest_file.parent / alias_path).resolve()
-                    resolved_path = alias_path
-
-    # ------------------------------------------------------------------
-    # Basic argument validation ----------------------------------------
-    # ------------------------------------------------------------------
-    if (resolved_path is None and module is None) or (
-        resolved_path is not None and module is not None
-    ):
-        rprint("[red]Provide either a PATH argument or --module, but not both.[/]")
-        raise typer.Exit(1)
-
-    # Toggle environment flags so downstream renderer {_print_mermaid_graph}
-    # can decide whether to launch the browser.  We flip the logic: preview is
-    # *disabled* by default and only enabled when ICE_GRAPH_PREVIEW=1 is set.
-
-    if preview:
-        os.environ["ICE_GRAPH_PREVIEW"] = "1"
-        # Clear potential *no* flag so precedence is unambiguous.
-        os.environ.pop("ICE_NO_GRAPH_PREVIEW", None)
-
-    # Emit *started* telemetry event -----------------------------------
-    _emit_event(
-        "cli.run.started",
-        CLICommandEvent(
-            command="run",
-            status="started",
-            params={
-                "path": str(resolved_path) if resolved_path else None,
-                "module": module,
-                "watch": watch,
-                "graph": graph,
-                "preview": preview,
-            },
-        ),
-    )
-
-    try:
-        # --------------------------------------------------------------
-        # Module execution --------------------------------------------
-        # --------------------------------------------------------------
-        if module is not None:
-            if watch:
-                rprint("[yellow]Watch mode is not supported for --module execution.[/]")
-            entry_mod = _importlib.import_module(module)
-            asyncio.run(
-                _execute_chain(
-                    entry_mod,
-                    show_graph=graph,
-                    json_output=get_ctx().json_output,
-                )
-            )
-
-        # --------------------------------------------------------------
-        # File-based execution ----------------------------------------
-        # --------------------------------------------------------------
-        else:
-            assert resolved_path is not None  # mypy safeguard
-            if graph and watch:
-                rprint("[red]--graph and --watch cannot be combined.[/]")
-                raise typer.Exit(1)
-
-            if graph:
-                entry_mod = _load_module_from_path(resolved_path)
-                asyncio.run(
-                    _execute_chain(
-                        entry_mod,
-                        show_graph=True,
-                        json_output=get_ctx().json_output,
-                    )
-                )
-            else:
-                asyncio.run(
-                    _cli_run(resolved_path, watch, json_output=get_ctx().json_output)
-                )
-
-        _emit_event(
-            "cli.run.completed", CLICommandEvent(command="run", status="completed")
-        )
-    except Exception as exc:
-        _emit_event(
-            "cli.run.failed",
-            CLICommandEvent(
-                command="run",
-                status="failed",
-                params={"error": str(exc)},
-            ),
-        )
-        raise
-
-
 # ---------------------------------------------------------------------------
 # ``ls`` – top-level alias (shortcut) ---------------------------------------
 # ---------------------------------------------------------------------------
-
-
-@app.command(
-    "ls",
-    help="[DEPRECATED] Use 'ice tool ls' instead.",
-    hidden=True,
-)
-def root_ls(
-    json_format: bool = typer.Option(
-        False, "--json", "-j", help="Return JSON instead of rich table"
-    ),
-    refresh: bool = typer.Option(
-        False, "--refresh", "-r", help="Re-scan project directories"
-    ),
-):
-    """Convenience wrapper around ``tool ls`` for quicker access.
-
-    Example::
-        $ ice ls --json
-    """
-    import click as _click  # local import to avoid top-level requirement
-
-    _click.echo(
-        "[DEPRECATED] 'ice ls' will be removed in a future release. "
-        "Use 'ice tool ls' instead.",
-        err=True,
-    )
-
-    svc = _get_tool_service(refresh)
-    if json_format:
-        import json as _json
-
-        typer.echo(_json.dumps(sorted(svc.available_tools())))
-    else:
-        # Reuse the internal ``tool_ls`` implementation -------------------
-        from rich.table import Table
-
-        table = Table(title="Registered Tools")
-        table.add_column("Name", style="cyan", no_wrap=True)
-        table.add_column("Description", style="green")
-        for name in sorted(svc.available_tools()):
-            tool_obj = svc.get(name)
-            table.add_row(name, getattr(tool_obj, "description", ""))
-        rprint(table)
 
 
 # ---------------------------------------------------------------------------
@@ -689,16 +338,38 @@ if not getattr(click.Parameter.make_metavar, "_icepatched", False):  # type: ign
 # compatibility with code/tests that might reference `ice_cli.cli.sdk_app`.
 # ------------------------------------------------------------------
 
-from ice_cli.commands.sdk import sdk_app as sdk_app  # noqa: E402,F401  re-export
+# Re-export for backwards compat -------------------------------------------------
+from ice_cli.commands.sdk import sdk_app as sdk_app  # noqa: E402,F401
+
+# Mount first-level sub-apps ------------------------------------------------------
 
 app.add_typer(sdk_app, name="sdk")
+app.add_typer(chain_app, name="chain", help="Manage ScriptChain workflows")
+
+# Prompt engineering
+try:
+    from ice_cli.commands.prompt import prompt_app
+
+    app.add_typer(prompt_app, name="prompt", help="Prompt engineering utilities")
+except Exception as exc:  # pragma: no cover
+    import logging as _logging
+
+    _logging.getLogger(__name__).debug("Failed to load prompt commands: %s", exc)
+
+# Node utilities
+from ice_cli.apps import node_app as _node_app
+
+app.add_typer(_node_app, name="node", help="Node utilities")
+
+# Edge helpers
+app.add_typer(connect_app, name="connect", help="Manage edges between nodes")
 
 # ---------------------------------------------------------------------------
 # Chain management commands (new) -------------------------------------------
 # ---------------------------------------------------------------------------
 
 try:
-    from ice_cli.commands.chain import chain_app
+    from ice_cli.apps import chain_app
 
     app.add_typer(chain_app, name="chain", help="Manage ScriptChain workflows")
 
@@ -1173,116 +844,6 @@ except (ModuleNotFoundError, ImportError):
     ask_fn = _ask_typer  # type: ignore[assignment]
 
 
-@app.command("init", help="Initialise an .ice workspace and developer environment")
-def init_cmd(
-    force: bool = typer.Option(
-        False, "--force", "-f", help="Overwrite existing files where applicable"
-    ),
-    install_precommit: bool = typer.Option(
-        True, "--pre-commit/--no-pre-commit", help="Install pre-commit hooks"
-    ),
-    openai_key: str | None = typer.Option(
-        None, "--openai-key", help="OpenAI API key to write into .env"
-    ),
-):
-    """Set up local dev environment.
-
-    This command performs a few quality-of-life tasks so newcomers can run a
-    chain within seconds:
-
-    1. Creates a *.ice* folder (ignored by git) to store temp artefacts.
-    2. Writes a *.env* file with an *OPENAI_API_KEY* entry (unless it already
-       exists or *--force* is given).
-    3. Installs *pre-commit* hooks so quality gates run on *git commit* if the
-       tool is available and the flag not disabled.
-    """
-
-    _emit_event(
-        "cli.init.started",
-        CLICommandEvent(
-            command="init",
-            status="started",
-            params={
-                "force": force,
-                "install_precommit": install_precommit,
-            },
-        ),
-    )
-
-    # Honour --dry-run flag ---------------------------------------------------
-    ctx_flags = get_ctx()
-    if getattr(ctx_flags, "dry_run", False):
-        rprint(
-            "[yellow]Dry-run:[/] Would initialise workspace (.ice), write .env, and install pre-commit hooks."
-        )
-        _emit_event(
-            "cli.init.completed",
-            CLICommandEvent(
-                command="init", status="completed", params={"dry_run": True}
-            ),
-        )
-        raise typer.Exit()
-
-    cwd = Path.cwd()
-    ice_dir = cwd / ".ice"
-    if not ice_dir.exists():
-        ice_dir.mkdir(parents=True)
-        rprint(f"[green]✔[/] Created workspace directory {ice_dir.relative_to(cwd)}")
-    else:
-        rprint(
-            f"[yellow]ℹ[/] Workspace directory {ice_dir.relative_to(cwd)} already exists."
-        )
-
-    # ------------------------------------------------------------------
-    # .env handling -----------------------------------------------------
-    # ------------------------------------------------------------------
-    env_path = cwd / ".env"
-    if env_path.exists() and not force:
-        rprint(
-            "[yellow]ℹ[/] .env already exists – not overwritten (use --force to regenerate)."
-        )
-    else:
-        key = openai_key or os.getenv("OPENAI_API_KEY")
-        if key is None:
-            key = typer.prompt("Enter your OpenAI API Key", hide_input=True)
-        env_content = textwrap.dedent(
-            f"""# iceOS environment variables\nOPENAI_API_KEY={key}\n"""
-        )
-        env_path.write_text(env_content)
-        rprint(f"[green]✔[/] Wrote {env_path.relative_to(cwd)}")
-
-    # ------------------------------------------------------------------
-    # Persist default builder draft template ---------------------------
-    # ------------------------------------------------------------------
-    draft_path = ice_dir / "builder.draft.json"
-    if not draft_path.exists():
-        from ice_cli.chain_builder.engine import ChainDraft
-
-        draft = ChainDraft()  # empty draft
-        draft_path.write_text(json.dumps(asdict(draft), indent=2))
-        rprint(f"[green]✔[/] Initialised {draft_path.relative_to(cwd)}")
-
-    # ------------------------------------------------------------------
-    # Install pre-commit hooks -----------------------------------------
-    # ------------------------------------------------------------------
-    if install_precommit:
-        if shutil.which("pre-commit") is None:
-            rprint("[yellow]⚠ pre-commit not found – skipping hook installation.[/]")
-        else:
-            try:
-                subprocess.run(
-                    ["pre-commit", "install"], check=True, stdout=subprocess.PIPE
-                )
-                rprint("[green]✔[/] pre-commit hooks installed.")
-            except subprocess.CalledProcessError as exc:  # pragma: no cover
-                rprint(f"[red]✗ Failed to install pre-commit hooks:[/] {exc}")
-
-    # Completed ------------------------------------------------------------
-    _emit_event(
-        "cli.init.completed", CLICommandEvent(command="init", status="completed")
-    )
-
-
 # ---------------------------------------------------------------------------
 # Third-party / shared libs ---------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -1296,7 +857,6 @@ from pydantic import BaseModel  # noqa: E402
 from ice_sdk.events.dispatcher import (  # noqa: E402 – placed after stdlib imports
     publish,
 )
-from ice_sdk.events.models import CLICommandEvent  # noqa: E402
 
 
 def _emit_event(name: str, payload: BaseModel) -> None:  # noqa: D401 – simple helper
@@ -1326,62 +886,418 @@ except Exception:
 # ---------------------------------------------------------------------------
 
 
-@app.command(
-    "demo-google-search",
-    help="Run the Web Search demo ScriptChain (SerpAPI) with a live query",
-)
-def demo_google_search(
-    query: str = typer.Argument(..., help="Search query to run through the demo"),
-):
-    """Execute *cli_demo/google_search_demo/google_chain.chain.py* with the provided *query*.
-
-    This command dynamically imports the demo chain definition, injects the
-    user-provided *query* into the initial context, executes the chain and
-    prints the structured JSON result.  It requires a valid ``SERPAPI_KEY``
-    environment variable (or entry in a *.env* file) so the *web_search* Tool
-    can access SerpAPI.
-    """
-
-    import asyncio
-    from pathlib import Path
-
-    # ------------------------------------------------------------------
-    # Dynamically load the demo chain module ----------------------------
-    # ------------------------------------------------------------------
-    demo_path = Path("cli_demo/google_search_demo/google_chain.chain.py").resolve()
-
-    try:
-        module = _load_module_from_path(demo_path)
-    except FileNotFoundError:
-        rprint(f"[red]Demo chain not found at {demo_path}.[/]")
-        raise typer.Exit(1)
-
-    # Retrieve the chain factory/helper --------------------------------
-    if hasattr(module, "GoogleSearchDemoChain"):
-        ChainCls = getattr(module, "GoogleSearchDemoChain")
-        chain = ChainCls({"search_query": query})
-    elif hasattr(module, "get_chain") and callable(getattr(module, "get_chain")):
-        # Fallback: use factory then patch context ----------------------
-        chain = getattr(module, "get_chain")()
-        # Overwrite the search query inside initial context
-        chain.initial_context["search_query"] = query  # type: ignore[attr-defined]
-    else:
-        rprint("[red]Unable to locate GoogleSearchDemoChain in module.[/]")
-        raise typer.Exit(1)
-
-    # ------------------------------------------------------------------
-    # Execute chain -----------------------------------------------------
-    # ------------------------------------------------------------------
-    try:
-        result = asyncio.run(chain.execute())
-        rprint(result.model_dump())
-    except Exception as exc:
-        rprint(f"[red]Chain execution failed:[/] {exc}")
-        raise typer.Exit(1)
-
-
 from ice_sdk.copilot.cli import (  # noqa: E402 – imported late to avoid heavy deps
     copilot_app,
 )
 
 app.add_typer(copilot_app, name="copilot")
+
+# ---------------------------------------------------------------------------
+# New top-level user-friendly commands (PR-1 of CLI refactor) -----------------
+# ---------------------------------------------------------------------------
+
+# NOTE: These wrappers intentionally live **after** the original sdk_* helper
+# functions are defined, so we can re-use them without duplication or circular
+# imports. They provide a simpler noun-verb UX described in the roadmap:
+#   ice space create <name>
+#   ice chain create <name>
+#   ice node  create <name>
+
+import shutil
+from pathlib import Path
+
+# Workspace ("space") --------------------------------------------------------
+space_app = typer.Typer(
+    add_completion=False, help="Manage iceOS workspaces (aka 'spaces')"
+)
+
+
+@space_app.command(
+    "create", help="Create a new workspace directory and initialise defaults"
+)
+def space_create(  # noqa: D401 – simple CLI
+    name: str = typer.Argument(..., help="Directory name for the new space"),
+    directory: Path = typer.Option(
+        Path.cwd(),
+        "--dir",
+        "-d",
+        dir_okay=True,
+        file_okay=False,
+        exists=True,
+        writable=True,
+        help="Parent directory in which to create the space",
+    ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite if directory already exists"
+    ),
+):
+    """Scaffold a workspace folder with a default *chains.toml* manifest.
+
+    The operation is intentionally minimalist – it only ensures a clean folder
+    and an empty `chains.toml` so newcomers can immediately add chains.
+    """
+
+    dest = directory / name
+    if dest.exists():
+        if not force:
+            rprint(
+                f"[red]✗ Directory '{dest}' already exists – use --force to overwrite.[/]"
+            )
+            raise typer.Exit(code=1)
+        shutil.rmtree(dest)
+
+    dest.mkdir(parents=True, exist_ok=True)
+    (dest / "chains.toml").write_text("# iceOS chains manifest\n\n")
+    rprint(f"[green]✔[/] Created space at {dest}")
+
+
+app.add_typer(space_app, name="space", rich_help_panel="Workspace")
+
+# Chain wrappers -------------------------------------------------------------
+chain_app = typer.Typer(add_completion=False, help="Create and manage ScriptChains")
+
+chain_app.command("create")(sdk_create_chain)  # type: ignore[arg-type]
+
+
+@chain_app.command("ls", help="List *.chain.py files in current directory")
+def chain_ls():
+    chains = sorted(Path.cwd().rglob("*.chain.py"))
+    if not chains:
+        rprint("[yellow]No chains found.[/]")
+        return
+    for c in chains:
+        rprint(f"• {c.relative_to(Path.cwd())}")
+
+
+@chain_app.command("delete", help="Delete a ScriptChain file")
+def chain_delete(
+    path: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    force: bool = typer.Option(False, "--force", "-f", help="Delete without prompt"),
+):
+    if not force and not typer.confirm(f"Delete {path}?", abort=True):
+        return
+    path.unlink()
+    rprint(f"[green]✔[/] Deleted {path.relative_to(Path.cwd())}")
+
+
+@chain_app.command("edit", help="Open a ScriptChain in $EDITOR")
+def chain_edit(
+    path: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+):
+    editor = os.getenv("EDITOR") or ("code" if shutil.which("code") else "nano")
+    try:
+        subprocess.run([editor, str(path)])
+    except Exception as exc:
+        rprint(f"[red]Failed to open editor:[/] {exc}")
+
+
+@chain_app.command("diagram", help="Print Mermaid graph for a ScriptChain")
+def chain_diagram(
+    path: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    open_preview: bool = typer.Option(
+        False, "--open", help="Open SVG preview if mermaid-cli is installed"
+    ),
+):
+    try:
+        module = load_module_from_path(path)
+    except Exception as exc:
+        rprint(f"[red]Unable to import {path}: {exc}[/]")
+        raise typer.Exit(1)
+
+    chain_obj = getattr(module, "chain", None)
+    if chain_obj is None and hasattr(module, "get_chain"):
+        chain_obj = module.get_chain()
+    if chain_obj is None:
+        rprint("[red]No ScriptChain object found in module.[/]")
+        raise typer.Exit(1)
+
+    if open_preview:
+        os.environ["ICE_GRAPH_PREVIEW"] = "1"
+    from ice_cli.utils import _print_mermaid_graph
+
+    _print_mermaid_graph(chain_obj)
+
+
+# Node edit/delete ----------------------------------------------------------
+
+
+@node_app.command("edit", help="Open a node YAML in $EDITOR")
+def node_edit(
+    node_file: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+):
+    editor = os.getenv("EDITOR") or ("code" if shutil.which("code") else "nano")
+    subprocess.run([editor, str(node_file)])
+
+
+@node_app.command("delete", help="Delete a node YAML (and optional sibling .py)")
+def node_delete(
+    node_file: Path = typer.Argument(..., exists=True, dir_okay=False),
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation"),
+    remove_py: bool = typer.Option(
+        False, "--impl", help="Also remove sibling .py file"
+    ),
+):
+    if not force and not typer.confirm(f"Delete {node_file}?", abort=True):
+        return
+    node_file.unlink()
+    if remove_py:
+        py_path = node_file.with_suffix(".py")
+        if py_path.exists():
+            py_path.unlink()
+    rprint(f"[green]✔[/] Deleted {node_file}")
+
+
+# ---------------------------------------------------------------------------
+# Connect app ---------------------------------------------------------------
+# ---------------------------------------------------------------------------
+connect_app = typer.Typer(
+    add_completion=False, help="Add or remove edges between nodes in a ScriptChain"
+)
+
+
+def _load_chain_module(chain_path: Path):  # helper
+    return load_module_from_path(chain_path)
+
+
+@connect_app.command("add")
+def connect_add(
+    chain: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+    src: str = typer.Argument(..., help="Source node id"),
+    dst: str = typer.Argument(..., help="Destination node id"),
+):
+    """Very naive: appends a python line 'chain.add_edge("src", "dst")' at EOF."""
+    line = f'\n# edge added by CLI\nchain.add_edge("{src}", "{dst}")\n'
+    with chain.open("a", encoding="utf-8") as f:
+        f.write(line)
+    rprint(f"[green]✔[/] Added edge {src} -> {dst} in {chain}")
+
+
+@connect_app.command("ls")
+def connect_ls(
+    chain: Path = typer.Argument(..., exists=True, dir_okay=False, readable=True),
+):
+    mod = _load_chain_module(chain)
+    chain_obj = getattr(mod, "chain", None)
+    if chain_obj is None and hasattr(mod, "get_chain"):
+        chain_obj = mod.get_chain()
+    if chain_obj is None:
+        rprint("[red]Chain object not found.[/]")
+        raise typer.Exit(1)
+    for node_id, node in chain_obj.nodes.items():  # type: ignore[attr-defined]
+        for dep in getattr(node, "dependencies", []):
+            rprint(f"{dep} --> {node_id}")
+
+
+@connect_app.command("rm")
+def connect_rm(
+    chain: Path = typer.Argument(..., exists=True, dir_okay=False),
+    src: str = typer.Argument(...),
+    dst: str = typer.Argument(...),
+):
+    """Remove a previously-added edge call `chain.add_edge(src, dst)` from file.
+
+    Utilises *ast* parsing so we don't corrupt unrelated code.  It rewrites the
+    file without the matching expression statement.
+    """
+
+    import ast
+    from typing import cast
+
+    source = chain.read_text()
+    tree = ast.parse(source)
+
+    new_body = []
+    removed = False
+    for node in tree.body:
+        # Keep everything except the exact call expression we injected
+        if (
+            isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Attribute)
+            and node.value.func.attr == "add_edge"
+            and len(node.value.args) == 2
+            and all(
+                isinstance(a, ast.Constant) and isinstance(a.value, str)
+                for a in node.value.args
+            )
+            and cast(ast.Constant, node.value.args[0]).value == src
+            and cast(ast.Constant, node.value.args[1]).value == dst
+        ):
+            removed = True
+            continue  # skip
+        new_body.append(node)
+
+    if not removed:
+        rprint("[yellow]No matching edge found – nothing to remove.[/]")
+        return
+
+    tree.body = new_body  # type: ignore[attr-defined]
+    new_source = ast.unparse(tree)
+    chain.write_text(new_source)
+    rprint(f"[green]✔[/] Removed edge {src} -> {dst} in {chain}")
+
+
+# Flow diagram --------------------------------------------------------------
+
+flow_app = typer.Typer(
+    add_completion=False, help="Organise chains into higher-level flows"
+)
+
+import json
+from datetime import datetime
+
+_FLOW_EXT = ".flow.json"
+
+
+def _flow_file(name: str) -> Path:  # helper
+    p = Path(name)
+    if p.suffix == _FLOW_EXT:
+        return p
+    return Path.cwd() / f"{name}{_FLOW_EXT}"
+
+
+@flow_app.command("create")
+def flow_create(
+    name: str = typer.Argument(..., help="Flow name"),
+    description: str = typer.Option("", "--description", "-d"),
+    chain: list[str] = typer.Option([], "--chain", "-c"),
+    force: bool = typer.Option(False, "--force", "-f"),
+):
+    path = _flow_file(name)
+    if path.exists() and not force:
+        rprint(f"[red]{path.name} exists – use --force to overwrite.[/]")
+        raise typer.Exit(1)
+    payload = {
+        "name": Path(name).stem,
+        "description": description,
+        "chains": chain,
+        "created": datetime.utcnow().isoformat(),
+    }
+    path.write_text(json.dumps(payload, indent=2))
+    rprint(f"[green]✔[/] Created {path.relative_to(Path.cwd())}")
+
+
+@flow_app.command("ls")
+def flow_ls():
+    flows = sorted(Path.cwd().glob(f"*{_FLOW_EXT}"))
+    if not flows:
+        rprint("[yellow]No flows found.[/]")
+        return
+    for f in flows:
+        rprint(f"• {f.stem}")
+
+
+@flow_app.command("describe")
+def flow_describe(name: str = typer.Argument(...)):
+    path = _flow_file(name)
+    if not path.exists():
+        rprint(f"[red]Flow {name} not found.[/]")
+        raise typer.Exit(1)
+    rprint(json.loads(path.read_text()))
+
+
+@flow_app.command("run")
+def flow_run(
+    name: str = typer.Argument(...),
+    json_output: bool = typer.Option(False, "--json", "-j"),
+):
+    import asyncio as _asyncio
+
+    path = _flow_file(name)
+    if not path.exists():
+        rprint(f"[red]Flow {name} not found.[/]")
+        raise typer.Exit(1)
+    data = json.loads(path.read_text())
+    results = {}
+    for chain_path_str in data.get("chains", []):
+        chain_path = Path(chain_path_str)
+        if not chain_path.is_absolute():
+            chain_path = Path.cwd() / chain_path
+        if not chain_path.exists():
+            rprint(f"[yellow]Missing chain {chain_path} – skipping.[/]")
+            continue
+        try:
+            mod = load_module_from_path(chain_path)
+        except Exception as exc:
+            rprint(f"[red]Unable to import {chain_path}: {exc}[/]")
+            continue
+        chain_obj = getattr(mod, "chain", None)
+        if chain_obj is None and hasattr(mod, "get_chain"):
+            chain_obj = mod.get_chain()
+        if chain_obj is None:
+            rprint(f"[yellow]No ScriptChain in {chain_path} – skipping.[/]")
+            continue
+        try:
+            results[chain_path.name] = _asyncio.run(chain_obj.execute()).model_dump()
+        except Exception as exc:  # noqa: BLE001
+            rprint(f"[red]Execution of {chain_path} failed:[/] {exc}")
+
+    if json_output:
+        rprint(results)
+    else:
+        from rich.pretty import pprint as _pp
+
+        _pp(results)
+
+
+@flow_app.command("delete")
+def flow_delete(
+    name: str = typer.Argument(...), force: bool = typer.Option(False, "--force", "-f")
+):
+    path = _flow_file(name)
+    if not path.exists():
+        rprint(f"[red]Flow {name} not found.[/]")
+        raise typer.Exit(1)
+    if not force and not typer.confirm(f"Delete {path}?", abort=True):
+        return
+    path.unlink()
+    rprint(f"[green]✔[/] Deleted {path}")
+
+
+app.add_typer(flow_app, name="flow", rich_help_panel="Flows")
+
+# ---------------------------------------------------------------------------
+# Run alias fallback ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Doctor & Update apps (restored) -------------------------------------------
+# ---------------------------------------------------------------------------
+
+quality_app = typer.Typer(add_completion=False, help="Quality checks")
+
+
+@quality_app.command("lint")
+def doctor_lint():
+    subprocess.run(["ruff", "src", "--fix"], check=False)
+
+
+@quality_app.command("type")
+def doctor_type():
+    subprocess.run(["pyright"], check=False)
+
+
+@quality_app.command("test")
+def doctor_test():
+    subprocess.run(["pytest", "-q"], check=False)
+
+
+@quality_app.command("all")
+def doctor_all():
+    doctor_lint()
+    doctor_type()
+    doctor_test()
+
+
+app.add_typer(quality_app, name="doctor", rich_help_panel="Quality")
+
+update_app = typer.Typer(add_completion=False, help="Self-update helpers")
+
+
+@update_app.command("templates")
+def update_templates():
+    rprint("[yellow]TODO:[/] Download latest templates from remote repo.")
+
+
+app.add_typer(update_app, name="update", rich_help_panel="Maintenance")

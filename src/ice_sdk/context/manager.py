@@ -4,10 +4,12 @@ import inspect
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 import networkx as nx
 from pydantic import BaseModel, Field
+
+from ice_sdk.services import ServiceLocator  # new
 
 # Unified tool execution via ToolService -------------------------------
 from ice_sdk.tools.service import ToolRequest, ToolService
@@ -80,7 +82,14 @@ class GraphContextManager:
         self._context: Optional[GraphContext] = None
 
         # Unified ToolService instance ----------------------------------
-        self.tool_service: ToolService = tool_service or ToolService()
+        if tool_service is None:
+            try:
+                tool_service = ServiceLocator.get("tool_service")
+            except KeyError:
+                tool_service = ToolService()
+                ServiceLocator.register("tool_service", tool_service)
+
+        self.tool_service: ToolService = cast(ToolService, tool_service)
 
         # ------------------------------------------------------------------
         # Auto-discover project-local `*.tool.py` modules so ScriptChains

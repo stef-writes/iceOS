@@ -32,28 +32,64 @@ packages; therefore it does not violate the layer boundaries defined in
 
 from __future__ import annotations
 
-import importlib
 import sys
-from types import ModuleType
+import warnings
+from types import ModuleType  # noqa: WPS433 – runtime helper only
 from typing import Final
+
+# ---------------------------------------------------------------------------
+# Deprecation notice ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+warnings.warn(
+    (
+        "The 'iceos' meta-package is deprecated and will be removed in a future "
+        "release. Import sub-packages directly (e.g. `import ice_sdk`) instead."
+    ),
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# ---------------------------------------------------------------------------
+# Static imports (no dynamic importlib usage) --------------------------------
+# ---------------------------------------------------------------------------
 
 # Map canonical upstream package names to the alias under the `iceos` namespace
 _PACKAGES: Final[dict[str, str]] = {
-    "ice_sdk": "sdk",
-    "ice_orchestrator": "orchestrator",
+    "sdk": "ice_sdk",
+    "orchestrator": "ice_orchestrator",
     "app": "app",
 }
 
-for _pkg, _alias in _PACKAGES.items():
-    try:
-        _module: ModuleType = importlib.import_module(_pkg)
-    except ModuleNotFoundError:
-        # The sub-package may be intentionally omitted in minimal installs
-        continue
+_imported: dict[str, ModuleType] = {}
 
-    # Register as submodule so `import iceos.<alias>` works
+# Attempt to import known sub-packages *explicitly* so we avoid dynamic
+# importlib.import_module calls. Missing dependencies are silently ignored –
+# callers should install the desired package(s) explicitly.
+
+try:
+    import ice_sdk as _ice_sdk  # type: ignore  # noqa: WPS433
+
+    _imported["sdk"] = _ice_sdk  # type: ignore[var-annotated]
+except ModuleNotFoundError:  # pragma: no cover – optional dep
+    pass
+
+try:
+    import ice_orchestrator as _ice_orchestrator  # type: ignore  # noqa: WPS433
+
+    _imported["orchestrator"] = _ice_orchestrator  # type: ignore[var-annotated]
+except ModuleNotFoundError:  # pragma: no cover
+    pass
+
+try:
+    import app as _app  # type: ignore  # noqa: WPS433
+
+    _imported["app"] = _app  # type: ignore[var-annotated]
+except ModuleNotFoundError:  # pragma: no cover
+    pass
+
+# Expose imported modules under the `iceos` namespace ------------------------
+for _alias, _module in _imported.items():
     sys.modules[f"{__name__}.{_alias}"] = _module
-    # And expose on the `iceos` global namespace (e.g., `iceos.sdk`)
     globals()[_alias] = _module
 
 # Surface key symbols for convenience, if `ice_sdk` is present
@@ -74,7 +110,9 @@ except ModuleNotFoundError:  # pragma: no cover – optional dependency missing
 
 # Public API of the meta-package
 __all__: Final[list[str]] = [
-    *_PACKAGES.values(),  # ["sdk", "orchestrator", "app"]
+    "sdk",
+    "orchestrator",
+    "app",
     "BaseNode",
     "BaseTool",
 ]
