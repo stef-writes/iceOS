@@ -83,8 +83,8 @@ _CHECKS: list[_Check] = [
     *([_Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []),
     _Check("Import-linter rules", "lint-imports --config config/.importlinter"),
     _Check("isort check", "isort --check-only src"),
-    _Check("JSON/YAML validity", "ice maint check-json-yaml"),
-    _Check("FlowSpec examples schema", "ice maint validate-flow-spec"),
+    _Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),
+    _Check("FlowSpec examples schema", "python scripts/check_flow_spec.py"),
     _Check("Performance smoke", "pytest --benchmark-only -q", perf_only=True),
 ]
 
