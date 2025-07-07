@@ -196,3 +196,92 @@ async def tool_executor(
         execution_time=0.0,
     )
     return result
+
+
+# ---------------------------------------------------------------------------
+# "nested_chain" executor ----------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@register_node("nested_chain")
+async def nested_chain_executor(
+    chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
+) -> NodeExecutionResult:
+    """Executor that runs a *nested* ScriptChain.
+
+    The nested chain instance (or a zero-argument factory) is provided via
+    :class:`~ice_sdk.models.node_models.NestedChainConfig.chain`.
+    Input mappings are handled upstream by :class:`ScriptChain`; *ctx* is
+    therefore the fully-rendered input for the child chain.
+    """
+
+    from ice_sdk.models.node_models import (  # local import to avoid cycle
+        NestedChainConfig,
+    )
+
+    if not isinstance(cfg, NestedChainConfig):
+        raise TypeError("nested_chain_executor received incompatible cfg type")
+
+    # Resolve child chain instance ------------------------------------------------
+    child = cfg.chain  # could be ScriptChain or factory
+
+    try:
+        child_chain: ScriptChainLike = child() if callable(child) else child  # type: ignore[operator]
+    except Exception as exc:  # pragma: no cover – defensive
+        raise RuntimeError(
+            f"Failed to instantiate nested chain for node '{cfg.id}': {exc}"
+        ) from exc
+
+    # Best-effort: update child context with *ctx* --------------------------------
+    try:
+        from ice_sdk.context import (  # imported here to avoid heavy deps at module import
+            GraphContextManager,
+        )
+        from ice_sdk.context.manager import GraphContext
+
+        cm = GraphContextManager()
+        cm.set_context(
+            GraphContext(
+                session_id=f"nested_{cfg.id}",
+                metadata=ctx,
+                execution_id=f"nested_{cfg.id}_{datetime.utcnow().isoformat()}",
+            )
+        )
+        child_chain.context_manager = cm  # type: ignore[assignment]
+    except (
+        Exception
+    ):  # pragma: no cover – never abort parent chain due to context issues
+        pass
+
+    # Execute child chain ---------------------------------------------------------
+    child_result = await child_chain.execute()  # type: ignore[attr-defined]
+
+    # Apply *exposed_outputs* mapping when present ---------------------------------
+    output_payload: Any = child_result.output
+    if cfg.exposed_outputs and isinstance(output_payload, dict):
+        try:
+            import jmespath  # optional dependency – only used when mapping requested
+
+            mapped: Dict[str, Any] = {}
+            for public_key, query in cfg.exposed_outputs.items():
+                mapped[public_key] = jmespath.search(query, output_payload)
+            output_payload = mapped
+        except Exception:
+            # Silently ignore mapping errors – propagate raw output
+            pass
+
+    # Wrap into parent-level result ------------------------------------------------
+    result = NodeExecutionResult(  # type: ignore[call-arg]
+        success=child_result.success,
+        error=child_result.error,
+        output=output_payload,
+        metadata=NodeMetadata(  # type: ignore[call-arg]
+            node_id=cfg.id,
+            node_type="nested_chain",
+            name=cfg.name,
+            start_time=datetime.utcnow(),
+            end_time=datetime.utcnow(),
+        ),
+        execution_time=child_result.execution_time,
+    )
+    return result

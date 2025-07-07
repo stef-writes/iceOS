@@ -7,11 +7,29 @@ from datetime import datetime
 from enum import Enum
 
 # Standard library -----------------------------------------------------------------
-from typing import Annotated, Any, Dict, List, Literal, Optional, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Type,
+    Union,
+)
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .config import LLMConfig, ModelProvider
+
+# ---------------------------------------------------------------------------
+# Typing-only imports to avoid runtime dependency on orchestrator layer
+# ---------------------------------------------------------------------------
+
+if TYPE_CHECKING:  # pragma: no cover
+    from ice_sdk.interfaces.chain import ScriptChainLike
 
 # Union alias imported early to satisfy lint rules (E402)
 
@@ -400,12 +418,48 @@ class ConditionNodeConfig(BaseNodeConfig):
 
 
 # ---------------------------------------------------------------------------
+# Nested chain node ----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class NestedChainConfig(BaseNodeConfig):
+    """Configuration for a *nested* ScriptChain.
+
+    The node wraps an existing :class:`~ice_orchestrator.script_chain.ScriptChain` (or
+    a factory returning one) so that entire workflows can be reused as building
+    blocks inside other workflows.
+
+    For now only *in-memory* composition is supported – YAML/JSON references will
+    be added in a later *NetworkSpec* iteration.
+    """
+
+    type: Literal["nested_chain"] = "nested_chain"
+
+    # Reference to the *child* ScriptChain or a zero-arg callable returning one.
+    chain: "ScriptChainLike | Callable[[], ScriptChainLike]"  # type: ignore[name-defined]
+
+    # Developers can override the exposed *output* by mapping public keys to
+    # nested paths inside the sub-chain's raw output (similar to *output_mappings*
+    # in regular nodes).  Left empty, the executor will forward the entire
+    # sub-chain *ChainExecutionResult.output*.
+    exposed_outputs: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Optional mapping of public key -> JMES/JSONPath inside sub-chain output.",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Update public alias --------------------------------------------------------
 # ---------------------------------------------------------------------------
 
 # Discriminated union used throughout the codebase
 NodeConfig = Annotated[
-    Union[AiNodeConfig, ToolNodeConfig, ConditionNodeConfig],
+    Union[
+        AiNodeConfig,
+        ToolNodeConfig,
+        ConditionNodeConfig,
+        NestedChainConfig,  # <-- NEW
+    ],
     Field(discriminator="type"),
 ]  # Historical alias preserved for backwards-compatibility
 

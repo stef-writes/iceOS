@@ -103,6 +103,51 @@ docker run --rm -p 8000:8000 iceos
 
 ---
 
+## 🧩 **New in v0.5 – Nested Chains & Networks**
+
+iceOS workflows can now call entire *ScriptChains* as if they were single nodes and you can wire multiple chains together in a one-page YAML file:
+
+```bash
+# 1. Register a reusable chain once (e.g. payment_processing.py)
+python payment_processing.py  # module registers the chain at import-time
+
+# 2. Create your network spec
+ice create network checkout_net
+# edit checkout_net.network.yaml …
+
+# 3. Execute
+ice run-network checkout_net.network.yaml
+```
+
+`nested_chain` nodes wrap a child `ScriptChain` while `network.v1` YAML lets you describe an entire "system of chains" declaratively:
+
+```yaml
+api_version: "network.v1"
+metadata:
+  name: checkout_net
+nodes:
+  total:
+    type: ai
+    model: gpt-4o
+    prompt: "Cart total: {items}"
+
+  payment:
+    type: nested_chain
+    chain_id: "payment_processing@1.2.0"
+    dependencies: ["total"]
+```
+
+CLI additions:
+
+| Command | Purpose |
+|---------|---------|
+| `ice create network <name>` | Scaffold a `*.network.yaml` template |
+| `ice run-network <spec.yaml>` | Build & execute the network |
+
+These new surfaces push us closer to **text-to-workflow** → **text-to-network**: describe intent in natural language, let the Copilot (coming soon) generate the spec, and iceOS runs it with full observability & guardrails.
+
+---
+
 ## 🏛️ **Architecture**
 
 ```

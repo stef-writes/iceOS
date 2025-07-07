@@ -34,6 +34,7 @@ from ice_sdk.models.node_models import (
     AiNodeConfig,
     ChainExecutionResult,
     ConditionNodeConfig,
+    NestedChainConfig,
     NodeConfig,
     NodeExecutionResult,
     NodeMetadata,
@@ -478,4 +479,41 @@ class ScriptChain(BaseScriptChain):
 
         return await ChainFactory.from_dict(
             payload, target_version=target_version, **kwargs
+        )
+
+    # -------------------------------------------------------------------
+    # Composition helper -------------------------------------------------
+    # -------------------------------------------------------------------
+
+    def as_nested_node(  # noqa: D401 – helper name
+        self,
+        id: str | None = None,
+        *,
+        name: str | None = None,
+        input_mappings: Dict[str, Any] | None = None,
+        exposed_outputs: Dict[str, str] | None = None,
+    ) -> "NestedChainConfig":
+        """Return a :class:`NestedChainConfig` wrapping *self*.
+
+        Example::
+
+            sub_chain = build_checkout_chain()
+            parent_node = sub_chain.as_nested_node(
+                id="checkout",
+                input_mappings={"amount": InputMapping(...)}
+            )
+        """
+
+        from ice_sdk.models.node_models import (  # local import to avoid cycle
+            NestedChainConfig,
+        )
+
+        return NestedChainConfig(
+            id=id or self.chain_id,
+            name=name or self.name,
+            chain=self,
+            input_mappings=input_mappings or {},
+            exposed_outputs=exposed_outputs or {},
+            dependencies=[],
+            type="nested_chain",  # explicit for clarity
         )

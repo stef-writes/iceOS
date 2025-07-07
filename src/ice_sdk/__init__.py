@@ -10,6 +10,8 @@ from .models.node_models import (  # noqa: F401
     NodeExecutionResult,
     NodeMetadata,
 )
+
+# from .models.network import NetworkSpec  # noqa: F401
 from .services import ServiceLocator  # noqa: F401
 from .tools.base import BaseTool, ToolContext, ToolError, function_tool  # noqa: F401
 from .tools.hosted import ComputerTool, FileSearchTool, WebSearchTool  # noqa: F401
@@ -26,6 +28,7 @@ __all__ = [
     "NodeConfig",
     "NodeExecutionResult",
     "NodeMetadata",
+    # "NetworkSpec",  # not yet stable
     "LLMConfig",
     "MessageTemplate",
     # Context
@@ -48,3 +51,5 @@ except Exception:  # pragma: no cover – optional dependency missing / circular
 # `IceCopilot` explicitly or receive it via dependency injection.
 
 __all__.extend(["ServiceLocator"])
+
+# Nested chain features intentionally not part of stable public surface yet

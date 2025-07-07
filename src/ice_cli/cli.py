@@ -310,6 +310,21 @@ def create_resource(
         )
         target_path.write_text(content)
 
+    elif resource_type_lower == "network":
+        target_path = directory / f"{name}.network.yaml"
+        if target_path.exists() and not force:
+            rprint(
+                f"[red]Error:[/] File {target_path} already exists. Use --force to overwrite."
+            )
+            raise typer.Exit(1)
+
+        content = (
+            'api_version: "network.v1"\n'
+            'metadata:\n  name: {name}\n  description: "Describe the network"\n'
+            "nodes:\n  ai1:\n    type: ai\n    model: gpt-3.5-turbo\n    prompt: |\n      Your prompt here\n    llm_config:\n      provider: openai\n\n"
+        )
+        target_path.write_text(content)
+
     elif resource_type_lower == "node":
         target_path = directory / f"{name}.ainode.yaml"
         if target_path.exists() and not force:
@@ -331,7 +346,7 @@ def create_resource(
 
     else:
         rprint(
-            f"[red]Error:[/] Unknown resource type '{resource_type}'. Use: chain, tool, node"
+            f"[red]Error:[/] Unknown resource type '{resource_type}'. Use: chain, tool, node, network"
         )
         raise typer.Exit(1)
 
@@ -515,6 +530,42 @@ app.add_typer(update_app, name="update", rich_help_panel="Maintenance")
 
 # New: maintenance helpers sub-app ----------------------------------------
 app.add_typer(maint_app, name="maint", rich_help_panel="Maintenance")
+
+
+# ---------------------------------------------------------------------------
+# Run *network* YAML command -------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@app.command("run-network", help="Execute a network YAML specification")
+def run_network(
+    spec_path: str = typer.Argument(..., help="Path to network.yaml"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output JSON"),
+):
+    """Load *spec_path*, build a ScriptChain via NetworkFactory and run it."""
+
+    import asyncio
+
+    from ice_orchestrator.core.network_factory import NetworkFactory
+
+    async def _runner():  # noqa: D401 – inner helper
+        chain = await NetworkFactory.from_yaml(spec_path)
+        return await chain.execute()
+
+    try:
+        result = asyncio.run(_runner())
+    except Exception as exc:  # pragma: no cover – surface errors
+        rprint(f"[red]Execution failed:[/] {exc}")
+        raise typer.Exit(1)
+
+    if json_output:
+        import json as _json
+
+        rprint(_json.dumps(result.model_dump()))
+    else:
+        from rich import print as _print
+
+        _print(result.model_dump())
 
 
 # ---------------------------------------------------------------------------
