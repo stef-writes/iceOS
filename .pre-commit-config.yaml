@@ -42,6 +42,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: lock-check
+        name: poetry lock check
+        entry: make lock-check
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: pytest
         name: pytest
         entry: pytest -q
