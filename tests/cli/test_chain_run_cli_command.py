@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 from textwrap import dedent
 
-from typer.testing import CliRunner  # type: ignore
 import pytest  # type: ignore
+from typer.testing import CliRunner  # type: ignore
 
 from ice_cli.cli import app  # type: ignore
 
@@ -70,7 +70,7 @@ def test_cli_chain_run_json(tmp_path: Path) -> None:
     # The output contains valid JSON with newlines - parse it
     output = result.stdout
     print(f"DEBUG: stdout = {repr(output)}")
-    
+
     # Parse the JSON output
     payload = json.loads(output)
     assert payload["success"] is True

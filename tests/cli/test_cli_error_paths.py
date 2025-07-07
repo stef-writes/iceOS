@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+
 import pytest  # type: ignore
 from typer.testing import CliRunner  # type: ignore
-from pathlib import Path
 
 from ice_cli.cli import app as ice_app  # type: ignore
 

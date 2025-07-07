@@ -6,7 +6,12 @@ from pathlib import Path
 # Skip if dependency unavailable (CI environments without dev extras)
 import pytest  # type: ignore
 
-importlinter_cli = pytest.importorskip("importlinter.cli", reason="importlinter not installed")
+# ruff: noqa: E402  # allow imports after runtime checks
+
+
+importlinter_cli = pytest.importorskip(
+    "importlinter.cli", reason="importlinter not installed"
+)
 
 # Purposely import lazily after the skip check
 from importlinter import cli as _cli  # type: ignore
