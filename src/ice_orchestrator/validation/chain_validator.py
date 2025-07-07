@@ -97,6 +97,52 @@ class ChainValidator:  # noqa: D101 – internal utility
         return []
 
     # ------------------------------------------------------------------
+    # Prompt placeholder validation ------------------------------------
+    # ------------------------------------------------------------------
+
+    _PLACEHOLDER_REGEX = r"\{\s*([a-zA-Z0-9_\.]+?)\s*\}"
+
+    def _extract_placeholders(self, template: str) -> set[str]:  # noqa: D401
+        import re
+
+        return set(re.findall(self._PLACEHOLDER_REGEX, template))
+
+    def validate_prompt_placeholders(self) -> List[str]:
+        """Ensure every `{placeholder}` appearing in a prompt is resolvable.
+
+        A placeholder is *resolvable* when it is provided via:
+        * ``input_mappings`` keys
+        * ``input_selection`` (explicit pass-through from context)
+        """
+
+        errors: List[str] = []
+        from ice_sdk.models.node_models import AiNodeConfig
+
+        for node in self.nodes.values():
+            if not isinstance(node, AiNodeConfig):
+                continue  # Only AI nodes have prompts
+
+            tmpl: str = getattr(node, "prompt", "") or ""
+            if not tmpl:
+                continue
+
+            ph_set = self._extract_placeholders(tmpl)
+            if not ph_set:
+                continue
+
+            available_keys = set(node.input_mappings.keys()) | set(
+                (node.input_selection or [])
+            )
+
+            missing = ph_set - available_keys
+            if missing:
+                errors.append(
+                    f"Node '{node.id}' prompt references undefined placeholders: {sorted(missing)}"
+                )
+
+        return errors
+
+    # ------------------------------------------------------------------
     # Aggregated helper -------------------------------------------------
     # ------------------------------------------------------------------
 
@@ -104,6 +150,7 @@ class ChainValidator:  # noqa: D101 – internal utility
         """Run static validations and return aggregated error list."""
         errors: List[str] = []
         errors.extend(self.validate_node_versions())
+        errors.extend(self.validate_prompt_placeholders())
         errors.extend(self.check_license_compliance())
         errors.extend(self.detect_sensitive_data_flows())
         return errors

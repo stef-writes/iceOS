@@ -12,6 +12,7 @@ It registers executors for the two node modes that ship with the SDK:
 
 from datetime import datetime
 from typing import Any, Dict, TypeAlias
+import re
 
 from ice_sdk.agents.agent_node import AgentNode
 from ice_sdk.interfaces.chain import ScriptChainLike
@@ -117,11 +118,22 @@ async def ai_executor(
     # The helper falls back to the original string if rendering fails so
     # we never break node execution due to missing keys.
 
+    # Render template ---------------------------------------------------
+    rendered_prompt: str
     try:
-        cfg.prompt = await render_prompt(cfg.prompt, ctx)  # type: ignore[assignment]
+        rendered_prompt = await render_prompt(cfg.prompt, ctx)
     except Exception:
-        # Defensive: keep original prompt on any rendering error.
-        pass
+        # Keep original prompt on rendering failure but still check leftovers
+        rendered_prompt = cfg.prompt
+
+    # After rendering, ensure no unresolved placeholders remain ---------
+    _LEFTOVER_RE = re.compile(r"\{\s*[a-zA-Z0-9_\.]+\s*\}")
+    if _LEFTOVER_RE.search(rendered_prompt):
+        raise ValueError(
+            f"Prompt for node '{cfg.id}' contains unresolved placeholders after rendering: {rendered_prompt}"
+        )
+
+    cfg.prompt = rendered_prompt  # type: ignore[assignment]
 
     agent = _build_agent(chain, cfg)
     return await agent.execute(ctx)

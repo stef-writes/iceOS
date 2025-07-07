@@ -66,10 +66,40 @@ class ChainFactory:  # noqa: D101 – internal utility
 
         # 3. Instantiate chain -------------------------------------------
         from ice_orchestrator.script_chain import ScriptChain
+        from ice_sdk.models.node_models import ChainMetadata
 
-        return ScriptChain(
+        import hashlib
+        import json
+
+        # Compute basic DAG statistics & topology hash ------------------
+        node_count = len(nodes)
+        edge_count = sum(len(getattr(n, "dependencies", [])) for n in nodes)
+
+        # Deterministic hash of adjacency list (node id -> sorted deps)
+        adjacency = {n.id: sorted(getattr(n, "dependencies", [])) for n in nodes}
+        topology_hash = hashlib.sha256(
+            json.dumps(adjacency, sort_keys=True).encode()
+        ).hexdigest()
+
+        chain_meta = ChainMetadata(
+            chain_id=payload.get("chain_id", f"chain_{topology_hash[:8]}"),
+            name=payload.get("name", "unnamed-chain"),
+            version=payload.get("version", target_version),
+            description=payload.get("description", ""),
+            node_count=node_count,
+            edge_count=edge_count,
+            topology_hash=topology_hash,
+            tags=payload.get("tags", []),
+        )
+
+        chain = ScriptChain(
             nodes=nodes,
             name=payload.get("name"),
             version=payload.get("version", target_version),
             **kwargs,
         )
+
+        # Attach metadata for later dashboards / side-car emission
+        setattr(chain, "metadata", chain_meta)
+
+        return chain

@@ -80,6 +80,11 @@ class NodeMetadata(BaseModel):
     start_time: Optional[datetime] = Field(None, description="Execution start time")
     end_time: Optional[datetime] = Field(None, description="Execution end time")
     duration: Optional[float] = Field(None, description="Execution duration in seconds")
+    # New governance/observability helpers -------------------------------------
+    tags: List[str] = Field(
+        default_factory=list,
+        description="Categorisation tags for the node (e.g. 'safety', 'experimental')",
+    )
     provider: Optional[ModelProvider] = Field(
         None, description="LLM provider used for execution"
     )
@@ -105,6 +110,28 @@ class NodeMetadata(BaseModel):
             from datetime import timedelta
 
             self.end_time = self.start_time + timedelta(seconds=self.duration)
+        return self
+
+    # ------------------------------------------------------------------
+    # Validators --------------------------------------------------------
+    # ------------------------------------------------------------------
+
+    @model_validator(mode="after")
+    def _ensure_description_tags(self):  # noqa: D401
+        """Ensure *description* & *tags* are always populated.
+
+        We auto-fill them when missing so existing code remains compatible while
+        downstream analytics can rely on their presence.
+        """
+
+        if not self.description or not self.description.strip():
+            # Fallback to deterministic string for traceability
+            self.description = f"Node {self.node_id} (type={self.node_type})"
+
+        if not self.tags:
+            # A generic tag helps filtering in dashboards even when authors omit it
+            self.tags = ["default"]
+
         return self
 
 
@@ -167,6 +194,14 @@ class BaseNodeConfig(BaseModel):
     # Mapping of placeholders in the prompt / template to dependency outputs.
     input_mappings: Dict[str, InputMapping] = Field(default_factory=dict)
 
+    # Mapping of public *alias* → nested path inside this node's raw output.
+    # Allows downstream nodes to depend on stable aliases instead of fragile JSON
+    # paths coupling them to internal representation details.
+    output_mappings: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Mapping of exposed output keys to nested paths in the node's actual output.",
+    )
+
     use_cache: bool = Field(
         default=True,
         description="Whether the orchestrator should reuse cached results when the context & config are unchanged.",
@@ -195,6 +230,7 @@ class BaseNodeConfig(BaseModel):
                 node_type=self.type,
                 version="1.0.0",
                 description=f"Node {self.id} (type={self.type})",
+                tags=["auto"],
             )
         return self
 
@@ -472,9 +508,50 @@ class ChainExecutionResult(BaseModel):
     metadata: NodeMetadata = Field(
         ..., description="Metadata about the chain execution"
     )
+    chain_metadata: Optional["ChainMetadata"] = Field(
+        None,
+        description="High-level chain information (topology, counts, tags, ...)",
+    )
     execution_time: Optional[float] = Field(
         None, description="Execution time in seconds"
     )
     token_stats: Optional[Dict[str, Any]] = Field(
         None, description="Token statistics including truncation and limits"
     )
+
+
+# ---------------------------------------------------------------------------
+# Chain-level metadata (new) -------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class ChainMetadata(BaseModel):
+    """Descriptive metadata for a ScriptChain instance.
+
+    The model deliberately stays light-weight – only fields required by
+    dashboards & provenance pipelines.  Further properties can be added
+    non-breaking.
+    """
+
+    chain_id: str
+    name: str
+    version: str = Field(pattern=r"^\d+\.\d+\.\d+$")
+    description: str
+    node_count: int = Field(ge=1)
+    edge_count: int = Field(ge=0)
+    topology_hash: str = Field(description="Stable hash of the DAG topology")
+    tags: List[str] = Field(default_factory=list)
+
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Update forward references --------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+try:
+    ChainExecutionResult.model_rebuild()
+except NameError:
+    # During initial import order may not yet include ChainExecutionResult
+    pass

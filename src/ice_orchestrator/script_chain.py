@@ -299,6 +299,7 @@ class ScriptChain(BaseScriptChain):
                 end_time=end_time,
                 duration=duration,
             ),  # type: ignore[call-arg]
+            chain_metadata=getattr(self, "metadata", None),
             execution_time=duration,
             token_stats=self.metrics.as_dict(),
         )

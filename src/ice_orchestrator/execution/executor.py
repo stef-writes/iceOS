@@ -132,6 +132,22 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
                 if cache_key and result.success:
                     chain._cache.set(cache_key, result)
 
+                # ------------------------------------------------------------------
+                # Apply *output_mappings* to make aliased keys available ----------
+                # ------------------------------------------------------------------
+                if result.success and hasattr(node, "output_mappings") and node.output_mappings:
+                    from ice_orchestrator.utils.context_builder import ContextBuilder
+
+                    if isinstance(result.output, dict):
+                        for alias, src_path in node.output_mappings.items():  # type: ignore[attr-defined]
+                            try:
+                                result.output[alias] = ContextBuilder.resolve_nested_path(
+                                    result.output, src_path
+                                )
+                            except Exception:
+                                # Ignore unresolved paths – validation will catch downstream
+                                continue
+
                 # Attach retry metadata -----------------------------
                 if result.metadata:
                     result.metadata.retry_count = attempt  # type: ignore[attr-defined]
