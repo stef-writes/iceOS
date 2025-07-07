@@ -27,7 +27,7 @@ jobs:
         run: pip install poetry
 
       - name: Install dependencies (incl. dev)
-        run: poetry install --with dev --no-interaction --no-root
+        run: poetry install --with dev --no-interaction
 
       - name: Verify lockfile in sync
         run: make lock-check
