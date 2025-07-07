@@ -26,11 +26,11 @@ jobs:
       - name: Install Poetry
         run: pip install poetry
 
-      - name: Install dependencies
-        run: poetry install --no-interaction --no-root
+      - name: Install dependencies (incl. dev)
+        run: poetry install --with dev --no-interaction --no-root
 
       - name: Quality gate (lint, type, tests)
-        run: make doctor
+        run: poetry run make doctor
 
       - name: Unit tests
-        run: make test 
+        run: poetry run make test 
