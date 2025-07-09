@@ -58,6 +58,24 @@ result = await chain.execute()
 
 ---
 
+## 🧬 **Core Concepts: AiNode & ScriptChain**
+
+iceOS revolves around two primitives that power every workflow:
+
+1. **AiNode – the reasoning block**
+   - LLM prompt + validation + retry/back-off in a single, type-safe unit.
+   - May be granted **multiple tools** (agent-style, adaptive) or **one/no tool** (deterministic specialist).
+   - Emits structured, Pydantic-validated output that downstream nodes can trust.
+
+2. **ScriptChain – the orchestrator kernel**
+   - Converts a static DAG of nodes into a *level-parallel*, token-/depth-guarded execution plan.
+   - Enforces failure policies (`HALT`, `CONTINUE_POSSIBLE`, `ALWAYS`), caching, branch gating, and cost ceilings.
+   - Streams OpenTelemetry spans + cost metrics so ops teams get observability out-of-the-box.
+
+Read the full deep-dive in [`docs/core_concepts.md`](docs/core_concepts.md) – it covers tool modes, execution flow diagrams, and a runnable 20-line example.
+
+---
+
 ## 🎯 **Vision & Phases**
 
 **Phase 1 – Developer Foundation** ✅ *(Current)*  
