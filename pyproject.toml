@@ -62,6 +62,10 @@ include = [
   "src/app/templates/*.json",
   "src/app/data/*.json"
 ]
+# Exclude demo/example packages from distribution
+exclude = [
+  "src/ice_sdk/examples/**"
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"

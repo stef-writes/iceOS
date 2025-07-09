@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from .base import BaseTool, ToolContext, ToolError, function_tool
 from .hosted import ComputerTool, FileSearchTool, WebSearchTool
+from .mcp_tool import MCPTool  # Generic Model Context Protocol tool
 
 # Built-ins sub-package -------------------------------------------------------
 
@@ -19,4 +20,5 @@ __all__: list[str] = [
     "WebSearchTool",
     "FileSearchTool",
     "ComputerTool",
+    "MCPTool",
 ]

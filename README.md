@@ -1,22 +1,19 @@
 # iceOS – The AI-Native Operating Layer for Agentic Workflows
 
-> **Docs moved!**  This README is now a high-level overview.  Full, versioned documentation lives in the `docs/` folder and will be published at https://stef-writes.github.io/iceOSv1-A-.  Start with `docs/index.md` or run `mkdocs serve`.
-
 > **Build, run & scale reliable multi-agent AI systems in minutes.**
 
 [![CI](https://github.com/stef-writes/iceOSv1-A-/actions/workflows/ci.yml/badge.svg)](https://github.com/stef-writes/iceOSv1-A-/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/iceos.svg)](https://pypi.org/project/iceos/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
 ## 🎯 **What We're Building**
 
-**iceOS** is the **"Docker for AI workflows"** - a developer-first orchestration engine that lets you build complex AI systems as declarative DAGs with production-ready tooling.
-
-Think of it as **"Kubernetes for AI agents"** - you define your workflow in code, and iceOS handles the execution, scaling, monitoring, and reliability.
+**iceOS** is an AI-native orchestration engine.  It lets you define complex multi-agent workflows as declarative DAGs and then executes them with built-in scaling, monitoring, and reliability controls.
 
 ---
 
-## 🚀 **Why iceOS? (The Problem We Solve)**
+## 🧠 **Why iceOS Exists**
 
 Every AI product team faces the same challenges:
 - **Glue Code**: Stitching together OpenAI + LangChain + custom tools
@@ -33,7 +30,7 @@ Every AI product team faces the same challenges:
 
 ---
 
-## 🏗️ **Current State: Developer-First Foundation**
+## ✨ **Key Features**
 
 ### **What's Built Today**
 ```python
@@ -52,30 +49,34 @@ result = await chain.execute()
 ```
 
 ### **Core Capabilities**
-- **Node Types**: AI, Tool, Condition, Agent, Webhook
-- **Execution Engine**: Level-based parallel execution
-- **Developer Tools**: CLI, type checking, auto-discovery
-- **Production Features**: Caching, retries, cost tracking, tracing
+| Feature | Benefit |
+|---------|---------|
+| Node types: AI, Tool, Condition, Agent, Webhook | Flexible workflow design |
+| Level-based execution engine | Optimised parallel processing |
+| CLI, type checking, auto-discovery | Developer ergonomics |
+| Caching, retries, cost tracking, tracing | Production guardrails |
 
 ---
 
-## 🎯 **Vision: "Figma for AI Workflows"**
+## 🎯 **Vision & Phases**
 
-**Phase 1: Developer Foundation** ✅ *(Current)*
-- Robust orchestration engine
-- Growing tool ecosystem  
-- CLI-first developer experience
+**Phase 1 – Developer Foundation** ✅ *(Current)*  
+Robust orchestration engine: ScriptChain, cost guard-rails, tracing.
 
-**Phase 2: Visual Layer** 🚧 *(Next)*
-- Infinite canvas whiteboard
-- Drag & drop node composition
-- Text-to-workflow generation
-- Real-time collaboration
+**Phase 2 – Visual Layer** 🚧 *(Next)*  
+Infinite canvas whiteboard, drag-and-drop nodes, real-time preview.
 
-**Phase 3: AI-Powered** 🔮 *(Future)*
-- "Frosty Copilot" - AI assistant for workflow design
-- Auto-optimization based on telemetry
-- Self-improving workflows
+**Phase 3 – AI-Assisted Design (Frosty v1)** 🔮  
+Text-to-workflow generation, self-reflection loop, cost hot-spot surfacing.
+
+**Phase 4 – MCP & Blueprint Runtime** 🛰️  
+Versioned Model Context Protocol server, streaming node telemetry.
+
+**Phase 5 – Live Collaboration** 🎥  
+Embedded video/voice, shared cursors, real-time transcripts feeding Frosty.
+
+**Phase 6 – Ecosystem & Marketplace** 🌐  
+Third-party node marketplace, template exchange, revenue-sharing.
 
 ---
 
@@ -93,6 +94,19 @@ ice run hello_chain.chain.py          # executes the chain
 # 3. Or run the demo (optional)
 python scripts/demo_run_chain.py
 ```
+
+### 🧑‍💻 Developer Experience – CLI scaffolding
+```bash
+ice create tool CustomTool
+ice create chain data_pipeline
+ice run data_pipeline.chain.py
+```
+
+### 🛠️ Installation Options
+| Scenario | Command |
+|----------|---------|
+| Minimal production (no demo code) | `poetry install --only main` |
+| Full demo environment | `poetry install --with demos` |
 
 ### **Docker Option**
 ```bash
@@ -174,98 +188,42 @@ These new surfaces push us closer to **text-to-workflow** → **text-to-network*
 
 ---
 
-## 🎯 **Roadmap: Close to Major Milestone**
+## 🌈 **Vision Roadmap**
 
-### **Q3 2025: ScriptChain Runtime GA** 🚧 *(Current Focus)*
-- **Target**: Production-ready orchestration engine
-- **Status**: 75% complete - need final coverage push
-- **Milestone**: 95%+ test coverage, circuit breakers, performance optimization
+| Quarter | Phase | Milestone | Key Deliverables |
+|---------|-------|-----------|------------------|
+| **Q3 2025** | 1 | ScriptChain Runtime GA | 95% test coverage, retries, cost tracking, OpenTelemetry |
+| **Q4 2025** | 2 | CLI GA & Visual Layer Alpha | `ice chain wizard`, Canvas MVP, drag-and-drop nodes |
+| **Q1 2026** | 3 & 4 | Frosty v1 + MCP Foundation | `generate_blueprint`, `run_blueprint`, SSE telemetry, versioned MCP spec |
+| **Q2 2026** | 4 | Self-Reflection Loop | Frosty analyses live traces, auto-optimise blueprints |
+| **Q3 2026** | 5 | Live Collaboration MVP | LiveKit integration, shared cursors, transcript feed into Frosty |
+| **Q4 2026** | 6 | Marketplace Beta | Node/template marketplace, billing + quota API |
+| **Q1 2027** | 7 | Proprietary Planner Model | Anonymised transcript & graph dataset, fine-tuned model deploy |
+| **Q2 2027** | 8 | Spatial Canvas Preview | 3D workflow visualisation, VR meeting support |
 
-### **Q4 2025: Developer CLI GA** 📋
-- **Target**: Complete CLI experience for workflow development
-- **Features**: Interactive builders, hot-reload, auto-registration
-- **Milestone**: `ice chain wizard` → `ice chain run --watch`
-
-### **Q1 2026: Visual Layer Alpha** 🎨
-- **Target**: First visual workflow designer
-- **Features**: Drag & drop, infinite canvas, real-time preview
-- **Milestone**: "Figma for AI workflows" MVP
-
-### **Q2 2026: Frosty Copilot Beta** 🤖
-- **Target**: AI-powered workflow generation
-- **Features**: Text-to-workflow, auto-optimization, collaboration
-- **Milestone**: Natural language workflow creation
+*All phases are feature-flagged and gated by KPIs defined in the strategy documents.*
 
 ---
 
-## 🏆 **Competitive Advantages**
+## 🏆 **Core Strengths**
 
-| Feature | LangChain | n8n | **iceOS** |
-|---------|-----------|-----|-----------|
-| **Architecture** | Library | Visual | **Engine + CLI** |
-| **Production** | DIY | Basic | **Built-in** |
-| **Developer UX** | Code-only | No-code | **CLI-first** |
-| **Extensibility** | Python | 400+ nodes | **Plugin ecosystem** |
-| **Guardrails** | None | Basic | **Enterprise-grade** |
+- **Production-ready execution**: retries, caching, cost tracking, tracing.
+- **Modular node ecosystem**: AI, tool, condition, agent, webhook nodes.
+- **Developer ergonomics**: CLI scaffolding, hot-reload, type-safe configs.
+- **Governance & compliance**: BudgetEnforcer, safety validators, audit logs.
 
----
+### Competitive Landscape
 
-## 🛠️ **Current Capabilities**
+| Capability | LangChain | Airflow | **iceOS** |
+|------------|-----------|---------|-----------|
+| Orchestration focus | Library functions | Batch scheduler | AI-native DAG engine |
+| Visual design | Limited (LangGraph) | DAG graph only | Infinite canvas & real-time collab |
+| AI node type | External hack | None | First-class (AiNode) |
+| Guardrails & cost | Manual | Ops-centric SLA | Budget + safety validators |
+| Extensibility | Python modules | Plugins | Python + `.tool.py` auto-registration |
+| Execution telemetry | Minimal | Task logs | OpenTelemetry spans + cost metrics |
 
-### **Orchestration Engine** ✅
-- Async ScriptChain execution
-- Level-based parallel processing
-- Dependency resolution
-- Failure policies & retry logic
-
-### **Node Ecosystem** ✅
-- AI nodes (OpenAI, Anthropic, Gemini, DeepSeek)
-- Tool nodes (HTTP, File, Email, Custom)
-- Condition nodes (branching logic)
-- Agent nodes (multi-turn conversations)
-
-### **Developer Tools** ✅
-- CLI with auto-discovery
-- Type-safe configurations
-- Hot-reload development
-- Comprehensive testing
-
-### **Production Features** ✅
-- OpenTelemetry tracing
-- Cost tracking & token management
-- Caching & performance optimization
-- Error handling & circuit breakers
-
----
-
-## 🚀 **Getting Started**
-
-### **For Developers**
-```bash
-# Install
-pip install iceos
-
-# Create your first tool
-ice create tool MyTool
-
-# Create your first chain
-ice create chain my_workflow
-
-# Execute the workflow
-ice run my_workflow.chain.py
-```
-
-### **For Teams**
-```bash
-# Set up CI/CD
-make test
-make lint
-make doctor
-
-# Deploy to production
-docker build -t iceos .
-docker run -p 8000:8000 iceos
-```
+*iceOS differentiates by combining AI-first nodes with enterprise-grade execution guardrails and a visual design layer out-of-the-box.*
 
 ---
 

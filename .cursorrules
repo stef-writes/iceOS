@@ -6,3 +6,12 @@
 4. Never import from `app.*` inside `ice_sdk.*` (layer boundary).
 5. Prefer async/await; long I/O must not block the event loop.
 6. If you propose file edits, update matching tests in `tests/` and run `make test`. 
+7. Mypy must pass in --strict mode on every commit.
+8. No # type: ignore without a Jira ticket in the comment.
+9. Raise only typed, domain-specific exceptions; catch the narrowest subclass possible.
+10. Public functions/modules require a docstring with an illustrative code snippet.
+11. All cross-layer calls go through stable service interfaces (services/*).
+12. Direct imports across layers are forbidden.
+13. Every Node/Tool exposes an idempotent validate() method; orchestration must call it before execution.
+14. Deprecations use @deprecated(version, replacement) decorators and must log a structured warning at call-time.
+15. Pin every runtime dependency in poetry.lock; upgrades require green CI on staging first.

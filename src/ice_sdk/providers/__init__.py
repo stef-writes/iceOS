@@ -23,6 +23,7 @@ from typing import Any, cast
 
 __all__: list[str] = [
     "LLMService",
+    "BudgetEnforcer",
     # Low-level handlers (lazy-loaded on access)
     "OpenAIHandler",
     "AnthropicHandler",

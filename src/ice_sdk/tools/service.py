@@ -167,6 +167,7 @@ class ToolService:  # noqa: D101 – simple façade
             SumTool,
         )
         from .hosted import ComputerTool, FileSearchTool, WebSearchTool  # noqa: WPS433
+        from .mcp_tool import MCPTool  # noqa: WPS433 – new generic MCP integration tool
         from .webhook import WebhookEmitterTool  # noqa: WPS433 – new tool
 
         for tool_cls in (
@@ -181,6 +182,7 @@ class ToolService:  # noqa: D101 – simple façade
             HttpRequestTool,
             SumTool,
             WebhookEmitterTool,
+            MCPTool,
         ):
             try:
                 self.register(tool_cls)

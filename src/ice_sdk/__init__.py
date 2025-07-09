@@ -33,6 +33,7 @@ __all__ = [
     "MessageTemplate",
     # Context
     "GraphContextManager",
+    # (RuntimeConfig & BudgetEnforcer intentionally NOT part of stable API)
     # Extensions
     "extensions",
 ]

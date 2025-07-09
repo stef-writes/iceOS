@@ -29,6 +29,7 @@ from ice_orchestrator.graph.level_resolver import BranchGatingResolver
 from ice_orchestrator.utils.context_builder import ContextBuilder
 from ice_orchestrator.validation import ChainValidator, SafetyValidator, SchemaValidator
 from ice_sdk.agents.agent_node import AgentNode
+from ice_sdk.config import runtime_config
 from ice_sdk.context import GraphContextManager
 from ice_sdk.models.node_models import (
     AiNodeConfig,
@@ -138,8 +139,8 @@ class ScriptChain(BaseScriptChain):
         )
         self.validate_outputs = validate_outputs
         self.use_cache = use_cache
-        self.token_ceiling = token_ceiling
-        self.depth_ceiling = depth_ceiling
+        self.token_ceiling = token_ceiling or runtime_config.max_tokens
+        self.depth_ceiling = depth_ceiling or runtime_config.max_depth
         # External guard callbacks --------------------------------------
         self._token_guard = token_guard
         self._depth_guard = depth_guard
