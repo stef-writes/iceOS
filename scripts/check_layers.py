@@ -40,7 +40,12 @@ class _Violation(ast.NodeVisitor):
 def _scan_file(
     fp: pathlib.Path, root_package: str, disallowed: set[str]
 ) -> Iterable[str]:
-    tree = ast.parse(fp.read_text())
+    try:
+        source = fp.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        # Fallback for rare encoding issues on Windows CI – skip undecodable bytes
+        source = fp.read_text(encoding="utf-8", errors="ignore")  # type: ignore[call-arg] – 'errors' param only Py3.11+
+    tree = ast.parse(source)
     visitor = _Violation(root_package, disallowed)
     visitor.visit(tree)
     return visitor.errors
