@@ -30,7 +30,7 @@ except ModuleNotFoundError:  # pragma: no cover – optional
 from ice_sdk.events import subscribe
 from ice_sdk.events.models import EventEnvelope
 from ice_sdk.tools.base import ToolContext
-from ice_sdk.tools.webhook import WebhookEmitterTool
+from ice_sdk.tools.web.webhook_tool import WebhookEmitterTool
 
 _logger = logging.getLogger(__name__)
 

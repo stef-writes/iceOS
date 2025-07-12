@@ -6,7 +6,7 @@ API routes for the workflow engine
 
 # Removed explicit built-in tool imports, ToolService already loads defaults
 import traceback
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ValidationError
@@ -16,6 +16,7 @@ from app.dependencies import get_context_manager, get_tool_service
 from ice_orchestrator import ScriptChain
 from ice_sdk import ToolService
 from ice_sdk.agents.agent_node import AgentNode
+from ice_sdk.context import GraphContextManager
 from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 from ice_sdk.models.node_models import (
     ChainExecutionResult,
@@ -49,8 +50,8 @@ class WorkflowRequest(BaseModel):
 async def create_text_generation_node(
     request: NodeRequest,
     tool_service: ToolService = Depends(get_tool_service),
-    context_manager=Depends(get_context_manager),
-):
+    context_manager: GraphContextManager = Depends(get_context_manager),
+) -> NodeExecutionResult:
     """Create and execute a text generation node"""
     try:
         # Create agent config from node config
@@ -120,8 +121,8 @@ async def execute_workflow(request: WorkflowRequest) -> Dict[str, Any]:
             persist_intermediate_outputs=request.persist_intermediate_outputs,
             initial_context=request.initial_context,
         )
-        result = await chain.execute()
-        return result.model_dump()
+        result: ChainExecutionResult = await chain.execute()
+        return cast(Dict[str, Any], result.model_dump())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -137,8 +138,8 @@ async def get_node_context(
     after: str | None = Query(
         None, description="Pagination cursor – last key from previous page."
     ),
-    context_manager=Depends(get_context_manager),
-):
+    context_manager: GraphContextManager = Depends(get_context_manager),
+) -> Any:
     """Get context for a specific node"""
     try:
         context = context_manager.get_context(node_id)
@@ -164,8 +165,8 @@ async def get_node_context(
 
 @router.delete("/nodes/{node_id}/context")
 async def clear_node_context(
-    node_id: str, context_manager=Depends(get_context_manager)
-):
+    node_id: str, context_manager: GraphContextManager = Depends(get_context_manager)
+) -> Dict[str, str]:
     """Clear context for a specific node"""
     logger.info(f"API HANDLER: clear_node_context CALLED for node_id: {node_id}")
     try:
@@ -186,8 +187,8 @@ async def clear_node_context(
 async def execute_node(
     request: NodeRequest,
     tool_service: ToolService = Depends(get_tool_service),
-    context_manager=Depends(get_context_manager),
-):
+    context_manager: GraphContextManager = Depends(get_context_manager),
+) -> NodeExecutionResult:
     """Alias for creating/executing a single node (generic)."""
     return await create_text_generation_node(request, tool_service, context_manager)
 
@@ -196,8 +197,8 @@ async def execute_node(
 async def execute_chain_alias(
     request: WorkflowRequest,
     tool_service: ToolService = Depends(get_tool_service),
-    context_manager=Depends(get_context_manager),
-):
+    context_manager: GraphContextManager = Depends(get_context_manager),
+) -> Dict[str, Any]:
     """Alias for executing a chain (generic path)."""
     return await execute_workflow(request)
 
@@ -205,6 +206,6 @@ async def execute_chain_alias(
 @router.get("/tools", response_model=List[str])
 async def list_tools(
     tool_service: ToolService = Depends(get_tool_service),
-):
+) -> List[str]:
     """List all registered tool names."""
     return sorted(tool_service.available_tools())

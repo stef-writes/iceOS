@@ -9,7 +9,7 @@ help:
 	@echo "Available targets:"
 	@echo "  install        Install dependencies (core + [test] extras)"
 	@echo "  lint           Run ruff and isort checks"
-	@echo "  type           Run mypy static type checking"
+	@echo "  type           Run MyPy (--strict) type checking"
 	@echo "  test           Run pytest with coverage"
 	@echo "  coverage       Run pytest with branch coverage"
 	@echo "  mutation       Run mutmut mutation testing"
@@ -33,7 +33,9 @@ format:
 
 # Type checking
 type:
-	poetry run ice doctor type
+	# Strict type checking for modernised layers (app + core)
+	poetry run mypy --strict --config-file mypy.ini src/app src/ice_core src/ice_sdk/utils src/ice_sdk/context src/ice_sdk/tools src/ice_sdk/extensions src/ice_sdk/executors src/ice_sdk/dsl src/ice_sdk/agents src/ice_sdk/providers
+	poetry run mypy --strict --config-file mypy.ini src/ice_orchestrator
 
 typecheck: type  # alias for docs compatibility
 
@@ -49,6 +51,11 @@ refresh-docs:
 doctor:
 	poetry run ice doctor all
 	poetry run pre-commit run --all-files --show-diff-on-failure
+	$(PYTHON) scripts/check_layers.py
+
+# Architectural guard – run by CI and pre-commit
+structure:
+	$(PYTHON) scripts/check_layers.py
 
 coverage:
 	poetry run pytest

@@ -2,7 +2,7 @@
 
 import inspect
 from functools import wraps
-from typing import Any, Callable, ClassVar, Dict, Optional, TypeVar
+from typing import Any, Callable, ClassVar, Dict, Optional, TypeVar, cast
 
 from pydantic import BaseModel
 
@@ -46,7 +46,7 @@ class BaseTool(BaseModel):
     purpose: ClassVar[str | None] = None
     examples: ClassVar[list[dict[str, Any]] | None] = None
 
-    async def run(self, **kwargs) -> Any:
+    async def run(self, **kwargs: Any) -> Any:
         """Execute the tool with the given arguments."""
         raise NotImplementedError
 
@@ -58,6 +58,38 @@ class BaseTool(BaseModel):
             "parameters": self.parameters_schema,
             "output": self.output_schema,
         }
+
+    def validate_params(self, params: Dict[str, Any] | None = None) -> None:
+        """Validate *params* against ``parameters_schema`` when defined.
+
+        The method is idempotent – calling it multiple times with the same
+        arguments has no side-effects – and raises :class:`ToolError` when the
+        supplied *params* violate the declared ``parameters_schema``.
+        """
+        if self.parameters_schema is None or params is None:
+            return
+
+        # Defer heavy import to call-time to avoid penalising start-up
+        try:
+            import jsonschema  # type: ignore
+
+            jsonschema.validate(instance=params, schema=self.parameters_schema)  # type: ignore[arg-type]
+        except jsonschema.ValidationError as exc:  # type: ignore[attr-defined]
+            raise ToolError(f"Invalid tool parameters: {exc.message}") from exc
+
+    # ------------------------------------------------------------------
+    # Rule-compliance: idempotent validate() hook -----------------------
+    # ------------------------------------------------------------------
+
+    def runtime_validate(self) -> None:  # noqa: D401
+        """Runtime validation stub (idempotent).
+
+        By default delegates to :py:meth:`validate_params` with *None*, which is
+        a no-op when the tool defines no parameter schema.  Subclasses may
+        override to check external resources, licenses, etc.
+        """
+
+        self.validate_params(None)
 
 
 def function_tool(
@@ -112,7 +144,7 @@ def function_tool(
         }
 
         @wraps(func)
-        async def wrapper(self, **kwargs) -> Any:  # type: ignore[override]
+        async def wrapper(self: BaseTool, **kwargs: Any) -> Any:  # type: ignore[override]
             try:
                 # Handle context if present
                 if "ctx" in sig.parameters:
@@ -140,6 +172,7 @@ def function_tool(
         # Build the concrete subclass + bind run implementation ----------------
         ToolCls = type(f"{name.title()}Tool", (BaseTool,), {**attrs, "run": wrapper})
 
-        return ToolCls()
+        # Return an *instance* – cast so mypy sees BaseTool subtype
+        return cast(BaseTool, ToolCls())
 
     return decorator

@@ -11,7 +11,7 @@ from typing import Any, Generator
 
 import pytest  # type: ignore
 
-from ice_sdk.tools.builtins.deterministic import HttpRequestTool
+from ice_sdk.tools.web import HttpRequestTool
 
 
 class _Handler(BaseHTTPRequestHandler):

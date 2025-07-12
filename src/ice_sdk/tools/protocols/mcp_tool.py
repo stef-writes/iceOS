@@ -24,7 +24,7 @@ from typing import Any, ClassVar, Dict, MutableMapping, Optional
 import httpx
 from pydantic import BaseModel, Field, PrivateAttr
 
-from .base import BaseTool, ToolError
+from ..base import BaseTool, ToolError
 
 __all__: list[str] = ["MCPTool"]
 

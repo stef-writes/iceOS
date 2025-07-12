@@ -5,7 +5,7 @@ FastAPI application entry point
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import List
+from typing import AsyncIterator, List
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -26,7 +26,7 @@ logger = setup_logger()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan manager"""
     # Startup
     # Get the project root directory (where .env should be)
@@ -132,7 +132,8 @@ app.include_router(kb_router)
 
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
+    """Simple welcome endpoint."""
     logger.info("Root endpoint accessed")
     return {"message": "Welcome to iceOS"}
 
@@ -141,13 +142,13 @@ async def root():
 
 
 @app.get("/health", tags=["utils"])
-async def health_check():  # noqa: D401
+async def health_check() -> dict[str, str]:  # noqa: D401
     """Return simple health status so external monitors can probe the API."""
     return {"status": "ok"}
 
 
 @app.get("/v1/tools", response_model=List[str], tags=["utils"])
-async def list_tools_v1(request: Request):  # noqa: D401
+async def list_tools_v1(request: Request) -> List[str]:  # noqa: D401
     """Return all registered tool names (legacy alias without /api prefix)."""
     tool_service = request.app.state.tool_service  # type: ignore[attr-defined]
     return sorted(tool_service.available_tools())

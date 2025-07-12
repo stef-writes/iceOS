@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from fastapi import APIRouter, HTTPException  # type: ignore
+from fastapi import APIRouter, HTTPException, Response  # type: ignore
 from pydantic import BaseModel, Field  # type: ignore
 
 from ice_sdk.chain_builder.engine import BuilderEngine, ChainDraft, Question
@@ -61,11 +61,11 @@ class RenderResponse(BaseModel):
 
 
 class ExportResponse(BaseModel):
-    draft: dict
+    draft: dict[str, Any]
 
 
 class ResumeRequest(BaseModel):
-    draft: dict  # Raw ChainDraft JSON as produced by ExportResponse
+    draft: dict[str, Any]  # Raw ChainDraft JSON as produced by ExportResponse
 
 
 class ResumeResponse(BaseModel):
@@ -111,7 +111,7 @@ def _get_draft(draft_id: str) -> ChainDraft:
 
 
 @router.post("/start", response_model=StartResponse, status_code=201)
-async def start_builder(req: StartRequest):  # noqa: D401
+async def start_builder(req: StartRequest) -> StartResponse:  # noqa: D401
     draft = BuilderEngine.start(total_nodes=req.total_nodes, chain_name=req.name)
     draft_id = str(uuid.uuid4())
     _drafts[draft_id] = (draft, time.time())
@@ -120,14 +120,14 @@ async def start_builder(req: StartRequest):  # noqa: D401
 
 
 @router.get("/next", response_model=QuestionModel | None)
-async def next_question(draft_id: str):  # noqa: D401
+async def next_question(draft_id: str) -> QuestionModel | None:  # noqa: D401
     draft = _get_draft(draft_id)
     q = BuilderEngine.next_question(draft)
     return QuestionModel.from_engine(q)
 
 
 @router.post("/answer", response_model=AnswerResponse)
-async def submit_answer(req: AnswerRequest):  # noqa: D401
+async def submit_answer(req: AnswerRequest) -> AnswerResponse:  # noqa: D401
     draft = _get_draft(req.draft_id)
 
     # ------------------------------------------------------------------
@@ -162,17 +162,17 @@ async def submit_answer(req: AnswerRequest):  # noqa: D401
 
 
 @router.get("/render", response_model=RenderResponse)
-async def render_chain(draft_id: str):  # noqa: D401
+async def render_chain(draft_id: str) -> RenderResponse:  # noqa: D401
     draft = _get_draft(draft_id)
     source = BuilderEngine.render_chain(draft)
     mermaid = BuilderEngine.render_mermaid(draft)
     return RenderResponse(source=source, mermaid=mermaid)
 
 
-@router.delete("/{draft_id}", status_code=204)
-async def delete_draft(draft_id: str):  # noqa: D401
+@router.delete("/{draft_id}", status_code=204, response_class=Response)
+async def delete_draft(draft_id: str) -> Response:  # noqa: D401
     _drafts.pop(draft_id, None)
-    return None
+    return Response(status_code=204)
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +181,7 @@ async def delete_draft(draft_id: str):  # noqa: D401
 
 
 @router.get("/export", response_model=ExportResponse)
-async def export_draft(draft_id: str):  # noqa: D401
+async def export_draft(draft_id: str) -> ExportResponse:  # noqa: D401
     """Return the raw ChainDraft dict so clients can persist it offline."""
 
     draft = _get_draft(draft_id)
@@ -191,7 +191,7 @@ async def export_draft(draft_id: str):  # noqa: D401
 
 
 @router.post("/resume", response_model=ResumeResponse, status_code=201)
-async def resume_draft(req: ResumeRequest):  # noqa: D401
+async def resume_draft(req: ResumeRequest) -> ResumeResponse:  # noqa: D401
     """Load *draft* JSON (as from `/export`) and return a fresh `draft_id`."""
 
     # Validate and reconstruct ------------------------------------------------
@@ -212,8 +212,8 @@ async def resume_draft(req: ResumeRequest):  # noqa: D401
 # ---------------------------------------------------------------------------
 
 
-@router.post("/cleanup", status_code=204)
-async def cleanup():  # noqa: D401
+@router.post("/cleanup", status_code=204, response_class=Response)
+async def cleanup() -> Response:  # noqa: D401
     """Delete all expired drafts (older than TTL)."""
     _cleanup_expired()
-    return None
+    return Response(status_code=204)

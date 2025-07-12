@@ -11,9 +11,7 @@ from typing import Any, ClassVar, Dict, Optional
 import httpx
 from pydantic import AnyHttpUrl, BaseModel, Field
 
-from .base import BaseTool, ToolContext
-
-__all__ = ["WebhookEmitterTool"]
+from ..base import BaseTool, ToolContext
 
 
 class _WebhookArgs(BaseModel):

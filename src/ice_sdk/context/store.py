@@ -40,7 +40,7 @@ class ContextStore(BaseContextStore):
         self,
         context_store_path: Optional[str] = None,
         formatter: Optional[ContextFormatter] = None,
-    ):
+    ) -> None:
         if context_store_path:
             self.context_store_path = context_store_path
         elif os.getenv("SCRIPTCHAIN_CONTEXT_STORE_PATH"):
@@ -63,11 +63,11 @@ class ContextStore(BaseContextStore):
         )  # hooks for observability
         self.formatter = formatter or ContextFormatter()
 
-    def register_hook(self, hook: Callable[[str, str, Any], None]):
+    def register_hook(self, hook: Callable[[str, str, Any], None]) -> None:
         """Register a hook to be called on every context operation."""
         self.hooks.append(hook)
 
-    def _run_hooks(self, op: str, node_id: str, content: Any):
+    def _run_hooks(self, op: str, node_id: str, content: Any) -> None:
         for hook in self.hooks:
             hook(op, node_id, content)
 

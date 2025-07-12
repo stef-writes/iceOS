@@ -1,9 +1,9 @@
-from typing import Any, Dict
+from typing import Any, Dict, Type
 
 from pydantic import BaseModel, ValidationError
 
 
-def coerce_value(value, target_type):
+def coerce_value(value: Any, target_type: Type[Any]) -> Any:
     try:
         if target_type is int:
             if isinstance(value, int):

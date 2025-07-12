@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 __all__: list[str] = ["extract_json"]
 
@@ -30,7 +30,8 @@ def extract_json(raw: str) -> Dict[str, Any]:  # noqa: D401 – util name
 
     if raw.strip().startswith("```"):
         raw = _FENCE_RE.sub("", raw.strip())
-    return json.loads(raw)
+    # `json.loads` returns Any; cast to the expected mapping type for callers.
+    return cast(Dict[str, Any], json.loads(raw))
 
 
 # ---------------------------------------------------------------------------

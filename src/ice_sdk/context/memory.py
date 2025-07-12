@@ -65,10 +65,10 @@ class NullMemory(BaseMemory):
     # ------------------------------------------------------------------
     # Synchronous wrappers ---------------------------------------------
     # ------------------------------------------------------------------
-    def store(self, *args, **kwargs) -> None:  # type: ignore[override]
+    def store(self, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
         """No-op store – used by unit-tests exercising dependency injection."""
 
-    def recall(self, *args, **kwargs) -> List[str]:  # type: ignore[override]
+    def recall(self, *args: Any, **kwargs: Any) -> List[str]:  # type: ignore[override]
         """Always return an empty list to signify no stored vectors."""
         return []
 
@@ -128,7 +128,9 @@ class SQLiteVectorMemory(BaseMemory):
 
     def _encode(self, text: str) -> List[float]:
         if self.encoder:
-            return self.encoder.encode(text).tolist()  # type: ignore[return-value]
+            from typing import cast
+
+            return cast(List[float], self.encoder.encode(text).tolist())  # type: ignore[arg-type]
         # Fallback: very naive char-based encoding (bounded to 128 chars)
         return [ord(c) / 256 for c in text[:128]]
 

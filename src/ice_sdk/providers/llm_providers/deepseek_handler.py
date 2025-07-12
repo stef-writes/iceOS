@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 from openai import AsyncOpenAI
 
@@ -26,9 +26,9 @@ class DeepSeekHandler(BaseLLMHandler):
         self,
         llm_config: LLMConfig,
         prompt: str,
-        context: Dict[str, Any],
-        tools: Optional[list] = None,
-    ) -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:
+        context: dict[str, Any],
+        tools: Optional[list[dict[str, Any]]] = None,
+    ) -> tuple[str, Optional[dict[str, int]], Optional[str]]:
         api_key = os.getenv("DEEPSEEK_API_KEY") or llm_config.api_key
         if not api_key:
             return "", None, "DEEPSEEK_API_KEY not set"

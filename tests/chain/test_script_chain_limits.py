@@ -5,8 +5,8 @@ from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk.context import GraphContextManager
 from ice_sdk.context.manager import GraphContext
 from ice_sdk.models.node_models import ToolNodeConfig
-from ice_sdk.tools.builtins import SumTool
 from ice_sdk.tools.service import ToolService
+from ice_sdk.tools.system import SumTool
 
 
 @pytest.mark.asyncio

@@ -45,6 +45,36 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
         if node is None:
             raise ValueError(f"Node '{node_id}' not found in chain configuration")
 
+        # ------------------------------------------------------------------
+        # Rule 13 – idempotent validate() on every node ---------------------
+        # ------------------------------------------------------------------
+
+        try:
+            node.runtime_validate()  # type: ignore[attr-defined]
+        except Exception as exc:
+            from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
+
+            error_meta = NodeMetadata(  # type: ignore[call-arg]
+                node_id=node_id,
+                node_type=str(getattr(node, "type", "")),
+                name=getattr(node, "name", None),
+                version="1.0.0",
+                start_time=datetime.utcnow(),
+                end_time=datetime.utcnow(),
+                duration=0.0,
+                error_type=type(exc).__name__,
+            )
+
+            # Fail fast per FailurePolicy.HALT else return failure result ----
+            if chain.failure_policy.name == "HALT":
+                raise
+
+            return NodeExecutionResult(  # type: ignore[call-arg]
+                success=False,
+                error=f"Validation failed for node '{node_id}': {exc}",
+                metadata=error_meta,
+            )
+
         # --------------------------------------------------------------
         # Persist *input_data* to the context store --------------------
         # --------------------------------------------------------------

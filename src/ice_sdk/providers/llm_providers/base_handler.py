@@ -10,7 +10,7 @@ Migrated from ``ice_tools.llm_providers.base_handler`` to the new
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 from ice_sdk.models.config import LLMConfig
 
@@ -28,7 +28,7 @@ class BaseLLMHandler(ABC):
     # ---------------------------------------------------------------------
 
     @staticmethod
-    def _usage_from_openai(resp) -> Optional[Dict[str, int]]:  # noqa: D401
+    def _usage_from_openai(resp: Any) -> Optional[dict[str, int]]:  # noqa: D401
         """Extract *prompt/completion/total* tokens from an OpenAI-style
         response object (also used by DeepSeek which follows the same schema).
 
@@ -73,9 +73,9 @@ class BaseLLMHandler(ABC):
         self,
         llm_config: LLMConfig,
         prompt: str,
-        context: Dict[str, Any],
-        tools: Optional[list] = None,
-    ) -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:
+        context: dict[str, Any],
+        tools: Optional[list[dict[str, Any]]] = None,
+    ) -> tuple[str, Optional[dict[str, int]], Optional[str]]:
         """Return *(text, usage, error)* from the provider.
 
         implementer must return:

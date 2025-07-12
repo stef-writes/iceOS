@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 from openai import AsyncOpenAI
 
@@ -26,9 +26,9 @@ class OpenAIHandler(BaseLLMHandler):
         self,
         llm_config: LLMConfig,
         prompt: str,
-        context: Dict[str, Any],
-        tools: Optional[list] = None,
-    ) -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:
+        context: dict[str, Any],
+        tools: Optional[list[dict[str, Any]]] = None,
+    ) -> tuple[str, Optional[dict[str, int]], Optional[str]]:
         """Generate text (and optional tool/function call) via OpenAI API."""
 
         api_key = os.getenv("OPENAI_API_KEY")

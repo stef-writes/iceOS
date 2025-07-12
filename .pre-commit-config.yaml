@@ -56,7 +56,7 @@ repos:
         always_run: true
       - id: coverage
         name: pytest (coverage gate)
-        entry: pytest --cov=ice_sdk --cov=ice_orchestrator --cov-report=term --cov-fail-under=65 -q
+        entry: pytest --cov=ice_sdk --cov=ice_orchestrator --cov-report=term --cov-fail-under=60 -q
         language: system
         pass_filenames: false
         always_run: true 

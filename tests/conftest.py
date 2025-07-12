@@ -5,6 +5,8 @@ import pytest
 
 from ice_sdk.tools.base import ToolContext, function_tool
 
+# ruff: noqa: E402
+
 # ---------------------------------------------------------------------------
 # Test-only deterministic Slack replacement  ---------------------------------
 # ---------------------------------------------------------------------------
@@ -58,3 +60,11 @@ def pytest_collection_modifyitems(config, items):  # noqa: D401
         node_path = pathlib.Path(item.fspath.strpath)
         if "contract" in item.keywords or "property" in str(node_path.parts):
             item.add_marker(pytest.mark.slow)  # type: ignore[attr-defined]
+
+
+# ---------------------------------------------------------------------------
+# Architectural guard & shim enforcement ------------------------------------
+# ---------------------------------------------------------------------------
+
+
+# Ensure project root is on PYTHONPATH for ``scripts``

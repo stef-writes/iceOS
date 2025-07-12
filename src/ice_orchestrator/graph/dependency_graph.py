@@ -17,7 +17,7 @@ class DependencyGraph:
         self._build_graph(nodes)
         self._assign_levels(nodes)
 
-    def _build_graph(self, nodes: List[Any]):
+    def _build_graph(self, nodes: List[Any]) -> None:
         node_ids = {node.id for node in nodes}
         for node in nodes:
             self.graph.add_node(node.id, level=0)
@@ -42,7 +42,7 @@ class DependencyGraph:
         self._validate_no_sensitive_data_flows(nodes)
         self._enforce_airgap_compliance(nodes)
 
-    def _assign_levels(self, nodes: List[Any]):
+    def _assign_levels(self, nodes: List[Any]) -> None:
         node_map = {node.id: node for node in nodes}
         for node_id in nx.topological_sort(self.graph):
             node = node_map[node_id]
@@ -63,6 +63,14 @@ class DependencyGraph:
             self.node_levels[node_id] = node.level
 
     def get_level_nodes(self) -> Dict[int, List[str]]:
+        """Return mapping of *level → node_ids*.
+
+        Example::
+
+            >>> dg.get_level_nodes()
+            {0: ["root"], 1: ["child1", "child2"]}
+        """
+
         levels: Dict[int, List[str]] = {}
         for node_id, level in self.node_levels.items():
             if level not in levels:
@@ -80,12 +88,20 @@ class DependencyGraph:
         return self.node_levels[node_id]
 
     def get_leaf_nodes(self) -> List[str]:
+        """Return nodes without outgoing edges (terminal nodes).
+
+        Useful when you need the chain’s "result" node(s).  A short example::
+
+            >>> dg.get_leaf_nodes()
+            ["final"]
+        """
+
         # NetworkX typing stubs treat ``out_degree`` as *Mapping[node, int]* rather than
         # an iterable of *(node, degree)* tuples.  Avoid the unpacking to satisfy
         # Pyright by querying degree per node explicitly.
         return [n for n in self.graph.nodes() if self.graph.out_degree(n) == 0]
 
-    def validate_schema_alignment(self, nodes: List[Any]):
+    def validate_schema_alignment(self, nodes: List[Any]) -> None:
         node_map = {node.id: node for node in nodes}
         for node in nodes:
             # Check input mappings to ensure they reference valid dependencies and output keys
@@ -141,7 +157,7 @@ class DependencyGraph:
     # Security helpers -------------------------------------------------
     # -----------------------------------------------------------------
 
-    def _validate_no_sensitive_data_flows(self, nodes: List[Any]):
+    def _validate_no_sensitive_data_flows(self, nodes: List[Any]) -> None:
         """Placeholder – Ensure nodes flagged as *contains_sensitive_data*
         do not feed into external calls without explicit approval."""
 
@@ -154,7 +170,7 @@ class DependencyGraph:
                             f"Sensitive data from node '{node.id}' flows into external I/O node '{succ}'."
                         )
 
-    def _enforce_airgap_compliance(self, nodes: List[Any]):
+    def _enforce_airgap_compliance(self, nodes: List[Any]) -> None:
         """Placeholder hook to prevent nodes that need internet access when
         running in *air-gapped* environments.  Actual enforcement should be
         provided by deployment config; this is a best-effort static guard."""

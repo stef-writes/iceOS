@@ -1,8 +1,10 @@
 # pyright: reportGeneralTypeIssues=false
+# ruff: noqa: E402
 """
 Data models for node configurations and metadata
 """
 
+import warnings  # noqa: E402 – after stdlib imports
 from datetime import datetime
 from enum import Enum
 
@@ -20,18 +22,50 @@ from typing import (
     Union,
 )
 
+if TYPE_CHECKING:  # pragma: no cover – import only for type checkers
+    from ice_sdk.interfaces.chain import ScriptChainLike as _ScriptChainLike
+else:
+    _ScriptChainLike = Any  # type: ignore[misc]
+
+# Re-export the alias for downstream modules -----------------------------
+ScriptChainLike = _ScriptChainLike
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .config import LLMConfig, ModelProvider
 
-# ---------------------------------------------------------------------------
-# Typing-only imports to avoid runtime dependency on orchestrator layer
-# ---------------------------------------------------------------------------
+# (import moved below for clarity)
 
-if TYPE_CHECKING:  # pragma: no cover
-    from ice_sdk.interfaces.chain import ScriptChainLike
 
-# Union alias imported early to satisfy lint rules (E402)
+# Emit structured warning **once** at import.  We keep a simple alias so that
+# instantiation does *not* raise, allowing existing code to continue running
+# while migrations are in progress.
+warnings.warn(
+    "ice_sdk.models.node_models.NodeMetadata is deprecated; import from ice_core.models instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# ---------------------------------------------------------------------------
+# Deprecation alias – migrate to ice_core.models.NodeMetadata
+# ---------------------------------------------------------------------------
+from ice_core.models import NodeMetadata as _CoreNodeMetadata  # noqa: E402
+
+# Re-export deprecated alias so existing imports continue to work.  The file-level
+# ``warnings.warn`` ensures users see a deprecation notice while preserving full
+# type-compatibility (the alias is the actual class, not a wrapped function).
+NodeMetadata = _CoreNodeMetadata  # type: ignore[assignment]
+
+
+class ToolConfig(BaseModel):
+    name: str
+    description: Optional[str] = None
+    parameters: Dict[str, Any]
+
+
+# ---------------------------------------------------------------------------
+# Context helpers (moved up) -------------------------------------------------
+# ---------------------------------------------------------------------------
 
 
 class ContextFormat(str, Enum):
@@ -43,7 +77,7 @@ class ContextFormat(str, Enum):
 
 
 class InputMapping(BaseModel):
-    """Mapping configuration for node inputs"""
+    """Mapping configuration for node inputs."""
 
     source_node_id: str = Field(
         ..., description="Source node ID (UUID of the dependency)"
@@ -59,7 +93,7 @@ class InputMapping(BaseModel):
 
 
 class ContextRule(BaseModel):
-    """Rule for handling context in a node"""
+    """Rule for handling context in a node."""
 
     include: bool = Field(default=True, description="Whether to include this context")
     format: ContextFormat = Field(
@@ -74,89 +108,6 @@ class ContextRule(BaseModel):
     truncate: bool = Field(
         default=True, description="Whether to truncate if over token limit"
     )
-
-
-class NodeMetadata(BaseModel):
-    """Metadata model for node versioning and ownership"""
-
-    node_id: str = Field(..., description="Unique node identifier")
-    node_type: str = Field(..., description="Type of node (ai)")
-    name: Optional[str] = None
-    version: str = Field(
-        "1.0.0",
-        pattern=r"^\d+\.\d+\.\d+$",
-        description="Semantic version of node configuration",
-    )
-    owner: Optional[str] = Field(None, description="Node owner/maintainer")
-    created_at: Optional[datetime] = None
-    modified_at: Optional[datetime] = None
-    description: Optional[str] = Field(None, description="Description of the node")
-    error_type: Optional[str] = Field(
-        None, description="Type of error if execution failed"
-    )
-    timestamp: Optional[datetime] = None
-    start_time: Optional[datetime] = Field(None, description="Execution start time")
-    end_time: Optional[datetime] = Field(None, description="Execution end time")
-    duration: Optional[float] = Field(None, description="Execution duration in seconds")
-    # New governance/observability helpers -------------------------------------
-    tags: List[str] = Field(
-        default_factory=list,
-        description="Categorisation tags for the node (e.g. 'safety', 'experimental')",
-    )
-    provider: Optional[ModelProvider] = Field(
-        None, description="LLM provider used for execution"
-    )
-    retry_count: int = Field(
-        default=0,
-        ge=0,
-        description="Number of retry attempts performed during node execution",
-    )
-
-    @model_validator(mode="before")
-    @classmethod
-    def set_modified_at(cls, values):
-        """Update modified_at timestamp on any change."""
-        values["modified_at"] = datetime.utcnow()
-        return values
-
-    # Automatically compute duration if possible ------------------------------
-    @model_validator(mode="after")
-    def _set_duration(self):  # noqa: D401
-        if self.start_time and self.end_time and self.duration is None:
-            self.duration = (self.end_time - self.start_time).total_seconds()
-        elif self.start_time and self.duration is not None and self.end_time is None:
-            from datetime import timedelta
-
-            self.end_time = self.start_time + timedelta(seconds=self.duration)
-        return self
-
-    # ------------------------------------------------------------------
-    # Validators --------------------------------------------------------
-    # ------------------------------------------------------------------
-
-    @model_validator(mode="after")
-    def _ensure_description_tags(self):  # noqa: D401
-        """Ensure *description* & *tags* are always populated.
-
-        We auto-fill them when missing so existing code remains compatible while
-        downstream analytics can rely on their presence.
-        """
-
-        if not self.description or not self.description.strip():
-            # Fallback to deterministic string for traceability
-            self.description = f"Node {self.node_id} (type={self.node_type})"
-
-        if not self.tags:
-            # A generic tag helps filtering in dashboards even when authors omit it
-            self.tags = ["default"]
-
-        return self
-
-
-class ToolConfig(BaseModel):
-    name: str
-    description: Optional[str] = None
-    parameters: Dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
@@ -329,6 +280,21 @@ class BaseNodeConfig(BaseModel):
 
     def adapt_schema_from_context(self, context: Dict[str, Any]) -> None:  # noqa: D401
         """Hook for dynamic schema adaptation based on upstream context."""
+        return None
+
+    # ------------------------------------------------------------------
+    # Validation stub ---------------------------------------------------
+    # ------------------------------------------------------------------
+
+    def runtime_validate(self) -> None:  # noqa: D401
+        """Idempotent runtime validation hook.
+
+        The default implementation leverages Pydantic's own validation that
+        already ran at instantiation, therefore it simply returns. Subclasses
+        can override to add heavier runtime checks (e.g. connectivity to
+        external services or dynamic schema adaptation).
+        """
+
         return None
 
     @staticmethod

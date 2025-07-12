@@ -167,7 +167,7 @@ class GraphContextManager:
         self._context = context
         self._register_context(context)
 
-    async def execute_tool(self, tool_name: str, **kwargs) -> Any:
+    async def execute_tool(self, tool_name: str, **kwargs: Any) -> Any:
         """Execute a tool with the current context.
 
         Args:
@@ -359,8 +359,12 @@ class GraphContextManager:
         from ice_sdk.utils.token_counter import TokenCounter
 
         def _estimate_tokens(text: str) -> int:
-            return TokenCounter.estimate_tokens(
-                text, model="", provider=ModelProvider.CUSTOM
+            """Return token estimate for *text* as *int* (mypy-safe)."""
+            return cast(
+                int,
+                TokenCounter.estimate_tokens(
+                    text, model="", provider=ModelProvider.CUSTOM
+                ),
             )
 
         # ------------------------------------------------------------------
@@ -380,9 +384,7 @@ class GraphContextManager:
         if strategy == "summarize":
             try:
                 # Defer import – summariser is optional dependency
-                from ice_sdk.tools.builtins.deterministic import (
-                    deterministic_summariser,  # type: ignore
-                )
+                from ice_sdk.utils.summariser import deterministic_summariser
 
                 summary = deterministic_summariser(
                     content, schema=schema, max_tokens=effective_max_tokens

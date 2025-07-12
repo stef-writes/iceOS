@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
@@ -52,7 +52,7 @@ tracer = trace.get_tracer(__name__)
 logger = structlog.get_logger(__name__)
 
 
-class ScriptChain(BaseScriptChain):
+class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve BaseScriptChain across namespace package boundary
     """Execute a directed acyclic workflow using level-based parallelism.
 
     Nodes at the same topological level (i.e. depth in the dependency DAG)
@@ -323,6 +323,11 @@ class ScriptChain(BaseScriptChain):
                 )
                 return node.id, result
 
+            # The context manager above always returns; this line is never
+            # reached but satisfies static analysis that a return statement
+            # exists on all code paths (mypy + pyright).
+            raise RuntimeError("unreachable")  # pragma: no cover
+
         tasks = [process_node(node) for node in level_nodes]
         # Gather with *return_exceptions* so that a single node failure does not
         # crash the entire level when *failure_policy* allows continuation.  Any
@@ -392,13 +397,15 @@ class ScriptChain(BaseScriptChain):
     ) -> Dict[str, Any]:
         """Delegate to :class:`ContextBuilder`."""
 
-        return ContextBuilder.build_node_context(node, accumulated_results)
+        return cast(
+            Dict[str, Any], ContextBuilder.build_node_context(node, accumulated_results)
+        )
 
     @staticmethod
     def _resolve_nested_path(data: Any, path: str) -> Any:
         """Delegate to :class:`ContextBuilder`."""
 
-        return ContextBuilder.resolve_nested_path(data, path)
+        return ContextBuilder.resolve_nested_path(data, path)  # type: ignore[return-value]  # dynamic path resolution returns Any
 
     # ---------------------------------------------------------------------
     # Graph inspection public API -----------------------------------------
@@ -406,23 +413,23 @@ class ScriptChain(BaseScriptChain):
 
     def get_node_dependencies(self, node_id: str) -> List[str]:
         """Get dependencies for a node."""
-        return self.graph.get_node_dependencies(node_id)
+        return cast(List[str], self.graph.get_node_dependencies(node_id))
 
     def get_node_dependents(self, node_id: str) -> List[str]:
         """Get dependents for a node."""
-        return self.graph.get_node_dependents(node_id)
+        return cast(List[str], self.graph.get_node_dependents(node_id))
 
     def get_node_level(self, node_id: str) -> int:
         """Get execution level for a node."""
-        return self.graph.get_node_level(node_id)
+        return cast(int, self.graph.get_node_level(node_id))
 
     def get_level_nodes(self, level: int) -> List[str]:
         """Get nodes at a specific level."""
-        return self.levels.get(level, [])
+        return cast(List[str], self.levels.get(level, []))
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get execution metrics."""
-        return self.metrics.as_dict()
+        return cast(Dict[str, Any], self.metrics.as_dict())
 
     async def execute_node(
         self, node_id: str, input_data: Dict[str, Any]
@@ -444,7 +451,7 @@ class ScriptChain(BaseScriptChain):
     def _is_output_valid(node: NodeConfig, output: Any) -> bool:
         """Delegate to :class:`SchemaValidator`."""
 
-        return SchemaValidator().is_output_valid(node, output)
+        return cast(bool, SchemaValidator().is_output_valid(node, output))
 
     # ---------------------------------------------------------------------
     # Branch gating helpers -------------------------------------------------
@@ -453,7 +460,7 @@ class ScriptChain(BaseScriptChain):
     def _is_node_active(self, node_id: str) -> bool:
         """Delegate to :class:`BranchGatingResolver`."""
 
-        return self._branch_resolver.is_node_active(node_id)
+        return cast(bool, self._branch_resolver.is_node_active(node_id))
 
     # -----------------------------------------------------------------
     # Validation utilities --------------------------------------------
@@ -462,7 +469,7 @@ class ScriptChain(BaseScriptChain):
     def validate_chain(self) -> list[str]:
         """Delegate to :class:`ChainValidator`."""
 
-        return self._validator.validate_chain()
+        return cast(list[str], self._validator.validate_chain())
 
     # ------------------------------------------------------------------
     # Factory helpers ---------------------------------------------------
@@ -478,9 +485,10 @@ class ScriptChain(BaseScriptChain):
     ) -> "ScriptChain":
         """Delegate to :class:`ChainFactory`."""
 
-        return await ChainFactory.from_dict(
+        chain_obj = await ChainFactory.from_dict(
             payload, target_version=target_version, **kwargs
         )
+        return cast("ScriptChain", chain_obj)
 
     # -------------------------------------------------------------------
     # Composition helper -------------------------------------------------

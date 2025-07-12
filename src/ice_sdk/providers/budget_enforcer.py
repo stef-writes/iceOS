@@ -40,6 +40,9 @@ class BudgetEnforcer:
         # that responsibility lives with :pydata:`runtime_config` which is
         # intentionally immutable.
         # Monetary budget ----------------------------------------------------
+        # Declare attribute with optional float type to satisfy MyPy.
+        self.org_budget_usd: float | None
+
         if org_budget_usd is not None:
             self.org_budget_usd = org_budget_usd
         else:
@@ -145,7 +148,7 @@ class BudgetEnforcer:
         """Return the total cost recorded so far."""
         return self._total_cost
 
-    def get_status(self) -> dict:
+    def get_status(self) -> dict[str, float | int | bool | str | None]:
         """Return current budget status."""
         return {
             "llm_calls": self._llm_calls,

@@ -7,10 +7,11 @@ lives inside ``ice_sdk`` so that external packages can depend on a stable path.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 from pydantic import ValidationError, create_model
 
+from ice_core.models import NodeMetadata
 from ice_sdk.models.node_models import NodeConfig, NodeExecutionResult
 
 
@@ -31,34 +32,39 @@ class BaseNode(ABC):
     # ------------------------------------------------------------------
     @property
     def node_id(self) -> str:  # noqa: D401
-        return self.config.metadata.node_id  # type: ignore[attr-defined]
+        """Return the underlying node UUID (guaranteed post-validation)."""
+        return cast(str, cast(NodeMetadata, self.config.metadata).node_id)  # type: ignore[attr-defined]
 
     @property
     def node_type(self) -> str:  # noqa: D401
-        return self.config.metadata.node_type  # type: ignore[attr-defined]
+        return cast(str, cast(NodeMetadata, self.config.metadata).node_type)  # type: ignore[attr-defined]
 
     @property
-    def id(self):  # noqa: D401
-        return self.config.id
+    def id(self) -> str:  # noqa: D401
+        return cast(str, self.config.id)
 
     @property
-    def llm_config(self):  # noqa: D401
+    def llm_config(self) -> Any:  # noqa: D401 – provider specific
         return getattr(self, "_llm_config", getattr(self.config, "llm_config", None))
 
     @property
-    def dependencies(self):  # noqa: D401
-        return self.config.dependencies
+    def dependencies(self) -> list[str]:  # noqa: D401
+        return cast(list[str], self.config.dependencies)
 
     # ------------------------------------------------------------------
     # Lifecycle hooks ----------------------------------------------------
     # ------------------------------------------------------------------
-    async def pre_execute(self, context: Dict[str, Any]):  # noqa: D401
+    async def pre_execute(
+        self, context: Dict[str, Any]
+    ) -> Dict[str, Any]:  # noqa: D401
         """Validate and potentially transform *context* before :py:meth:`execute`."""
         if not await self.validate_input(context):
             raise ValueError("Input validation failed")
         return context
 
-    async def post_execute(self, result: NodeExecutionResult):  # noqa: D401
+    async def post_execute(
+        self, result: NodeExecutionResult
+    ) -> NodeExecutionResult:  # noqa: D401
         return result
 
     # ------------------------------------------------------------------

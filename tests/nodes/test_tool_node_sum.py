@@ -3,7 +3,7 @@ import pytest
 from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk.models.node_models import ToolNodeConfig
 from ice_sdk.services import ServiceLocator
-from ice_sdk.tools.builtins.deterministic import SumTool
+from ice_sdk.tools.system import SumTool
 
 
 @pytest.mark.asyncio

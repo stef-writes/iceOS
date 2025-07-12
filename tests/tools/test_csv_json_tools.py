@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest  # type: ignore
 
-from ice_sdk.tools.builtins.file_tools import CsvLoaderTool, JsonQueryTool
+from ice_sdk.tools.data import CsvLoaderTool, JsonQueryTool
 
 
 @pytest.mark.asyncio

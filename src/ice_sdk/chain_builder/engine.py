@@ -207,7 +207,7 @@ class BuilderEngine:  # noqa: D401 – stateless helper
             "from typing import List\n\n"
             "from ice_orchestrator.script_chain import ScriptChain\n"
             "from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig\n"
-            "from ice_sdk.tools.builtins.deterministic import SumTool\n\n"
+            "from ice_sdk.tools.system.sum_tool import SumTool\n\n"
             "nodes: List[AiNodeConfig | ToolNodeConfig] = [\n"
             f"{nodes_block}\n"  # noqa: E501
             "]\n\n"

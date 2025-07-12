@@ -38,7 +38,7 @@ except Exception:  # pragma: no cover – optional dependency missing
 # expose the class when FastAPI is available so static analysers see it.
 if not _TYPE_CHECKING:
     try:
-        _kb_mod: _ModuleType = _import_module("ice_sdk.extensions.kb_search.tool")
+        _kb_mod: _ModuleType = _import_module("ice_sdk.tools.web.kb_search_tool")
         KBSearchTool = getattr(_kb_mod, "KBSearchTool")  # type: ignore
         del _kb_mod
     except Exception:

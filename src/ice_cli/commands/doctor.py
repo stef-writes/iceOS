@@ -43,9 +43,11 @@ def doctor_lint():
 
 @doctor_app.command("type")
 def doctor_type():
-    """Run Pyright (strict type-checking)."""
+    """Run MyPy in strict mode against *src/*."""
 
-    _run(["pyright"])
+    _run(
+        ["mypy", "--strict", "--config-file", "mypy.ini", "src/app", "src/ice_cli"]
+    )  # strict only on modern packages
 
 
 @doctor_app.command("test")
@@ -74,11 +76,11 @@ class _Check:  # noqa: D401 – internal container
 # NOTE: Keep in sync with project HEALTHCHECKS.md ---------------------------
 _CHECKS: list[_Check] = [
     _Check("Linting (ruff)", "ruff check src"),
-    _Check("Typing (pyright)", "pyright --project config"),
+    _Check("Typing (mypy strict: app)", "mypy --strict --config-file mypy.ini src/app"),
     _Check("Unit & integration tests", "pytest -q"),
     _Check(
         "Coverage threshold",
-        ("pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=54 -q"),
+        ("pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=60 -q"),
     ),
     *([_Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []),
     _Check("Import-linter rules", "lint-imports --config config/.importlinter"),

@@ -1,10 +1,13 @@
-# pragma: no cover  # skip entire placeholder module
-from typing import Literal
+"""Development scaffolding tools for node creation and tool discovery."""
+
+from __future__ import annotations
+
+from typing import Any, Dict, List, Literal
 
 import yaml
 from pydantic import BaseModel
 
-from ice_sdk.tools import ToolMetadata, tool  # type: ignore  # noqa: F401
+from ..base import function_tool as tool
 
 # ---------------------------------------------------------------------------
 # Temporary placeholder until full config validation is implemented -----------
@@ -13,20 +16,20 @@ from ice_sdk.tools import ToolMetadata, tool  # type: ignore  # noqa: F401
 # pragma: no cover – placeholder module not yet production-ready
 
 
-def validate_config(cfg):  # noqa: D401  – minimal stub
-    """Return *cfg* unchanged (placeholder)."""
+def validate_config(cfg: Dict[str, Any]) -> Dict[str, Any]:  # noqa: D401 – minimal stub
+    """Return *cfg* unchanged (placeholder until real validation)."""
     return cfg
 
 
-@tool
+@tool()
 async def suggest_existing_tools(user_requirement: str) -> str:
     """Search registered tools matching a use case"""
     # Uses ice_sdk.capabilities.registry
     return "Similar tools: ResearchTool, DataVizTool, WebhookTool"
 
 
-@tool
-async def generate_node_stub(config: dict) -> str:
+@tool()
+async def generate_node_stub(config: Dict[str, Any]) -> str:
     """Create ainode.yaml scaffold"""
     # Uses schemas/runtime/AiNodeConfig.json
     return yaml.dump(validate_config(config))
@@ -37,23 +40,18 @@ class NodeScaffoldRequest(BaseModel):
     requirements: str
 
 
-@tool(
-    metadata=ToolMetadata(
-        name="node_scaffolder",
-        description="Generates starter YAML configs for new nodes",
-    )
-)
-async def generate_node_scaffold(request: NodeScaffoldRequest) -> dict:
+@tool()
+async def generate_node_scaffold(request: NodeScaffoldRequest) -> Dict[str, Any]:
     """Generates node configuration scaffold based on type"""
     base_config = {
         "apiVersion": "iceos/v1alpha1",
         "kind": "AiNode" if request.node_type == "AI" else "ToolNode",
         "requirements": request.requirements.split(","),
     }
-    return validate_config(base_config)  # Uses existing validation
+    return validate_config(base_config)
 
 
-@tool
-async def visualize_chain(nodes: list[str]) -> str:
+@tool()
+async def visualize_chain(nodes: List[str]) -> str:
     """Generates Mermaid diagram code for proposed flow"""
     return "graph TD\n\t" + "\n\t".join(nodes)

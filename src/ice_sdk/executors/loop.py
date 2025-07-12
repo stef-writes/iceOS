@@ -11,7 +11,7 @@ from ice_sdk.node_registry import register_node
 ScriptChain: TypeAlias = ScriptChainLike
 
 
-@register_node("loop")
+@register_node("loop")  # type: ignore[misc]  # decorator preserves signature
 async def loop_executor(
     chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
 ) -> NodeExecutionResult:

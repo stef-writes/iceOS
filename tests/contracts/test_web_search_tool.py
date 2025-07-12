@@ -10,7 +10,7 @@ try:
 except ModuleNotFoundError:
     pytest.skip("respx not installed", allow_module_level=True)
 
-from ice_sdk.tools.hosted import WebSearchTool
+from ice_sdk.tools.web.search_tool import WebSearchTool
 
 
 @pytest.mark.contract

@@ -22,7 +22,7 @@ The executor returns a fully-populated :class:`NodeExecutionResult`.
 See :pymod:`ice_sdk.executors.builtin` for the built-in *ai* and *tool* modes.
 """
 
-from typing import Any, Callable, Dict, Protocol, TypeAlias
+from typing import Any, Callable, Dict, Protocol, TypeAlias, TypeVar
 
 from ice_sdk.interfaces.chain import ScriptChainLike
 
@@ -53,10 +53,16 @@ class NodeExecutor(Protocol):
         ...
 
 
-NODE_REGISTRY: Dict[str, NodeExecutor] = {}
+# Registry of mode → executor callable ------------------------------------------------
+
+ExecCallable = Callable[[ScriptChain, NodeConfig, Dict[str, Any]], NodeExecutionResult]
+
+F = TypeVar("F", bound=ExecCallable)
+
+NODE_REGISTRY: Dict[str, ExecCallable] = {}
 
 
-def register_node(mode: str) -> Callable[[NodeExecutor], NodeExecutor]:  # noqa: D401
+def register_node(mode: str) -> Callable[[F], F]:  # noqa: D401
     """Decorator to register a new *node mode* executor.
 
     Example
@@ -66,7 +72,7 @@ def register_node(mode: str) -> Callable[[NodeExecutor], NodeExecutor]:  # noqa:
     ...     return await do_something(cfg, ctx)
     """
 
-    def decorator(func: NodeExecutor) -> NodeExecutor:  # type: ignore[misc]
+    def decorator(func: F) -> F:
         if mode in NODE_REGISTRY:
             raise ValueError(f"Node mode '{mode}' is already registered")
         NODE_REGISTRY[mode] = func
@@ -75,7 +81,7 @@ def register_node(mode: str) -> Callable[[NodeExecutor], NodeExecutor]:  # noqa:
     return decorator
 
 
-def get_executor(mode: str) -> NodeExecutor:  # noqa: D401
+def get_executor(mode: str) -> ExecCallable:  # noqa: D401
     """Return the executor registered for *mode* or raise *KeyError*."""
 
     try:

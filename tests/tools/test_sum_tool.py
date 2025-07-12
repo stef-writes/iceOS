@@ -1,7 +1,7 @@
 import pytest
 
 from ice_sdk.tools.base import ToolError
-from ice_sdk.tools.builtins.deterministic import SumTool
+from ice_sdk.tools.system import SumTool
 
 
 @pytest.mark.asyncio

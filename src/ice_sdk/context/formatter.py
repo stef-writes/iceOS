@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from ice_sdk.models.config import ModelProvider
 from ice_sdk.models.node_models import ContextFormat, ContextRule
@@ -21,7 +21,7 @@ class BaseContextFormatter:
 class ContextFormatter(BaseContextFormatter):
     """Handles formatting of context data for nodes, with hooks and optional schema validation."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.format_handlers = {
             ContextFormat.TEXT: self._handle_text_format,
             ContextFormat.JSON: self._handle_json_format,
@@ -31,11 +31,11 @@ class ContextFormatter(BaseContextFormatter):
         }
         self.hooks: List[Callable[[str, Any], None]] = []  # hooks for observability
 
-    def register_hook(self, hook: Callable[[str, Any], None]):
+    def register_hook(self, hook: Callable[[str, Any], None]) -> None:
         """Register a hook to be called on every format operation."""
         self.hooks.append(hook)
 
-    def _run_hooks(self, format_type: str, content: Any):
+    def _run_hooks(self, format_type: str, content: Any) -> None:
         for hook in self.hooks:
             hook(format_type, content)
 
@@ -76,10 +76,11 @@ class ContextFormatter(BaseContextFormatter):
         if format_type is None or format_type not in self.format_handlers:
             formatted = str(content)
         else:
+            handler = cast(Callable[..., str], self.format_handlers[format_type])
             if getattr(format_type, "name", None) == "CUSTOM" and format_specs:
-                formatted = self.format_handlers[format_type](content, format_specs)
+                formatted = handler(content, format_specs)
             else:
-                formatted = self.format_handlers[format_type](content)
+                formatted = handler(content)
 
         # NEW: token truncation logic honouring ContextRule.max_tokens ----------------
         max_tokens = getattr(rule, "max_tokens", None)

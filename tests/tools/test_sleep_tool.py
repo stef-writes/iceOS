@@ -1,6 +1,7 @@
 import pytest
 
-from ice_sdk.tools.builtins.deterministic import SleepTool, deterministic_summariser
+from ice_sdk.tools.system import SleepTool
+from ice_sdk.utils.summariser import deterministic_summariser
 
 
 @pytest.mark.asyncio

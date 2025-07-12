@@ -10,7 +10,7 @@ try:
 except ModuleNotFoundError:  # pragma: no cover – optional dependency
     pytest.skip("respx not installed", allow_module_level=True)
 
-from ice_sdk.tools.mcp_tool import MCPTool
+from ice_sdk.tools.protocols.mcp_tool import MCPTool
 
 
 @pytest.mark.contract

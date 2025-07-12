@@ -1,9 +1,6 @@
 import pytest
 
-from ice_sdk.tools.builtins.essay_tools import (
-    KeywordDensityTool,
-    LanguageStyleAdapterTool,
-)
+from ice_sdk.tools.ai import KeywordDensityTool, LanguageStyleAdapterTool
 
 
 @pytest.mark.asyncio

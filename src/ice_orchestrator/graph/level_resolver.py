@@ -12,7 +12,7 @@ from ice_sdk.models.node_models import ConditionNodeConfig  # avoid heavy import
 
 
 class BranchGatingResolver:  # noqa: D101
-    def __init__(self, nodes: Mapping[str, Any], graph):
+    def __init__(self, nodes: Mapping[str, Any], graph: Any) -> None:
         # We keep references to the chain's *nodes* mapping and *DependencyGraph*
         self._nodes = nodes
         self._graph = graph

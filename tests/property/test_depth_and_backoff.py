@@ -11,6 +11,7 @@ from ice_sdk.context.manager import GraphContext
 from ice_sdk.models.node_models import ToolNodeConfig
 from ice_sdk.tools.base import BaseTool
 from ice_sdk.tools.service import ToolService
+from ice_sdk.tools.system import SumTool
 
 
 class ControlledFlakyTool(BaseTool):
@@ -61,8 +62,6 @@ async def test_depth_guard_abort(num_nodes: int, allowed_depth: int) -> None:
 
     # Register the builtin SumTool if not yet registered
     ts = ToolService()
-    from ice_sdk.tools.builtins import SumTool
-
     ts.register(SumTool)  # idempotent
 
     # External depth_guard – only allow up to *allowed_depth* levels (1-indexed)

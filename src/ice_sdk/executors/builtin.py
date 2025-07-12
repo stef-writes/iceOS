@@ -110,7 +110,7 @@ def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
 # ---------------------------------------------------------------------------
 
 
-@register_node("ai")
+@register_node("ai")  # type: ignore[misc]  # decorator preserves signature
 async def ai_executor(
     chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
 ) -> NodeExecutionResult:
@@ -153,7 +153,7 @@ async def ai_executor(
 # ---------------------------------------------------------------------------
 
 
-@register_node("tool")
+@register_node("tool")  # type: ignore[misc]  # decorator preserves signature
 async def tool_executor(
     chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
 ) -> NodeExecutionResult:
@@ -203,7 +203,7 @@ async def tool_executor(
 # ---------------------------------------------------------------------------
 
 
-@register_node("nested_chain")
+@register_node("nested_chain")  # type: ignore[misc]  # decorator preserves signature
 async def nested_chain_executor(
     chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
 ) -> NodeExecutionResult:

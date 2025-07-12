@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, cast
+
+if TYPE_CHECKING:  # pragma: no cover
+    from ice_orchestrator.script_chain import ScriptChain
 
 import yaml
 
@@ -15,8 +18,21 @@ from ice_sdk.models.network import NetworkSpec
 
 class NetworkFactory:  # noqa: D101 – internal helper
     @staticmethod
-    async def from_yaml(path: str | Path, **kwargs: Any):  # noqa: D401
-        """Parse *path* and return a ready-to-run :class:`ScriptChain`."""
+    async def from_yaml(path: str | Path, **kwargs: Any) -> "ScriptChain":  # noqa: D401
+        """Build a `ScriptChain` from a *NetworkSpec* YAML file.
+
+        Args:
+            path (str | pathlib.Path): Filesystem location of the YAML spec.
+            **kwargs: Keyword-arguments forwarded to `ChainFactory.from_dict`—
+                e.g. `context_manager`, `callbacks`, etc.
+
+        Returns:
+            ScriptChain: A fully-initialised chain ready for execution.
+
+        Example:
+            >>> chain = await NetworkFactory.from_yaml("specs/checkout.yaml")
+            >>> await chain.execute()
+        """
 
         p = Path(path)
         if not p.exists():
@@ -54,13 +70,40 @@ class NetworkFactory:  # noqa: D101 – internal helper
             "nodes": node_payloads,
         }
 
-        chain = await ChainFactory.from_dict(payload, **kwargs)
-        return chain
+        from ice_orchestrator.script_chain import (
+            ScriptChain,  # local import to avoid cycles
+        )
+
+        chain_obj = await ChainFactory.from_dict(payload, **kwargs)
+        return cast(ScriptChain, chain_obj)
 
     # Convenience synchronous wrapper ---------------------------------------
     @staticmethod
-    def build(path: str | Path, **kwargs: Any):  # noqa: D401
-        async def _inner():
+    def build(path: str | Path, **kwargs: Any) -> "ScriptChain":  # noqa: D401
+        """Synchronous convenience wrapper around `from_yaml`.
+
+        This helper runs the async factory under the hood so callers in
+        scripting contexts don’t have to manage an event-loop.
+
+        Args:
+            path (str | pathlib.Path): YAML file path.
+            **kwargs: Same as `from_yaml`.
+
+        Returns:
+            ScriptChain: Parsed chain instance.
+
+        Example:
+            >>> chain = NetworkFactory.build("spec.yaml")
+            >>> result = chain.execute()  # blocks until finished
+        """
+
+        async def _inner() -> "ScriptChain":
             return await NetworkFactory.from_yaml(path, **kwargs)
 
-        return asyncio.run(_inner())
+        from typing import cast
+
+        from ice_orchestrator.script_chain import (
+            ScriptChain,  # local import to avoid cycles
+        )
+
+        return cast(ScriptChain, asyncio.run(_inner()))

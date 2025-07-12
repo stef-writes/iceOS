@@ -368,7 +368,9 @@ class AgentNode:
     # Memory helpers ----------------------------------------------------
     # ------------------------------------------------------------------
 
-    async def recall(self, query: str, k: int = 5):  # noqa: D401 – helper name
+    async def recall(
+        self, query: str, k: int = 5
+    ) -> list[tuple[str, float]]:  # noqa: D401 – helper name
         """Retrieve similar snippets from the pluggable memory adapter.
 
         Example
@@ -377,10 +379,18 @@ class AgentNode:
         >>> for text, score in snippets:
         ...     print(text, score)
         """
+        from ice_sdk.context.memory import BaseMemory
+
         try:
-            memory = getattr(self.context_manager, "memory", None)
-            if memory is None:
+            from typing import cast
+
+            memory_any = getattr(self.context_manager, "memory", None)
+            if not isinstance(memory_any, BaseMemory):
                 return []
-            return await memory.retrieve(query, k=k)  # type: ignore[attr-defined]
+            memory_adapter = cast(BaseMemory, memory_any)
+            result = await memory_adapter.retrieve(query, k=k)
+            return cast(list[tuple[str, float]], result)
         except Exception:  # pragma: no cover – defensive blanket
+            # Any unexpected error must not propagate to the caller –
+            # treat it as an empty recall result to keep the agent resilient.
             return []

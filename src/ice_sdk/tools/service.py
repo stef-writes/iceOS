@@ -157,31 +157,31 @@ class ToolService:  # noqa: D101 – simple façade
     # ------------------------------------------------------------------
     def _register_default_tools(self) -> None:
         """Register built-in tools shipped with *ice_sdk*."""
-        # Local imports kept inside the method to prevent circular deps -----------
-        from .builtins import (  # noqa: WPS433; noqa: WPS433 – newly added deterministic tools
-            CsvLoaderTool,
-            HttpRequestTool,
-            JsonQueryTool,
-            PdfExtractTool,
-            SleepTool,
-            SumTool,
-        )
-        from .hosted import ComputerTool, FileSearchTool, WebSearchTool  # noqa: WPS433
-        from .mcp_tool import MCPTool  # noqa: WPS433 – new generic MCP integration tool
-        from .webhook import WebhookEmitterTool  # noqa: WPS433 – new tool
+        # Import from new organized structure
+        from .ai import FileSearchTool, KeywordDensityTool, LanguageStyleAdapterTool
+        from .data import CsvLoaderTool, JsonQueryTool, PdfExtractTool
+        from .protocols import MCPTool
+        from .system import ComputerTool, SleepTool, SumTool
+        from .web import HttpRequestTool, WebhookEmitterTool, WebSearchTool
 
         for tool_cls in (
-            # Data handling ---------------------------------------------------
+            # Data processing tools
             CsvLoaderTool,
             JsonQueryTool,
             PdfExtractTool,
+            # Web and network tools
             WebSearchTool,
-            FileSearchTool,
+            HttpRequestTool,
+            WebhookEmitterTool,
+            # System and automation tools
             ComputerTool,
             SleepTool,
-            HttpRequestTool,
             SumTool,
-            WebhookEmitterTool,
+            # AI and content tools
+            LanguageStyleAdapterTool,
+            KeywordDensityTool,
+            FileSearchTool,
+            # Protocol integration tools
             MCPTool,
         ):
             try:

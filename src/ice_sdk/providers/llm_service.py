@@ -13,12 +13,13 @@ backwards-compatibility.
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from ice_sdk.models.config import LLMConfig, ModelProvider
 from ice_sdk.providers.llm_providers.anthropic_handler import AnthropicHandler
+from ice_sdk.providers.llm_providers.base_handler import BaseLLMHandler
 from ice_sdk.providers.llm_providers.deepseek_handler import DeepSeekHandler
 from ice_sdk.providers.llm_providers.google_gemini_handler import GoogleGeminiHandler
 from ice_sdk.providers.llm_providers.openai_handler import OpenAIHandler
@@ -63,12 +64,12 @@ class LLMService:
         self,
         llm_config: LLMConfig,
         prompt: str,
-        context: Optional[Dict[str, Any]] = None,
-        tools: Optional[list] = None,
+        context: Optional[dict[str, Any]] = None,
+        tools: Optional[list[dict[str, Any]]] = None,
         *,
         timeout_seconds: Optional[int] = 30,
         max_retries: int = 2,
-    ) -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:
+    ) -> Tuple[str, Optional[dict[str, int]], Optional[str]]:
         """Return *(text, usage, error)* from the configured LLM provider."""
 
         # Map provider to enum constant when supplied as raw string
@@ -90,15 +91,24 @@ class LLMService:
         if handler is None:
             return "", None, f"No handler for provider: {provider_key}"
 
+        from typing import cast
+
+        handler_nn = cast("BaseLLMHandler", handler)
+
         async def _call_handler() -> (
-            Tuple[str, Optional[Dict[str, int]], Optional[str]]
+            Tuple[str, Optional[dict[str, int]], Optional[str]]
         ):
             try:
-                return await handler.generate_text(
+                from typing import cast
+
+                result_inner = await handler_nn.generate_text(
                     llm_config=llm_config,
                     prompt=prompt,
                     context=context or {},
                     tools=tools,
+                )
+                return cast(
+                    tuple[str, Optional[dict[str, int]], Optional[str]], result_inner
                 )
             except (
                 openai_error.RateLimitError,  # type: ignore[attr-defined]
@@ -120,14 +130,21 @@ class LLMService:
             reraise=True,
         )
         async def _call_with_retry() -> (
-            Tuple[str, Optional[Dict[str, int]], Optional[str]]
+            Tuple[str, Optional[dict[str, int]], Optional[str]]
         ):
             return await _call_handler()
 
         try:
             if timeout_seconds is None:
-                return await _call_with_retry()
-            return await asyncio.wait_for(_call_with_retry(), timeout=timeout_seconds)
+                result_any = await _call_with_retry()
+            else:
+                result_any = await asyncio.wait_for(
+                    _call_with_retry(), timeout=timeout_seconds
+                )
+
+            # Result type preserved by our annotations above but *asyncio.wait_for*
+            # strips it in stubs – cast to silence MyPy when needed.
+            return result_any
         except (
             openai_error.RateLimitError,  # type: ignore[attr-defined]
             openai_error.Timeout,  # type: ignore[attr-defined]
