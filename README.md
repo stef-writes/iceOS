@@ -76,6 +76,16 @@ Read the full deep-dive in [`docs/core_concepts.md`](docs/core_concepts.md) – 
 
 ---
 
+## 🚀 **What’s New (v0.6)**
+
+* **Zero-Setup Vector Stack** – Embedded Chroma + MiniLM downloads automatically and persists to `~/.iceos/data`; falls back to OpenAI if local model times out.
+* **Hybrid Embedder Router** – Override order with `ICE_EMBED_ROUTER="local,openai"`, BudgetEnforcer guards cost.
+* **Semantic Hashing** – MinHash mode for near-dup detection.
+* **Plugin Extras** – Official adapters (Slack, HTTP) available via `pip install ice-tools-slack` without bloating the core.
+* **Visual Canvas Alpha** – Drag-and-drop nodes, auto-schema hints & live cost preview (see roadmap).
+
+---
+
 ## 🎯 **Vision & Phases**
 
 **Phase 1 – Developer Foundation** ✅ *(Current)*  
@@ -211,7 +221,7 @@ These new surfaces push us closer to **text-to-workflow** → **text-to-network*
 | Quarter | Phase | Milestone | Key Deliverables |
 |---------|-------|-----------|------------------|
 | **Q3 2025** | 1 | ScriptChain Runtime GA | 95% test coverage, retries, cost tracking, OpenTelemetry |
-| **Q4 2025** | 2 | CLI GA & Visual Layer Alpha | `ice chain wizard`, Canvas MVP, drag-and-drop nodes |
+| **Q4 2025** | 2 | Visual Canvas Alpha & Developer Polish | Canvas MVP, auto-schema fill, cost preview, AI skeleton |
 | **Q1 2026** | 3 & 4 | Frosty v1 + MCP Foundation | `generate_blueprint`, `run_blueprint`, SSE telemetry, versioned MCP spec |
 | **Q2 2026** | 4 | Self-Reflection Loop | Frosty analyses live traces, auto-optimise blueprints |
 | **Q3 2026** | 5 | Live Collaboration MVP | LiveKit integration, shared cursors, transcript feed into Frosty |
