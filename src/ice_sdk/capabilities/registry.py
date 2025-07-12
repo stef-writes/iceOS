@@ -102,5 +102,5 @@ class CapabilityRegistry:  # noqa: D101 – simple data holder
     def __len__(self) -> int:  # noqa: D401 – dunder
         return len(self._cards)
 
-    def __iter__(self):  # noqa: D401 – dunder
+    def __iter__(self) -> Iterable[CapabilityCard]:  # noqa: D401 – dunder
         return iter(self._cards.values())

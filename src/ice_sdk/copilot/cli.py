@@ -31,7 +31,7 @@ def chat(  # noqa: D401 – CLI callback
         "-g",
         help="Optional initial goal to seed the conversation",
     ),
-):
+) -> None:
     """Launch an interactive Socratic conversation in the terminal."""
 
     agent = IceCopilot()
@@ -69,7 +69,7 @@ def create_agent(
         "-o",
         help="Where to save generated YAML",
     ),
-):
+) -> None:
     copilot = IceCopilot()
     spec = asyncio.run(copilot.generate_agent_spec(goal))  # New SDK method
     output.write_text(yaml.dump(spec))

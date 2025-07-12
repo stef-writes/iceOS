@@ -19,6 +19,7 @@ from typing import (
     Literal,
     Optional,
     Type,
+    TypeAlias,
     Union,
 )
 
@@ -28,7 +29,7 @@ else:
     _ScriptChainLike = Any  # type: ignore[misc]
 
 # Re-export the alias for downstream modules -----------------------------
-ScriptChainLike = _ScriptChainLike
+ScriptChainLike: TypeAlias = _ScriptChainLike
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -54,7 +55,7 @@ from ice_core.models import NodeMetadata as _CoreNodeMetadata  # noqa: E402
 # Re-export deprecated alias so existing imports continue to work.  The file-level
 # ``warnings.warn`` ensures users see a deprecation notice while preserving full
 # type-compatibility (the alias is the actual class, not a wrapped function).
-NodeMetadata = _CoreNodeMetadata  # type: ignore[assignment]
+NodeMetadata: TypeAlias = _CoreNodeMetadata
 
 
 class ToolConfig(BaseModel):
@@ -183,14 +184,14 @@ class BaseNodeConfig(BaseModel):
 
     @field_validator("dependencies")
     @classmethod
-    def _no_self_dependency(cls, v: List[str], info):
+    def _no_self_dependency(cls, v: List[str], info: Any) -> List[str]:
         node_id = info.data.get("id")
         if node_id and node_id in v:
             raise ValueError(f"Node {node_id} cannot depend on itself")
         return v
 
     @model_validator(mode="after")  # pyright: ignore[reportGeneralTypeIssues]
-    def _ensure_metadata(self):  # pyright: ignore[reportSelfClsParameterMismatch]
+    def _ensure_metadata(self) -> Any:  # type: ignore[override]
         """Ensure ``metadata`` is set on the instance after validation."""
 
         if self.metadata is None:
@@ -209,7 +210,9 @@ class BaseNodeConfig(BaseModel):
 
     @field_validator("input_mappings")
     @classmethod
-    def _validate_input_mappings(cls, v: Dict[str, InputMapping], info):
+    def _validate_input_mappings(
+        cls, v: Dict[str, InputMapping], info: Any
+    ) -> Dict[str, InputMapping]:
         """Ensure that input mappings reference declared dependencies."""
         data = info.data
         dependencies = data.get("dependencies", [])
@@ -298,7 +301,7 @@ class BaseNodeConfig(BaseModel):
         return None
 
     @staticmethod
-    def is_pydantic_schema(schema) -> bool:  # noqa: D401
+    def is_pydantic_schema(schema: Any) -> bool:  # noqa: D401
         from pydantic import BaseModel as _BaseModelChecker
 
         return isinstance(schema, type) and issubclass(schema, _BaseModelChecker)
@@ -476,7 +479,7 @@ class UsageMetadata(BaseModel):
 
     # Auto-calculate totals ---------------------------------------------------
     @model_validator(mode="after")
-    def _fill_totals(self):  # noqa: D401
+    def _fill_totals(self) -> Any:  # type: ignore[override]
         if self.total_tokens == 0 and (self.prompt_tokens or self.completion_tokens):
             self.total_tokens = self.prompt_tokens + self.completion_tokens
         return self

@@ -3,17 +3,18 @@
 # ---------------------------------------------------------------------------
 import asyncio
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 # A minimal callable protocol for a *bulk_save* method so we avoid mandatory
 # concrete store dependencies.  Any custom implementation merely needs a
 # coroutine ``bulk_save`` accepting ``List[Tuple[str, Dict[str, Any]]]``.
 
 
-class _BulkSaveProtocol:  # pragma: no cover – runtime duck-typing helper
-    async def bulk_save(self, data: List[Tuple[str, Dict[str, Any]]]):  # noqa: D401
+class _BulkSaveProtocol(Protocol):  # pragma: no cover – runtime duck-typing helper
+    async def bulk_save(
+        self, data: List[Tuple[str, Dict[str, Any]]]
+    ) -> None:  # noqa: D401
         """Persist *data* atomically.  Implement in concrete store."""
-        raise NotImplementedError
 
 
 class WorkflowExecutionContext:
@@ -30,7 +31,7 @@ class WorkflowExecutionContext:
         *,
         store: Optional[_BulkSaveProtocol] = None,
         flush_threshold: int = 10,
-        **kwargs,
+        **kwargs: Any,
     ):
         self.mode = mode  # e.g., 'tool-calling', 'chat', 'summarization', etc.
         self.require_json_output = require_json_output
