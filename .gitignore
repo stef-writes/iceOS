@@ -61,6 +61,10 @@ gaffer.egg-info/
 data/
 data/context_store.json
 
+# Allow data package under src (tools)
+!src/ice_sdk/tools/data/
+!src/ice_sdk/tools/data/**
+
 # Database
 *.db
 *.sqlite3
