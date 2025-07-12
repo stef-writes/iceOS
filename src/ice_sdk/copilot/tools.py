@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import json
 import logging
-from typing import Any, List
+from typing import Any
 
 from ice_sdk.tools.base import BaseTool, ToolContext
 
@@ -16,10 +16,18 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def _parse(raw: str) -> List[Any]:
+def _parse(raw: str) -> list[Any]:
+    """Parse *raw* JSON/\`repr\` string into a list.
+
+    Guarantees a **list** return so downstream code can rely on consistent
+    structure. Falls back gracefully when the input cannot be parsed.
+    """
     cleaned = raw.replace("```json", "").replace("```", "").strip()
     try:
-        return json.loads(cleaned)
+        temp = json.loads(cleaned)
+        if isinstance(temp, list):
+            return temp  # type: ignore[return-value]
+        return [temp]
     except Exception:
         try:
             parsed = ast.literal_eval(cleaned)
@@ -30,7 +38,7 @@ def _parse(raw: str) -> List[Any]:
 
 
 # ---------------------------------------------------------------------- tools
-class VoiceApplierTool(BaseTool):
+class VoiceApplierTool(BaseTool):  # type: ignore[misc]  # Pydantic BaseModel subclass dynamics
     name = "voice_applier"
     description = "Apply stylistic voice rules."
     parameters_schema = {
@@ -51,7 +59,7 @@ class VoiceApplierTool(BaseTool):
         return {"ideas": ideas}
 
 
-class FormatOptimizerTool(BaseTool):
+class FormatOptimizerTool(BaseTool):  # type: ignore[misc]  # dynamics
     name = "format_optimizer"
     description = "Trim whitespace & fix punctuation."
     parameters_schema = {
@@ -72,7 +80,7 @@ class FormatOptimizerTool(BaseTool):
         return {"ideas": cleaned}
 
 
-class PlatformSplitterTool(BaseTool):
+class PlatformSplitterTool(BaseTool):  # type: ignore[misc]  # dynamics
     name = "platform_splitter"
     description = "Create Twitter / LinkedIn variants."
     parameters_schema = {

@@ -6,17 +6,20 @@ executed by normal runtime paths.  Exclude from coverage calculations to avoid
 penalising the coverage gate while the shims remain for backward-compatibility.
 """
 
-# pragma: no cover
+from __future__ import annotations
 
 import logging
 import re
 
 # from enum import Enum  # removed; using core enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TypeAlias
 from warnings import warn
 
 from packaging import version
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+# pragma: no cover
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +30,7 @@ import warnings as _warnings  # noqa: E402
 from ice_core.models.enums import ModelProvider as _CoreModelProvider  # noqa: E402
 
 # Re-export for backward compatibility so MyPy recognises ModelProvider attribute
-ModelProvider = _CoreModelProvider  # type: ignore[assignment]
+ModelProvider: TypeAlias = _CoreModelProvider
 
 _warnings.warn(
     "ice_sdk.models.config.ModelProvider is deprecated; import from ice_core.models.enums instead.",
@@ -143,7 +146,7 @@ class _LegacyMessageTemplate(BaseModel):
         ModelProvider.OPENAI, description="Model provider for this template"
     )
 
-    def format(self, **kwargs) -> str:
+    def format(self, **kwargs: Any) -> str:
         """Format template with provided values, using defaults for missing keys"""
         try:
             return self.content.format(**kwargs)
@@ -173,7 +176,7 @@ class _LegacyMessageTemplate(BaseModel):
 
     @field_validator("min_model_version")
     @classmethod
-    def validate_model_version(cls, v: str, info) -> str:
+    def validate_model_version(cls, v: str, info: Any) -> str:
         """Validate model version"""
         provider = info.data.get("provider", ModelProvider.OPENAI)
         try:
@@ -203,7 +206,7 @@ class _LegacyMessageTemplate(BaseModel):
         except ValueError:
             return False
 
-    def __init__(self, **data):
+    def __init__(self, **data: Any):  # type: ignore[override]
         super().__init__(**data)
         # Validate model version compatibility during initialization
         if not self.is_compatible_with_model(
@@ -245,7 +248,7 @@ class _LegacyLLMConfig(BaseModel):
 
     @field_validator("api_key")
     @classmethod
-    def validate_api_key(cls, v: Optional[str], info) -> Optional[str]:
+    def validate_api_key(cls, v: Optional[str], info: Any) -> Optional[str]:
         """Validate API key format based on provider."""
         provider = info.data.get("provider", ModelProvider.OPENAI)
         if v is None:
@@ -284,7 +287,7 @@ class _LegacyLLMConfig(BaseModel):
 
     @field_validator("model")
     @classmethod
-    def validate_model(cls, v: str, info) -> str:
+    def validate_model(cls, v: str, info: Any) -> str:
         """Validate model name based on provider."""
         provider = info.data.get("provider", ModelProvider.OPENAI)
         try:

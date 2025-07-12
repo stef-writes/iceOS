@@ -11,7 +11,7 @@ import json
 import textwrap
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from ice_sdk.models.node_models import (  # noqa: F401 – typings only
     AiNodeConfig,
@@ -35,7 +35,7 @@ class Question:  # noqa: D401 – simple container
 @dataclass
 class ChainDraft:  # noqa: D401 – mutable builder state
     name: str = "my_chain"
-    nodes: List[dict] = field(default_factory=list)
+    nodes: List[dict[str, Any]] = field(default_factory=list)
     current_step: int = 0
     total_nodes: int = 0
     persist_interm_outputs: Optional[bool] = None
@@ -164,7 +164,7 @@ class BuilderEngine:  # noqa: D401 – stateless helper
 
     # ------------------------------------------------------------------ rendering
     @staticmethod
-    def _common_node_extras(node: dict) -> list[str]:
+    def _common_node_extras(node: dict[str, Any]) -> list[str]:
         extras = []
         for key in ("retries", "timeout", "cache"):
             if key in node:

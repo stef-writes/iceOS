@@ -13,13 +13,14 @@ from ice_sdk.agents.flow_design_agent import (
 )
 from ice_sdk.agents.flow_design_agent import _DummySession  # type: ignore[attr-defined]
 from ice_sdk.agents.flow_design_agent import FlowDesignAgent, TestContextStore
+from ice_sdk.chain_builder.engine import ChainDraft
 
 from .session import WorkflowSession
 
 __all__: list[str] = ["IceCopilot"]
 
 
-class IceCopilot(FlowDesignAgent):  # noqa: D401
+class IceCopilot(FlowDesignAgent):  # type: ignore[misc]  # noqa: D401 – FlowDesignAgent dynamic
     """Guides a Q&A flow to elicit workflow requirements from the user."""
 
     _QUESTION_FLOW: List[Tuple[str, str]] = [
@@ -44,7 +45,7 @@ class IceCopilot(FlowDesignAgent):  # noqa: D401
         return [q for q, _ in self._QUESTION_FLOW]
 
     # ------------------------------------------------------------------ dialogue
-    def generate_response(self, session: _DummySession):  # type: ignore[override]
+    def generate_response(self, session: _DummySession) -> _DummyResponse:  # type: ignore[override]
         sid = id(session)
         state = self._session_cache.setdefault(sid, WorkflowSession())
 
@@ -82,7 +83,7 @@ class IceCopilot(FlowDesignAgent):  # noqa: D401
             "tools": [],
         }
 
-    async def generate_chain_draft(self, brief: str):  # noqa: D401
+    async def generate_chain_draft(self, brief: str) -> ChainDraft:  # noqa: D401
         """Return a quick heuristic ChainDraft based on *brief*.
 
         An LLM-backed version will replace this, but for now we detect the
