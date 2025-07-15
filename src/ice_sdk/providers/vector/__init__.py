@@ -38,10 +38,14 @@ class AnnoyIndexAdapter:  # noqa: D101 – minimal in-memory stub
 class PgVectorStore:  # noqa: D101 – stub class
     async def upsert(
         self, scope: str, key: str, vector: VectorLike, *, model_version: str
-    ):  # noqa: D401
+    ) -> None:  # noqa: D401
+        """Insert or update *vector* keyed by (*scope*, *key*)."""
         return None
 
-    async def query(self, scope: str, vector: VectorLike, k: int = 1):  # noqa: D401
+    async def query(
+        self, scope: str, vector: VectorLike, k: int = 1
+    ) -> list[tuple[str, float]]:  # noqa: D401
+        """Return top-*k* `(key, score)` pairs for *vector* inside *scope*."""
         return [(scope, 0.0)]
 
 

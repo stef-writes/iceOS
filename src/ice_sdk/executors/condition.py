@@ -19,7 +19,7 @@ from ice_sdk.node_registry import register_node
 ScriptChain: TypeAlias = ScriptChainLike
 
 
-@register_node("condition")  # type: ignore[misc]  # decorator preserves signature
+@register_node("condition")  # type: ignore[misc,type-var]  # decorator preserves signature
 async def condition_executor(
     chain: ScriptChain,
     cfg: NodeConfig,  # accepts any, runtime check below

@@ -16,7 +16,10 @@ from typing import List
 
 from annoy import AnnoyIndex  # type: ignore
 
-from ice_sdk.providers.embedding import get_default_embedder
+try:
+    from ice_sdk.providers.embedding import get_default_embedder  # type: ignore
+except ImportError:  # pragma: no cover – fallback to new API
+    from ice_sdk.providers.embedding import get_embedder as get_default_embedder
 
 _DIM = 768  # OpenAI/Tiny embed size – adjust if another embedder used
 
@@ -30,6 +33,7 @@ class NodeIndex:
         self._id_lookup: list[str] = []
         self._temp_dir = Path(tempfile.mkdtemp(prefix="node_index_"))
         self._index_path = self._temp_dir / "nodes.ann"
+        # Obtain embedder via indirection so tests can monkey-patch this helper
         self._embedder = get_default_embedder()
 
     # ------------------------------------------------------------------

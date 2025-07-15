@@ -58,8 +58,10 @@ class InternalMCPTool(BaseTool):
     }
 
     # ------------------------------------------------------------------
-    async def run(self, blueprint: Dict[str, Any], max_parallel: int = 5, **_: Any):  # type: ignore[override]
-        base_url = os.getenv("ICEOS_API", "http://localhost:8000")
+    async def run(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
+        blueprint: Dict[str, Any] = kwargs.get("blueprint", {})
+        max_parallel: int = int(kwargs.get("max_parallel", 5))
+        base_url = os.getenv("ICEOS_API", "http://localhost:8000")  # noqa: D401
         mcp_url = f"{base_url.rstrip('/')}/api/v1/mcp/runs"
 
         payload = {

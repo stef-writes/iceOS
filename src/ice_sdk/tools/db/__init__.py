@@ -17,7 +17,7 @@ __all__ = [
 @function_tool()
 async def sql_tool(
     ctx: ToolContext, query: str, params: Optional[dict[str, Any]] = None
-):  # noqa: D401 – stub
+) -> Any:  # noqa: D401 – stub
     """Execute *query* against an in-memory SQLite DB (stub impl)."""
 
     # Very naive: return a fixed result or echo parameters for tests.
@@ -37,7 +37,7 @@ async def nosql_tool(
     collection: str,
     key: str,
     payload: Optional[dict[str, Any]] = None,
-):  # noqa: D401 – stub
+) -> Any:  # noqa: D401 – stub
     """Minimal NoSQL CRUD helper that backs the contract tests."""
 
     coll = _store.setdefault(collection, {})
@@ -61,7 +61,7 @@ async def nosql_tool(
 @function_tool()
 async def schema_validator_tool(
     ctx: ToolContext, schema: dict[str, Any], payload: dict[str, Any]
-):  # noqa: D401 – stub
+) -> dict[str, bool]:  # noqa: D401 – stub
     """Return True when *payload* keys are subset of *schema* properties (stub)."""
     required = set(schema.get("required", []))
     props = schema.get("properties", {})
@@ -72,6 +72,8 @@ async def schema_validator_tool(
 
 
 @function_tool()
-async def explain_plan_tool(ctx: ToolContext, query: str):  # noqa: D401 – stub
+async def explain_plan_tool(
+    ctx: ToolContext, query: str
+) -> dict[str, list[str]]:  # noqa: D401 – stub
     """Return fake EXPLAIN plan as list of steps."""
     return {"plan": [f"SCAN -> {query[:20]}..."]}

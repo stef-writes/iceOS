@@ -17,5 +17,7 @@ class PromptEngineerAgent(BaseAgent):
     version = "0.1"
     description = "Optimises LLM prompts for accuracy/cost"
 
-    async def run(self, _spec: Any, **_kwargs: Any):  # noqa: D401 – stub
+    async def run(
+        self, _spec: Any, **_kwargs: Any
+    ) -> dict[str, Any]:  # noqa: D401 – stub
         return {"success": True, "prompt": "optimised"}

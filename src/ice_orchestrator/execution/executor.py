@@ -4,7 +4,7 @@ import asyncio
 import hashlib
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, cast
 
 import structlog
 from opentelemetry import trace  # type: ignore[import-not-found]
@@ -77,10 +77,13 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
         # --------------------------------------------------------------
         # Persist *input_data* to the context store --------------------
         # --------------------------------------------------------------
+        _ctx_cur = chain.context_manager.get_context()
+        exec_id = _ctx_cur.execution_id if _ctx_cur is not None else None
+
         chain.context_manager.update_node_context(
             node_id=node_id,
             content=input_data,
-            execution_id=chain.context_manager.get_context().execution_id,  # type: ignore[attr-defined]
+            execution_id=exec_id,
         )
 
         max_retries: int = int(getattr(node, "retries", 0))
@@ -113,7 +116,7 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
                         cache_key = hashlib.sha256(serialized.encode()).hexdigest()
                         cached = chain._cache.get(cache_key)
                         if cached is not None:
-                            return cached
+                            return cast(NodeExecutionResult, cached)
                     except Exception:  # noqa: BLE001 – never fail due to cache
                         cache_key = None
 
@@ -131,7 +134,14 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
                         "node_type": str(getattr(node, "type", "")),
                     },
                 ) as node_span:
-                    result = await executor(chain, node, input_data)
+                    # MyPy may not recognise that *executor* is an async callable – cast for clarity.
+                    from typing import Awaitable
+                    from typing import cast as _cast
+
+                    result = await _cast(
+                        Awaitable[NodeExecutionResult],
+                        executor(chain, node, input_data),
+                    )
 
                     node_span.set_attribute("success", result.success)
                     node_span.set_attribute("retry_count", attempt)
@@ -189,10 +199,14 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
 
                 # Persist *output* to context store ------------------
                 if chain.persist_intermediate_outputs and result.output is not None:
+                    # Safe retrieval of *execution_id* from optional context
+                    _ctx_latest = chain.context_manager.get_context()
+                    latest_exec_id = _ctx_latest.execution_id if _ctx_latest else None
+
                     chain.context_manager.update_node_context(
                         node_id=node_id,
                         content=result.output,
-                        execution_id=chain.context_manager.get_context().execution_id,  # type: ignore[attr-defined]
+                        execution_id=latest_exec_id,
                     )
 
                 # Optional output validation ------------------------

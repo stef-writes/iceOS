@@ -15,9 +15,10 @@ class TxState(str, Enum):  # noqa: D101 – stub enum
 
 
 class Transaction:  # noqa: D101 – stub class
-    def __init__(self, tx_id: str):
+    def __init__(self, tx_id: str) -> None:
         self.id = tx_id
         self.state = TxState.PENDING
 
-    async def run(self):  # noqa: D401 – stub
+    async def run(self) -> None:  # noqa: D401 – stub
         self.state = TxState.COMPLETED
+        return None

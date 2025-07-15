@@ -5,7 +5,7 @@ Extracted from `ScriptChain.from_dict` to improve separation of concerns.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, cast
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_orchestrator.script_chain import ScriptChain
@@ -44,25 +44,39 @@ class ChainFactory:  # noqa: D101 – internal utility
             raise ValueError("Workflow payload must contain 'nodes' key")
 
         # Discriminated union parsing (manual to avoid Annotated typing issues)
+        from pydantic import BaseModel
+
         from ice_sdk.models.node_models import (
             AiNodeConfig,
             ConditionNodeConfig,
+            NestedChainConfig,
             ToolNodeConfig,
         )
 
-        _parser_map = {
+        _parser_map: Dict[str, type[BaseModel]] = {
             "ai": AiNodeConfig,
             "tool": ToolNodeConfig,
             "condition": ConditionNodeConfig,
         }
 
-        nodes = []
+        nodes: list[
+            AiNodeConfig | ToolNodeConfig | ConditionNodeConfig | NestedChainConfig
+        ] = []
         for nd in nodes_raw:
             node_type = nd.get("type")
             parser_cls = _parser_map.get(node_type)
             if parser_cls is None:
                 raise ValueError(f"Unknown node type '{node_type}' in workflow spec")
-            nodes.append(parser_cls.model_validate(nd))
+            parsed_node = parser_cls.model_validate(nd)
+            nodes.append(
+                cast(
+                    AiNodeConfig
+                    | ToolNodeConfig
+                    | ConditionNodeConfig
+                    | NestedChainConfig,
+                    parsed_node,
+                )
+            )
 
         # 3. Instantiate chain -------------------------------------------
         import hashlib

@@ -84,6 +84,7 @@ def ai(
             type="ai",
             name=name or func.__name__,
             prompt=prompt,
+            model=model or llm_conf.get("model", "gpt-3.5-turbo"),
             llm_config=llm_conf,  # type: ignore[arg-type]
             dependencies=dependencies or [],
         )

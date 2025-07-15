@@ -22,7 +22,7 @@ The executor returns a fully-populated :class:`NodeExecutionResult`.
 See :pymod:`ice_sdk.executors.builtin` for the built-in *ai* and *tool* modes.
 """
 
-from typing import Any, Callable, Dict, Protocol, TypeAlias, TypeVar
+from typing import Any, Awaitable, Callable, Dict, Protocol, TypeAlias, TypeVar
 
 from ice_sdk.interfaces.chain import ScriptChainLike
 
@@ -55,7 +55,10 @@ class NodeExecutor(Protocol):
 
 # Registry of mode → executor callable ------------------------------------------------
 
-ExecCallable = Callable[[ScriptChain, NodeConfig, Dict[str, Any]], NodeExecutionResult]
+# Executor functions are *async* so the callable returns an Awaitable of NodeExecutionResult
+ExecCallable = Callable[
+    [ScriptChain, NodeConfig, Dict[str, Any]], Awaitable[NodeExecutionResult]
+]
 
 F = TypeVar("F", bound=ExecCallable)
 

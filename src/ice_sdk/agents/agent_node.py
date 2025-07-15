@@ -382,14 +382,12 @@ class AgentNode:
         from ice_sdk.context.memory import BaseMemory
 
         try:
-            from typing import cast
-
             memory_any = getattr(self.context_manager, "memory", None)
             if not isinstance(memory_any, BaseMemory):
                 return []
-            memory_adapter = cast(BaseMemory, memory_any)
-            result = await memory_adapter.retrieve(query, k=k)
-            return cast(list[tuple[str, float]], result)
+
+            result = await memory_any.retrieve(query, k=k)
+            return result
         except Exception:  # pragma: no cover – defensive blanket
             # Any unexpected error must not propagate to the caller –
             # treat it as an empty recall result to keep the agent resilient.

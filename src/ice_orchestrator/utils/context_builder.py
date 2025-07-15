@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from ice_orchestrator.errors.chain_errors import ChainError
+from ice_sdk.exceptions import ErrorCode
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_sdk.models.node_models import NodeConfig, NodeExecutionResult
@@ -64,8 +65,9 @@ class ContextBuilder:  # noqa: D101 – utility helper
 
         if validation_errors:
             raise ChainError(
+                ErrorCode.UNKNOWN,
                 f"Node '{node.id}' context validation failed:\n"  # type: ignore[attr-defined]
-                + "\n".join(validation_errors)
+                + "\n".join(validation_errors),
             )
 
         return context

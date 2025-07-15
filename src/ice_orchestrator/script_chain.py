@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 from opentelemetry import trace  # type: ignore[import-not-found]
@@ -179,7 +179,7 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
             len(self.levels),
         )
 
-    async def execute(self) -> ChainExecutionResult:
+    async def execute(self) -> NodeExecutionResult:
         """Execute the workflow and return a ChainExecutionResult."""
         start_time = datetime.utcnow()
         results: Dict[str, NodeExecutionResult] = {}
@@ -288,7 +288,8 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
 
         final_node_id = self.graph.get_leaf_nodes()[0]
 
-        return ChainExecutionResult(
+        # Wrap ChainExecutionResult as NodeExecutionResult for ABC compliance
+        chain_result = ChainExecutionResult(
             success=len(errors) == 0,
             output=results,
             error="\n".join(errors) if errors else None,
@@ -304,6 +305,16 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
             chain_metadata=getattr(self, "metadata", None),
             execution_time=duration,
             token_stats=self.metrics.as_dict(),
+        )
+        return NodeExecutionResult(
+            success=chain_result.success,
+            error=chain_result.error,
+            output=chain_result.output,
+            metadata=chain_result.metadata,
+            usage=None,
+            execution_time=chain_result.execution_time,
+            context_used=None,
+            token_stats=chain_result.token_stats,
         )
 
     async def _execute_level(
@@ -397,9 +408,7 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
     ) -> Dict[str, Any]:
         """Delegate to :class:`ContextBuilder`."""
 
-        return cast(
-            Dict[str, Any], ContextBuilder.build_node_context(node, accumulated_results)
-        )
+        return ContextBuilder.build_node_context(node, accumulated_results)
 
     @staticmethod
     def _resolve_nested_path(data: Any, path: str) -> Any:
@@ -413,23 +422,23 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
 
     def get_node_dependencies(self, node_id: str) -> List[str]:
         """Get dependencies for a node."""
-        return cast(List[str], self.graph.get_node_dependencies(node_id))
+        return self.graph.get_node_dependencies(node_id)
 
     def get_node_dependents(self, node_id: str) -> List[str]:
         """Get dependents for a node."""
-        return cast(List[str], self.graph.get_node_dependents(node_id))
+        return self.graph.get_node_dependents(node_id)
 
     def get_node_level(self, node_id: str) -> int:
         """Get execution level for a node."""
-        return cast(int, self.graph.get_node_level(node_id))
+        return self.graph.get_node_level(node_id)
 
     def get_level_nodes(self, level: int) -> List[str]:
         """Get nodes at a specific level."""
-        return cast(List[str], self.levels.get(level, []))
+        return self.levels.get(level, [])
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get execution metrics."""
-        return cast(Dict[str, Any], self.metrics.as_dict())
+        return self.metrics.as_dict()
 
     async def execute_node(
         self, node_id: str, input_data: Dict[str, Any]
@@ -451,7 +460,7 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
     def _is_output_valid(node: NodeConfig, output: Any) -> bool:
         """Delegate to :class:`SchemaValidator`."""
 
-        return cast(bool, SchemaValidator().is_output_valid(node, output))
+        return SchemaValidator().is_output_valid(node, output)
 
     # ---------------------------------------------------------------------
     # Branch gating helpers -------------------------------------------------
@@ -460,7 +469,7 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
     def _is_node_active(self, node_id: str) -> bool:
         """Delegate to :class:`BranchGatingResolver`."""
 
-        return cast(bool, self._branch_resolver.is_node_active(node_id))
+        return self._branch_resolver.is_node_active(node_id)
 
     # -----------------------------------------------------------------
     # Validation utilities --------------------------------------------
@@ -469,7 +478,7 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
     def validate_chain(self) -> list[str]:
         """Delegate to :class:`ChainValidator`."""
 
-        return cast(list[str], self._validator.validate_chain())
+        return self._validator.validate_chain()
 
     # ------------------------------------------------------------------
     # Factory helpers ---------------------------------------------------
@@ -488,7 +497,7 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
         chain_obj = await ChainFactory.from_dict(
             payload, target_version=target_version, **kwargs
         )
-        return cast("ScriptChain", chain_obj)
+        return chain_obj
 
     # -------------------------------------------------------------------
     # Composition helper -------------------------------------------------
@@ -502,20 +511,20 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
         input_mappings: Dict[str, Any] | None = None,
         exposed_outputs: Dict[str, str] | None = None,
     ) -> "NestedChainConfig":
-        """Return a :class:`NestedChainConfig` wrapping *self*.
+        """Return a :class:`NestedChainConfig` wrapping *self* so it can be
+        embedded inside another *ScriptChain*.
 
-        Example::
-
-            sub_chain = build_checkout_chain()
-            parent_node = sub_chain.as_nested_node(
-                id="checkout",
-                input_mappings={"amount": InputMapping(...)}
-            )
+        Example
+        -------
+        >>> sub_chain = build_checkout_chain()
+        >>> parent_node = sub_chain.as_nested_node(
+        ...     id="checkout",
+        ...     input_mappings={"amount": InputMapping(...)}
+        ... )
         """
 
-        from ice_sdk.models.node_models import (  # local import to avoid cycle
-            NestedChainConfig,
-        )
+        # Local import to avoid circular dependency at module import time
+        from ice_sdk.models.node_models import NestedChainConfig  # type: ignore
 
         return NestedChainConfig(
             id=id or self.chain_id,

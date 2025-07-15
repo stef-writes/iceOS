@@ -18,7 +18,6 @@ from sentence_transformers import SentenceTransformer  # type: ignore
 from ice_sdk.interfaces.embedder import IEmbedder
 from ice_sdk.models.embedding import DEFAULT_DIM, Embedding
 from ice_sdk.providers.budget_enforcer import BudgetEnforcer
-from ice_sdk.utils.hashing import HashMode
 
 # ---------------------------------------------------------------------------
 # Constants ------------------------------------------------------------------
@@ -47,12 +46,17 @@ class _StubRemoteProvider:  # noqa: D401 – internal helper
 
     async def embed(self, text: str) -> List[float]:  # noqa: D401
         # In real impl, call remote API here.
-        # For now, just reuse local MiniLM but add small noise so tests can detect fallback.
-        await asyncio.sleep(0.01)  # network latency stub
-        local_vec = _LOCAL_MODEL.encode(text)  # type: ignore[attr-defined]
+        # For now, reuse local MiniLM but add small noise so tests can detect fallback.
+        await asyncio.sleep(0.01)  # simulate network latency
+        model = await _get_local_model()
+        local_vec_any = await asyncio.get_event_loop().run_in_executor(
+            _THREAD_POOL, model.encode, text
+        )
+        local_vec: List[float] = list(local_vec_any)  # type: ignore[arg-type]
         # Perturb first dim slightly to emulate different provider
-        local_vec[0] += 0.001
-        return local_vec.tolist()
+        if local_vec:
+            local_vec[0] += 0.001
+        return local_vec
 
 
 # Singleton local model loaded lazily ---------------------------------------
@@ -97,12 +101,7 @@ class HybridEmbedder(IEmbedder):
         # 1. Try local model (free, fastest)
         if "local" in self._router_order:
             vec = await self._local_encode(text)
-            return Embedding(
-                vector=vec,
-                model_version=_LOCAL_MODEL_VERSION,
-                original_dim=len(vec),
-                hash_algorithm=HashMode.SECURITY.value,
-            )
+            return Embedding(vector=vec, model_version=_LOCAL_MODEL_VERSION)
 
         # 2. Iterate remote providers ---------------------------------
         for name in self._router_order:
@@ -114,12 +113,7 @@ class HybridEmbedder(IEmbedder):
             try:
                 remote_vec = await provider.embed(text)
                 padded = self._pad_or_truncate(remote_vec)
-                return Embedding(
-                    vector=padded,
-                    model_version=provider.version,
-                    original_dim=len(remote_vec),
-                    hash_algorithm=HashMode.SECURITY.value,
-                )
+                return Embedding(vector=padded, model_version=provider.version)
             except (
                 Exception
             ):  # pragma: no cover – stub; real impl catches ProviderError
@@ -157,10 +151,11 @@ class HybridEmbedder(IEmbedder):
         except asyncio.TimeoutError:  # pragma: no cover – network / cold path
             raise RuntimeError("local model load timeout")
 
-        vec = await asyncio.get_event_loop().run_in_executor(
+        vec_any = await asyncio.get_event_loop().run_in_executor(
             _THREAD_POOL, model.encode, text
         )
-        return self._pad_or_truncate(vec.tolist())
+        vec: List[float] = list(vec_any)  # type: ignore[arg-type]
+        return self._pad_or_truncate(vec)
 
     # ------------------------------------------------------------------
     # Extra helpers -----------------------------------------------------

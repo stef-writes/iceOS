@@ -17,5 +17,7 @@ class ToolForgeAgent(BaseAgent):
     version = "0.1"
     description = "Creates SDK tools from user needs"
 
-    async def run(self, _spec: Any, **_kwargs: Any):  # noqa: D401 – stub
+    async def run(
+        self, _spec: Any, **_kwargs: Any
+    ) -> dict[str, Any]:  # noqa: D401 – stub
         return {"success": True, "tool": {"name": "example_tool"}}

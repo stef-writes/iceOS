@@ -8,7 +8,7 @@ from ice_sdk.tools.base import ToolContext, function_tool
 @function_tool()
 async def index_advisor_tool(
     ctx: ToolContext, table: str, query_samples: list[str]
-):  # noqa: D401 – stub
+) -> dict[str, list[str]]:  # noqa: D401 – stub
     """Return naive column suggestion based on simple WHERE clauses."""
 
     suggestions: list[str] = []

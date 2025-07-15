@@ -51,10 +51,12 @@ class MCPClient:  # noqa: D101 – thin wrapper
         blueprint: Blueprint | None = None,
         max_parallel: int = 5,
     ) -> RunAck:  # noqa: D401
+        from .models import RunOptions
+
         req = RunRequest(
             blueprint_id=blueprint_id,
             blueprint=blueprint,
-            options={"max_parallel": max_parallel},
+            options=RunOptions(max_parallel=max_parallel),
         )
         url = f"{self.base_url}/api/v1/mcp/runs"
         async with httpx.AsyncClient(timeout=self.timeout) as client:

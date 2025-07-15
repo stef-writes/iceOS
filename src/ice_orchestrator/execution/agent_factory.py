@@ -45,11 +45,10 @@ class AgentFactory:  # noqa: D101 – internal utility
             tool_map[t.name] = t
 
         # 3. Node-specific tool refs override everything else -----------
-        if getattr(node, "tools", None):
-            for cfg in node.tools:  # type: ignore[attr-defined]
-                t_obj = self.context_manager.get_tool(cfg.name)
-                if t_obj is not None:
-                    tool_map[t_obj.name] = t_obj
+        for cfg in getattr(node, "tools", None) or []:  # type: ignore[attr-defined]
+            t_obj = self.context_manager.get_tool(cfg.name)
+            if t_obj is not None:
+                tool_map[t_obj.name] = t_obj
 
         tools: List["BaseTool"] = list(tool_map.values())
 

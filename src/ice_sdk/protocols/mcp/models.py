@@ -47,13 +47,16 @@ class RunOptions(BaseModel):
 class RunRequest(BaseModel):
     blueprint_id: Optional[str] = None
     blueprint: Optional[Blueprint] = None
-    options: RunOptions = RunOptions()
+    options: RunOptions = Field(default_factory=lambda: RunOptions(max_parallel=5))
 
     @model_validator(mode="after")
-    def _at_least_one(cls, data):  # noqa: D401 – pydantic hook
-        if data.blueprint is None and data.blueprint_id is None:  # type: ignore[attr-defined]
+    def _at_least_one(self) -> "RunRequest":  # noqa: D401 – pydantic hook
+        """Ensure one of *blueprint* or *blueprint_id* is supplied."""
+
+        if self.blueprint is None and self.blueprint_id is None:
             raise ValueError("Either blueprint or blueprint_id must be provided")
-        return data
+
+        return self
 
 
 class RunAck(BaseModel):

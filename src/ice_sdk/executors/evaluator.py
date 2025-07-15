@@ -14,8 +14,14 @@ class _EvalResult:  # noqa: D401 – helper container
 
 async def evaluator_executor(
     _chain: Any, cfg: Any, ctx: dict[str, Any]
-):  # noqa: D401 – stub
-    """Naïve text similarity evaluator used by contract tests."""
+) -> _EvalResult:  # noqa: D401 – stub
+    """Naïve text similarity evaluator used by contract tests.
+
+    Returns
+    -------
+    _EvalResult
+        Structured result containing *passed* boolean and *score* float.
+    """
 
     candidate = ctx.get("candidate", "")
     reference = getattr(cfg, "reference", "")

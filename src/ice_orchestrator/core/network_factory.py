@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, cast
+from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_orchestrator.script_chain import ScriptChain
@@ -70,12 +70,8 @@ class NetworkFactory:  # noqa: D101 – internal helper
             "nodes": node_payloads,
         }
 
-        from ice_orchestrator.script_chain import (
-            ScriptChain,  # local import to avoid cycles
-        )
-
-        chain_obj = await ChainFactory.from_dict(payload, **kwargs)
-        return cast(ScriptChain, chain_obj)
+        chain_obj: ScriptChain = await ChainFactory.from_dict(payload, **kwargs)
+        return chain_obj
 
     # Convenience synchronous wrapper ---------------------------------------
     @staticmethod
@@ -100,10 +96,4 @@ class NetworkFactory:  # noqa: D101 – internal helper
         async def _inner() -> "ScriptChain":
             return await NetworkFactory.from_yaml(path, **kwargs)
 
-        from typing import cast
-
-        from ice_orchestrator.script_chain import (
-            ScriptChain,  # local import to avoid cycles
-        )
-
-        return cast(ScriptChain, asyncio.run(_inner()))
+        return asyncio.run(_inner())

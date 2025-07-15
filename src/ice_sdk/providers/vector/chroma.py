@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import chromadb  # type: ignore
 
@@ -20,7 +20,7 @@ from ice_sdk.interfaces.vector_index import IVectorIndex
 _DEFAULT_DISTANCE = "cosine"
 
 
-class ChromaDBAdapter(IVectorIndex):
+class ChromaDBAdapter(IVectorIndex):  # type: ignore[misc]
     """Async wrapper around ChromaDB Python client."""
 
     def __init__(
@@ -56,7 +56,7 @@ class ChromaDBAdapter(IVectorIndex):
         else:
             # Ephemeral in-memory instance – prior behaviour
             self._client = chromadb.Client()
-        self._collections: dict[str, chromadb.Collection] = {}
+        self._collections: Dict[str, chromadb.Collection] = {}
         self._distance = distance_function
         # Chroma uses thread blocking I/O; run in default executor
         self._loop = asyncio.get_event_loop()
@@ -96,7 +96,7 @@ class ChromaDBAdapter(IVectorIndex):
         embedding: List[float],
         *,
         k: int = 5,
-        filter: dict | None = None,
+        filter: Dict[str, Any] | None = None,
     ) -> List[Tuple[str, float]]:  # noqa: D401 – interface
         collection = await self._get_collection(scope)
         result = await self._loop.run_in_executor(
@@ -113,7 +113,7 @@ class ChromaDBAdapter(IVectorIndex):
     # ------------------------------------------------------------------
     # Internal helpers --------------------------------------------------
     # ------------------------------------------------------------------
-    async def _get_collection(self, scope: str):  # noqa: D401
+    async def _get_collection(self, scope: str) -> chromadb.Collection:  # noqa: D401
         if scope in self._collections:
             return self._collections[scope]
 

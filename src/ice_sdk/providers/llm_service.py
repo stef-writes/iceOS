@@ -91,25 +91,24 @@ class LLMService:
         if handler is None:
             return "", None, f"No handler for provider: {provider_key}"
 
-        from typing import cast
+        # MyPy: narrow *handler* to ``BaseLLMHandler`` after None-check.
+        if not isinstance(handler, BaseLLMHandler):
+            # Should never happen because we validate registry above, but keep runtime guard.
+            return "", None, "Invalid handler instance"
 
-        handler_nn = cast("BaseLLMHandler", handler)
+        handler_nn: BaseLLMHandler = handler
 
         async def _call_handler() -> (
             Tuple[str, Optional[dict[str, int]], Optional[str]]
         ):
             try:
-                from typing import cast
-
                 result_inner = await handler_nn.generate_text(
                     llm_config=llm_config,
                     prompt=prompt,
                     context=context or {},
                     tools=tools,
                 )
-                return cast(
-                    tuple[str, Optional[dict[str, int]], Optional[str]], result_inner
-                )
+                return result_inner
             except (
                 openai_error.RateLimitError,  # type: ignore[attr-defined]
                 openai_error.Timeout,  # type: ignore[attr-defined]

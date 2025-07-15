@@ -33,15 +33,15 @@ class BaseNode(ABC):
     @property
     def node_id(self) -> str:  # noqa: D401
         """Return the underlying node UUID (guaranteed post-validation)."""
-        return cast(str, cast(NodeMetadata, self.config.metadata).node_id)  # type: ignore[attr-defined]
+        return cast(str, cast(NodeMetadata, self.config.metadata).node_id)  # type: ignore[attr-defined,redundant-cast]
 
     @property
     def node_type(self) -> str:  # noqa: D401
-        return cast(str, cast(NodeMetadata, self.config.metadata).node_type)  # type: ignore[attr-defined]
+        return cast(str, cast(NodeMetadata, self.config.metadata).node_type)  # type: ignore[attr-defined,redundant-cast]
 
     @property
     def id(self) -> str:  # noqa: D401
-        return cast(str, self.config.id)
+        return cast(str, self.config.id)  # type: ignore[redundant-cast]
 
     @property
     def llm_config(self) -> Any:  # noqa: D401 – provider specific
@@ -49,7 +49,7 @@ class BaseNode(ABC):
 
     @property
     def dependencies(self) -> list[str]:  # noqa: D401
-        return cast(list[str], self.config.dependencies)
+        return cast(list[str], self.config.dependencies)  # type: ignore[redundant-cast]
 
     # ------------------------------------------------------------------
     # Lifecycle hooks ----------------------------------------------------
@@ -83,7 +83,7 @@ class BaseNode(ABC):
             self.config, "is_pydantic_schema"
         ) and self.config.is_pydantic_schema(schema):
             try:
-                schema.model_validate(context)  # type: ignore[attr-defined]
+                schema.model_validate(context)  # type: ignore[attr-defined,union-attr]
                 return True
             except ValidationError:
                 return False

@@ -359,12 +359,9 @@ class GraphContextManager:
         from ice_sdk.utils.token_counter import TokenCounter
 
         def _estimate_tokens(text: str) -> int:
-            """Return token estimate for *text* as *int* (mypy-safe)."""
-            return cast(
-                int,
-                TokenCounter.estimate_tokens(
-                    text, model="", provider=ModelProvider.CUSTOM
-                ),
+            """Return token estimate for *text* as *int*."""
+            return TokenCounter.estimate_tokens(
+                text, model="", provider=ModelProvider.CUSTOM
             )
 
         # ------------------------------------------------------------------
