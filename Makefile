@@ -34,7 +34,7 @@ format:
 # Type checking
 type:
 	# Strict type checking for modernised layers (app + core)
-	poetry run mypy --strict --config-file mypy.ini src/app src/ice_core src/ice_sdk/utils src/ice_sdk/context src/ice_sdk/tools src/ice_sdk/extensions src/ice_sdk/executors src/ice_sdk/dsl src/ice_sdk/agents src/ice_sdk/providers
+	poetry run mypy --strict --config-file mypy.ini src/ice_api src/ice_core src/ice_sdk/utils src/ice_sdk/context src/ice_sdk/tools src/ice_sdk/extensions src/ice_sdk/executors src/ice_sdk/dsl src/ice_sdk/agents src/ice_sdk/providers
 	poetry run mypy --strict --config-file mypy.ini src/ice_orchestrator
 
 typecheck: type  # alias for docs compatibility
@@ -81,3 +81,11 @@ deep-clean: clean
 
 lock-check:
 	poetry lock --no-interaction 
+
+# Robust production gate (lint, deps, tests, security)
+production-check:
+	poetry run ruff check --strict --diff .
+	poetry run import-linter --config .importlinter
+	poetry run pytest --cov --cov-fail-under=90
+	poetry run pip-audit
+	git-secrets --scan 

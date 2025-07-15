@@ -3,8 +3,7 @@
     {
       "root": "./",
       "extraPaths": [
-        "./src",
-        "./src/app",
+        "./services",
         "./src/ice_sdk"
       ]
     }

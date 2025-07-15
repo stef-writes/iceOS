@@ -3,33 +3,28 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
 
 jobs:
-  publish:
+  build-and-push-image:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          python-version: '3.10'
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Poetry
-        run: pip install poetry
+      - name: Extract version tag
+        id: vars
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-      - name: Build
-        run: poetry build
-
-      - name: Publish to Test PyPI
-        env:
-          POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_TOKEN }}
-        run: poetry publish --repository testpypi --no-interaction --skip-existing
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Build and push image
+        uses: docker/build-push-action@v5
         with:
-          tag_name: ${{ github.ref_name }}
-          body_path: CHANGELOG.md 
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}/iceos:${{ steps.vars.outputs.VERSION }} 

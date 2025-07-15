@@ -9,6 +9,15 @@ extend-exclude = [
     "build",
 ]
 
-[per-file-ignores]
+[lint]
+# File-specific ignores (using new Ruff 0.4+ table)
+[lint.per-file-ignores]
 "src/ice_cli/**/*.py" = ["E402", "F811", "F821"]
 "tests/observability/*.py" = ["F401", "F403", "F821"]
+"alembic/env.py" = ["E402", "F821"]
+"tests/**/*.py" = ["E402"]
+"scripts/ci/check_tool_scaffold.py" = ["E402"]
+"scripts/run_migrations.py" = ["E402"]
+
+[lint.isort]
+known-first-party = ["ice_sdk", "ice_orchestrator", "frosty"]

@@ -3,24 +3,17 @@ from __future__ import annotations
 
 """ice_sdk.tools – public façade for all tool-related APIs."""
 
-# AI and content tools
-from .ai import FileSearchTool, KeywordDensityTool, LanguageStyleAdapterTool
+# AI tools removed – will reintroduce later via addons
 from .base import BaseTool, ToolContext, ToolError, function_tool
 
-# Data processing tools
-from .data import CsvLoaderTool, JsonQueryTool, PdfExtractTool
-
-# Development tools
-from .dev import generate_node_scaffold, suggest_existing_tools
-
 # Protocol integration tools
-from .protocols import MCPTool
+from .protocols import InternalMCPTool
+from .system import ComputerTool, SleepTool
+from .web import HttpRequestTool, WebhookEmitterTool
 
-# System and automation tools
-from .system import ComputerTool, SleepTool, SumTool
+# Data tools removed
+# Development helpers removed
 
-# Web and network tools
-from .web import HttpRequestTool, WebhookEmitterTool, WebSearchTool
 
 __all__: list[str] = [
     # Core abstractions
@@ -28,25 +21,15 @@ __all__: list[str] = [
     "ToolContext",
     "ToolError",
     "function_tool",
-    # Data processing tools
-    "CsvLoaderTool",
-    "JsonQueryTool",
-    "PdfExtractTool",
+    # (data tools removed for MVP)
     # Web and network tools
-    "WebSearchTool",
     "HttpRequestTool",
     "WebhookEmitterTool",
     # System and automation tools
     "ComputerTool",
     "SleepTool",
-    "SumTool",
-    # AI and content tools
-    "LanguageStyleAdapterTool",
-    "KeywordDensityTool",
-    "FileSearchTool",
+    # AI/content tools removed
     # Protocol integration tools
-    "MCPTool",
-    # Development tools
-    "suggest_existing_tools",
-    "generate_node_scaffold",
+    "InternalMCPTool",
+    # Development helpers removed
 ]

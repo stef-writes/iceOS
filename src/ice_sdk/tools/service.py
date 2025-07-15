@@ -158,31 +158,19 @@ class ToolService:  # noqa: D101 – simple façade
     def _register_default_tools(self) -> None:
         """Register built-in tools shipped with *ice_sdk*."""
         # Import from new organized structure
-        from .ai import FileSearchTool, KeywordDensityTool, LanguageStyleAdapterTool
-        from .data import CsvLoaderTool, JsonQueryTool, PdfExtractTool
-        from .protocols import MCPTool
-        from .system import ComputerTool, SleepTool, SumTool
-        from .web import HttpRequestTool, WebhookEmitterTool, WebSearchTool
+        from .protocols import InternalMCPTool
+        from .system import ComputerTool, SleepTool
+        from .web import HttpRequestTool, WebhookEmitterTool
 
         for tool_cls in (
-            # Data processing tools
-            CsvLoaderTool,
-            JsonQueryTool,
-            PdfExtractTool,
             # Web and network tools
-            WebSearchTool,
             HttpRequestTool,
             WebhookEmitterTool,
             # System and automation tools
             ComputerTool,
             SleepTool,
-            SumTool,
-            # AI and content tools
-            LanguageStyleAdapterTool,
-            KeywordDensityTool,
-            FileSearchTool,
-            # Protocol integration tools
-            MCPTool,
+            # Protocol integration tool (internal control-plane)
+            InternalMCPTool,
         ):
             try:
                 self.register(tool_cls)

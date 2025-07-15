@@ -46,7 +46,7 @@ def doctor_type():
     """Run MyPy in strict mode against *src/*."""
 
     _run(
-        ["mypy", "--strict", "--config-file", "mypy.ini", "src/app", "src/ice_cli"]
+        ["mypy", "--strict", "--config-file", "mypy.ini", "src/ice_api", "src/ice_cli"]
     )  # strict only on modern packages
 
 
@@ -76,7 +76,9 @@ class _Check:  # noqa: D401 – internal container
 # NOTE: Keep in sync with project HEALTHCHECKS.md ---------------------------
 _CHECKS: list[_Check] = [
     _Check("Linting (ruff)", "ruff check src"),
-    _Check("Typing (mypy strict: app)", "mypy --strict --config-file mypy.ini src/app"),
+    _Check(
+        "Typing (mypy strict: app)", "mypy --strict --config-file mypy.ini src/ice_api"
+    ),
     _Check("Unit & integration tests", "pytest -q"),
     _Check(
         "Coverage threshold",

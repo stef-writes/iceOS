@@ -1,7 +1,7 @@
 """Protocol integration tools for external services."""
 
-from .mcp_tool import MCPTool
+from .internal_mcp_tool import InternalMCPTool
 
 __all__ = [
-    "MCPTool",
+    "InternalMCPTool",
 ]

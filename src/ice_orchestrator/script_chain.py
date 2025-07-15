@@ -15,11 +15,11 @@ import asyncio
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, cast
 
+import structlog
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
 import ice_sdk.executors  # noqa: F401 – side-effect import registers built-in executors
-import structlog
 from ice_orchestrator.core import ChainFactory
 from ice_orchestrator.execution.agent_factory import AgentFactory
 from ice_orchestrator.execution.executor import NodeExecutor

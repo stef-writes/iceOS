@@ -6,10 +6,9 @@ import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict
 
+import structlog
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
-
-import structlog
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_orchestrator.script_chain import ScriptChain

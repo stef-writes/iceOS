@@ -31,7 +31,15 @@ plugins:
 # Navigation ----------------------------------------------------------------
 nav:
   - Home: index.md
-  - Quick Start: quick_start.md
+  - Getting Started:
+      - Quick Start: guides/quickstart.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Orchestrator Flow: architecture/orchestrator_flow.md
+      - SDK Layers: architecture/sdk_layers.md
+      - Frosty: architecture/frosty_overview.md
+      - CLI: architecture/cli_overview.md
+      - Repo Layout: architecture/repo_layout.md
   - Core Concepts:
       - Nodes, Tools & Agents: core_concepts/nodes_tools_agents.md
       - ScriptChain Runtime: core_concepts/script_chain.md

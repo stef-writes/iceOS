@@ -1,45 +1,63 @@
-"""Web search tool using SerpAPI."""
+"""Web search tool powered by SerpAPI.
+
+This tool enables agents and workflow nodes to query the public web via the
+SerpAPI service.  The implementation abides by the project rules:
+
+1. Uses full type hints and Pydantic models via the *BaseTool* base-class.
+2. Performs all network I/O inside *run* keeping external side-effects localised.
+3. Exposes an idempotent *runtime_validate* hook (inherited, no custom state).
+4. Raises a typed *ToolError* on failure conditions.
+
+The corresponding contract tests live in ``tests/contracts/test_web_search_tool.py``.
+"""
 
 from __future__ import annotations
 
 import os
-from typing import Any, ClassVar, Dict, List, TypedDict
+from typing import Any, ClassVar, Dict, List
 
 import httpx
 
 from ..base import BaseTool, ToolError
 
-
-class SearchResult(TypedDict):
-    """Typed dict returned by the search tool."""
-
-    title: str
-    url: str
-    snippet: str
+__all__ = ["WebSearchTool"]
 
 
 class WebSearchTool(BaseTool):
-    """Tool for searching the web."""
+    """Query Google search results via SerpAPI and return a simplified list.
+
+    Example
+    -------
+    >>> import os, asyncio
+    >>> os.environ["SERPAPI_KEY"] = "test-123"
+    >>> tool = WebSearchTool()
+    >>> asyncio.run(tool.run(query="openai"))  # doctest: +SKIP
+    {"results": [{"title": "OpenAI", "link": "https://openai.com", ...}]}
+    """
+
+    # ------------------------------------------------------------------
+    # Static metadata ---------------------------------------------------
+    # ------------------------------------------------------------------
 
     name: ClassVar[str] = "web_search"
-    description: ClassVar[str] = "Search the web for information"
+    description: ClassVar[str] = (
+        "Search the public web via SerpAPI and return the top organic results."
+    )
+
     parameters_schema: ClassVar[Dict[str, Any]] = {
         "type": "object",
         "properties": {
             "query": {"type": "string", "description": "Search query"},
-            "user_location": {
-                "type": "object",
-                "properties": {"country": {"type": "string"}},
-            },
-            "search_context_size": {
-                "type": "string",
-                "enum": ["low", "medium", "high"],
-                "default": "medium",
+            "num": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20,
+                "default": 10,
+                "description": "Number of results to return (<=20)",
             },
         },
         "required": ["query"],
     }
-    tags: ClassVar[List[str]] = ["web", "search", "information"]
 
     output_schema: ClassVar[Dict[str, Any]] = {
         "type": "object",
@@ -50,69 +68,75 @@ class WebSearchTool(BaseTool):
                     "type": "object",
                     "properties": {
                         "title": {"type": "string"},
-                        "url": {"type": "string"},
+                        "link": {"type": "string"},
                         "snippet": {"type": "string"},
                     },
-                    "required": ["title", "url"],
+                    "required": ["title", "link"],
                 },
             }
         },
         "required": ["results"],
     }
 
-    async def run(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
-        """Execute web search.
+    # Capability taxonomy -----------------------------------------------------
+    tags: ClassVar[List[str]] = ["web", "search", "io"]
 
-        Args:
-            query: Search query
-            user_location: Optional user location
-            search_context_size: Amount of context to use
+    # ------------------------------------------------------------------
+    # Business logic ----------------------------------------------------
+    # ------------------------------------------------------------------
+
+    async def run(self: "WebSearchTool", **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
+        """Execute the web search.
+
+        Parameters
+        ----------
+        query : str
+            The search phrase.
+        num : int, optional
+            Desired number of results (default: 10, max 20).
+
+        Returns
+        -------
+        dict
+            {"results": [{"title": str, "link": str, "snippet": str}]}
         """
-        query: str = kwargs.get("query")  # type: ignore[assignment]
-        if not query:
-            raise ToolError("'query' argument is required")
 
-        user_location = kwargs.get("user_location", {})  # type: ignore[assignment]
-        search_context_size = kwargs.get("search_context_size", "medium")
+        # Validate & extract parameters ----------------------------------
+        self.validate_params(kwargs)
+
+        query: str = kwargs["query"]
+        num: int = kwargs.get("num", 10)
 
         api_key = os.getenv("SERPAPI_KEY")
         if not api_key:
-            raise ToolError("Environment variable SERPAPI_KEY is not set")
+            raise ToolError("SERPAPI_KEY environment variable not set")
 
-        # Map search_context_size → SerpAPI "num" parameter (max 100)
-        num_map = {"low": 5, "medium": 10, "high": 20}
-        num_results = num_map.get(search_context_size, 10)
-
-        params = {
-            "api_key": api_key,
-            "engine": "google",
+        params: Dict[str, Any] = {
             "q": query,
-            "num": num_results,
+            "api_key": api_key,
+            "num": num,
+            "engine": "google",
         }
 
-        if country := user_location.get("country"):
-            params["gl"] = country
+        # Network I/O ----------------------------------------------------
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get("https://serpapi.com/search.json", params=params)
 
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                # *params* includes booleans & ints – acceptable to httpx but mypy's narrow type
-                res = await client.get(
-                    "https://serpapi.com/search.json",
-                    params=params,  # type: ignore[arg-type]
-                )
-                res.raise_for_status()
-                payload = res.json()
-        except Exception as exc:  # pragma: no cover – network issues, etc.
-            raise ToolError(f"Web search failed: {exc}") from exc
+            if resp.status_code != 200:  # pragma: no cover – network failure
+                snippet = resp.text[:200]
+                raise ToolError(f"SerpAPI error {resp.status_code}: {snippet}")
 
-        results: List[SearchResult] = []
-        for item in payload.get("organic_results", []):
-            results.append(
-                {
-                    "title": item.get("title", ""),
-                    "url": item.get("link", ""),
-                    "snippet": item.get("snippet", ""),
-                }
-            )
+            payload = resp.json()
 
-        return {"results": results}
+        organic: List[Dict[str, Any]] = payload.get("organic_results", [])
+
+        simplified: List[Dict[str, str]] = [
+            {
+                "title": item.get("title", ""),
+                "link": item.get("link", ""),
+                "snippet": item.get("snippet", ""),
+            }
+            for item in organic[:num]
+        ]
+
+        return {"results": simplified}

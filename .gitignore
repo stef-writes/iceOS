@@ -67,6 +67,9 @@ data/context_store.json
 # Database
 *.db
 *.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
 
 # API keys and secrets
 config/api_keys.json

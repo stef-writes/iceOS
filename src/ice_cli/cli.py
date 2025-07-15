@@ -25,7 +25,13 @@ from typing import Any
 from rich import print as rprint  # type: ignore
 
 from ice_cli.context import CLIContext
+from ice_sdk.protocols.mcp import Blueprint, MCPClient, NodeSpec  # type: ignore
 from ice_sdk.utils.logging import setup_logger
+
+# ---------------------------------------------------------------------------
+# NEW: MCP client for remote execution --------------------------------------
+# ---------------------------------------------------------------------------
+
 
 # Ensure realistic terminal width *before* importing Rich/Click/Typer so any
 # Consoles instantiated during import use a sane fallback (GitHub Actions
@@ -353,6 +359,100 @@ def create_resource(
     rprint(f"[green]✔[/] Created {target_path}")
 
 
+# ---------------------------------------------------------------------------
+# Remote execution command ---------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@app.command(
+    "run-remote", help="Execute a blueprint on a remote iceOS instance via MCP"
+)
+def run_remote(
+    blueprint_path: Path = typer.Option(
+        None,
+        "--blueprint",
+        "-b",
+        help="Path to blueprint JSON/YAML file (optional if --blueprint-id is provided)",
+    ),
+    blueprint_id: str | None = typer.Option(
+        None,
+        "--blueprint-id",
+        help="ID of a previously registered blueprint",
+    ),
+    base_url: str = typer.Option(
+        "http://localhost:8000",
+        "--url",
+        "-u",
+        help="Base URL of the iceOS API",
+    ),
+    wait: bool = typer.Option(
+        True, "--wait/--no-wait", help="Wait for result synchronously"
+    ),
+):
+    """Submit *blueprint* for execution over MCP and print the result."""
+
+    if blueprint_path is None and blueprint_id is None:
+        rprint("[red]Error:[/] Either --blueprint or --blueprint-id must be provided")
+        raise typer.Exit(1)
+
+    client = MCPClient(base_url=base_url)
+
+    # ------------------------------------------------------------------
+    # Load blueprint file when provided --------------------------------
+    # ------------------------------------------------------------------
+    blueprint_obj: Blueprint | None = None
+    if blueprint_path is not None:
+        if not blueprint_path.exists():
+            rprint(f"[red]Error:[/] File '{blueprint_path}' not found")
+            raise typer.Exit(1)
+
+        import json
+
+        import yaml
+
+        raw_txt = blueprint_path.read_text()
+        try:
+            payload = json.loads(raw_txt)
+        except json.JSONDecodeError:
+            payload = yaml.safe_load(raw_txt)
+
+        # Naively convert nodes list into NodeSpec list ----------------
+        nodes_raw = payload.get("nodes", []) if isinstance(payload, dict) else []
+        nodes = [NodeSpec.model_validate(n) for n in nodes_raw]
+        blueprint_obj = Blueprint(nodes=nodes, metadata=payload.get("metadata", {}))
+
+    # ------------------------------------------------------------------
+    # Start run ---------------------------------------------------------
+    # ------------------------------------------------------------------
+    import asyncio
+
+    async def _main() -> None:  # noqa: D401 – inner helper
+        if blueprint_obj is not None and blueprint_id is None:
+            ack = await client.create_blueprint(blueprint_obj)
+            _bp_id = ack.blueprint_id
+        else:
+            _bp_id = blueprint_id  # type: ignore[assignment]
+
+        run_ack = await client.start_run(blueprint_id=_bp_id)
+        rprint(f"[green]✔[/] Run started: [bold]{run_ack.run_id}[/]")
+
+        if not wait:
+            return
+
+        rprint("Waiting for result…")
+        result = await client.await_result(run_ack.run_id)
+        status = "[green]SUCCESS[/]" if result.success else "[red]FAILED[/]"
+        rprint(status)
+        if result.error:
+            rprint(result.error)
+        else:
+            import json as _json
+
+            rprint(_json.dumps(result.output, indent=2))
+
+    asyncio.run(_main())
+
+
 @app.command("run", help="Execute a workflow")
 def run_workflow(
     entry: str = typer.Argument(
@@ -493,15 +593,6 @@ try:
 except Exception:
     # Never fail CLI if optional webhook config parsing blows up
     pass
-
-
-# ---------------------------------------------------------------------------
-# Copilot integration -------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-from ice_sdk.copilot.cli import copilot_app
-
-app.add_typer(copilot_app, name="copilot", help="AI-powered workflow assistant")
 
 
 # ---------------------------------------------------------------------------

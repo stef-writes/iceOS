@@ -37,14 +37,7 @@ __all__ = [
     "extensions",
 ]
 
-# Provide IceCopilot symbol directly (constructor injection elsewhere) -----------
-try:
-    from .copilot import IceCopilot  # noqa: F401 – optional high-level helper
-
-    __all__.append("IceCopilot")
-except Exception:  # pragma: no cover – optional dependency missing / circular issues
-    # Do not fail import if Copilot has unmet deps; users can still use core SDK.
-    pass
+# Removed IceCopilot – Copilot package deprecated
 
 # NOTE: The previous dynamic __getattr__ hook was removed to make dependencies
 # explicit and avoid hidden import side-effects. Downstream code must now import

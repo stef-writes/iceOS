@@ -1,10 +1,14 @@
 [importlinter]
-root_package = src
+root_package = ice_sdk
+include_external_packages = true
 
-[contract: sdk-no-app]
-name = SDK must not import app layer
+[importlinter:contract:sdk-no-higher]
+name = SDK must not import higher layers
 type = forbidden
 source_modules =
     ice_sdk
 forbidden_modules =
-    app 
+    ice_api
+    ice_cli
+    ice_orchestrator
+    frosty 

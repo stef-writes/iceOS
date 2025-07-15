@@ -10,10 +10,6 @@ repos:
       - id: isort
         args: ["--profile=black"]
   # Pyright mirror temporarily disabled due to GitHub repo access issue
-  - repo: https://github.com/seddonym/import-linter
-    rev: v2.3
-    hooks:
-      - id: import-linter
   - repo: https://github.com/pypa/pip-audit
     rev: v2.7.2
     hooks:
@@ -60,3 +56,11 @@ repos:
         language: system
         pass_filenames: false
         always_run: true 
+  - repo: local
+    hooks:
+      - id: import-linter
+        name: import-linter
+        entry: poetry run lint-imports
+        language: system
+        types: [python]
+        pass_filenames: false 

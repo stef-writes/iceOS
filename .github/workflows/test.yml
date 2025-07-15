@@ -1,0 +1,48 @@
+name: CI – tests
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [ '3.10' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: |
+          pip install poetry
+
+      - name: Install dependencies
+        run: |
+          poetry install --with dev --no-interaction
+
+      - name: Lint (ruff)
+        run: |
+          poetry run ruff check src tests
+
+      - name: Type-check (mypy)
+        run: |
+          poetry run mypy src --strict
+
+      - name: Unit tests
+        run: |
+          poetry run pytest tests/unit -m "not slow"
+
+      - name: Integration tests
+        run: |
+          poetry run pytest tests/integration --timeout=120 

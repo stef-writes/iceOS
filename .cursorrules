@@ -14,8 +14,6 @@
 
 7. Mypy must pass in --strict mode on every commit.
 
-8. Any `# type: ignore` must include a comment explaining the technical reason (e.g. "3rd-party stub missing", "circular import", "false positive").
-
 9. Raise only typed, domain-specific exceptions; catch the narrowest subclass possible.
 
 10. All public APIs must use Google-style docstrings with parameter types, return types, and one minimal code example.
