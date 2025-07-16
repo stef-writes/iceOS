@@ -32,7 +32,7 @@ class QuestionModel(BaseModel):
 
 
 class StartRequest(BaseModel):
-    total_nodes: conint(gt=0, le=20) = Field(  # Max 20 nodes for alpha
+    total_nodes: conint(gt=0, le=20) = Field(  # type: ignore[valid-type]
         ..., description="Total nodes in chain (1-20)"
     )
     name: Optional[str] = None

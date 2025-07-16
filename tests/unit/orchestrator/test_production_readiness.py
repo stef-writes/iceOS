@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from ice_core.models.model_registry import get_default_model_id
 from ice_orchestrator.errors.chain_errors import CircularDependencyError
 from ice_orchestrator.graph.dependency_graph import DependencyGraph
 from ice_sdk.models.node_models import AiNodeConfig, LLMConfig, ModelProvider
@@ -25,9 +26,11 @@ def _ai_node(node_id: str, **extra: Any) -> AiNodeConfig:  # noqa: D401 – fact
         id=node_id,
         type="ai",
         name=node_id,
-        model="gpt-3.5-turbo",
+        model=get_default_model_id(),
         prompt="hi",
-        llm_config=LLMConfig(provider=ModelProvider.OPENAI, model="gpt-3.5-turbo"),
+        llm_config=LLMConfig(
+            provider=ModelProvider.OPENAI, model=get_default_model_id()
+        ),
         **extra,
     )
 

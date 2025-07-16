@@ -2,6 +2,8 @@
 Top-level API for iceOS: ergonomic, discoverable, and full-power.
 """
 
+from ice_core.models.model_registry import get_default_model_id
+
 # --- Core re-exports (escape hatches) ---
 from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk import ToolService
@@ -37,7 +39,7 @@ class AiNodeBuilder:
     def __init__(self, name: str):
         self._name = name
         self._prompt = None
-        self._model = "gpt-4"
+        self._model = get_default_model_id()
         self._dependencies = []
         self._llm_config = {"provider": "openai"}
 

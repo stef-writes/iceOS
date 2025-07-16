@@ -13,6 +13,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, List, Optional
 
+from ice_core.models.model_registry import get_default_model_id  # Add import near top
 from ice_sdk.models.node_models import (  # noqa: F401 – typings only
     AiNodeConfig,
     ToolNodeConfig,
@@ -193,7 +194,7 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                     )
                     tools_str = f", tools={tools_list}"
                 node_lines.append(
-                    f"    AiNodeConfig(id=\"{node_id}\", type=\"ai\", name=\"{node['name']}\", model=\"{node.get('model','gpt-3.5-turbo')}\", prompt=\"# TODO\", llm_config={{'provider': 'openai'}}, dependencies={deps_str}{tools_str}{extra_str}),"
+                    f"    AiNodeConfig(id=\"{node_id}\", type=\"ai\", name=\"{node['name']}\", model=\"{node.get('model', get_default_model_id())}\", prompt=\"# TODO\", llm_config={{'provider': 'openai'}}, dependencies={deps_str}{tools_str}{extra_str}),"
                 )
             else:
                 node_lines.append(

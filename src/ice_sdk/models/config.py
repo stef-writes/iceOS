@@ -60,6 +60,8 @@ def parse_model_version(
             return "4.0.0"
         elif model_name == "gpt-4-turbo":
             return "4.1.0"
+        elif model_name == "gpt-4-turbo-2024-04-09":
+            return "4.1.1"
         elif model_name == "gpt-4-32k":
             return "4.0.1"
         elif model_name == "gpt-3.5-turbo":

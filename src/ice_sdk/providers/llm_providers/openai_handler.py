@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 from openai import AsyncOpenAI
 
+from ice_core.models.model_registry import get_default_model_id
 from ice_sdk.models.config import LLMConfig
 
 from .base_handler import BaseLLMHandler
@@ -46,7 +47,7 @@ class OpenAIHandler(BaseLLMHandler):
         try:
             async with client:
                 logger.info("🔄 OpenAI call: model=%s", llm_config.model)
-                model_name: str = llm_config.model or "gpt-3.5-turbo"
+                model_name: str = llm_config.model or get_default_model_id()
                 response = await client.chat.completions.create(  # type: ignore[arg-type,misc]
                     model=model_name,
                     messages=messages,  # type: ignore[arg-type]

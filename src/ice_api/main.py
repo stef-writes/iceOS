@@ -155,3 +155,18 @@ async def list_tools_v1(request: Request) -> List[str]:  # noqa: D401
     """Return all registered tool names (legacy alias without /api prefix)."""
     tool_service = request.app.state.tool_service  # type: ignore[attr-defined]
     return sorted(tool_service.available_tools())
+
+
+# ---------------------------------------------------------------------------
+# Capability catalog endpoint ------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+from iceos.catalog import CatalogSummary, get_catalog  # noqa: E402  – late import
+
+
+@app.get("/v1/catalog", response_model=CatalogSummary, tags=["utils"])
+async def get_catalog_v1() -> CatalogSummary:  # noqa: D401
+    """Return a high-level summary of all registered tools, chains, nodes and agents."""
+
+    return get_catalog(refresh=False).summary()

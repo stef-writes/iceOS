@@ -1,0 +1,2 @@
+[project.entry-points."iceos.addons"]
+web_search = "iceos_web.search:WebSearchTool" 

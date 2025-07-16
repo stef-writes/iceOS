@@ -30,6 +30,7 @@ and type checking.
 
 from typing import Any, Callable, Dict, List, Optional
 
+from ice_core.models.model_registry import get_default_model_id
 from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig
 
 # ---------------------------------------------------------------------------
@@ -84,7 +85,7 @@ def ai(
             type="ai",
             name=name or func.__name__,
             prompt=prompt,
-            model=model or llm_conf.get("model", "gpt-3.5-turbo"),
+            model=model or llm_conf.get("model", get_default_model_id()),
             llm_config=llm_conf,  # type: ignore[arg-type]
             dependencies=dependencies or [],
         )

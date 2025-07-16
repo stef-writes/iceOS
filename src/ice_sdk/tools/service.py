@@ -51,6 +51,30 @@ class ToolService:  # noqa: D101 – simple façade
         self._registry = {}
         if auto_register_builtins:
             self._register_default_tools()
+        # ------------------------------------------------------------------
+        # Load optional add-ons published via Python entry-points ---------
+        # ------------------------------------------------------------------
+        try:  # Local import to keep startup fast and optional
+            import importlib.metadata as _ilm  # Python ≥3.8 stdlib
+
+            eps = _ilm.entry_points(group="iceos.addons")  # type: ignore[attr-defined]
+            for ep in eps:
+                try:
+                    obj = ep.load()
+                    # Case 1 – direct Tool subclass ---------------------------------
+                    if isinstance(obj, type) and issubclass(obj, BaseTool):
+                        self.register(obj)
+                    # Case 2 – callable that performs its own registration ----------
+                    elif callable(obj):
+                        obj(self)  # type: ignore[arg-type]
+                except Exception:  # noqa: BLE001 – keep add-on errors non-fatal
+                    import logging as _log
+
+                    _log.getLogger(__name__).warning(
+                        "Failed to load addon entry-point '%s'", ep.name, exc_info=True
+                    )
+        except Exception:  # noqa: BLE001 – missing importlib.metadata on Py<3.8
+            pass
 
     # ------------------------------------------------------------------
     # New feature: file-system discovery of ``*.tool.py`` ----------------

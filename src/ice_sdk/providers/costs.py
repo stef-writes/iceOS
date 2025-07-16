@@ -33,6 +33,7 @@ _OPENAI_PRICES: Dict[str, Tuple[Decimal, Decimal]] = {
     "gpt-4-turbo": (Decimal("0.000010"), Decimal("0.000030")),
     "gpt-4": (Decimal("0.000030"), Decimal("0.000060")),
     "gpt-3.5-turbo": (Decimal("0.0000005"), Decimal("0.0000015")),
+    "gpt-4-turbo-2024-04-09": (Decimal("0.000010"), Decimal("0.000030")),
 }
 
 # Mapping by provider --------------------------------------------------------

@@ -1,5 +1,6 @@
 import pytest
 
+from ice_core.models.model_registry import get_default_model_id
 from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk.models.node_models import AiNodeConfig
 from ice_sdk.providers.llm_service import LLMService
@@ -29,7 +30,7 @@ async def test_allowed_tools_whitelist():
         id="ai1",
         name="AI1",
         type="ai",
-        model="gpt-3.5-turbo",
+        model=get_default_model_id(),
         prompt="Return OK",
         llm_config={},  # type: ignore[arg-type]
         allowed_tools=["my_tool"],

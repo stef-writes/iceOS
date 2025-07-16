@@ -34,3 +34,9 @@ try:
     import_module("ice_sdk.executors.loop")
 except ModuleNotFoundError:  # pragma: no cover
     pass
+
+# Register *prebuilt* node executor -----------------------------------------
+try:
+    import_module("ice_sdk.executors.prebuilt")
+except ModuleNotFoundError:  # pragma: no cover
+    pass

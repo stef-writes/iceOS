@@ -418,6 +418,52 @@ class NestedChainConfig(BaseNodeConfig):
 
 
 # ---------------------------------------------------------------------------
+# Prebuilt agent node --------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class PrebuiltAgentConfig(BaseNodeConfig):
+    """Configuration for using a *pre-built* third-party agent inside a ScriptChain.
+
+    The node resolves the agent at runtime via Python import semantics or
+    *ice_agents* entry-points to keep the orchestrator decoupled from any
+    concrete implementation.
+    """
+
+    type: Literal["prebuilt"] = "prebuilt"
+
+    package: str = Field(
+        ...,
+        description="Import path or installed package exposing the agent. "
+        "Supports standard dotted notation (e.g. `my_pkg.agents.gh_search`).",
+    )
+    agent_attr: Optional[str] = Field(
+        None,
+        description="Attribute name exporting the agent object. Defaults to 'Agent'.",
+    )
+    model: Optional[str] = Field(
+        None,
+        description="Model override forwarded to the resolved agent when supported.",
+    )
+    version_constraint: Optional[str] = Field(
+        None,
+        description="Optional PEP 440 version specifier ensuring the resolved package "
+        "matches a required range (e.g. '>=1.2,<2.0'). This field is *informational* "
+        "for now – enforcement happens in the CLI install helper.",
+    )
+
+    # ------------------------------------------------------------------
+    # Validation helpers -------------------------------------------------
+    # ------------------------------------------------------------------
+    @model_validator(mode="after")
+    def _validate_attr(self) -> "PrebuiltAgentConfig":  # noqa: D401 – pydantic hook
+        if ":" in self.package and self.agent_attr is None:
+            # Allow shorthand "pkg.module:Class" syntax -----------------
+            self.package, self.agent_attr = self.package.split(":", 1)
+        return self
+
+
+# ---------------------------------------------------------------------------
 # Update public alias --------------------------------------------------------
 # ---------------------------------------------------------------------------
 
@@ -427,7 +473,8 @@ NodeConfig = Annotated[
         AiNodeConfig,
         ToolNodeConfig,
         ConditionNodeConfig,
-        NestedChainConfig,  # <-- NEW
+        NestedChainConfig,
+        PrebuiltAgentConfig,  # <-- NEW
     ],
     Field(discriminator="type"),
 ]  # Historical alias preserved for backwards-compatibility

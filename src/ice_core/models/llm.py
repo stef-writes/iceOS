@@ -44,6 +44,7 @@ def parse_model_version(
         mapping = {
             "gpt-4": "4.0.0",
             "gpt-4-turbo": "4.1.0",
+            "gpt-4-turbo-2024-04-09": "4.1.1",
             "gpt-4-32k": "4.0.1",
             "gpt-3.5-turbo": "3.5.0",
             "gpt-4o": "4.2.0",
@@ -222,5 +223,19 @@ class LLMConfig(BaseModel):
     @classmethod
     def _validate_model(cls, v: str, info: Any) -> str:  # noqa: D401
         provider = info.data.get("provider", ModelProvider.OPENAI)
-        parse_model_version(v, provider)  # validates
+        parse_model_version(v, provider)  # validates format/provider
+
+        # Enforce allowed model list ------------------------------------------------
+        try:
+            from .model_registry import (  # local import to avoid cycles
+                BANNED_MODELS,
+                is_allowed_model,
+            )
+        except Exception:  # pragma: no cover – defensive
+            return v  # registry unavailable during early import; skip
+
+        if not is_allowed_model(v):
+            raise ValueError(
+                f"Model '{v}' is not allowed. Banned models: {', '.join(sorted(BANNED_MODELS))}"
+            )
         return v

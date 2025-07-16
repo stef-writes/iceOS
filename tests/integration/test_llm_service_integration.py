@@ -20,6 +20,7 @@ import pytest
 
 from ice_core.models.enums import ModelProvider
 from ice_core.models.llm import LLMConfig  # noqa: WPS301 – re-exported in SDK path
+from ice_core.models.model_registry import get_default_model_id  # new import
 from ice_sdk.providers.llm_providers.base_handler import BaseLLMHandler
 from ice_sdk.providers.llm_service import LLMService
 
@@ -58,7 +59,7 @@ async def test_llm_service_generate_round_trip() -> None:
     svc = LLMService()
     svc.handlers[ModelProvider.OPENAI] = _EchoHandler()  # override network call
 
-    cfg = LLMConfig(model="gpt-3.5-turbo", provider=ModelProvider.OPENAI)
+    cfg = LLMConfig(model=get_default_model_id(), provider=ModelProvider.OPENAI)
     prompt = "Hello integration test"
 
     # Act --------------------------------------------------------------------

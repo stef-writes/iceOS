@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 
+from ice_core.models.model_registry import get_default_model_id
 from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk.models.config import LLMConfig, ModelProvider
 from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig
@@ -62,9 +63,11 @@ async def test_script_chain_ai_and_tool(monkeypatch):
     ai_cfg = AiNodeConfig(
         id="ai1",
         name="Agent",
-        model="gpt-3.5-turbo",
+        model=get_default_model_id(),
         prompt="Return OK",
-        llm_config=LLMConfig(provider=ModelProvider.OPENAI, model="gpt-3.5-turbo"),
+        llm_config=LLMConfig(
+            provider=ModelProvider.OPENAI, model=get_default_model_id()
+        ),
         dependencies=["tool1"],
     )
 

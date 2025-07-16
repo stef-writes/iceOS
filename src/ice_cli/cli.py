@@ -604,6 +604,7 @@ from ice_cli.commands.doctor import doctor_app as quality_app  # noqa: E402
 
 # Misc maintenance utilities ported from scripts/cli/*
 from ice_cli.commands.maint import maint_app  # noqa: E402
+from ice_cli.commands.models import models_app  # noqa: E402
 
 update_app = typer.Typer(add_completion=False, help="Self-update helpers")
 
@@ -617,10 +618,47 @@ def update_templates():
 # Mount quality sub-app (lint/type/test)
 app.add_typer(quality_app, name="doctor", rich_help_panel="Quality")
 
+# LLM models catalog -------------------------------------------------------
+app.add_typer(models_app, name="models", rich_help_panel="LLM")
+
 app.add_typer(update_app, name="update", rich_help_panel="Maintenance")
 
 # New: maintenance helpers sub-app ----------------------------------------
 app.add_typer(maint_app, name="maint", rich_help_panel="Maintenance")
+
+
+# ---------------------------------------------------------------------------
+# Catalog command -----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@app.command("catalog", help="Display live capability catalog")
+def catalog_cmd(
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output JSON"),
+):
+    """Show all registered tools, chains, nodes and agents."""
+
+    from iceos.catalog import get_catalog  # late import to avoid CLI startup cost
+
+    cat = get_catalog(refresh=True)
+
+    if json_output:
+        import json as _json
+
+        from rich import print as _print
+
+        _print(
+            _json.dumps(
+                [card.model_dump() for card in cat.list()], indent=2, ensure_ascii=False
+            )
+        )
+        return
+
+    from rich import print as _print
+
+    _print("[bold underline]Capability Catalog[/]\n")
+    for card in cat.list():
+        _print(f"• [cyan]{card.id}[/] ([magenta]{card.kind}[/]) – {card.description}")
 
 
 # ---------------------------------------------------------------------------

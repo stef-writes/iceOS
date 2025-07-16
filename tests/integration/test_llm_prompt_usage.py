@@ -10,6 +10,7 @@ import pytest
 
 from ice_core.models.enums import ModelProvider
 from ice_core.models.llm import LLMConfig
+from ice_core.models.model_registry import get_default_model_id
 from ice_sdk.providers.llm_providers.base_handler import BaseLLMHandler
 from ice_sdk.providers.llm_service import LLMService
 
@@ -43,7 +44,7 @@ async def fixture_llm_service() -> LLMService:  # noqa: D401
 @pytest.mark.asyncio
 async def test_prompt_usage_accounting(svc: LLMService):
     prompt = "Hello agile AI"
-    cfg = LLMConfig(model="gpt-3.5-turbo", provider=ModelProvider.OPENAI)
+    cfg = LLMConfig(model=get_default_model_id(), provider=ModelProvider.OPENAI)
 
     text, usage, error = await svc.generate(cfg, prompt)
 
@@ -59,7 +60,7 @@ async def test_prompt_usage_accounting(svc: LLMService):
 @pytest.mark.asyncio
 async def test_timeout_path(svc: LLMService):
     prompt = "Timeout test"
-    cfg = LLMConfig(model="gpt-3.5-turbo", provider=ModelProvider.OPENAI)
+    cfg = LLMConfig(model=get_default_model_id(), provider=ModelProvider.OPENAI)
 
     text, usage, error = await svc.generate(cfg, prompt, timeout_seconds=0.001)
 

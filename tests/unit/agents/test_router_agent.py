@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 import pytest
 
+from ice_core.models.model_registry import get_default_model_id
 from ice_sdk.agents.agent_node import AgentNode
 from ice_sdk.context import AsyncGraphContextManager
 from ice_sdk.models.agent_models import AgentConfig, ModelSettings
@@ -21,9 +22,12 @@ class PassiveAgent(AgentNode):
         cfg = AgentConfig(
             name=name,
             instructions="You are a passive agent",
-            model="gpt-3.5-turbo",
+            model=get_default_model_id(),
             model_settings=ModelSettings(
-                model="gpt-3.5-turbo", temperature=0.0, provider="openai", max_tokens=16
+                model=get_default_model_id(),
+                temperature=0.0,
+                provider="openai",
+                max_tokens=16,
             ),
             tools=[],  # type: ignore[call-arg]
         )
@@ -42,7 +46,7 @@ class RouterAgent(AgentNode):
     async def execute(self, input: Dict[str, Any]):  # type: ignore[override]
         # Ask LLM which agent to call (stubbed in test)
         target_name, _, _ = await self.llm_service.generate(  # type: ignore[attr-defined]
-            llm_config=LLMConfig(provider="openai", model="gpt-3.5-turbo"),
+            llm_config=LLMConfig(provider="openai", model=get_default_model_id()),
             prompt="choose agent",
             context={},
             tools=None,
@@ -67,9 +71,12 @@ async def test_router_agent_forwards(monkeypatch):
     router_cfg = AgentConfig(
         name="router",
         instructions="Route to the correct agent",
-        model="gpt-3.5-turbo",
+        model=get_default_model_id(),
         model_settings=ModelSettings(
-            model="gpt-3.5-turbo", temperature=0.0, provider="openai", max_tokens=16
+            model=get_default_model_id(),
+            temperature=0.0,
+            provider="openai",
+            max_tokens=16,
         ),
         tools=[],  # type: ignore[call-arg]
     )

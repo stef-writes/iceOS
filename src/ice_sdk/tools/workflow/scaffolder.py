@@ -6,6 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from ice_core.models.model_registry import get_default_model_id
 from ice_core.utils.security import sanitize_path
 from ice_sdk.events.dispatcher import publish
 from ice_sdk.exceptions import ScaffoldValidationError
@@ -81,7 +82,7 @@ class WorkflowScaffolder(BaseTool):
                 f"id: {name}_ai\n"
                 "type: ai\n"
                 f"name: {name}\n"
-                "model: gpt-3.5-turbo\n"
+                f"model: {get_default_model_id()}\n"
                 "prompt: |\n  # TODO: write prompt here\n"
                 "llm_config:\n  provider: openai\n  temperature: 0.7\n  max_tokens: 256\n"
                 "dependencies: []\n"

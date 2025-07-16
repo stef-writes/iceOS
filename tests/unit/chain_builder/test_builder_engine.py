@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 
+from ice_core.models.model_registry import get_default_model_id  # add import
 from ice_sdk.chain_builder.engine import BuilderEngine  # type: ignore
 
 
@@ -38,7 +39,7 @@ def test_builder_engine_render_valid_python() -> None:
         [
             ("type", "ai"),
             ("name", "ask_llm"),
-            ("model", "gpt-3.5-turbo"),
+            ("model", get_default_model_id()),
             ("deps", "n0"),
             ("adv", "n"),
         ],

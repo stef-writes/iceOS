@@ -4,6 +4,7 @@ import pytest
 from httpx import AsyncClient
 
 from ice_api.main import app
+from ice_core.models.model_registry import get_default_model_id
 
 
 @pytest.mark.asyncio
@@ -50,7 +51,11 @@ async def test_builder_happy_path():
         if q and q["key"] == "model":
             await client.post(
                 "/api/v1/builder/answer",
-                json={"draft_id": draft_id, "key": "model", "answer": "gpt-3.5-turbo"},
+                json={
+                    "draft_id": draft_id,
+                    "key": "model",
+                    "answer": get_default_model_id(),
+                },
             )
             # Fetch next question which could be deps
             q_resp = await client.post(

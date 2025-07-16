@@ -1,5 +1,6 @@
 import pytest
 
+from ice_core.models.model_registry import get_default_model_id
 from ice_orchestrator.script_chain import ScriptChain
 from ice_sdk.models.node_models import AiNodeConfig
 
@@ -12,7 +13,7 @@ async def test_prompt_placeholder_validation():
         id="ai1",
         name="AI1",
         type="ai",
-        model="gpt-3.5-turbo",
+        model=get_default_model_id(),
         prompt="Hello {missing}",  # unresolved placeholder
         llm_config={},  # type: ignore[arg-type]
         dependencies=[],
