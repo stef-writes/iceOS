@@ -10,9 +10,11 @@ import structlog
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
+# Import globally to avoid local shadowing errors
+from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
+
 if TYPE_CHECKING:  # pragma: no cover
     from ice_orchestrator.script_chain import ScriptChain
-    from ice_sdk.models.node_models import NodeExecutionResult
 
 tracer = trace.get_tracer(__name__)
 logger = structlog.get_logger(__name__)
@@ -51,8 +53,7 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
         try:
             node.runtime_validate()  # type: ignore[attr-defined]
         except Exception as exc:
-            from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
-
+            # models imported at module level – avoid re-importing inside function
             error_meta = NodeMetadata(  # type: ignore[call-arg]
                 node_id=node_id,
                 node_type=str(getattr(node, "type", "")),
@@ -238,8 +239,7 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
         # --------------------------------------------------------------
         # All retries exhausted – build failure result -----------------
         # --------------------------------------------------------------
-        from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
-
+        # models imported at module level – avoid re-importing inside function
         error_meta = NodeMetadata(  # type: ignore[call-arg]
             node_id=node_id,
             node_type=str(getattr(node, "type", "")),

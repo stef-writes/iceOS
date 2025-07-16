@@ -51,11 +51,11 @@ refresh-docs:
 doctor:
 	poetry run ice doctor all
 	poetry run pre-commit run --all-files --show-diff-on-failure
-	$(PYTHON) scripts/check_layers.py
+	"$(PYTHON)" scripts/check_layers.py
 
 # Architectural guard – run by CI and pre-commit
 structure:
-	$(PYTHON) scripts/check_layers.py
+	"$(PYTHON)" scripts/check_layers.py
 
 coverage:
 	poetry run pytest
