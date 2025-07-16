@@ -15,9 +15,9 @@ from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field, field_validator
 
+from ice_core.utils.text import TextProcessor
 from ice_sdk.providers.embedding import get_embedder
 from ice_sdk.providers.vector.chroma import ChromaDBAdapter
-from ice_sdk.utils.text import TextProcessor
 
 __all__ = [
     "KnowledgeConfig",

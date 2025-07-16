@@ -9,8 +9,8 @@ pytest.skip("Vector embedding/hash tests removed in refactor", allow_module_leve
 
 """Contract smoke-tests for new vector stack primitives."""
 
+from ice_core.utils.hashing import HashMode, compute_hash
 from ice_sdk.models.embedding import DEFAULT_DIM, Embedding
-from ice_sdk.utils.hashing import HashMode, compute_hash
 
 
 @pytest.mark.parametrize("vector_len", [100, DEFAULT_DIM, 500])
