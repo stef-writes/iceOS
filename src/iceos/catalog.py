@@ -58,6 +58,8 @@ class CapabilityCatalog:  # noqa: D101 – simple façade
     # ------------------------------------------------------------------
     def __init__(self, *, auto_refresh: bool = True) -> None:  # noqa: D401
         self._registry = CapabilityRegistry()
+        # Track chain aliases discovered via the orchestrator (populated in _collect_chains)
+        self._chain_aliases: List[str] = []
         if auto_refresh:
             self.refresh()
 
@@ -90,12 +92,22 @@ class CapabilityCatalog:  # noqa: D101 – simple façade
         """Return high-level lists only (cheap)."""
 
         tools = [c.id for c in self._registry.list() if c.kind == "tool"]
-        chains = [c.id for c in self._registry.list() if c.id in tools is False and c.kind == "other" and c.id in (self._chain_aliases)]  # type: ignore[attr-defined]
+
+        # Chains are stored in the registry with kind=="other" but their IDs must match
+        # the aliases discovered in `_collect_chains`.
+        chains = [
+            c.id
+            for c in self._registry.list()
+            if c.kind == "other" and c.id in self._chain_aliases
+        ]
+
+        # Remaining "other" kind cards that are *not* chains are considered node modes.
         nodes = [
             c.id
             for c in self._registry.list()
-            if c.kind == "other" and c.id not in chains
+            if c.kind == "other" and c.id not in self._chain_aliases
         ]
+
         agents = [c.id for c in self._registry.list() if c.kind == "agent"]
         return CatalogSummary(tools=tools, chains=chains, nodes=nodes, agents=agents)
 
@@ -127,6 +139,8 @@ class CapabilityCatalog:  # noqa: D101 – simple façade
         if chain_registry is None:  # pragma: no cover – orchestrator missing
             return
         chains: Dict[str, Any] = chain_registry.list_chains()
+        # Persist alias list for quick look‐up elsewhere (e.g. summary())
+        self._chain_aliases = list(chains.keys())
         for alias, chain in chains.items():
             card = CapabilityCard(
                 id=alias,

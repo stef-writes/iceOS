@@ -56,7 +56,11 @@ class KnowledgeService:
 
     def __init__(self, config: KnowledgeConfig):
         self.config = config
-        self._text_processor = TextProcessor()
+        # Propagate chunk sizing defaults into TextProcessor to satisfy strict typing
+        self._text_processor = TextProcessor(
+            default_chunk_size=config.chunk_size,
+            default_chunk_overlap=config.chunk_overlap,
+        )
         self._vector_index = ChromaDBAdapter()
         self._embedder = get_embedder()
         self._collection = "enterprise_kb"

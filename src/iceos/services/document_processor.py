@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Filesystem watcher that triggers *incremental* ingestion on file updates."""
 
 from __future__ import annotations

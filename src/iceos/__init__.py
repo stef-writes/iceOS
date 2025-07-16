@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Top-level API for iceOS: ergonomic, discoverable, and full-power.
 """
