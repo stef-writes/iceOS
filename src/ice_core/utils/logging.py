@@ -8,7 +8,6 @@ def setup_logger() -> logging.Logger:
     """Configure root logger with a sane default format only once."""
     logger = logging.getLogger()
     if logger.handlers:
-        # Already configured – return existing one (avoid duplicate logs)
         return logger
 
     logger.setLevel(logging.INFO)
@@ -22,5 +21,4 @@ def setup_logger() -> logging.Logger:
     return logger
 
 
-# Initialise a default logger for modules that just need to import `logger`.
 logger = setup_logger()

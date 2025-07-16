@@ -3,8 +3,9 @@
 This is *not* the production implementation – it exists so that the open-source
 build passes the public contract tests shipped in ``tests/frosty``.
 
-The real orchestration logic lives in proprietary services.  Keep this file
-simple, dependency-free, and deterministic so CI remains fast.
+TODO(iceOS#2025): Replace `MemoryStore` with `iceos.services.knowledge_service.KnowledgeService`
+and `Guardrails` with `ice_core.utils.perf` once the production services are fully
+wired in.  Keep the existing interfaces stable to avoid breaking public tests.
 """
 
 from __future__ import annotations

@@ -47,10 +47,12 @@ class AgentNode:
             name: Tool name
             description: Tool description
         """
+        tool_name = name  # capture outer vars for class body access
+        tool_description = description
 
         class AgentTool(BaseTool):
-            name: ClassVar[str] = name  # type: ignore[misc]
-            description: ClassVar[str] = description  # type: ignore[misc]
+            name: ClassVar[str] = tool_name  # type: ignore[misc]
+            description: ClassVar[str] = tool_description  # type: ignore[misc]
             parameters_schema: ClassVar[Dict[str, Any]] = {
                 "type": "object",
                 "properties": {
@@ -58,6 +60,9 @@ class AgentNode:
                 },
                 "required": ["input"],
             }
+
+            # Allow AgentNode reference in the *agent* attribute without schema
+            model_config = {"arbitrary_types_allowed": True}  # type: ignore[var-annotated]
 
             # The parent ``AgentNode`` instance is patched onto the tool after
             # instantiation (see below).  Declare the attribute so that static

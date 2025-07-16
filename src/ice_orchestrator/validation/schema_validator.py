@@ -80,7 +80,7 @@ class SchemaValidator:  # noqa: D101 – internal utility
                 else:
                     normalized_schema[key] = expected  # type: ignore[assignment]
 
-            from ice_sdk.utils.validation import validate_nested_output
+            from ice_core.utils.nested_validation import validate_nested_output
 
             errors = validate_nested_output(output, normalized_schema)
             return len(errors) == 0

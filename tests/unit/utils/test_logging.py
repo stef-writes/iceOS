@@ -1,4 +1,4 @@
-from ice_sdk.utils.logging import setup_logger
+from ice_core.utils.logging import setup_logger
 
 
 def test_setup_logger_idempotent():

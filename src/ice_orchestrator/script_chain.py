@@ -20,6 +20,7 @@ from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
 import ice_sdk.executors  # noqa: F401 – side-effect import registers built-in executors
+from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from ice_orchestrator.core import ChainFactory
 from ice_orchestrator.execution.agent_factory import AgentFactory
 from ice_orchestrator.execution.executor import NodeExecutor
@@ -43,7 +44,6 @@ from ice_sdk.models.node_models import (
 from ice_sdk.orchestrator.base_script_chain import BaseScriptChain, FailurePolicy
 from ice_sdk.orchestrator.workflow_execution_context import WorkflowExecutionContext
 from ice_sdk.tools.base import BaseTool
-from ice_sdk.utils.perf import WeightedSemaphore, estimate_complexity
 
 # ---------------------------------------------------------------------------
 # Tracing & logging setup ----------------------------------------------------

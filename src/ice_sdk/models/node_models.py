@@ -508,6 +508,9 @@ class NodeExecutionResult(BaseModel):
     token_stats: Optional[Dict[str, Any]] = Field(
         None, description="Token statistics including truncation and limits"
     )
+    budget_status: Optional[Dict[str, Any]] = Field(
+        None, description="Budget consumption metrics at time of execution"
+    )
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

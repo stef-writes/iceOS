@@ -2,6 +2,8 @@ from typing import Any, Dict, Type
 
 from pydantic import BaseModel, ValidationError
 
+__all__ = ["coerce_value", "coerce_types"]
+
 
 def coerce_value(value: Any, target_type: Type[Any]) -> Any:
     try:
@@ -12,7 +14,7 @@ def coerce_value(value: Any, target_type: Type[Any]) -> Any:
                 return int(value)
             if isinstance(value, str):
                 value = value.replace(",", "").strip()
-                if value.lower() in ("nan", "inf", "-inf"):  # edge cases
+                if value.lower() in ("nan", "inf", "-inf"):
                     raise ValueError(f"Cannot coerce '{value}' to int")
                 if "." in value:
                     return int(float(value))
@@ -43,24 +45,17 @@ def coerce_value(value: Any, target_type: Type[Any]) -> Any:
 
 
 def coerce_types(output: Dict[str, Any], schema: Any) -> Dict[str, Any]:
-    """
-    Coerces an output dictionary to conform to a given schema, which can be a
-    Pydantic model or a simple type dictionary.
-    """
     if isinstance(schema, type) and issubclass(schema, BaseModel):
         try:
-            # Pydantic model handles all parsing and validation
             validated_model = schema.model_validate(output)
             return validated_model.model_dump()
         except ValidationError as e:
             raise ValueError(f"Pydantic validation failed: {e}")
 
-    # Fallback to original logic for simple dict schemas
     type_map = {"str": str, "int": int, "float": float, "bool": bool}
     coerced = {}
     errors = {}
 
-    # Ensure schema is a dictionary for the old logic path
     if not isinstance(schema, dict):
         raise TypeError(
             f"Schema must be a dictionary or Pydantic model, not {type(schema)}"
@@ -69,20 +64,16 @@ def coerce_types(output: Dict[str, Any], schema: Any) -> Dict[str, Any]:
     for k, v in output.items():
         target_type_str = schema.get(k)
         if not target_type_str:
-            coerced[k] = v  # No type specified, pass through
+            coerced[k] = v
             continue
-
         expected_type = type_map.get(target_type_str)
         if not expected_type:
-            coerced[k] = v  # Unknown type, pass through
+            coerced[k] = v
             continue
-
         try:
             coerced[k] = coerce_value(v, expected_type)
         except Exception as e:
             errors[k] = str(e)
-
     if errors:
         raise ValueError(f"Type coercion errors: {errors}")
-
     return coerced

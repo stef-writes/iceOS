@@ -239,7 +239,7 @@ class GraphContextManager:
             import json
 
             from ice_sdk.models.config import ModelProvider
-            from ice_sdk.utils.token_counter import TokenCounter
+            from ice_sdk.runtime.token_counter import TokenCounter
 
             if isinstance(content, str):
                 serialised = content
@@ -356,7 +356,7 @@ class GraphContextManager:
 
         # Import token counter lazily to avoid heavy startup costs
         from ice_sdk.models.config import ModelProvider
-        from ice_sdk.utils.token_counter import TokenCounter
+        from ice_sdk.runtime.token_counter import TokenCounter
 
         def _estimate_tokens(text: str) -> int:
             """Return token estimate for *text* as *int*."""
@@ -381,7 +381,7 @@ class GraphContextManager:
         if strategy == "summarize":
             try:
                 # Defer import – summariser is optional dependency
-                from ice_sdk.utils.summariser import deterministic_summariser
+                from ice_core.utils.text import deterministic_summariser
 
                 summary = deterministic_summariser(
                     content, schema=schema, max_tokens=effective_max_tokens

@@ -1,5 +1,5 @@
 from ice_sdk.models.config import ModelProvider
-from ice_sdk.utils.token_counter import TokenCounter
+from ice_sdk.runtime.token_counter import TokenCounter
 
 
 def test_estimate_tokens():

@@ -25,8 +25,8 @@ from ice_sdk.models.node_models import (
     NodeMetadata,
 )
 from ice_sdk.node_registry import register_node
+from ice_sdk.runtime.prompt_renderer import render_prompt
 from ice_sdk.tools.base import BaseTool
-from ice_sdk.utils.prompt_renderer import render_prompt
 
 # Alias used in annotations locally ------------------------------------------
 ScriptChain: TypeAlias = ScriptChainLike

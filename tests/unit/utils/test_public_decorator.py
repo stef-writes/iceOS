@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 import types
 
-from ice_sdk.utils.public import public  # noqa: F401
+from ice_core.utils.meta import public  # noqa: F401
 
 
 def _make_temp_module(name: str = "tmp_public_module"):  # pragma: no cover – helper

@@ -3,7 +3,7 @@ import types
 
 import pytest
 
-from ice_sdk.utils.prompt_renderer import render_prompt
+from ice_sdk.runtime.prompt_renderer import render_prompt
 
 
 @pytest.mark.asyncio

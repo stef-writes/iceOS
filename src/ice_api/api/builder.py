@@ -5,7 +5,7 @@ import uuid
 from typing import Any, Dict, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Response  # type: ignore
-from pydantic import BaseModel, Field  # type: ignore
+from pydantic import BaseModel, Field, conint  # type: ignore
 
 from ice_sdk.chain_builder.engine import BuilderEngine, ChainDraft, Question
 
@@ -32,7 +32,9 @@ class QuestionModel(BaseModel):
 
 
 class StartRequest(BaseModel):
-    total_nodes: int = Field(..., gt=0, le=100)
+    total_nodes: conint(gt=0, le=20) = Field(  # Max 20 nodes for alpha
+        ..., description="Total nodes in chain (1-20)"
+    )
     name: Optional[str] = None
 
 

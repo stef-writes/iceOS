@@ -4,16 +4,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ice_core.utils.logging import logger, setup_logger  # noqa: F401 re-export
+from ice_core.utils.meta import public  # noqa: F401 re-export
+from ice_core.utils.security import sanitize_path  # noqa: F401
 from ice_sdk.utils.errors import (  # noqa: F401 re-export
     APIError,
     add_exception_handlers,
 )
-from ice_sdk.utils.logging import logger, setup_logger  # noqa: F401 re-export
-from ice_sdk.utils.public import public  # noqa: F401 re-export
+from ice_sdk.utils.text import TextProcessor  # noqa: F401 re-export
 
 if TYPE_CHECKING:
-    from ice_sdk.utils.token_counter import TokenCounter  # noqa: F401
-    from ice_sdk.utils.type_coercion import coerce_types  # noqa: F401
+    from ice_core.utils.coercion import coerce_types  # noqa: F401
+    from ice_sdk.runtime.token_counter import TokenCounter  # noqa: F401
 
 __all__ = [
     "logger",
@@ -22,6 +24,8 @@ __all__ = [
     "add_exception_handlers",
     "TokenCounter",
     "coerce_types",
+    "sanitize_path",
+    "TextProcessor",
 ]
 
 __all__.append("public")

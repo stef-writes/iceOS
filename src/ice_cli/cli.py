@@ -25,8 +25,8 @@ from typing import Any
 from rich import print as rprint  # type: ignore
 
 from ice_cli.context import CLIContext
+from ice_core.utils.logging import setup_logger
 from ice_sdk.protocols.mcp import Blueprint, MCPClient, NodeSpec  # type: ignore
-from ice_sdk.utils.logging import setup_logger
 
 # ---------------------------------------------------------------------------
 # NEW: MCP client for remote execution --------------------------------------

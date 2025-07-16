@@ -22,9 +22,6 @@ try:
 except ModuleNotFoundError:  # pragma: no cover – optional dep
     MinHash = None  # type: ignore
 
-# ---------------------------------------------------------------------------
-# Public API ----------------------------------------------------------------
-# ---------------------------------------------------------------------------
 __all__: list[str] = ["HashMode", "compute_hash"]
 
 
@@ -42,9 +39,7 @@ def _sha256(data: bytes) -> str:  # noqa: D401 – helper
 
 def _blake3(data: bytes) -> str:  # noqa: D401 – helper
     if blake3 is None:  # pragma: no cover – optional dep
-        # Fallback to SHA-256 if blake3 not installed
         return _sha256(data)
-    # *blake3* lacks type stubs – explicitly cast
     return cast(str, blake3.blake3(data).hexdigest())  # type: ignore[attr-defined]
 
 
@@ -56,13 +51,11 @@ _HASH_IMPL: dict[HashMode, Callable[[bytes], str]] = {
 
 def _minhash_sig(text: str) -> str:  # noqa: D401 – helper
     if MinHash is None:  # pragma: no cover – optional dep
-        # Fallback to sha256 if datasketch not installed
         return _sha256(text.encode())
 
     m = MinHash(num_perm=64)
     for token in text.split():
         m.update(token.encode())
-    # Return hex digest of signature bytes for convenience
     return cast(str, m.digest().hex())
 
 
@@ -74,5 +67,4 @@ def compute_hash(content: str, mode: HashMode = HashMode.SECURITY) -> str:  # no
     if mode is HashMode.PERFORMANCE:
         return _blake3(content.encode())
 
-    # Default SECURITY mode (or unknown) falls back to SHA-256
     return _sha256(content.encode())

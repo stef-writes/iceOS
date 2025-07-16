@@ -13,7 +13,7 @@ help:
 	@echo "  test           Run pytest with coverage"
 	@echo "  coverage       Run pytest with branch coverage"
 	@echo "  mutation       Run mutmut mutation testing"
-	@echo "  refresh-docs   Regenerate docs (catalog + overview)"
+	@echo "  refresh-docs   Regenerate docs (catalog + overview + layout + CLI)"
 	@echo "  doctor         Run full healthcheck suite"
 	@echo "  clean          Remove .pyc, build, and coverage artifacts"
 	@echo "  docs           Build documentation site (output to site/)"
@@ -46,6 +46,8 @@ test:
 refresh-docs:
 	$(PYTHON) scripts/gen_catalog.py
 	$(PYTHON) scripts/gen_overview.py
+	$(PYTHON) scripts/gen_repo_layout.py
+	$(PYTHON) scripts/gen_cli_overview.py
 
 # Comprehensive quality gate (lint + type + test + optional perf)
 doctor:

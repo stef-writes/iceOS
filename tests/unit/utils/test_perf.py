@@ -2,9 +2,9 @@ import asyncio
 
 import pytest
 
+from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from ice_sdk.models.config import LLMConfig
 from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig
-from ice_sdk.utils.perf import WeightedSemaphore, estimate_complexity
 
 
 @pytest.mark.asyncio

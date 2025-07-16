@@ -87,7 +87,7 @@ class ContextFormatter(BaseContextFormatter):
         should_truncate = getattr(rule, "truncate", True)
         if max_tokens is not None and should_truncate:
             try:
-                from ice_sdk.utils.token_counter import TokenCounter
+                from ice_sdk.runtime.token_counter import TokenCounter
 
                 # We don't know the exact model/provider here; use fast estimate.
                 current_tokens = TokenCounter.estimate_tokens(

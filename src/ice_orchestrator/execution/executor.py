@@ -12,6 +12,7 @@ from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-fo
 
 # Import globally to avoid local shadowing errors
 from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
+from ice_sdk.providers.budget_enforcer import BudgetEnforcer
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_orchestrator.script_chain import ScriptChain
@@ -30,6 +31,7 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
 
     def __init__(self, chain: "ScriptChain") -> None:  # noqa: D401
         self.chain = chain
+        self.budget = BudgetEnforcer()  # Add enforcer
 
     # ------------------------------------------------------------------
     # Public API --------------------------------------------------------
@@ -222,6 +224,16 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
                             if result.error is None
                             else result.error + "; " + err_msg
                         )
+
+                # Add budget tracking
+                if node.type == "ai":
+                    cost = getattr(result.usage, "cost", 0.0) if result.usage else 0.0
+                    self.budget.register_llm_call(cost=cost)
+                elif node.type == "tool":
+                    self.budget.register_tool_execution()
+
+                # Attach budget status to result
+                result.budget_status = self.budget.get_status()  # Add this field
 
                 return result
 

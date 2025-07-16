@@ -15,13 +15,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from ice_api.api.builder import router as builder_router
 from ice_api.api.mcp import router as mcp_router
 from ice_api.ws_gateway import router as ws_router
+from ice_core.utils.logging import setup_logger
 from ice_sdk import ToolService
 from ice_sdk.context import GraphContextManager
 from ice_sdk.extensions.kb_router import router as kb_router
 from ice_sdk.providers.llm_service import LLMService
 from ice_sdk.services import ServiceLocator
 from ice_sdk.utils.errors import add_exception_handlers
-from ice_sdk.utils.logging import setup_logger
 
 # Setup logging
 logger = setup_logger()

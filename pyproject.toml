@@ -216,6 +216,10 @@ line-length = 88
 # Target the same Python version used elsewhere
 target-version = "py310"
 
+# Suppress import-after-top-level rule across the repo until legacy modules are cleaned up.
+[tool.ruff.lint]
+ignore = ["E402"]
+
 # Exclude auto-generated/compiled artefacts
 exclude = [
   "site",

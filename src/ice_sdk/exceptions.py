@@ -26,6 +26,8 @@ class ErrorCode(IntEnum):
 
     CYCLIC_TOOL_COMPOSITION = 1001
     LAYER_VIOLATION = 1002  # New – layer boundary breach
+    PATH_SECURITY_VIOLATION = 1003  # Unsafe path outside project root
+    SCAFFOLD_VALIDATION = 1004  # Scaffolded content failed schema validation
 
     # Generic fall-back
     UNKNOWN = 9000
@@ -82,3 +84,25 @@ class LayerViolationError(CoreError):
 
     def __init__(self, message: str):  # noqa: D401 – thin wrapper
         super().__init__(ErrorCode.LAYER_VIOLATION, message)
+
+
+class SecurityViolationError(CoreError):
+    """Raised when a provided path escapes allowed root directory."""
+
+    def __init__(self, path: str):
+        super().__init__(
+            ErrorCode.PATH_SECURITY_VIOLATION,
+            f"Illegal path traversal attempt detected: {path}",
+            payload={"path": path},
+        )
+
+
+class ScaffoldValidationError(CoreError):
+    """Raised when generated scaffold fails JSON schema validation."""
+
+    def __init__(self, details: Any | None = None):
+        super().__init__(
+            ErrorCode.SCAFFOLD_VALIDATION,
+            "Scaffolded resource failed schema validation",
+            payload=details,
+        )
