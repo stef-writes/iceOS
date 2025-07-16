@@ -20,3 +20,15 @@ class DeprecatedError(ImportError, IceCoreError):
 
     def __init__(self, message: str) -> None:  # noqa: D401 – imperative mood
         super().__init__(message)
+
+
+# ---------------------------------------------------------------------------
+#  Path security ----------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class SecurityViolationError(IceCoreError):
+    """Raised when a provided path escapes allowed root directory."""
+
+    def __init__(self, path: str):  # noqa: D401 – param path only
+        super().__init__(f"Illegal path traversal attempt detected: {path}")

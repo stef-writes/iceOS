@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ice_sdk.exceptions import SecurityViolationError
+from ice_core.exceptions import SecurityViolationError
 
 __all__ = ["sanitize_path"]
 

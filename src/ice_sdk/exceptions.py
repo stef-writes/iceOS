@@ -13,6 +13,11 @@ from __future__ import annotations
 from enum import IntEnum
 from typing import Any, Optional
 
+# Re-export core-level security error to avoid cross-layer import in lower packages
+from ice_core.exceptions import (  # noqa: E402
+    SecurityViolationError as _CoreSecurityViolationError,
+)
+
 __all__ = [
     "ErrorCode",
     "CoreError",
@@ -86,15 +91,9 @@ class LayerViolationError(CoreError):
         super().__init__(ErrorCode.LAYER_VIOLATION, message)
 
 
-class SecurityViolationError(CoreError):
-    """Raised when a provided path escapes allowed root directory."""
-
-    def __init__(self, path: str):
-        super().__init__(
-            ErrorCode.PATH_SECURITY_VIOLATION,
-            f"Illegal path traversal attempt detected: {path}",
-            payload={"path": path},
-        )
+# Backwards-compatibility alias ------------------------------------------------
+SecurityViolationError = _CoreSecurityViolationError  # type: ignore[assignment]
+__all__.append("SecurityViolationError")
 
 
 class ScaffoldValidationError(CoreError):

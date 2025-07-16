@@ -9,13 +9,10 @@ __all__ = ["estimate_complexity", "WeightedSemaphore"]
 
 
 def estimate_complexity(node_cfg: Any) -> int:  # noqa: ANN401 – generic for now
-    try:
-        from ice_sdk.models.node_models import AiNodeConfig  # noqa: WPS433 – optional
-
-        if isinstance(node_cfg, AiNodeConfig):
-            return 2
-    except Exception:
-        pass
+    # Avoid cross-layer imports – infer complexity heuristically -------------
+    cls_name = getattr(getattr(node_cfg, "__class__", None), "__name__", "")
+    if cls_name == "AiNodeConfig":
+        return 2
     return 1
 
 
