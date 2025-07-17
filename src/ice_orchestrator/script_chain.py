@@ -406,9 +406,44 @@ class ScriptChain(BaseScriptChain):  # type: ignore[misc]  # mypy cannot resolve
         node: NodeConfig,
         accumulated_results: Dict[str, NodeExecutionResult],
     ) -> Dict[str, Any]:
-        """Delegate to :class:`ContextBuilder`."""
+        """Compose node input context.
 
-        return ContextBuilder.build_node_context(node, accumulated_results)
+        1. Start with ContextBuilder-derived inputs (dependencies & mappings).
+        2. Merge **session metadata** from the active GraphContext so that
+           root-level placeholders like ``{tone}`` are resolvable without the
+           boilerplate of explicit ``input_mappings``.  Chain-level metadata
+           always takes *lower* precedence so explicit mappings win when keys
+           collide.
+        """
+
+        node_ctx = ContextBuilder.build_node_context(node, accumulated_results)
+
+        # ------------------------------------------------------------------
+        # Expose **dependency outputs** directly under their node IDs so that
+        # Jinja templates can reference e.g. ``{{kb_lookup.context}}`` without
+        # explicit InputMappings on every consumer node.
+        # ------------------------------------------------------------------
+
+        for dep_id in getattr(node, "dependencies", []):
+            dep_result = accumulated_results.get(dep_id)
+            if dep_result and dep_result.success and dep_result.output is not None:
+                # Prefer not to overwrite when the context already has a key
+                # (explicit mappings > implicit exposure).
+                node_ctx.setdefault(dep_id, dep_result.output)
+
+        # Inject high-level metadata provided via ``chain.context_manager`` so
+        # that first-level nodes can access user inputs (e.g. tone, guardrails)
+        # without needing dummy upstream nodes.
+        try:
+            current_ctx = self.context_manager.get_context()
+            if current_ctx and current_ctx.metadata:
+                # Preserve explicit mappings when keys overlap ----------------
+                merged = {**current_ctx.metadata, **node_ctx}
+                return merged
+        except Exception:  # noqa: BLE001 – never break execution due to ctx issues
+            pass
+
+        return node_ctx
 
     @staticmethod
     def _resolve_nested_path(data: Any, path: str) -> Any:

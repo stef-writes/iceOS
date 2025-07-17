@@ -10,9 +10,14 @@ ice_sdk
 
 | Layer | Purpose |
 |-------|---------|
-| agents      | High-level personas controlling workflows |
+| agents      | High-level _node-level_ personas (single-chain) |
 | executors   | Glue code mapping nodes → runtime coroutines |
 | tools       | Idempotent, side-effecting actions |
 | providers   | Low-level LLM / vector / embedder adapters |
 
-> **Note**: No module inside `ice_sdk.*` may import from `ice_api.*`. 
+> **Composite vs. Orchestrator**  
+> Multi-chain coordinators such as `CompositeAgent` **live in**
+> `ice_orchestrator.agents` because they depend on the chain registry and
+> execution engine.  Similarly, `ChainExecutorTool` moved to
+> `ice_orchestrator.tools` for the same reason. The SDK keeps zero imports from
+> the orchestrator layer. 

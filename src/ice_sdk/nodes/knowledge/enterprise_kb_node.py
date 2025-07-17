@@ -44,7 +44,8 @@ class EnterpriseKBNode(BaseNode):
         """Return documents relevant to *input_data['query']*."""
 
         query: str = str(input_data.get("query", ""))
-        docs = await self._kb_service.query(query)
+        label = self._kb_service.label
+        docs = await self._kb_service.query(query, label=label)
 
         output: Dict[str, Any] = {
             "context": [doc["document"] for doc in docs],

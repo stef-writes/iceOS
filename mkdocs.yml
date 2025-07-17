@@ -50,6 +50,7 @@ nav:
       - CLI Commands: reference/cli.md
       - REST API: reference/api.md
       - Architecture Internals: reference/architecture.md
+      - Orchestrator API: api/orchestrator.md
       - Health-check Matrix: reference/healthchecks.md
   - Plans & Roadmaps:
       - Docker + Poetry Strategy: plans/docker_poetry_strategy.md

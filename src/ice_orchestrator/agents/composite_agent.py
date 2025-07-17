@@ -1,8 +1,25 @@
-"""CompositeAgent groups multiple *ScriptChain* instances into a single logical
-capability bundle.
+"""orchestrator.agents.composite_agent
 
-This class lives in the *orchestrator* layer so that it can freely import the
-chain registry without violating the SDK → Orchestrator layering contract.
+CompositeAgent groups multiple pre-registered `ScriptChain` instances and
+executes them sequentially.
+
+The module deliberately lives **inside** the `ice_orchestrator` package so it
+can freely import the chain registry without violating the project’s *layer
+boundaries* (SDK → Orchestrator is forbidden, Orchestrator → SDK is OK).
+
+Example
+-------
+```python
+from ice_orchestrator.core.chain_registry import register_chain
+from ice_orchestrator.agents.composite_agent import CompositeAgent
+
+# Assume ``build_checkout_chain()`` returns a ScriptChain object
+register_chain(build_checkout_chain(), alias="checkout@1")
+
+agent = CompositeAgent(["checkout@1"])
+result = await agent.act({"order_id": 123})
+print(result.success, result.output)
+```
 """
 
 from __future__ import annotations
@@ -17,7 +34,21 @@ logger = logging.getLogger(__name__)
 
 
 class CompositeAgent:  # noqa: D101 – minimal public API for now
-    """Lightweight wrapper delegating sequentially to a list of ScriptChains."""
+    """Sequential executor for a list of `ScriptChain` aliases.
+
+    Parameters
+    ----------
+    chain_aliases : Sequence[str]
+        Aliases that must already be registered in
+        :pymeth:`ice_orchestrator.core.chain_registry.register_chain`.
+
+    Attributes
+    ----------
+    _aliases : list[str]
+        Copy of the provided aliases.
+    _chains : list[ScriptChainLike]
+        Resolved chain objects in execution order.
+    """
 
     def __init__(self, chain_aliases: Sequence[str]):
         self._aliases: List[str] = list(chain_aliases)
@@ -34,7 +65,20 @@ class CompositeAgent:  # noqa: D101 – minimal public API for now
     # Public helpers ----------------------------------------------------
     # ------------------------------------------------------------------
     async def act(self, payload: Any) -> ChainExecutionResult:  # noqa: D401
-        """Sequentially execute all sub-chains, passing output → input."""
+        """Run all chains with *payload* threaded through.
+
+        The *output* of each chain becomes the *input* of the next one.
+
+        Parameters
+        ----------
+        payload : Any
+            Initial context forwarded to the first chain.
+
+        Returns
+        -------
+        ChainExecutionResult
+            Result object returned from **the last** chain in the sequence.
+        """
 
         context = payload
         last_result: ChainExecutionResult | None = None
@@ -61,7 +105,20 @@ class CompositeAgent:  # noqa: D101 – minimal public API for now
 
     # Convenience ------------------------------------------------------------
     def as_tool(self, tool_name: str, description: str = "Composite capability"):
-        """Expose the entire CompositeAgent as a *Tool* for AiNode calls."""
+        """Return a `BaseTool` facade that delegates to :pyfunc:`act`.
+
+        Parameters
+        ----------
+        tool_name : str
+            Name under which the generated tool will be exposed to the LLM.
+        description : str, default "Composite capability"
+            Short human-readable description shown in tool lists.
+
+        Returns
+        -------
+        BaseTool
+            *Concrete* subclass whose ``run`` method awaits :pyfunc:`act`.
+        """
 
         from ice_sdk.tools.base import BaseTool  # local import to avoid heavy deps
 

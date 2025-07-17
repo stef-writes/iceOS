@@ -1,8 +1,29 @@
-"""Tool that executes a registered *ScriptChain* and returns its output.
+"""orchestrator.tools.chain_executor_tool
 
-This tool lives in the *orchestrator* layer because it depends on the chain
-registry.  It can still be used by AiNodes (they reference via full import
-path) without violating the SDK → Orchestrator contract.
+Run a registered `ScriptChain` as if it were a regular LLM tool.
+
+`ChainExecutorTool` resolves the chain via
+:pymeth:`ice_orchestrator.core.chain_registry.get_chain` and forwards an (optional)
+input payload as the chain’s *initial context*.
+
+Why in *orchestrator*?
+----------------------
+Look-ups and execution depend on orchestrator internals (registry & executor),
+so placing the tool here avoids an illegal import edge from `ice_sdk` to
+`ice_orchestrator`.
+
+Example
+-------
+```python
+from ice_orchestrator.core.chain_registry import register_chain
+from ice_orchestrator.tools.chain_executor_tool import ChainExecutorTool
+
+register_chain(my_chain, alias="my_chain@1")
+
+tool = ChainExecutorTool(alias="my_chain@1")
+result = await tool.run()
+print(result)
+```
 """
 
 from __future__ import annotations
@@ -19,7 +40,15 @@ __all__: list[str] = ["ChainExecutorTool"]
 
 
 class ChainExecutorTool(BaseTool):
-    """Execute a previously registered *ScriptChain*."""
+    """Execute a registered `ScriptChain` inside a tool-call boundary.
+
+    Parameters
+    ----------
+    alias : str
+        Registry alias of the target ScriptChain.
+    input : dict[str, Any], optional
+        Initial context forwarded to the chain.  Defaults to empty dict.
+    """
 
     # Metadata -----------------------------------------------------------------
     name: ClassVar[str] = "chain_executor"
@@ -72,7 +101,18 @@ class ChainExecutorTool(BaseTool):
     # ---------------------------------------------------------------------
 
     async def run(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
-        """Execute the target chain and return its *output*."""
+        """Invoke the chain and return its success flag and output.
+
+        Returns
+        -------
+        dict[str, Any]
+            ``{"success": bool, "output": Any}``
+
+        Raises
+        ------
+        ToolError
+            If the alias is unknown or the chain raises an exception.
+        """
 
         alias: str = kwargs.get("alias", self.alias)
         input_payload: Dict[str, Any] = kwargs.get("input", self.input)

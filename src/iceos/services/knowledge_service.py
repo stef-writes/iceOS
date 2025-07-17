@@ -41,6 +41,10 @@ class KnowledgeConfig(BaseModel):
         default=200, ge=0, description="Token/word overlap between chunks"
     )
 
+    label: str = Field(
+        default="default", description="Logical label/namespace for the documents"
+    )
+
     @field_validator("chunk_overlap")  # pyright: ignore[reportGeneralTypeIssues]
     @classmethod
     def _validate_overlap(cls, v: int, info: Any) -> int:  # noqa: D401 – validator
@@ -56,6 +60,7 @@ class KnowledgeService:
 
     def __init__(self, config: KnowledgeConfig):
         self.config = config
+        self.label = config.label
         # Propagate chunk sizing defaults into TextProcessor to satisfy strict typing
         self._text_processor = TextProcessor(
             default_chunk_size=config.chunk_size,
@@ -76,7 +81,7 @@ class KnowledgeService:
     # Public API --------------------------------------------------------
     # ------------------------------------------------------------------
     async def query(
-        self, text: str, n_results: int = 5
+        self, text: str, n_results: int = 5, label: str | None = None
     ) -> List[Dict[str, Any]]:  # noqa: D401
         """Return *n_results* semantically closest chunks for *text*."""
 
@@ -84,14 +89,17 @@ class KnowledgeService:
             return []
 
         # 1. Embed query ------------------------------------------------
-        # Prefer sync helper if available to avoid nested event-loops
-        if hasattr(self._embedder, "embed_text"):
-            query_vec: List[float] = self._embedder.embed_text(text)  # type: ignore[attr-defined]
-            model_version = "default"
-        else:  # pragma: no cover – remote provider path
-            emb = await self._embedder.embed(text)  # type: ignore[attr-defined]
-            query_vec = emb.vector
-            model_version = emb.model_version
+        try:
+            if hasattr(self._embedder, "embed_text"):
+                query_vec: List[float] = self._embedder.embed_text(text)  # type: ignore[attr-defined]
+                model_version = "default"
+            else:  # pragma: no cover – remote provider path
+                emb = await self._embedder.embed(text)  # type: ignore[attr-defined]
+                query_vec = emb.vector
+                model_version = emb.model_version
+        except Exception:
+            # Embedding failed (e.g., missing API key).  Fall back to no results.
+            return []
 
         # 2. Vector search ---------------------------------------------
         hits = await self._vector_index.query(
@@ -106,6 +114,11 @@ class KnowledgeService:
             chunk = self._chunk_lookup.get(key)
             if not chunk:
                 continue  # pragma: no cover – stale vector, should not happen
+
+            # Apply label filter when requested ---------------------------
+            if label is not None and chunk["metadata"].get("label") != label:
+                continue
+
             results.append(
                 {
                     "document": chunk["text"],
@@ -177,5 +190,5 @@ class KnowledgeService:
             # Update in-mem lookup after successful upsert --------------
             self._chunk_lookup[key] = {
                 "text": chunk_text,
-                "metadata": {"source": str(file_path)},
+                "metadata": {"source": str(file_path), "label": self.label},
             }

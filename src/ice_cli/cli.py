@@ -602,6 +602,9 @@ except Exception:
 # Quality assurance helpers (lint/type/test)
 from ice_cli.commands.doctor import doctor_app as quality_app  # noqa: E402
 
+# Knowledge-base utilities
+from ice_cli.commands.kb import kb_app  # noqa: E402
+
 # Misc maintenance utilities ported from scripts/cli/*
 from ice_cli.commands.maint import maint_app  # noqa: E402
 from ice_cli.commands.models import models_app  # noqa: E402
@@ -617,6 +620,9 @@ def update_templates():
 
 # Mount quality sub-app (lint/type/test)
 app.add_typer(quality_app, name="doctor", rich_help_panel="Quality")
+
+# Knowledge ingestion commands
+app.add_typer(kb_app, name="kb", rich_help_panel="Knowledge")
 
 # LLM models catalog -------------------------------------------------------
 app.add_typer(models_app, name="models", rich_help_panel="LLM")

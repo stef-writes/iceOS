@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import platform
 import shlex
-import shutil
 import subprocess
 from dataclasses import dataclass
 
@@ -46,7 +45,7 @@ def doctor_type():
     """Run MyPy in strict mode against *src/*."""
 
     _run(
-        ["mypy", "--strict", "--config-file", "mypy.ini", "src/ice_api", "src/ice_cli"]
+        ["mypy", "--strict", "--config-file", "mypy.ini", "src"]
     )  # strict only on modern packages
 
 
@@ -76,15 +75,13 @@ class _Check:  # noqa: D401 – internal container
 # NOTE: Keep in sync with project HEALTHCHECKS.md ---------------------------
 _CHECKS: list[_Check] = [
     _Check("Linting (ruff)", "ruff check src"),
-    _Check(
-        "Typing (mypy strict: app)", "mypy --strict --config-file mypy.ini src/ice_api"
-    ),
+    _Check("Typing (mypy strict)", "mypy --strict --config-file mypy.ini src"),
     _Check("Unit & integration tests", "pytest -q"),
     _Check(
         "Coverage threshold",
-        ("pytest --cov=ice_sdk --cov=ice_orchestrator --cov-fail-under=60 -q"),
+        "pytest --cov --cov-fail-under=60 -q",
     ),
-    *([_Check("Security audit", "pip-audit")] if shutil.which("pip-audit") else []),
+    _Check("Security audit", "pip-audit"),
     _Check("Import-linter rules", "lint-imports --config config/.importlinter"),
     _Check("isort check", "isort --check-only src"),
     _Check("JSON/YAML validity", "python -m scripts.cli.check_json_yaml"),

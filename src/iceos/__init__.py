@@ -6,7 +6,9 @@ Top-level API for iceOS: ergonomic, discoverable, and full-power.
 from ice_core.models.model_registry import get_default_model_id
 
 # --- Core re-exports (escape hatches) ---
-from ice_orchestrator.script_chain import ScriptChain
+# NOTE: ScriptChain import moved to *lazy* load inside functions to avoid
+# circular import issues (e.g. when new executors import iceos.* early in
+# startup).
 from ice_sdk import ToolService
 from ice_sdk.models.node_models import (
     AiNodeConfig,
@@ -182,6 +184,9 @@ class Chain:
         return self
 
     def build(self):
+        # Lazy import to avoid circular dependency
+        from ice_orchestrator.script_chain import ScriptChain
+
         return ScriptChain(
             nodes=self._nodes, name=self._name, persist_intermediate_outputs=True
         )
@@ -222,6 +227,8 @@ def run_chain(chain, input=None, async_=False):
 
 # --- Registry/discovery utilities ---
 def list_tools():
+    # Lazy import to avoid circular dependency
+
     return ToolService().available_tools()
 
 
@@ -242,7 +249,7 @@ def help(obj=None):
 
 
 # --- Escape hatches for power users ---
-ScriptChain = ScriptChain
+# Public aliases (ScriptChain intentionally omitted to avoid circular imports)
 AiNodeConfig = AiNodeConfig
 ToolNodeConfig = ToolNodeConfig
 NodeConfig = NodeConfig
@@ -259,7 +266,6 @@ __all__ = [
     "list_tools",
     "list_nodes",
     "help",
-    "ScriptChain",
     "AiNodeConfig",
     "ToolNodeConfig",
     "NodeConfig",
