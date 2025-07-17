@@ -74,7 +74,7 @@ pytest -k chat_in_a_box --asyncio-mode=auto
 | Node | **PromptBuilderNode** | ⭐ new |
 | Node | **ValidatorNode** | ✅ reused (`ice_orchestrator.validation`) |
 | Node | **RetrievalNode** | ✅ reused from Step 1 KB builder |
-| Tool | **ChatUIDeploymentTool** | ⭐ new – REST deploy & returns `<script>` |
+| Tool | **ChatUIDeploymentTool** | ❌ removed – was part of chat demo |
 | Chain | `chat_in_a_box.chain.toml` | ⭐ new |
 | Agent | **ChatbotDeploymentAgent** | ⭐ new (orchestrates nodes) |
 

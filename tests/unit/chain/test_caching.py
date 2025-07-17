@@ -13,8 +13,8 @@ from ice_sdk.tools.base import BaseTool
 class CounterTool(BaseTool):
     """Counts how many times it is actually executed."""
 
-    name = "counter"
-    description = "Returns incrementing counter"
+    tool_name = "counter"
+    tool_description = "Returns incrementing counter"
 
     calls: int = 0  # pydantic-managed field
 

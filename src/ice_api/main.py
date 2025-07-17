@@ -18,7 +18,7 @@ from ice_api.ws_gateway import router as ws_router
 from ice_core.utils.logging import setup_logger
 from ice_sdk import ToolService
 from ice_sdk.context import GraphContextManager
-from ice_sdk.extensions.kb_router import router as kb_router
+# kb_router removed - focusing on core patterns
 from ice_sdk.providers.llm_service import LLMService
 from ice_sdk.services import ServiceLocator
 from ice_sdk.utils.errors import add_exception_handlers
@@ -130,7 +130,7 @@ app.add_middleware(
 # Include MCP & builder routers -----------------------------------
 app.include_router(mcp_router)
 app.include_router(builder_router)
-app.include_router(kb_router)
+# kb_router removed - focusing on core patterns
 app.include_router(ws_router)
 
 

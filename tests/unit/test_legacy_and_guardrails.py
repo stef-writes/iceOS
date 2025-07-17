@@ -22,19 +22,10 @@ def test_import_guardrails_module():
 
 
 @pytest.mark.usefixtures("monkeypatch")
-def test_import_legacy_nodes_module(monkeypatch):
-    """Ensure the optional *ice_orchestrator.nodes* compatibility layer works when enabled."""
+def test_import_legacy_nodes_module_removed():
+    """`ice_orchestrator.nodes` must NOT be importable after shim removal."""
 
-    # Enable legacy import paths for the duration of this test.
-    monkeypatch.setenv("ICE_SDK_ENABLE_LEGACY_IMPORTS", "1")
-
-    # Force a fresh import to execute the module body.
     sys.modules.pop("ice_orchestrator.nodes", None)
-    legacy_mod = importlib.import_module("ice_orchestrator.nodes")
 
-    # It should expose a *BaseNode* attribute aliased from *ice_sdk.base_node*.
-    assert hasattr(legacy_mod, "BaseNode")
-
-    # Importing the nested alias module should also work.
-    alias_mod = importlib.import_module("ice_orchestrator.nodes.base")
-    assert alias_mod.BaseNode is legacy_mod.BaseNode
+    with pytest.raises(ImportError):
+        importlib.import_module("ice_orchestrator.nodes")

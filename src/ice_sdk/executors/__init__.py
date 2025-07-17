@@ -41,8 +41,4 @@ try:
 except ModuleNotFoundError:  # pragma: no cover
     pass
 
-# Register *knowledge* node executor ---------------------------------------
-try:
-    import_module("ice_sdk.executors.knowledge")
-except ModuleNotFoundError:
-    pass
+# Knowledge node executor removed - focusing on core patterns

@@ -8,8 +8,7 @@ from ice_sdk.models.node_models import ToolNodeConfig
 class DummyNode(ToolNodeConfig):
     """Lightweight node subclass that allows easy instantiation."""
 
-    class Config:
-        arbitrary_types_allowed = True  # pragma: no cover
+    model_config = {"arbitrary_types_allowed": True}  # pragma: no cover
 
 
 def _make_node(node_id: str, deps: list[str] | None = None) -> DummyNode:  # noqa: D401

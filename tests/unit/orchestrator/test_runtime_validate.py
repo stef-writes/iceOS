@@ -6,8 +6,7 @@ from ice_sdk.orchestrator.base_script_chain import FailurePolicy
 
 
 class FailingNode(ToolNodeConfig):
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {"arbitrary_types_allowed": True}
 
     def runtime_validate(self) -> None:  # type: ignore[override]
         raise ValueError("forced validation error")

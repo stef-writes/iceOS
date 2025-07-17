@@ -13,20 +13,18 @@ from typing import Any
 import pytest
 
 from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.cache import global_cache
 from ice_sdk.context import GraphContextManager
 from ice_sdk.models.node_models import ToolNodeConfig
 from ice_sdk.tools.base import BaseTool
 
 
 class CounterTool(BaseTool):
-    """Test helper that increments a counter on every execution."""
+    """Counts how many times it is actually executed."""
 
-    name: str = "counter"
-    description: str = "Returns the current invocation count"
+    tool_name = "counter"
+    tool_description = "Returns incrementing counter"
 
-    # Manage call-count as a *model* field so it plays nicely with Pydantic.
-    calls: int = 0
+    calls: int = 0  # pydantic-managed field
 
     async def run(self, **kwargs: Any):  # type: ignore[override]
         self.calls += 1
@@ -48,78 +46,70 @@ def clear_context_manager():
 
 
 @pytest.mark.asyncio
-async def test_chain_level_cache_disabled() -> None:
-    """Disabling cache at the *chain* level should force re-execution."""
+async def test_node_level_cache_disabled():
+    """Test that node-level cache setting overrides chain-level setting."""
+    tool = CounterTool()
 
-    global_cache().clear()  # Ensure a pristine cache between test cases
-
-    # Create separate tool instances to avoid registration conflicts
-    tool1 = CounterTool()
-    tool2 = CounterTool()
-    node_cfg = ToolNodeConfig(id="cn1", name="Counter", tool_name="counter")
-
-    # First run – should invoke the tool once
-    chain1 = ScriptChain(
-        nodes=[node_cfg],
-        tools=[tool1],
-        name="no-cache-chain-1",
-        initial_context={"seed": 1},
-        use_cache=False,  # Disable cache globally for this chain
-        context_manager=GraphContextManager(),  # Use separate context manager
+    node_cfg = ToolNodeConfig(
+        id="c1",
+        name="Counter",
+        tool_name="counter",
+        retries=0,
+        backoff_seconds=0.0,
+        use_cache=False,  # Disable cache at node level
     )
-    res1 = await chain1.execute()
+
+    chain = ScriptChain(
+        nodes=[node_cfg],
+        tools=[tool],
+        name="cache-toggle-test",
+        initial_context={"seed": 1},
+        context_manager=GraphContextManager(),
+        use_cache=True,  # Enable cache at chain level
+    )
+
+    # First execution
+    res1 = await chain.execute()
     assert res1.success is True
-    assert tool1.calls == 1
+    assert tool.calls == 1
 
-    # Second run with identical inputs – *should* call the tool again
-    chain2 = ScriptChain(
-        nodes=[node_cfg],
-        tools=[tool2],
-        name="no-cache-chain-2",
-        initial_context={"seed": 1},
-        use_cache=False,
-        context_manager=GraphContextManager(),  # Use separate context manager
-    )
-    res2 = await chain2.execute()
+    # Second execution with identical inputs
+    res2 = await chain.execute()
     assert res2.success is True
-    assert tool2.calls == 1  # ↳ cache bypassed – but fresh tool instance
+    # Tool should be called again since cache is disabled at node level
+    assert tool.calls == 2
 
 
 @pytest.mark.asyncio
-async def test_node_level_cache_disabled() -> None:
-    """A node with ``use_cache=False`` should bypass the cache even when the
-    chain's cache setting remains at its default (enabled).
-    """
+async def test_chain_level_cache_disabled():
+    """Test that chain-level cache setting affects all nodes."""
+    tool = CounterTool()
 
-    global_cache().clear()
-
-    # Create separate tool instances to avoid registration conflicts
-    tool1 = CounterTool()
-    tool2 = CounterTool()
     node_cfg = ToolNodeConfig(
-        id="cn2",
-        name="CounterNoCache",
+        id="c1",
+        name="Counter",
         tool_name="counter",
-        use_cache=False,  # Disable cache for this *specific* node
+        retries=0,
+        backoff_seconds=0.0,
+        # use_cache defaults to True
     )
 
-    chain1 = ScriptChain(
+    chain = ScriptChain(
         nodes=[node_cfg],
-        tools=[tool1],
-        name="node-no-cache-1",
+        tools=[tool],
+        name="cache-toggle-test",
         initial_context={"seed": 1},
-        # *use_cache* not provided – defaults to True at chain level
-        context_manager=GraphContextManager(),  # Use separate context manager
+        context_manager=GraphContextManager(),
+        use_cache=False,  # Disable cache at chain level
     )
-    await chain1.execute()
-    assert tool1.calls == 1
 
-    chain2 = ScriptChain(
-        nodes=[node_cfg],
-        tools=[tool2],
-        name="node-no-cache-2",
-        initial_context={"seed": 1},
-        context_manager=GraphContextManager(),  # Use separate context manager
-    )
-    await chain2.execute()
-    assert tool2.calls == 1  # Cache bypassed again due to node flag
+    # First execution
+    res1 = await chain.execute()
+    assert res1.success is True
+    assert tool.calls == 1
+
+    # Second execution with identical inputs
+    res2 = await chain.execute()
+    assert res2.success is True
+    # Tool should be called again since cache is disabled at chain level
+    assert tool.calls == 2

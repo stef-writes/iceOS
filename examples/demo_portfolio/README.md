@@ -30,7 +30,7 @@ The table below shows the **new** building blocks introduced at each development
 |-----:|------|-----------|--------------------|------------------------|-------|
 | 0 | composition_layer | ChainExecutorTool, CompositeAgent | — | — | Enables micro-chain execution and bundling |
 | 1 | knowledge_base_builder | FetcherTool, VectorStoreWriterTool, KBRegistryTool | TextExtractorNode, ChunkerNode, PIIScrubValidator | — | Establishes KB ingestion + vector store infrastructure |
-| 2 | chat_in_a_box | ChatUIDeploymentTool | FormIntakeNode, PromptBuilderNode | ChatbotDeploymentAgent | Leverages RetrievalNode & ValidatorNode from Step 1 |
+| 2 | chat_in_a_box | — | FormIntakeNode, PromptBuilderNode | ChatbotDeploymentAgent | Leverages RetrievalNode & ValidatorNode from Step 1 |
 | 3 | workflow_automator | GmailWatchTool, DriveMoveTool, SlackPosterTool | EmailParserNode | — | Adds OAuth SaaS tools; re-uses ConditionExecutor & WebhookTool |
 | 4 | youtube_looper | TTSVoiceTool, ThumbnailImageTool, YouTubeUploadTool, YouTubeCommentListener | ScriptGeneratorNode, CommentSummariserNode | — | Introduces multi-modal media handling |
 | 5 | content_beast_publisher | TwitterPostTool, LinkedInPostTool, InstagramPostTool, MetricListenerTool | ChannelAdapterNode, PostingSchedulerNode | — | Re-uses YouTubeShortsTool (Step 4) & ContentSegmenterNode |

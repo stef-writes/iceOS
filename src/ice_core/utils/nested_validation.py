@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 try:
-    import dpath.util as _dpath_util  # type: ignore
+    import dpath as _dpath_util  # type: ignore
 
     def _get_nested(obj: Any, path: str, *, separator: str = ".") -> Any:
         return _dpath_util.get(obj, path, separator=separator)

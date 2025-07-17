@@ -104,6 +104,45 @@ class BaseNode(ABC):
         return False
 
     # ------------------------------------------------------------------
+    # Schema accessors -------------------------------------------------
+    # ------------------------------------------------------------------
+    @property
+    def input_schema(self) -> Any:  # noqa: D401 – may be Pydantic model or Dict
+        """Return the declared *input* schema for this node, if any.
+
+        The base implementation simply forwards the attribute from the wrapped
+        :class:`~ice_sdk.models.node_models.NodeConfig` instance.  Sub-classes
+        can override to provide dynamic behaviour.
+        """
+
+        return getattr(self.config, "input_schema", None)
+
+    @property
+    def output_schema(self) -> Any:  # noqa: D401 – may be Pydantic model or Dict
+        """Return the declared *output* schema for this node, if any."""
+
+        return getattr(self.config, "output_schema", None)
+
+    # ------------------------------------------------------------------
+    # Runtime validation -----------------------------------------------
+    # ------------------------------------------------------------------
+
+    def runtime_validate(self) -> None:  # noqa: D401 – optional hook
+        """Idempotent runtime validation delegated to the config object.
+
+        This is a thin convenience wrapper that makes sure *every* node
+        instance exposes a **runtime_validate()** method as required by
+        orchestration logic.  If the underlying config class provides its
+        own implementation we simply call through; otherwise we perform no
+        additional checks (the node is considered valid).
+        """
+
+        if hasattr(self.config, "runtime_validate"):
+            # Delegate to the Pydantic model's validation routine
+            self.config.runtime_validate()
+        # No else branch – absence of the method means no extra validation
+
+    # ------------------------------------------------------------------
     # Abstract method ----------------------------------------------------
     # ------------------------------------------------------------------
     @abstractmethod

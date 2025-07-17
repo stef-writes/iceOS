@@ -354,22 +354,7 @@ class ToolNodeConfig(BaseNodeConfig):
     )
 
 
-# ---------------------------------------------------------------------------
-# KnowledgeNodeConfig (new) --------------------------------------------------
-# ---------------------------------------------------------------------------
-
-
-class KnowledgeNodeConfig(BaseNodeConfig):
-    """Configuration for a document-retrieval *knowledge* node.
-
-    The node delegates execution to :class:`ice_sdk.nodes.knowledge.EnterpriseKBNode`
-    and therefore requires a **params** mapping that matches
-    :class:`iceos.services.knowledge_service.KnowledgeConfig`.
-    """
-
-    type: Literal["knowledge"] = "knowledge"
-    # Free-form parameters forwarded to KnowledgeService via EnterpriseKBNode
-    params: Dict[str, Any] = Field(default_factory=dict)
+# KnowledgeNodeConfig removed - focusing on core patterns
 
 
 # ---------------------------------------------------------------------------
@@ -490,7 +475,6 @@ NodeConfig = Annotated[
     Union[
         AiNodeConfig,
         ToolNodeConfig,
-        KnowledgeNodeConfig,
         ConditionNodeConfig,
         NestedChainConfig,
         PrebuiltAgentConfig,  # <-- NEW

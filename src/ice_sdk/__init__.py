@@ -1,6 +1,5 @@
 """iceOS SDK."""
 
-from . import extensions  # noqa: F401
 from .agents import AgentConfig, AgentNode, ModelSettings  # noqa: F401
 from .base_node import BaseNode  # noqa: F401
 from .context import GraphContextManager  # noqa: F401
@@ -33,8 +32,6 @@ __all__ = [
     # Context
     "GraphContextManager",
     # (RuntimeConfig & BudgetEnforcer intentionally NOT part of stable API)
-    # Extensions
-    "extensions",
 ]
 
 # Removed IceCopilot – Copilot package deprecated

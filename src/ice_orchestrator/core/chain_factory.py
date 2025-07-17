@@ -24,19 +24,13 @@ class ChainFactory:  # noqa: D101 – internal utility
     ) -> "ScriptChain":
         """Create a ScriptChain from JSON-compatible *payload*.
 
-        The helper calls :pyclass:`ice_orchestrator.chain_migrator.ChainMigrator`
-        to upgrade older workflow specs before instantiation.
+        Currently supports version "1.0.0" without migration.
         """
 
-        # Import lazily to avoid cycles ----------------------------------
-        from ice_orchestrator.chain_migrator import ChainMigrator
-
-        # 1. Run migration (no-op when already up-to-date) ---------------
-        try:
-            payload = await ChainMigrator.migrate(payload, target_version)
-        except NotImplementedError as exc:
-            # Bubble-up – caller decides whether to abort or run legacy
-            raise RuntimeError(str(exc)) from exc
+        # 1. Version check (no migration needed for current version) ------
+        current_version: str = payload.get("version", "1.0.0")
+        if current_version != target_version:
+            raise ValueError(f"Version mismatch: {current_version} != {target_version}")
 
         # 2. Parse nodes --------------------------------------------------
         nodes_raw = payload.get("nodes", [])

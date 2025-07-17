@@ -4,7 +4,6 @@ from typer.testing import CliRunner  # type: ignore
 from ice_cli.cli import app  # type: ignore
 
 
-@pytest.mark.asyncio
 def test_models_list_command() -> None:
     runner = CliRunner()
     result = runner.invoke(app, ["models", "list"])

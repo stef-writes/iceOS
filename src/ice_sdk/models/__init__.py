@@ -21,13 +21,11 @@ import sys
 # ---------------------------------------------------------------------------
 # Canonical model modules live locally in this package
 # ---------------------------------------------------------------------------
-from . import config as _config  # noqa: F401 (re-export)
 from . import node_models as _node_models  # noqa: F401 (re-export)
 
 # Re-export their public symbols at package top-level so that
 # ``from ice_sdk.models import NodeConfig`` keeps working.
 globals().update(_node_models.__dict__)
-globals().update(_config.__dict__)
 
 # ---------------------------------------------------------------------------
 # Compatibility shims – register the old module paths that some external
@@ -37,4 +35,3 @@ globals().update(_config.__dict__)
 # ---------------------------------------------------------------------------
 
 sys.modules.setdefault("ice_sdk.models.node_models", _node_models)
-sys.modules.setdefault("ice_sdk.models.config", _config)
