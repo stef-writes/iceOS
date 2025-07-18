@@ -20,10 +20,10 @@ if os.getenv("ICE_SDK_FAST_TEST") == "1":
     from ice_sdk.interfaces.chain import ScriptChainLike
     from ice_sdk.models.node_models import NodeExecutionResult  # lightweight import
     from ice_sdk.models.node_models import (
-        AiNodeConfig,
+        LLMOperatorConfig,
         ConditionNodeConfig,
         NestedChainConfig,
-        ToolNodeConfig,
+        SkillNodeConfig,
     )
 
     # Reuse the real decorator so type signatures remain identical.
@@ -38,7 +38,7 @@ if os.getenv("ICE_SDK_FAST_TEST") == "1":
 
     async def loop_executor(
         chain: "ScriptChainLike",  # match real signature exactly
-        cfg: "AiNodeConfig | ToolNodeConfig | ConditionNodeConfig | NestedChainConfig",
+        cfg: "LLMOperatorConfig | SkillNodeConfig | ConditionNodeConfig | NestedChainConfig",
         ctx: Dict[str, Any],
     ) -> NodeExecutionResult:  # noqa: D401 – stub matches real signature
         """Lightweight stub executor used in contract tests."""
@@ -63,7 +63,7 @@ else:
 
     from ice_sdk.agents.loop_node import LoopNode
     from ice_sdk.interfaces.chain import ScriptChainLike
-    from ice_sdk.models.node_models import AiNodeConfig, NodeConfig, NodeExecutionResult
+    from ice_sdk.models.node_models import LLMOperatorConfig, NodeConfig, NodeExecutionResult
     from ice_sdk.node_registry import register_node
 
     # Local alias for type hints -----------------------------------------
@@ -75,7 +75,7 @@ else:
     ) -> NodeExecutionResult:
         """Executor for self-iterating *loop* nodes."""
 
-        if not isinstance(cfg, AiNodeConfig):
+        if not isinstance(cfg, LLMOperatorConfig):
             raise TypeError("loop_executor received incompatible cfg type")
 
         # Lazy import to avoid circular dep ------------------------------

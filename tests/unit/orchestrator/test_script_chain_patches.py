@@ -2,9 +2,10 @@ from typing import Any, Dict, List
 
 import pytest
 
-from ice_orchestrator.script_chain import FailurePolicy, ScriptChain
-from ice_sdk.models.node_models import NodeExecutionResult, ToolNodeConfig
-from ice_sdk.tools.base import BaseTool, ToolContext, function_tool
+from ice_orchestrator.workflow import ScriptChain
+from ice_sdk.orchestrator.base_workflow import FailurePolicy
+from ice_sdk.models.node_models import NodeExecutionResult, SkillNodeConfig
+from ice_sdk.tools.base import SkillBase, ToolContext, function_tool
 
 # ---------------------------------------------------------------------------
 # Helper tools ---------------------------------------------------------------
@@ -24,19 +25,19 @@ async def _bad_tool(ctx: ToolContext) -> None:  # type: ignore[override]
 
 
 # Cast to BaseTool so mypy/pyright are happy ---------------------------------
-GOOD_TOOL: BaseTool = _good_tool  # type: ignore[assignment]
-BAD_TOOL: BaseTool = _bad_tool  # type: ignore[assignment]
+GOOD_TOOL: SkillBase = _good_tool  # type: ignore[assignment]
+BAD_TOOL: SkillBase = _bad_tool  # type: ignore[assignment]
 
 
 @pytest.mark.asyncio
 async def test_execute_level_handles_exceptions() -> None:
     """A failing tool node should not crash ScriptChain when policy=ALWAYS."""
 
-    nodes: List[ToolNodeConfig] = [
-        ToolNodeConfig(
+    nodes: List[SkillNodeConfig] = [
+        SkillNodeConfig(
             id="good", name="good", type="tool", tool_name="good_tool", tool_args={}
         ),
-        ToolNodeConfig(
+        SkillNodeConfig(
             id="bad", name="bad", type="tool", tool_name="bad_tool", tool_args={}
         ),
     ]
@@ -68,7 +69,7 @@ async def test_execute_level_handles_exceptions() -> None:
 def test_resolve_nested_path_root() -> None:
     """Verify that path '.' returns the root object unchanged."""
 
-    from ice_orchestrator.script_chain import ScriptChain as _SC
+    from ice_orchestrator.workflow import ScriptChain as _SC
 
     data: Dict[str, Any] = {"a": {"b": 1}}
 

@@ -1,15 +1,15 @@
 import pytest
 
 from ice_core.models.model_registry import get_default_model_id
-from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.models.node_models import AiNodeConfig
+from ice_orchestrator.workflow import ScriptChain
+from ice_sdk.models.node_models import LLMOperatorConfig
 
 
 @pytest.mark.asyncio
 async def test_prompt_placeholder_validation():
     """Chain execution should fail when prompt placeholders are unresolved."""
 
-    node = AiNodeConfig(
+    node = LLMOperatorConfig(
         id="ai1",
         name="AI1",
         type="ai",

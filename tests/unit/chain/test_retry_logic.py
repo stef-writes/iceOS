@@ -4,12 +4,12 @@ from typing import Any
 
 import pytest
 
-from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.models.node_models import ToolNodeConfig
-from ice_sdk.tools.base import BaseTool
+from ice_orchestrator.workflow import ScriptChain
+from ice_sdk.models.node_models import SkillNodeConfig
+from ice_sdk.tools.base import SkillBase
 
 
-class FlakyTool(BaseTool):
+class FlakyTool(SkillBase):
     """Tool that raises an exception on the first call, then succeeds."""
 
     name = "flaky"
@@ -28,7 +28,7 @@ class FlakyTool(BaseTool):
 
 @pytest.mark.asyncio
 async def test_retry_succeeds_on_second_attempt():
-    node_cfg = ToolNodeConfig(
+    node_cfg = SkillNodeConfig(
         id="t1",
         name="Flaky",
         tool_name="flaky",

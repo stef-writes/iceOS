@@ -12,7 +12,7 @@ from .models.node_models import (  # noqa: F401
 
 # from .models.network import NetworkSpec  # noqa: F401
 from .services import ServiceLocator  # noqa: F401
-from .tools.base import BaseTool, ToolContext, ToolError, function_tool  # noqa: F401
+from .tools.base import SkillBase, ToolContext, SkillExecutionError, function_tool  # noqa: F401
 from .tools.service import ToolService  # noqa: F401
 
 # NOTE: Lazy import of IceCopilot to avoid circular dependencies with ice_orchestrator.

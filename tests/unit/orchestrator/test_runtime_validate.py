@@ -1,11 +1,11 @@
 import pytest
 
-from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.models.node_models import ToolNodeConfig
-from ice_sdk.orchestrator.base_script_chain import FailurePolicy
+from ice_orchestrator.workflow import ScriptChain
+from ice_sdk.models.node_models import SkillNodeConfig
+from ice_sdk.orchestrator.base_workflow import FailurePolicy
 
 
-class FailingNode(ToolNodeConfig):
+class FailingNode(SkillNodeConfig):
     model_config = {"arbitrary_types_allowed": True}
 
     def runtime_validate(self) -> None:  # type: ignore[override]

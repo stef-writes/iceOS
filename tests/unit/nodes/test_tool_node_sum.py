@@ -1,7 +1,7 @@
 import pytest
 
-from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.models.node_models import ToolNodeConfig
+from ice_orchestrator.workflow import ScriptChain
+from ice_sdk.models.node_models import SkillNodeConfig
 from ice_sdk.services import ServiceLocator
 from ice_sdk.tools.system import SumTool
 
@@ -17,7 +17,7 @@ async def test_tool_node_sum_execution() -> None:
     sum_tool = SumTool()
 
     # Create single ToolNodeConfig ---------------------------------------------
-    node_cfg = ToolNodeConfig(
+    node_cfg = SkillNodeConfig(
         id="sum1",
         type="tool",
         name="Sum Numbers",

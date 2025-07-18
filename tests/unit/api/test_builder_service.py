@@ -81,7 +81,7 @@ async def test_builder_happy_path():
         resp = await client.get("/api/v1/builder/render", params={"draft_id": draft_id})
         assert resp.status_code == 200
         source = resp.json()["source"]
-        assert "ScriptChain" in source
+        assert "Workflow" in source
 
         # New field – Mermaid graph
         mermaid = resp.json()["mermaid"]

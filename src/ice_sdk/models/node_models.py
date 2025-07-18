@@ -307,7 +307,7 @@ class BaseNodeConfig(BaseModel):
         return isinstance(schema, type) and issubclass(schema, _BaseModelChecker)
 
 
-class AiNodeConfig(BaseNodeConfig):
+class LLMOperatorConfig(BaseNodeConfig):
     """Configuration for an LLM-powered node."""
 
     type: Literal["ai"] = "ai"
@@ -342,7 +342,7 @@ class AiNodeConfig(BaseNodeConfig):
     )
 
 
-class ToolNodeConfig(BaseNodeConfig):
+class SkillNodeConfig(BaseNodeConfig):
     """Configuration for a deterministic tool execution."""
 
     type: Literal["tool"] = "tool"
@@ -473,8 +473,8 @@ class PrebuiltAgentConfig(BaseNodeConfig):
 # Discriminated union used throughout the codebase
 NodeConfig = Annotated[
     Union[
-        AiNodeConfig,
-        ToolNodeConfig,
+        LLMOperatorConfig,
+        SkillNodeConfig,
         ConditionNodeConfig,
         NestedChainConfig,
         PrebuiltAgentConfig,  # <-- NEW
@@ -653,3 +653,42 @@ class EvaluatorNodeConfig:  # noqa: D101 – test stub
     id: str
     reference: str
     threshold: float = 0.5
+
+
+# ---------------------------------------------------------------------------
+# v2 Alias classes (AiNodeConfig → LLMOperatorConfig, ToolNodeConfig → SkillNodeConfig)
+# ---------------------------------------------------------------------------
+
+class LLMOperatorConfig(LLMOperatorConfig):  # noqa: D401 – alias wrapper
+    """Alias for :class:`AiNodeConfig` using the new v2 terminology.
+
+    Accepts both legacy ``"ai"`` and the new ``"llm"`` discriminator values so
+    that un-migrated test fixtures keep passing while the rest of the codebase
+    moves forward.
+    """
+
+    type: Literal["ai", "llm"] = "llm"  # ← accept both for transitional window
+
+
+class SkillNodeConfig(SkillNodeConfig):  # noqa: D401 – alias wrapper
+    """Alias for :class:`ToolNodeConfig` using the new v2 terminology.
+
+    Accepts both legacy ``"tool"`` and the new ``"skill"`` discriminator.
+    """
+
+    type: Literal["tool", "skill"] = "skill"
+
+
+# Extend public union alias so both old and new discriminators are accepted
+NodeConfig = Annotated[
+    Union[
+        LLMOperatorConfig,
+        SkillNodeConfig,
+        ConditionNodeConfig,
+        NestedChainConfig,
+        PrebuiltAgentConfig,
+        LLMOperatorConfig,   # new
+        SkillNodeConfig,     # new
+    ],
+    Field(discriminator="type"),
+]

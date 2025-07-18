@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 
 from ice_core.models.model_registry import get_default_model_id  # add import
-from ice_sdk.chain_builder.engine import BuilderEngine  # type: ignore
+from ice_sdk.chain_builder.workflow_builder import BuilderEngine  # type: ignore
 
 
 def _feed_answers(draft, answers):  # noqa: D401 – helper

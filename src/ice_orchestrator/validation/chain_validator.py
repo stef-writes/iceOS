@@ -12,7 +12,7 @@ from structlog import get_logger
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_sdk.models.node_models import NodeConfig
-    from ice_sdk.orchestrator.base_script_chain import FailurePolicy
+    from ice_sdk.orchestrator.base_workflow import FailurePolicy
 
 logger = get_logger(__name__)
 
@@ -116,10 +116,10 @@ class ChainValidator:  # noqa: D101 – internal utility
         """
 
         errors: List[str] = []
-        from ice_sdk.models.node_models import AiNodeConfig
+        from ice_sdk.models.node_models import LLMOperatorConfig
 
         for node in self.nodes.values():
-            if not isinstance(node, AiNodeConfig):
+            if not isinstance(node, LLMOperatorConfig):
                 continue  # Only AI nodes have prompts
 
             tmpl: str = getattr(node, "prompt", "") or ""

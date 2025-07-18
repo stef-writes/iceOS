@@ -2,6 +2,7 @@ from contextvars import ContextVar  # Track agent call stack across coroutines
 from typing import Any, ClassVar, Dict, List, Optional
 
 from ice_sdk.services import ServiceLocator  # new
+from ice_sdk.protocols.mcp.client import MCPClient  # Proper service interface
 
 from ..context.manager import GraphContextManager
 from ..exceptions import CycleDetectionError
@@ -9,7 +10,7 @@ from ..models.agent_models import AgentConfig
 from ..models.config import LLMConfig, ModelProvider
 from ..models.node_models import NodeExecutionResult
 from ..providers.costs import calculate_cost
-from ..tools.base import BaseTool
+from ..tools.base import SkillBase
 
 # Context-local stack of agent names to detect cycles -------------------------
 _AGENT_CALL_STACK: ContextVar[list[str]] = ContextVar("_AGENT_CALL_STACK", default=[])
@@ -38,9 +39,9 @@ class AgentNode:
         # LLM planner can choose from.  Fall back to an empty list when the
         # user did not specify any tools in the ``AgentConfig`` (legacy
         # behaviour).
-        self.tools: List[BaseTool] = list(config.tools or [])
+        self.tools: List[SkillBase] = list(config.tools or [])
 
-    def as_tool(self, name: str, description: str) -> BaseTool:
+    def as_tool(self, name: str, description: str) -> SkillBase:
         """Convert agent to tool.
 
         Args:
@@ -50,7 +51,7 @@ class AgentNode:
         tool_name = name  # capture outer vars for class body access
         tool_description = description
 
-        class AgentTool(BaseTool):
+        class AgentTool(SkillBase):
             name: ClassVar[str] = tool_name  # type: ignore[misc]
             description: ClassVar[str] = tool_description  # type: ignore[misc]
             parameters_schema: ClassVar[Dict[str, Any]] = {

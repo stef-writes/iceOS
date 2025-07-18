@@ -4,7 +4,7 @@ from typing import Any, List, Literal, Optional, Type  # noqa: I001
 
 from pydantic import BaseModel, Field
 
-from ..tools.base import BaseTool
+from ..skills.base import SkillBase  # Updated from BaseTool
 
 
 class ModelSettings(BaseModel):
@@ -23,7 +23,7 @@ class AgentConfig(BaseModel):
     instructions: str = Field(..., description="Agent instructions")
     model: str = Field(..., description="Model name")
     model_settings: ModelSettings = Field(..., description="Model settings")
-    tools: List[BaseTool] = Field(default_factory=list, description="Available tools")
+    tools: List[SkillBase] = Field(default_factory=list, description="Available tools")
     output_type: Optional[Type[BaseModel]] = Field(None, description="Output type")
 
     # ------------------------------------------------------------------
@@ -51,6 +51,11 @@ class AgentConfig(BaseModel):
     concurrency: int = Field(
         1, ge=1, description="Maximum number of tool calls executed concurrently."
     )
+
+    model_config = {
+        "arbitrary_types_allowed": True,
+        "extra": "forbid",
+    }
 
 
 class InputGuardrail(BaseModel):

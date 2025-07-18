@@ -226,10 +226,11 @@
       "type": "string"
     },
     "type": {
-      "const": "tool",
-      "default": "tool",
+      "enum": ["tool", "skill"],
+      "default": "skill",
       "title": "Type",
-      "type": "string"
+      "description": "Node discriminator: 'skill' (preferred) or legacy 'tool'.",
+      "deprecated": "tool"
     },
     "name": {
       "anyOf": [

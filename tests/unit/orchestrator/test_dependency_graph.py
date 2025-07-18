@@ -2,10 +2,10 @@ import pytest
 
 from ice_orchestrator.errors.chain_errors import CircularDependencyError
 from ice_orchestrator.graph.dependency_graph import DependencyGraph
-from ice_sdk.models.node_models import ToolNodeConfig
+from ice_sdk.models.node_models import SkillNodeConfig
 
 
-class DummyNode(ToolNodeConfig):
+class DummyNode(SkillNodeConfig):
     """Lightweight node subclass that allows easy instantiation."""
 
     model_config = {"arbitrary_types_allowed": True}  # pragma: no cover

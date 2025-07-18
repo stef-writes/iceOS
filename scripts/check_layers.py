@@ -9,71 +9,112 @@ from __future__ import annotations
 
 import argparse
 import ast
-import pathlib
 import sys
-from typing import Iterable, Sequence
+from pathlib import Path
 
-# Mapping: package → set of disallowed import prefixes
-_RULES = {
-    "ice_sdk": {"app", "ice_orchestrator"},
-    "ice_core": {"app", "ice_sdk", "ice_orchestrator"},
-    # Add more as the architecture evolves
+# ---------------------------------------------------------------------------
+# Allowed cross-service dependencies (single source of truth) ----------------
+# ---------------------------------------------------------------------------
+# Key   = service owning the *calling* file  (src/<service>/...)
+# Value = list of other top-level services it may import from.
+# If a service is *absent* from the map we assume **no** external imports.
+# ---------------------------------------------------------------------------
+
+ALLOWED_DEPENDENCIES: dict[str, list[str]] = {
+    "ice_cli": ["ice_core"],
+    "ice_api": ["ice_core", "ice_sdk"],
+    "ice_sdk": ["ice_core"],
+    "ice_orchestrator": ["ice_core"],
+    "ice_core": [],  # Foundation layer
 }
 
 
-class _Violation(ast.NodeVisitor):
-    def __init__(self, package: str, forbidden: set[str]) -> None:  # noqa: D401
-        self.package = package
-        self.forbidden = forbidden
-        self.errors: list[str] = []
+# ---------------------------------------------------------------------------
+# Core validator ------------------------------------------------------------
+# ---------------------------------------------------------------------------
 
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:  # noqa: D401
-        if node.module is None:
-            return
-        head = node.module.split(".")[0]
-        if head in self.forbidden:
-            self.errors.append(
-                f"{self.package}: disallowed import '{node.module}' at line {node.lineno}"
-            )
+def validate_imports() -> int:  # noqa: D401
+    """Return number of layer violations found across *src/*.py* files."""
+
+    errors = 0
+    src_root = Path(__file__).resolve().parent.parent / "src"
+
+    for py_file in src_root.rglob("*.py"):
+        # Determine the *declaring* service (e.g. src/ice_sdk/… -> ice_sdk)
+        try:
+            current_service = py_file.relative_to(src_root).parts[0]
+        except ValueError:
+            # Should not happen – defensive guard
+            continue
+
+        allowed = ALLOWED_DEPENDENCIES.get(current_service, [])
+
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        except SyntaxError as exc:
+            print(f"Syntax error while parsing {py_file}: {exc}")
+            errors += 1
+            continue
+
+        for node in ast.walk(tree):
+            imported_root: str | None = None
+
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    imported_root = alias.name.split(".")[0]
+                    if _is_forbidden(imported_root, current_service, allowed):
+                        _report(py_file, imported_root, allowed)
+                        errors += 1
+
+            elif isinstance(node, ast.ImportFrom):
+                if node.module is None:
+                    continue
+                imported_root = node.module.split(".")[0]
+                if _is_forbidden(imported_root, current_service, allowed):
+                    _report(py_file, imported_root, allowed)
+                    errors += 1
+
+    return errors
 
 
-def _scan_file(
-    fp: pathlib.Path, root_package: str, disallowed: set[str]
-) -> Iterable[str]:
-    try:
-        source = fp.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        # Fallback for rare encoding issues on Windows CI – skip undecodable bytes
-        source = fp.read_text(encoding="utf-8", errors="ignore")  # type: ignore[call-arg] – 'errors' param only Py3.11+
-    tree = ast.parse(source)
-    visitor = _Violation(root_package, disallowed)
-    visitor.visit(tree)
-    return visitor.errors
+def _is_forbidden(imported_root: str, current_service: str, allowed: list[str]) -> bool:
+    """Return True if *imported_root* is a *service* outside the allowed list."""
+
+    if not imported_root.startswith("ice_"):
+        return False  # We only care about cross-service imports
+    if imported_root == current_service:
+        return False  # Self-import – always OK
+    return imported_root not in allowed
 
 
-def _iter_py_files(package_dir: pathlib.Path) -> Iterable[pathlib.Path]:  # noqa: D401
-    yield from package_dir.rglob("*.py")
+def _report(py_file: Path, imported: str, allowed: list[str]) -> None:
+    print(
+        f"VIOLATION: {py_file} imports {imported} (allowed: {allowed or 'none'})"
+    )
 
 
-def check_packages(packages: Sequence[str]) -> int:  # noqa: D401
-    base_dir = pathlib.Path(__file__).resolve().parent.parent / "src"
-    failures = 0
-    for pkg in packages:
-        forbidden = _RULES.get(pkg, set())
-        package_dir = base_dir / pkg.replace(".", "/")
-        for file in _iter_py_files(package_dir):
-            failures += len(list(_scan_file(file, pkg, forbidden)))
-    return failures
+# ---------------------------------------------------------------------------
+# CLI entry-point -----------------------------------------------------------
+# ---------------------------------------------------------------------------
 
 
 def main() -> None:  # noqa: D401
-    parser = argparse.ArgumentParser(description="check cross layer imports")
-    parser.add_argument("packages", nargs="*", default=list(_RULES))
-    args = parser.parse_args()
-    failures = check_packages(args.packages)
-    if failures:
-        print(f"Layer guard: {failures} violation(s) found.")
+    """Entry-point so the script can be run via *python scripts/check_layers.py*."""
+
+    parser = argparse.ArgumentParser(description="Validate cross-layer imports")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit with error on *any* violation (default).",
+    )
+
+    _ = parser.parse_args()  # Currently unused – placeholder for future options
+
+    violations = validate_imports()
+    if violations:
+        print(f"Layer guard: {violations} violation(s) detected.")
         sys.exit(1)
+
     print("Layer guard: all good.")
 
 

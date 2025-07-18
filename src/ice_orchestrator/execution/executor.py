@@ -15,7 +15,7 @@ from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
 from ice_sdk.providers.budget_enforcer import BudgetEnforcer
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_orchestrator.script_chain import ScriptChain
+    from ice_orchestrator.workflow import ScriptChain
 
 tracer = trace.get_tracer(__name__)
 logger = structlog.get_logger(__name__)

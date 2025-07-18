@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import AsyncIterator, List
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
 # NEW MCP router import
@@ -18,10 +18,12 @@ from ice_api.ws_gateway import router as ws_router
 from ice_core.utils.logging import setup_logger
 from ice_sdk import ToolService
 from ice_sdk.context import GraphContextManager
+
 # kb_router removed - focusing on core patterns
 from ice_sdk.providers.llm_service import LLMService
 from ice_sdk.services import ServiceLocator
 from ice_sdk.utils.errors import add_exception_handlers
+from ice_sdk.services import ChainService  # Proper service boundary
 
 # Setup logging
 logger = setup_logger()
@@ -170,3 +172,12 @@ async def get_catalog_v1() -> CatalogSummary:  # noqa: D401
     """Return a high-level summary of all registered tools, chains, nodes and agents."""
 
     return get_catalog(refresh=False).summary()
+
+
+router = APIRouter()
+
+@router.post("/run-chain/{chain_id}")
+async def run_chain(chain_id: str, input_data: dict):
+    """Generic endpoint that could execute any registered chain"""
+    result = await ChainService.execute(chain_id, input_data)
+    return {"result": result}

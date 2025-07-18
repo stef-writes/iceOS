@@ -19,24 +19,25 @@ from ice_sdk.agents.agent_node import AgentNode
 from ice_sdk.interfaces.chain import ScriptChainLike
 from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 from ice_sdk.models.node_models import (
-    AiNodeConfig,
+    LLMOperatorConfig,
+    SkillNodeConfig,
     NodeConfig,
     NodeExecutionResult,
     NodeMetadata,
 )
 from ice_sdk.node_registry import register_node
 from ice_sdk.runtime.prompt_renderer import render_prompt
-from ice_sdk.tools.base import BaseTool
+from ice_sdk.tools.base import SkillBase
 
 # Alias used in annotations locally ------------------------------------------
 ScriptChain: TypeAlias = ScriptChainLike
 
 # ---------------------------------------------------------------------------
-# Helper – build AgentNode from AiNodeConfig (duplicated from ScriptChain._make_agent)
+# Helper – build AgentNode from LLMOperatorConfig (duplicated from ScriptChain._make_agent)
 # ---------------------------------------------------------------------------
 
 
-def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
+def _build_agent(chain: ScriptChain, node: LLMOperatorConfig) -> AgentNode:
     """Build or fetch a cached AgentNode instance for *node*."""
     agent_cache: Dict[str, AgentNode] = getattr(chain, "_agent_cache")
     existing = agent_cache.get(node.id)
@@ -44,14 +45,14 @@ def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
         return existing
 
     # Build precedence-aware tool map ------------------------------------
-    tool_map: Dict[str, BaseTool] = {}
+    tool_map: Dict[str, SkillBase] = {}
 
     # 1. Globally registered tools (lowest precedence) -------------------
     for name, tool in chain.context_manager.get_all_tools().items():
         tool_map[name] = tool
 
     # 2. Chain-level tools — override when name clashes ------------------
-    for t in getattr(chain, "_chain_tools", []):
+    for t in getattr(chain, "_chain_skills", []):
         tool_map[t.name] = t
 
     # 3. Node-specific tool references — highest precedence -------------
@@ -69,7 +70,7 @@ def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
         allowed_set = set(node.allowed_tools)
         tool_map = {name: t for name, t in tool_map.items() if name in allowed_set}
 
-    tools: list[BaseTool] = list(tool_map.values())
+    tools: list[SkillBase] = list(tool_map.values())
 
     model_settings = ModelSettings(
         model=node.model,
@@ -110,13 +111,14 @@ def _build_agent(chain: ScriptChain, node: AiNodeConfig) -> AgentNode:
 # ---------------------------------------------------------------------------
 
 
-@register_node("ai")  # type: ignore[misc,type-var]  # decorator preserves signature
+@register_node("ai")  # legacy discriminator
+@register_node("llm")  # new discriminator
 async def ai_executor(
     chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
 ) -> NodeExecutionResult:
     """Executor for LLM-powered *ai* nodes."""
 
-    if not isinstance(cfg, AiNodeConfig):
+    if not isinstance(cfg, LLMOperatorConfig):
         raise TypeError("ai_executor received incompatible cfg type")
 
     # ------------------------------------------------------------------
@@ -153,15 +155,14 @@ async def ai_executor(
 # ---------------------------------------------------------------------------
 
 
-@register_node("tool")  # type: ignore[misc,type-var]  # decorator preserves signature
+@register_node("tool")  # legacy discriminator
+@register_node("skill")  # new discriminator
 async def tool_executor(
     chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
 ) -> NodeExecutionResult:
     """Executor for deterministic tool nodes with context-aware `tool_args`."""
 
-    from ice_sdk.models.node_models import ToolNodeConfig
-
-    if not isinstance(cfg, ToolNodeConfig):
+    if not isinstance(cfg, SkillNodeConfig):
         raise TypeError("tool_executor received incompatible cfg type")
 
     def _apply_ctx(value: Any) -> Any:  # noqa: D401 – helper
@@ -177,8 +178,8 @@ async def tool_executor(
             return [_apply_ctx(v) for v in value]
         return value
 
-    tool_name = cfg.tool_name
-    raw_args = cfg.tool_args or {}
+    tool_name = cfg.tool_name  # type: ignore[attr-defined]
+    raw_args = getattr(cfg, "tool_args", {}) or {}
     tool_args = _apply_ctx(raw_args)
 
     output = await chain.context_manager.execute_tool(tool_name, **tool_args)

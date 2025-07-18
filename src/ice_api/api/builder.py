@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional, Tuple
 from fastapi import APIRouter, HTTPException, Response  # type: ignore
 from pydantic import BaseModel, Field, conint  # type: ignore
 
-from ice_sdk.chain_builder.engine import BuilderEngine, ChainDraft, Question
+from ice_sdk.chain_builder.workflow_builder import BuilderEngine, ChainDraft, Question
 
 __all__ = ["router"]
 

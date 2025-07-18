@@ -91,3 +91,9 @@ production-check:
 	poetry run pytest --cov --cov-fail-under=60
 	poetry run pip-audit
 	git-secrets --scan 
+
+audit:
+    python -m scripts.check_layer_violations
+    python -m scripts.check_service_contracts
+    python -m scripts.validate_decision_records
+    pytest tests/unit/lint -v 

@@ -14,7 +14,7 @@ class ScriptChainLike(Protocol):
     # Public-ish attributes accessed by ice_sdk --------------------------------
     context_manager: Any
     _agent_cache: dict[str, Any]
-    _chain_tools: list[Any]
+    _chain_skills: list[Any]  # Updated from _chain_tools
 
     # Methods that are directly invoked ---------------------------------------
     # (currently none; extend when needed)

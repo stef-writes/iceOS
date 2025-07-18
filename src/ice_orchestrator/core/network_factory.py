@@ -1,4 +1,4 @@
-"""Factory helper for building ScriptChain instances from *NetworkSpec* YAML files."""
+"""Factory helper for building Workflow (ScriptChain) instances from *NetworkSpec* YAML files."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_orchestrator.script_chain import ScriptChain
+    from ice_orchestrator.workflow import ScriptChain
 
 import yaml
 

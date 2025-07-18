@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from ice_orchestrator import ScriptChain
+from ice_orchestrator.workflow import Workflow
 
 router = APIRouter(prefix="/api/v1/mcp", tags=["mcp"])
 
@@ -118,12 +118,12 @@ async def start_run(req: RunRequest) -> RunAck:  # noqa: D401
     if bp is None:
         raise HTTPException(status_code=404, detail="blueprint_id not found")
 
-    # Convert NodeSpec list into proper ToolNodeConfig objects --------------
+    # Convert NodeSpec list into proper SkillNodeConfig / LLMOperatorConfig objects --------------
     from ice_sdk.models.node_models import (  # type: ignore
-        AiNodeConfig,
+        LLMOperatorConfig,
         ConditionNodeConfig,
         NodeConfig,
-        ToolNodeConfig,
+        SkillNodeConfig,
     )
 
     conv_nodes: list[NodeConfig] = []
@@ -132,9 +132,9 @@ async def start_run(req: RunRequest) -> RunAck:  # noqa: D401
         node_type = payload.get("type")
         try:
             if node_type == "tool":
-                conv_nodes.append(ToolNodeConfig.model_validate(payload))
+                conv_nodes.append(SkillNodeConfig.model_validate(payload))
             elif node_type == "ai":
-                conv_nodes.append(AiNodeConfig.model_validate(payload))
+                conv_nodes.append(LLMOperatorConfig.model_validate(payload))
             elif node_type == "condition":
                 conv_nodes.append(ConditionNodeConfig.model_validate(payload))
             else:
@@ -142,7 +142,7 @@ async def start_run(req: RunRequest) -> RunAck:  # noqa: D401
         except Exception as exc:
             raise HTTPException(status_code=400, detail=f"Invalid node spec: {exc}")
 
-    chain = ScriptChain(
+    chain = Workflow(
         nodes=conv_nodes, name=bp.blueprint_id, max_parallel=req.options.max_parallel
     )
 

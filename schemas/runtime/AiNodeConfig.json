@@ -448,10 +448,11 @@
       "type": "string"
     },
     "type": {
-      "const": "ai",
-      "default": "ai",
+      "enum": ["ai", "llm"],
+      "default": "llm",
       "title": "Type",
-      "type": "string"
+      "description": "Node discriminator: 'llm' (preferred) or legacy 'ai'.",
+      "deprecated": "ai"
     },
     "name": {
       "anyOf": [

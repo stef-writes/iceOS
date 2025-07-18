@@ -20,11 +20,11 @@ from typing import TYPE_CHECKING, Any, Dict, Literal, Type
 
 from pydantic import BaseModel, Field
 
-from ice_sdk.tools.base import BaseTool
+from ice_sdk.tools.base import SkillBase
 
 # Type-checking imports ------------------------------------------------------
 if TYPE_CHECKING:  # pragma: no cover – import only for type checkers
-    from ice_sdk.models.node_models import AiNodeConfig, ChainMetadata
+    from ice_sdk.models.node_models import LLMOperatorConfig, ChainMetadata
 
 # ---------------------------------------------------------------------------
 # Public model ----------------------------------------------------------------
@@ -96,7 +96,7 @@ class CapabilityCard(BaseModel):
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_tool_cls(cls, tool_cls: Type[BaseTool]) -> "CapabilityCard":
+    def from_tool_cls(cls, tool_cls: Type[SkillBase]) -> "CapabilityCard":
         """Create a *CapabilityCard* from a ``BaseTool`` subclass."""
 
         return cls(
@@ -119,15 +119,15 @@ class CapabilityCard(BaseModel):
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_ai_node_cfg(cls, node_cfg: "AiNodeConfig") -> "CapabilityCard":
-        """Build a card from an :class:`AiNodeConfig`."""
+    def from_ai_node_cfg(cls, node_cfg: "LLMOperatorConfig") -> "CapabilityCard":
+        """Build a card from an :class:`LLMOperatorConfig`."""
 
         # Avoid heavy dependencies – import lazily ---------------------
         from ice_sdk.models.node_models import (  # noqa: WPS433 – runtime import
-            AiNodeConfig,
+            LLMOperatorConfig,
         )
 
-        assert isinstance(node_cfg, AiNodeConfig), "Expected AiNodeConfig"
+        assert isinstance(node_cfg, LLMOperatorConfig), "Expected LLMOperatorConfig"
 
         metadata = node_cfg.metadata or None
 

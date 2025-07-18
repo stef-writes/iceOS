@@ -13,7 +13,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import List, Type
 
-from ice_sdk.tools.base import BaseTool
+from ice_sdk.tools.base import SkillBase
 
 __all__: list[str] = ["discover_tools", "load_module_from_path"]
 
@@ -72,10 +72,10 @@ def _load_module_from_path(path: Path) -> ModuleType:
     return module
 
 
-def discover_tools(root: Path | str) -> List[Type[BaseTool]]:  # noqa: D401
+def discover_tools(root: Path | str) -> List[Type[SkillBase]]:  # noqa: D401
     """Return a list of *BaseTool* subclasses found under *root* directory."""
     root_path = Path(root)
-    tool_classes: list[Type[BaseTool]] = []
+    tool_classes: list[Type[SkillBase]] = []
 
     for path in root_path.rglob("*.tool.py"):
         try:
@@ -84,7 +84,7 @@ def discover_tools(root: Path | str) -> List[Type[BaseTool]]:  # noqa: D401
             continue
 
         for _, obj in inspect.getmembers(mod, inspect.isclass):
-            if issubclass(obj, BaseTool) and obj is not BaseTool:
+            if issubclass(obj, SkillBase) and obj is not SkillBase:
                 tool_classes.append(obj)
 
     return tool_classes

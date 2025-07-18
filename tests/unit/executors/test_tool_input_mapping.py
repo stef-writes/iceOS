@@ -4,9 +4,9 @@ from typing import Dict
 
 import pytest
 
-from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.models.node_models import InputMapping, NodeExecutionResult, ToolNodeConfig
-from ice_sdk.tools.base import BaseTool, ToolContext, function_tool
+from ice_orchestrator.workflow import ScriptChain
+from ice_sdk.models.node_models import InputMapping, NodeExecutionResult, SkillNodeConfig
+from ice_sdk.tools.base import SkillBase, ToolContext, function_tool
 
 # ---------------------------------------------------------------------------
 # Helper tools --------------------------------------------------------------
@@ -25,8 +25,8 @@ async def _consumer(ctx: ToolContext, val: int) -> Dict[str, int]:  # type: igno
     return {"echo": val}
 
 
-PRODUCER: BaseTool = _producer  # type: ignore[assignment]
-CONSUMER: BaseTool = _consumer  # type: ignore[assignment]
+PRODUCER: SkillBase = _producer  # type: ignore[assignment]
+CONSUMER: SkillBase = _consumer  # type: ignore[assignment]
 
 
 # ---------------------------------------------------------------------------
@@ -38,14 +38,14 @@ CONSUMER: BaseTool = _consumer  # type: ignore[assignment]
 async def test_tool_args_placeholder_substitution():
     """Tool executor should replace placeholders using *ctx* built from InputMapping."""
 
-    producer_node = ToolNodeConfig(
+    producer_node = SkillNodeConfig(
         id="produce",
         name="Producer",
         tool_name="producer",
         output_schema={"out": "int"},
     )
 
-    consumer_node = ToolNodeConfig(
+    consumer_node = SkillNodeConfig(
         id="consume",
         name="Consumer",
         tool_name="consumer",

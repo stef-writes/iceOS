@@ -14,7 +14,7 @@ from ice_sdk.services import ServiceLocator  # new
 # Unified tool execution via ToolService -------------------------------
 from ice_sdk.tools.service import ToolRequest, ToolService
 
-from ..tools.base import BaseTool, ToolContext
+from ..tools.base import SkillBase, ToolContext
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
@@ -76,7 +76,7 @@ class GraphContextManager:
         # Memory adapter ---------------------------------------------------
         self.memory: BaseMemory = memory or SQLiteVectorMemory()
         self._agents: Dict[str, "AgentNode"] = {}
-        self._tools: Dict[str, BaseTool] = {}
+        self._tools: Dict[str, SkillBase] = {}
         # Map of session_id -> GraphContext (acts as LRU cache) --------------
         self._contexts: "OrderedDict[str, GraphContext]" = OrderedDict()
         self._context: Optional[GraphContext] = None
@@ -110,7 +110,7 @@ class GraphContextManager:
             raise ValueError(f"Agent '{agent.config.name}' already registered")
         self._agents[agent.config.name] = agent
 
-    def register_tool(self, tool: BaseTool) -> None:
+    def register_tool(self, tool: SkillBase) -> None:
         """Register a tool for use by agents.
 
         Args:
@@ -131,7 +131,7 @@ class GraphContextManager:
         """Look up an agent by name."""
         return self._agents.get(name)
 
-    def get_tool(self, name: str) -> Optional[BaseTool]:
+    def get_tool(self, name: str) -> Optional[SkillBase]:
         """Get registered tool by name."""
         return self._tools.get(name)
 
@@ -139,7 +139,7 @@ class GraphContextManager:
         """Get all registered agents."""
         return dict(self._agents)
 
-    def get_all_tools(self) -> Dict[str, BaseTool]:
+    def get_all_tools(self) -> Dict[str, SkillBase]:
         """Get all registered tools."""
         return dict(self._tools)
 

@@ -11,10 +11,10 @@ from ice_core.models.model_registry import get_default_model_id
 # startup).
 from ice_sdk import ToolService
 from ice_sdk.models.node_models import (
-    AiNodeConfig,
+    LLMOperatorConfig,
     NodeConfig,
     NodeExecutionResult,
-    ToolNodeConfig,
+    SkillNodeConfig,
 )
 
 # --- Ergonomic API ---
@@ -59,7 +59,7 @@ class AiNodeBuilder:
         return self
 
     def build(self):
-        return AiNodeConfig(
+        return LLMOperatorConfig(
             id=self._name,
             type="ai",
             name=self._name,
@@ -93,7 +93,7 @@ class ToolNodeBuilder:
         return self
 
     def build(self):
-        return ToolNodeConfig(
+        return SkillNodeConfig(
             id=self._name,
             type="tool",
             name=self._name,
@@ -185,9 +185,9 @@ class Chain:
 
     def build(self):
         # Lazy import to avoid circular dependency
-        from ice_orchestrator.script_chain import ScriptChain
+        from ice_orchestrator.workflow import Workflow
 
-        return ScriptChain(
+        return Workflow(
             nodes=self._nodes, name=self._name, persist_intermediate_outputs=True
         )
 
@@ -250,8 +250,8 @@ def help(obj=None):
 
 # --- Escape hatches for power users ---
 # Public aliases (ScriptChain intentionally omitted to avoid circular imports)
-AiNodeConfig = AiNodeConfig
-ToolNodeConfig = ToolNodeConfig
+LLMOperatorConfig = LLMOperatorConfig
+SkillNodeConfig = SkillNodeConfig
 NodeConfig = NodeConfig
 NodeExecutionResult = NodeExecutionResult
 
@@ -266,8 +266,6 @@ __all__ = [
     "list_tools",
     "list_nodes",
     "help",
-    "AiNodeConfig",
-    "ToolNodeConfig",
     "NodeConfig",
     "NodeExecutionResult",
 ]

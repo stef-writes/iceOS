@@ -1,6 +1,7 @@
 """Agent factory for ScriptChain execution.
 
-Extracted from `ScriptChain._make_agent` to improve separation of concerns.
+Builds :class:`AgentNode` instances from **LLMOperatorConfig** nodes while
+respecting chain-level and global skill precedence.
 """
 
 from __future__ import annotations
@@ -11,21 +12,21 @@ if TYPE_CHECKING:  # pragma: no cover
     from ice_sdk.agents.agent_node import AgentNode
     from ice_sdk.context import GraphContextManager
     from ice_sdk.models.agent_models import AgentConfig, ModelSettings
-    from ice_sdk.models.node_models import AiNodeConfig
-    from ice_sdk.tools.base import BaseTool
+    from ice_sdk.models.node_models import LLMOperatorConfig
+    from ice_sdk.tools.base import SkillBase
 
 
 class AgentFactory:  # noqa: D101 – internal utility
-    """Factory for creating AgentNode instances from AiNodeConfig."""
+    """Factory for creating AgentNode instances from LLMOperatorConfig."""
 
     def __init__(
-        self, context_manager: "GraphContextManager", chain_tools: List["BaseTool"]
+        self, context_manager: "GraphContextManager", chain_skills: List["BaseTool"]
     ) -> None:
         self.context_manager = context_manager
-        self.chain_tools = chain_tools
+        self.chain_skills = chain_skills
 
-    def make_agent(self, node: "AiNodeConfig") -> "AgentNode":
-        """Convert an *AiNodeConfig* into a fully-initialised :class:`AgentNode`.
+    def make_agent(self, node: "LLMOperatorConfig") -> "AgentNode":
+        """Convert an *LLMOperatorConfig* into a fully-initialised :class:`AgentNode`.
 
         The method builds a tool map with proper precedence:
         1. Globally registered tools (lowest precedence)
@@ -41,7 +42,7 @@ class AgentFactory:  # noqa: D101 – internal utility
             tool_map[name] = tool
 
         # 2. Chain-level tools – override globals when name clashes ------
-        for t in self.chain_tools:
+        for t in self.chain_skills:
             tool_map[t.name] = t
 
         # 3. Node-specific tool refs override everything else -----------

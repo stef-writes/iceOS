@@ -1,10 +1,10 @@
 # pyright: reportGeneralTypeIssues=false
 import pytest
 
-from ice_orchestrator.script_chain import ScriptChain
+from ice_orchestrator.workflow import ScriptChain
 from ice_sdk.context import GraphContextManager
 from ice_sdk.context.manager import GraphContext
-from ice_sdk.models.node_models import ToolNodeConfig
+from ice_sdk.models.node_models import SkillNodeConfig
 from ice_sdk.tools.service import ToolService
 from ice_sdk.tools.system import SumTool
 
@@ -16,7 +16,7 @@ async def test_depth_ceiling_stops_execution():
 
     # Build 3-level linear chain with dummy tool nodes
     nodes = [  # type: ignore[var-annotated]
-        ToolNodeConfig(
+        SkillNodeConfig(
             id=f"n{i}",
             name=f"node{i}",
             type="tool",

@@ -1,12 +1,12 @@
 import pytest
 
 from ice_orchestrator.errors.chain_errors import CircularDependencyError
-from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.models.node_models import ToolNodeConfig
+from ice_orchestrator.workflow import ScriptChain
+from ice_sdk.models.node_models import SkillNodeConfig
 
 
-def _make_tool_node(node_id: str, deps: list[str] | None = None) -> ToolNodeConfig:
-    return ToolNodeConfig(
+def _make_tool_node(node_id: str, deps: list[str] | None = None) -> SkillNodeConfig:
+    return SkillNodeConfig(
         id=node_id,
         name=f"Node {node_id}",
         tool_name="dummy_tool",

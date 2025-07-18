@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, TypeVar, ParamSpec
 
 from ice_core.utils.logging import logger, setup_logger  # noqa: F401 re-export
 from ice_core.utils.meta import public  # noqa: F401 re-export
@@ -31,3 +31,25 @@ __all__ = [
 __all__.append("public")
 
 # Lazy imports to avoid unnecessary dependency loading on lightweight clients.
+
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+def circuit_breaker(func: Callable[P, R]) -> Callable[P, R]:  # noqa: D401 – stub
+    """Lightweight no-op circuit breaker decorator.
+
+    Provides the attribute *protect* expected by SkillBase.  In production we
+    will replace this with a proper implementation or reuse the one from
+    providers.  For now it simply returns the function unchanged.
+    """
+
+    return func
+
+
+class CircuitBreaker:  # noqa: D101 – placeholder
+    def __init__(self, failure_threshold: int = 3):
+        self.failure_threshold = failure_threshold
+
+    def protect(self, func: Callable[P, R]) -> Callable[P, R]:  # noqa: D401
+        return func

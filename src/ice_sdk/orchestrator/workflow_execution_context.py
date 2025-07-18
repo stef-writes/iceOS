@@ -1,3 +1,10 @@
+"""Shared runtime preferences and safety flags for workflow execution.
+
+`WorkflowExecutionContext` travels alongside a running workflow, collecting
+user preferences and enforcing validation or persistence policies.  It is
+engine-agnostic and therefore usable with both the legacy `ScriptChain` (now
+aliased as `Workflow`) and future orchestration engines.
+"""
 # ---------------------------------------------------------------------------
 # Lightweight state persistence & batching ----------------------------------
 # ---------------------------------------------------------------------------
@@ -19,7 +26,12 @@ class _BulkSaveProtocol(Protocol):  # pragma: no cover – runtime duck-typing h
 
 class WorkflowExecutionContext:
     """
-    Holds workflow-wide execution settings, output format requirements, and preferences for ScriptChain orchestration.
+    Workflow-scoped execution preferences and safety flags.
+
+    This object travels alongside a workflow run and centralises knobs such as
+    *require_json_output* or *strict_validation*.  It is **engine-agnostic** and
+    therefore applies equally to the legacy *ScriptChain* and the new
+    *WorkflowEngine* implementations.
     """
 
     def __init__(

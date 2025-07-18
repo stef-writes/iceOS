@@ -24,6 +24,15 @@ class APIError(Exception):
         self.extra = extra or {}
 
 
+class SkillExecutionError(Exception):
+    """Raised by *Skill* implementations on functional failures.
+
+    Separating this from *APIError* keeps domain-specific logic distinct from
+    transport-level concerns, yet allows orchestrator layers to treat all
+    skill-level exceptions uniformly.
+    """
+
+
 # ---------------------------------------------------------------------------
 # FastAPI integration helpers
 # ---------------------------------------------------------------------------

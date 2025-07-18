@@ -1,8 +1,8 @@
 import pytest
 
 from ice_core.models.model_registry import get_default_model_id
-from ice_orchestrator.script_chain import ScriptChain
-from ice_sdk.models.node_models import AiNodeConfig
+from ice_orchestrator.workflow import ScriptChain
+from ice_sdk.models.node_models import LLMOperatorConfig
 from ice_sdk.providers.llm_service import LLMService
 from ice_sdk.tools.base import ToolContext, function_tool
 
@@ -26,7 +26,7 @@ async def test_allowed_tools_whitelist():
     monkeypatch_ctx = pytest.MonkeyPatch()
     monkeypatch_ctx.setattr(LLMService, "generate", _stub_generate)
 
-    node = AiNodeConfig(
+    node = LLMOperatorConfig(
         id="ai1",
         name="AI1",
         type="ai",

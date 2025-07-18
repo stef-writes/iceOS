@@ -1,6 +1,8 @@
 """Factory for creating ScriptChain instances from JSON payloads.
 
-Extracted from `ScriptChain.from_dict` to improve separation of concerns.
+Extracted from `Workflow` (formerly `ScriptChain`).  New code should import
+`ice_orchestrator.workflow.Workflow`; this module still references
+`ScriptChain` for backward-compatibility.
 """
 
 from __future__ import annotations
@@ -8,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, cast
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_orchestrator.script_chain import ScriptChain
+    from ice_orchestrator.workflow import ScriptChain
 
 
 class ChainFactory:  # noqa: D101 – internal utility
@@ -41,20 +43,22 @@ class ChainFactory:  # noqa: D101 – internal utility
         from pydantic import BaseModel
 
         from ice_sdk.models.node_models import (
-            AiNodeConfig,
+            LLMOperatorConfig,
+            SkillNodeConfig,
             ConditionNodeConfig,
             NestedChainConfig,
-            ToolNodeConfig,
         )
 
         _parser_map: Dict[str, type[BaseModel]] = {
-            "ai": AiNodeConfig,
-            "tool": ToolNodeConfig,
+            "ai": LLMOperatorConfig,  # legacy discriminator kept for B/C
+            "llm": LLMOperatorConfig,
+            "tool": SkillNodeConfig,  # legacy discriminator
+            "skill": SkillNodeConfig,
             "condition": ConditionNodeConfig,
         }
 
         nodes: list[
-            AiNodeConfig | ToolNodeConfig | ConditionNodeConfig | NestedChainConfig
+            LLMOperatorConfig | SkillNodeConfig | ConditionNodeConfig | NestedChainConfig
         ] = []
         for nd in nodes_raw:
             node_type = nd.get("type")
@@ -64,8 +68,8 @@ class ChainFactory:  # noqa: D101 – internal utility
             parsed_node = parser_cls.model_validate(nd)
             nodes.append(
                 cast(
-                    AiNodeConfig
-                    | ToolNodeConfig
+                    LLMOperatorConfig
+                    | SkillNodeConfig
                     | ConditionNodeConfig
                     | NestedChainConfig,
                     parsed_node,
@@ -76,7 +80,7 @@ class ChainFactory:  # noqa: D101 – internal utility
         import hashlib
         import json
 
-        from ice_orchestrator.script_chain import ScriptChain
+        from ice_orchestrator.workflow import Workflow
         from ice_sdk.models.node_models import ChainMetadata
 
         # Compute basic DAG statistics & topology hash ------------------
@@ -100,7 +104,7 @@ class ChainFactory:  # noqa: D101 – internal utility
             tags=payload.get("tags", []),
         )
 
-        chain = ScriptChain(
+        chain = Workflow(
             nodes=nodes,
             name=payload.get("name"),
             version=payload.get("version", target_version),

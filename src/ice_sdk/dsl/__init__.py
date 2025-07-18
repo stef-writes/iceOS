@@ -31,7 +31,7 @@ and type checking.
 from typing import Any, Callable, Dict, List, Optional
 
 from ice_core.models.model_registry import get_default_model_id
-from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig
+from ice_sdk.models.node_models import LLMOperatorConfig, SkillNodeConfig
 
 # ---------------------------------------------------------------------------
 # Helper ---------------------------------------------------------------
@@ -68,8 +68,8 @@ def ai(
     dependencies: Optional[List[str]] = None,
     name: str | None = None,
     **llm_kwargs: Any,
-) -> Callable[[Callable[..., Any]], AiNodeConfig]:  # noqa: D401
-    """Decorator that converts a Python function into an *AiNodeConfig*.
+) -> Callable[[Callable[..., Any]], LLMOperatorConfig]:  # noqa: D401
+    """Decorator that converts a Python function into an *LLMOperatorConfig*.
 
     Parameters correspond 1-to-1 with the YAML schema.  Additional keyword
     arguments map into *llm_config* automatically (temperature, top_p, …).
@@ -77,12 +77,12 @@ def ai(
 
     def _wrapper(
         func: Callable[..., Any]
-    ) -> AiNodeConfig:  # noqa: D401 – inner factory
+    ) -> LLMOperatorConfig:  # noqa: D401 – inner factory
         llm_conf = _coerce_llm_kwargs(model, **llm_kwargs)
 
-        cfg = AiNodeConfig(
+        cfg = LLMOperatorConfig(
             id=id,
-            type="ai",
+            type="llm",
             name=name or func.__name__,
             prompt=prompt,
             model=model or llm_conf.get("model", get_default_model_id()),
@@ -103,13 +103,13 @@ def tool(
     name: str | None = None,
     tool_args: Optional[Dict[str, Any]] = None,
     dependencies: Optional[List[str]] = None,
-) -> Callable[[Callable[..., Any]], ToolNodeConfig]:  # noqa: D401
-    """Decorator that returns a *ToolNodeConfig* bound to an existing Tool class."""
+) -> Callable[[Callable[..., Any]], SkillNodeConfig]:  # noqa: D401
+    """Decorator that returns a *SkillNodeConfig* bound to an existing Skill class."""
 
-    def _wrapper(func: Callable[..., Any]) -> ToolNodeConfig:
-        cfg = ToolNodeConfig(
+    def _wrapper(func: Callable[..., Any]) -> SkillNodeConfig:
+        cfg = SkillNodeConfig(
             id=id,
-            type="tool",
+            type="skill",
             name=name or func.__name__,
             tool_name=tool_name,
             tool_args=tool_args or {},

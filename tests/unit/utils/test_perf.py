@@ -4,7 +4,7 @@ import pytest
 
 from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from ice_sdk.models.config import LLMConfig
-from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig
+from ice_sdk.models.node_models import LLMOperatorConfig, SkillNodeConfig
 
 
 @pytest.mark.asyncio
@@ -36,7 +36,7 @@ def test_weighted_semaphore_invalid_weight(weight):
 def test_estimate_complexity_ai_vs_tool():
     """AI nodes should return higher complexity weight than tool nodes."""
 
-    ai_cfg = AiNodeConfig(
+    ai_cfg = LLMOperatorConfig(
         id="ai-1",
         name="ai-node",
         type="ai",
@@ -45,7 +45,7 @@ def test_estimate_complexity_ai_vs_tool():
         llm_config=LLMConfig(model="gpt-4o", provider="openai"),
     )
 
-    tool_cfg = ToolNodeConfig(
+    tool_cfg = SkillNodeConfig(
         id="tool-1", name="tool-node", type="tool", tool_name="echo"
     )
 

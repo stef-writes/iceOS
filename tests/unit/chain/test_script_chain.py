@@ -5,14 +5,14 @@ from typing import Any
 import pytest
 
 from ice_core.models.model_registry import get_default_model_id
-from ice_orchestrator.script_chain import ScriptChain
+from ice_orchestrator.workflow import ScriptChain
 from ice_sdk.models.config import LLMConfig, ModelProvider
-from ice_sdk.models.node_models import AiNodeConfig, ToolNodeConfig
+from ice_sdk.models.node_models import LLMOperatorConfig, SkillNodeConfig
 from ice_sdk.providers.llm_service import LLMService
-from ice_sdk.tools.base import BaseTool
+from ice_sdk.tools.base import SkillBase
 
 
-class EchoTool(BaseTool):
+class EchoTool(SkillBase):
     """Simple echo tool used in integration tests."""
 
     name = "echo_test"
@@ -54,13 +54,13 @@ async def test_script_chain_ai_and_tool(monkeypatch):
     # ------------------------------------------------------------------
     # 2. Build node configs
     # ------------------------------------------------------------------
-    tool_cfg = ToolNodeConfig(
+    tool_cfg = SkillNodeConfig(
         id="tool1",
         name="EchoTool",
         tool_name="echo_test",
     )
 
-    ai_cfg = AiNodeConfig(
+    ai_cfg = LLMOperatorConfig(
         id="ai1",
         name="Agent",
         model=get_default_model_id(),

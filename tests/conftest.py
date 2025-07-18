@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 import pytest
 
 from ice_sdk.tools.base import ToolContext, function_tool
+from ice_orchestrator.workflow import Workflow
 
 # ruff: noqa: E402
 

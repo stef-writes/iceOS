@@ -28,7 +28,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict
 
-from ice_orchestrator.script_chain import ScriptChain
+from ice_orchestrator.workflow import ScriptChain
 from ice_sdk.context import GraphContextManager
 
 # ---------------------------------------------------------------------------

@@ -9,8 +9,9 @@ Price data taken from public pricing pages (May 2025).  Feel free to update.
 
 from __future__ import annotations
 
+import time
 from decimal import Decimal
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 from ice_sdk.models.config import ModelProvider
 
@@ -71,6 +72,55 @@ def calculate_cost(
 
     p_price, c_price = get_price_per_token(provider, model)
     return (p_price * prompt_tokens) + (c_price * completion_tokens)
+
+
+class CostTracker:
+    """Tracks execution costs and time for chain execution"""
+    
+    def __init__(self):
+        self._total_cost = Decimal("0")
+        self._budget: Optional[Decimal] = None
+        self._start_time: Optional[float] = None
+        self._execution_time: Optional[float] = None
+    
+    def reset(self) -> None:
+        """Reset tracker state"""
+        self._total_cost = Decimal("0")
+        self._budget = None
+        self._start_time = None
+        self._execution_time = None
+    
+    def set_budget(self, budget: float) -> None:
+        """Set execution budget in USD"""
+        self._budget = Decimal(str(budget))
+    
+    def add_cost(self, cost: Decimal) -> None:
+        """Add cost to total"""
+        self._total_cost += cost
+        
+        # Check budget limit
+        if self._budget and self._total_cost > self._budget:
+            raise RuntimeError(f"Budget exceeded: ${self._total_cost} > ${self._budget}")
+    
+    def start_tracking(self) -> None:
+        """Start execution time tracking"""
+        self._start_time = time.time()
+    
+    def stop_tracking(self) -> None:
+        """Stop execution time tracking"""
+        if self._start_time:
+            self._execution_time = time.time() - self._start_time
+    
+    def get_costs(self) -> Dict[str, float]:
+        """Get cost summary"""
+        return {
+            "total": float(self._total_cost),
+            "budget": float(self._budget) if self._budget else None
+        }
+    
+    def get_execution_time(self) -> Optional[float]:
+        """Get execution time in seconds"""
+        return self._execution_time
 
 
 # Backward compatibility alias

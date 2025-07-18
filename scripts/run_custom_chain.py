@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Tuple
 
 from ice_core.models.enums import ModelProvider
 from ice_core.models.llm import LLMConfig
-from ice_orchestrator.script_chain import ScriptChain
+from ice_orchestrator.workflow import ScriptChain
 from ice_sdk.models.node_models import AiNodeConfig, InputMapping, ToolNodeConfig
 from ice_sdk.providers.llm_service import LLMService  # noqa: E402
 from ice_sdk.tools.web.search_tool import WebSearchTool

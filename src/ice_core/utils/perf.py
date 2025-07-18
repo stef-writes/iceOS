@@ -11,7 +11,7 @@ __all__ = ["estimate_complexity", "WeightedSemaphore"]
 def estimate_complexity(node_cfg: Any) -> int:  # noqa: ANN401 – generic for now
     # Avoid cross-layer imports – infer complexity heuristically -------------
     cls_name = getattr(getattr(node_cfg, "__class__", None), "__name__", "")
-    if cls_name == "AiNodeConfig":
+    if cls_name == "LLMOperatorConfig":
         return 2
     return 1
 

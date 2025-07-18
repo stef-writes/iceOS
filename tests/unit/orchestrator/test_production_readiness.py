@@ -8,7 +8,7 @@ import pytest
 from ice_core.models.model_registry import get_default_model_id
 from ice_orchestrator.errors.chain_errors import CircularDependencyError
 from ice_orchestrator.graph.dependency_graph import DependencyGraph
-from ice_sdk.models.node_models import AiNodeConfig, LLMConfig, ModelProvider
+from ice_sdk.models.node_models import LLMOperatorConfig, LLMConfig, ModelProvider
 from ice_sdk.orchestrator.workflow_execution_context import (
     _BulkSaveProtocol,  # type: ignore
 )
@@ -19,10 +19,10 @@ from ice_sdk.orchestrator.workflow_execution_context import WorkflowExecutionCon
 # ---------------------------------------------------------------------------
 
 
-def _ai_node(node_id: str, **extra: Any) -> AiNodeConfig:  # noqa: D401 – factory
+def _ai_node(node_id: str, **extra: Any) -> LLMOperatorConfig:  # noqa: D401 – factory
     """Convenience factory that returns a minimal *AiNodeConfig*."""
 
-    return AiNodeConfig(  # type: ignore[call-arg]
+    return LLMOperatorConfig(  # type: ignore[call-arg]
         id=node_id,
         type="ai",
         name=node_id,
