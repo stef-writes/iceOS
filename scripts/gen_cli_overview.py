@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Final, List
 
 import click  # Typer builds on Click
+
 from ice_cli.cli import app  # The canonical CLI definition (root group)
 
 _OUTPUT_PATH: Final[Path] = Path("docs/architecture/cli_overview.md")

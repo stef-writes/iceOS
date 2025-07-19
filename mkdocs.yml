@@ -23,8 +23,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          setup_commands:
-            - "import sys, os; sys.path.append('src')"
+          paths: ["src"]
   - autorefs
   - include-markdown
 
