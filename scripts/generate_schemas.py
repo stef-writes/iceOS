@@ -15,11 +15,11 @@ from pathlib import Path
 
 from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
 from ice_sdk.models.node_models import (
-    AiNodeConfig,
     ChainExecutionResult,
+    LLMOperatorConfig,
     NodeExecutionResult,
     NodeMetadata,
-    ToolNodeConfig,
+    SkillNodeConfig,
 )
 
 TARGET_DIR = Path(__file__).resolve().parent.parent / "schemas" / "runtime"
@@ -27,8 +27,8 @@ TARGET_DIR.mkdir(parents=True, exist_ok=True)
 
 # Map descriptive filename → Pydantic model -----------------------------------
 MODELS = {
-    "AiNodeConfig.json": AiNodeConfig,
-    "ToolNodeConfig.json": ToolNodeConfig,
+    "LLMOperatorConfig.json": LLMOperatorConfig,
+    "SkillNodeConfig.json": SkillNodeConfig,
     "NodeMetadata.json": NodeMetadata,
     "NodeExecutionResult.json": NodeExecutionResult,
     "ChainExecutionResult.json": ChainExecutionResult,

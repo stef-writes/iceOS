@@ -1,8 +1,7 @@
 import sys
+from types import SimpleNamespace
 
 import pytest
-
-from types import SimpleNamespace
 
 from ice_sdk.skills.system import ComputerSkill
 
@@ -32,4 +31,4 @@ async def test_computer_skill_click():
 async def test_computer_skill_invalid_action():
     skill = ComputerSkill()
     with pytest.raises(Exception):
-        await skill.execute({"action": "invalid"}) 
+        await skill.execute({"action": "invalid"})

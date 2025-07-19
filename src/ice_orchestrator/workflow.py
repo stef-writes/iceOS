@@ -29,9 +29,9 @@ from ice_sdk.agents.agent_node import AgentNode
 from ice_sdk.config import runtime_config
 from ice_sdk.context import GraphContextManager
 from ice_sdk.models.node_models import (
-    LLMOperatorConfig,
     ChainExecutionResult,
     ConditionNodeConfig,
+    LLMOperatorConfig,
     NestedChainConfig,
     NodeConfig,
     NodeExecutionResult,
@@ -311,6 +311,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             execution_time=chain_result.execution_time,
             context_used=None,
             token_stats=chain_result.token_stats,
+            budget_status=None,
         )
 
     async def _execute_level(
@@ -567,6 +568,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             type="nested_chain",  # explicit for clarity
         )
 
+
 # ---------------------------------------------------------------------------
 # Naming shim (vNext): make `Workflow` the preferred name; keep ScriptChain as
 # deprecated alias until final purge.
@@ -575,4 +577,6 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
 # Deprecated alias – importers can still use the old name without breakage.
 ScriptChain = Workflow  # type: ignore  # noqa: E305 – intentional reassignment
 
-Workflow.__doc__ = (Workflow.__doc__ or "") + "\n\nPreferred name; replaces `ScriptChain`."
+Workflow.__doc__ = (
+    Workflow.__doc__ or ""
+) + "\n\nPreferred name; replaces `ScriptChain`."

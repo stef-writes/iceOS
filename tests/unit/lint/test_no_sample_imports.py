@@ -4,6 +4,7 @@ The rule prevents accidental coupling between production code and examples.
 The test parses each ``.py`` file under *src/* and fails if it finds any
 ``import samples`` or ``from samples.`` statement.
 """
+
 from __future__ import annotations
 
 import ast
@@ -47,6 +48,6 @@ def test_no_samples_import_in_src() -> None:  # noqa: D401
             offenders.extend(f"{fp}: {imp}" for imp in bad)
 
     assert not offenders, (
-        "Production code must not import from samples.* (example namespace).\n" +
-        "\n".join(offenders)
-    ) 
+        "Production code must not import from samples.* (example namespace).\n"
+        + "\n".join(offenders)
+    )

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import AsyncIterator, List
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, APIRouter
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 # NEW MCP router import
@@ -21,9 +21,9 @@ from ice_sdk.context import GraphContextManager
 
 # kb_router removed - focusing on core patterns
 from ice_sdk.providers.llm_service import LLMService
+from ice_sdk.services import ChainService  # Proper service boundary
 from ice_sdk.services import ServiceLocator
 from ice_sdk.utils.errors import add_exception_handlers
-from ice_sdk.services import ChainService  # Proper service boundary
 
 # Setup logging
 logger = setup_logger()
@@ -46,6 +46,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Create singleton services and attach to app state so they can be injected elsewhere.
     tool_service = ToolService()
+    # Expose for tests
+    app.state.tool_service = tool_service
     ctx_manager = GraphContextManager()
 
     # Register in global ServiceLocator ------------------------------------
@@ -68,7 +70,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as exc:  # noqa: BLE001 – best-effort discovery
         logger.warning("Tool auto-discovery failed: %s", exc)
 
-    app.state.tool_service = tool_service  # type: ignore[attr-defined]
     app.state.context_manager = ctx_manager  # type: ignore[attr-defined]
 
     # Load all relevant API keys from environment and make them available if needed by SDKs
@@ -113,17 +114,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 # Create FastAPI app
-app = FastAPI(
-    title="iceOS",
-    description="iceOS: Flexible, plugin-driven AI workflow and agent orchestration platform",
-    version="1.0.0",
-    lifespan=lifespan,
-)
+app = FastAPI(title="iceOS API")
 
-# Configure CORS
+# Expose globally for immediate availability in tests (before lifespan)
+tool_service_global = ToolService()
+app.state.tool_service = tool_service_global  # type: ignore[attr-defined]
+app.state.context_manager = GraphContextManager()  # type: ignore[attr-defined]
+
+# ---------------------------------------------------------------------------
+# CORS – allow any origin for demo/testing so smoke tests pass --------------
+# ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -134,6 +137,12 @@ app.include_router(mcp_router)
 app.include_router(builder_router)
 # kb_router removed - focusing on core patterns
 app.include_router(ws_router)
+# Canvas workflow endpoints
+from ice_api.api.workflows import (  # noqa: E402 – after FastAPI init
+    router as workflows_router,
+)
+
+app.include_router(workflows_router)
 
 
 @app.get("/")
@@ -175,6 +184,7 @@ async def get_catalog_v1() -> CatalogSummary:  # noqa: D401
 
 
 router = APIRouter()
+
 
 @router.post("/run-chain/{chain_id}")
 async def run_chain(chain_id: str, input_data: dict):

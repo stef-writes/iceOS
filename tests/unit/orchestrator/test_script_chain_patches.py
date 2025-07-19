@@ -3,9 +3,9 @@ from typing import Any, Dict, List
 import pytest
 
 from ice_orchestrator.workflow import ScriptChain
-from ice_sdk.orchestrator.base_workflow import FailurePolicy
 from ice_sdk.models.node_models import NodeExecutionResult, SkillNodeConfig
-from ice_sdk.tools.base import SkillBase, ToolContext, function_tool
+from ice_sdk.orchestrator.base_workflow import FailurePolicy
+from ice_sdk.skills import SkillBase, ToolContext, function_tool
 
 # ---------------------------------------------------------------------------
 # Helper tools ---------------------------------------------------------------

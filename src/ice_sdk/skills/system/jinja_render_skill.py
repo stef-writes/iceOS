@@ -3,8 +3,8 @@ from __future__ import annotations
 import importlib
 from typing import Any, Dict, List
 
-from ..base import SkillBase
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 __all__ = ["JinjaRenderSkill"]
 
@@ -16,7 +16,7 @@ class JinjaRenderSkill(SkillBase):
     description: str = "Render a Jinja2 template with variables."
     tags: List[str] = ["jinja", "template", "utility"]
 
-    def get_required_config(self):  # noqa: D401
+    def get_required_config(self) -> list[str]:  # noqa: D401
         return []
 
     @staticmethod
@@ -41,12 +41,13 @@ class JinjaRenderSkill(SkillBase):
             except Exception as exc:  # noqa: BLE001
                 raise SkillExecutionError(f"Template rendering failed: {exc}") from exc
 
-    async def _execute_impl(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        template_str = input_data.get("template")
-        context = input_data.get("context")
-        if not isinstance(template_str, str):
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
+        template: str = kwargs.get("template")
+        ctx: Dict[str, Any] = kwargs.get("context", {})
+        if not isinstance(template, str):
             raise SkillExecutionError("'template' must be a string")
-        if not isinstance(context, dict):
-            raise SkillExecutionError("'context' must be an object")
+        if not isinstance(ctx, dict):
+            raise SkillExecutionError("'context' must be a dict")
 
-        return {"rendered": self._render_with_jinja(template_str, context)} 
+        rendered = self._render_with_jinja(template, ctx)
+        return {"rendered": rendered}

@@ -20,11 +20,11 @@ from typing import TYPE_CHECKING, Any, Dict, Literal, Type
 
 from pydantic import BaseModel, Field
 
-from ice_sdk.tools.base import SkillBase
+from ice_sdk.skills import SkillBase
 
 # Type-checking imports ------------------------------------------------------
 if TYPE_CHECKING:  # pragma: no cover – import only for type checkers
-    from ice_sdk.models.node_models import LLMOperatorConfig, ChainMetadata
+    from ice_sdk.models.node_models import ChainMetadata, LLMOperatorConfig
 
 # ---------------------------------------------------------------------------
 # Public model ----------------------------------------------------------------

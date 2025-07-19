@@ -14,7 +14,7 @@ Example
 ```python
 from ice_sdk.dsl import ai, tool
 
-@tool(id="fetch", name="Fetch Article", tool_name="HttpRequestTool")
+@tool(id="fetch", name="Fetch Article", tool_name="http_request")
 async def fetch_article():
     ...
 

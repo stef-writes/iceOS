@@ -18,8 +18,11 @@ from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
 import libcst as cst
-from libcst import matchers as m
-from libcst.codemod import CodemodContext, VisitorBasedCodemodCommand, parallel_exec_transform_with_prettyprint
+from libcst.codemod import (
+    CodemodContext,
+    VisitorBasedCodemodCommand,
+    parallel_exec_transform_with_prettyprint,
+)
 
 # ---------------------------------------------------------------------------
 # Mapping – legacy → new terminology  ---------------------------------------
@@ -69,7 +72,9 @@ class RenameIdentifiersCommand(VisitorBasedCodemodCommand):
     # Identifier renames (standalone Name nodes)
     # ------------------------------------------------------------------
 
-    def leave_Name(self, original_node: cst.Name, updated_node: cst.Name) -> cst.BaseExpression:  # noqa: D401
+    def leave_Name(
+        self, original_node: cst.Name, updated_node: cst.Name
+    ) -> cst.BaseExpression:  # noqa: D401
         if original_node.value in _SYMBOL_MAP:
             return updated_node.with_changes(value=_SYMBOL_MAP[original_node.value])
         return updated_node
@@ -86,6 +91,7 @@ class RenameIdentifiersCommand(VisitorBasedCodemodCommand):
 # ---------------------------------------------------------------------------
 # CLI driver
 # ---------------------------------------------------------------------------
+
 
 def _iter_py_files(paths: Sequence[str]) -> Iterable[Path]:  # noqa: D401
     for p in map(Path, paths):
@@ -114,4 +120,4 @@ def main() -> None:  # noqa: D401
 
 
 if __name__ == "__main__":  # pragma: no cover
-    main() 
+    main()

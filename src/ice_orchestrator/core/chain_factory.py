@@ -43,10 +43,10 @@ class ChainFactory:  # noqa: D101 – internal utility
         from pydantic import BaseModel
 
         from ice_sdk.models.node_models import (
-            LLMOperatorConfig,
-            SkillNodeConfig,
             ConditionNodeConfig,
+            LLMOperatorConfig,
             NestedChainConfig,
+            SkillNodeConfig,
         )
 
         _parser_map: Dict[str, type[BaseModel]] = {
@@ -58,7 +58,10 @@ class ChainFactory:  # noqa: D101 – internal utility
         }
 
         nodes: list[
-            LLMOperatorConfig | SkillNodeConfig | ConditionNodeConfig | NestedChainConfig
+            LLMOperatorConfig
+            | SkillNodeConfig
+            | ConditionNodeConfig
+            | NestedChainConfig
         ] = []
         for nd in nodes_raw:
             node_type = nd.get("type")

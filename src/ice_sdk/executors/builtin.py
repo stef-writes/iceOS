@@ -20,14 +20,14 @@ from ice_sdk.interfaces.chain import ScriptChainLike
 from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 from ice_sdk.models.node_models import (
     LLMOperatorConfig,
-    SkillNodeConfig,
     NodeConfig,
     NodeExecutionResult,
     NodeMetadata,
+    SkillNodeConfig,
 )
 from ice_sdk.node_registry import register_node
 from ice_sdk.runtime.prompt_renderer import render_prompt
-from ice_sdk.tools.base import SkillBase
+from ice_sdk.skills import SkillBase
 
 # Alias used in annotations locally ------------------------------------------
 ScriptChain: TypeAlias = ScriptChainLike

@@ -1,4 +1,5 @@
 import asyncio
+
 import pytest
 
 from ice_sdk.skills.system import SleepSkill
@@ -19,4 +20,4 @@ async def test_sleep_skill_bounds():
     with pytest.raises(Exception):
         await skill.execute({"seconds": -1})
     with pytest.raises(Exception):
-        await skill.execute({"seconds": 61}) 
+        await skill.execute({"seconds": 61})

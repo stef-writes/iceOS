@@ -1,17 +1,58 @@
-from tenacity import retry, stop_after_attempt, wait_exponential
+from __future__ import annotations
+
+from abc import ABC
+from typing import Any, Callable, Dict, Optional, Protocol, Type
+
+from pydantic import BaseModel
+
+from ice_sdk.providers.costs import CostTracker
 from ice_sdk.utils.circuit_breaker import CircuitBreaker
 from ice_sdk.utils.errors import SkillExecutionError
-from typing import Any
+from ice_sdk.utils.hashing import stable_hash
 
-class SkillBase:
-    circuit_breaker = CircuitBreaker(failure_threshold=3)
+# ---------------------------------------------------------------------------
+# Public protocol representing the minimal *skill* surface required by
+# orchestrator/executor layers.  Defining it here avoids repeated ``# type:
+# ignore[attr-defined]`` errors throughout the codebase.
+# ---------------------------------------------------------------------------
+
+
+class SupportsSkill(Protocol):  # noqa: D401 – structural typing
+    name: str
+    description: str
+
+
+# ---------------------------------------------------------------------------
+# Fallback *InputModel* allows concrete Skills to omit a custom schema until
+# they mature.  Tests relying on direct instantiation therefore succeed even
+# when the author hasn’t provided one.
+# ---------------------------------------------------------------------------
+
+
+class _EmptyInputModel(BaseModel):
+    """Placeholder model used when a Skill does not declare an InputModel."""
+
+    class Config:  # noqa: D401 – pydantic v1 stub
+        arbitrary_types_allowed = True
+
+
+class SkillBase(ABC):
+    # Public identifying attributes populated by subclasses ------------------
+    name: str = ""
+    description: str = ""
 
     # Default JSON schema stub used by LLM function-calling
-    parameters_schema: dict[str, Any] = {
+    parameters_schema: Dict[str, Any] = {
         "type": "object",
         "properties": {},
         "required": [],
     }
+
+    def __init__(self) -> None:
+        # CircuitBreaker is a **no-op** stub for now, but keeping the interface
+        # in place allows later drop-in of a real implementation without
+        # touching call-sites.
+        self._circuit_breaker = CircuitBreaker(failure_threshold=3, recovery_timeout=30)
 
     # ------------------------------------------------------------------
     # Structured representation for LLM function-calling ----------------
@@ -36,7 +77,9 @@ class SkillBase:
     # Default *run* shim (legacy compatibility) -------------------------
     # ------------------------------------------------------------------
 
-    async def run(self, *args, **kwargs):  # noqa: D401 – unified entrypoint
+    async def run(
+        self, *args: Any, **kwargs: Any
+    ) -> Dict[str, Any]:  # noqa: D401 – unified entrypoint
         """Execute the skill as a *tool*.
 
         The orchestrator calls ``tool.run(ctx=ToolContext(), **tool_args)``.
@@ -57,24 +100,64 @@ class SkillBase:
             )
 
         return await self.execute(kwargs)
-    
-    def validate(self, config: dict) -> bool:
-        """Pre-execution validation (Rule 13)"""
-        required = self.get_required_config()
-        return all(k in config for k in required)
-    
-    def get_required_config(self):  # noqa: D401
-        """Return list of required config keys. Subclasses should override."""
-        return []
-    
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1))
-    @circuit_breaker.protect
-    async def execute(self, input_data: dict) -> dict:
-        """Execute with retries and circuit breaking"""
-        return await self._execute_impl(input_data)
-    
-    async def _execute_impl(self, input_data: dict) -> dict:
-        raise NotImplementedError 
+
+    # Concrete Skills may override this with their own pydantic schema.
+    # Keeping it a *class* attribute (not property) simplifies subclassing.
+    InputModel: Type[BaseModel] = _EmptyInputModel
+
+    async def execute(
+        self,
+        input_data: Optional[Dict[str, Any]] | None = None,
+        idempotency_key: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """Public entry-point used by orchestrator and tests.
+
+        Parameters
+        ----------
+        input_data: dict | None, optional
+            Legacy payload mapping.  When provided, it is merged into
+            ``kwargs`` so that both calling styles work:
+
+            ``await skill.execute({"numbers": [1, 2]})`` **and**
+            ``await skill.execute(numbers=[1, 2])``
+        idempotency_key: str | None, optional
+            Hint for external caching layers.  When *None* we hash the
+            invocation arguments.
+        **kwargs: Any
+            Direct keyword parameters forwarded to the concrete skill.
+        """
+
+        # Merge *input_data* into kwargs for backward compatibility.
+        merged_kwargs: Dict[str, Any] = {**(input_data or {}), **kwargs}
+
+        # Build key lazily so hashing doesn’t cost when unused.
+        idempotency_key = idempotency_key or stable_hash(
+            (self.__class__.__name__, merged_kwargs)
+        )
+
+        # Run with cost-tracking and circuit-breaking wrappers.
+        CostTracker.start_span(self.__class__.__name__)
+        try:
+            async with self._circuit_breaker:  # type: ignore[attr-defined]
+                result = await self._execute_impl(**merged_kwargs)
+            CostTracker.end_span(success=True)
+            return result
+        except Exception as exc:  # noqa: BLE001 – propagate specific errors
+            CostTracker.end_span(success=False, error=str(exc))
+            raise
+
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # noqa: D401
+        """Default passthrough implementation.
+
+        Concrete subclasses should override this.  For simple *function_tool*
+        shims used in tests, we delegate to :meth:`run` so the class is no
+        longer abstract and can be instantiated without redefining the
+        method.
+        """
+
+        return await self.run(**kwargs)
+
 
 # Legacy compatibility -------------------------------------------------------
 # Some test files still import ToolContext / function_tool from the deleted
@@ -85,6 +168,7 @@ class SkillBase:
 # ---------------------------------------------------------------------------
 
 # Provide a minimal *ToolContext* stub for tests that still expect it.
+
 
 class ToolContext(dict):  # type: ignore[D101]
     """Context object passed into legacy *function_tool* wrappers."""
@@ -118,14 +202,15 @@ def _build_function_tool(
     class _FunctionTool(SkillBase):  # pylint: disable=too-few-public-methods
         name: str = _name
         description: str = _description
-        tags: list[str] = _tags  # type: ignore[assignment]
+        tags: tuple[str, ...] = tuple(_tags)  # type: ignore[assignment]
 
         # NB: We purposefully **do not** call ``SkillBase.execute`` here – the
         # GraphContextManager invokes ``run`` directly.  We support both sync
         # and async callables for convenience.
 
         async def run(self, *args, **kwargs):  # type: ignore[override]
-            import inspect, asyncio  # local import to keep global footprint low
+            import asyncio  # local import to keep global footprint low
+            import inspect
 
             if inspect.iscoroutinefunction(func):
                 return await func(*args, **kwargs)
@@ -134,10 +219,15 @@ def _build_function_tool(
             loop = asyncio.get_event_loop()
             return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
 
+        # Provide minimal _execute_impl so mypy recognises concrete subclass
+        async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
+            return await self.run(**kwargs)
+
     # Expose original callable for introspection and doctest friendliness
     _FunctionTool.__wrapped__ = func  # type: ignore[attr-defined]
 
     return _FunctionTool()
+
 
 # ---------------------------------------------------------------------------
 # Public decorator – legacy signature compatible
@@ -164,13 +254,14 @@ def function_tool(*_decorator_args, **_decorator_kwargs):  # type: ignore[D401]
 
     # Case 2: Decorator with keyword args (e.g. name_override="x") → return
     #         a decorator expecting the target function.
-    def _decorator(func):  # noqa: D401 – simple wrapper
+    def _decorator(func: Callable[..., Any]) -> Any:  # noqa: D401 – simple wrapper
         name = _decorator_kwargs.get("name_override") or _decorator_kwargs.get("name")
         description = _decorator_kwargs.get("description")
         tags = _decorator_kwargs.get("tags")
         return _build_function_tool(func, name=name, description=description, tags=tags)
 
     return _decorator
+
 
 # ---------------------------------------------------------------------------
 # Backwards-compatibility aliases (Phase 0 migration strategy)
@@ -181,4 +272,5 @@ def function_tool(*_decorator_args, **_decorator_kwargs):  # type: ignore[D401]
 # imports resolve until the full vocabulary transition completes (v0.6.0).
 
 SkillBase = SkillBase  # noqa: D401 – temporary alias
-SkillExecutionError = SkillExecutionError  # noqa: D401 – temporary alias 
+SkillExecutionError = SkillExecutionError  # noqa: D401 – temporary alias
+BaseTool = SkillBase  # noqa: D401 – compatibility alias

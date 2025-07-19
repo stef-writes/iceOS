@@ -13,7 +13,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import List, Type
 
-from ice_sdk.tools.base import SkillBase
+from ice_sdk.skills import SkillBase
 
 __all__: list[str] = ["discover_tools", "load_module_from_path"]
 

@@ -20,4 +20,4 @@ async def test_retry_wrapper_skill(monkeypatch):
     wrapped = RetryWrapperSkill(sum_skill, max_attempts=3, base_delay=0)
     res = await wrapped.execute({"numbers": [1]})
     assert res == {"sum": 1}
-    assert calls["cnt"] == 2 
+    assert calls["cnt"] == 2

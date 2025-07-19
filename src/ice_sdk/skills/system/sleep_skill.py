@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Dict
 
-from ..base import SkillBase
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 __all__ = ["SleepSkill"]
 
@@ -16,18 +16,15 @@ class SleepSkill(SkillBase):
     description: str = "Pause execution for a number of seconds"
     tags = ["utility", "time"]
 
-    def get_required_config(self):  # noqa: D401
+    def get_required_config(self) -> list[str]:  # noqa: D401
         return []
 
-    async def _execute_impl(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        seconds_raw = input_data.get("seconds", 0)
-        try:
-            seconds = float(seconds_raw)
-        except Exception as exc:  # noqa: BLE001
-            raise SkillExecutionError("'seconds' must be a number") from exc
-
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
+        seconds = kwargs.get("seconds")
+        if not isinstance(seconds, (int, float)):
+            raise SkillExecutionError("'seconds' must be a number")
         if seconds < 0 or seconds > 60:
             raise SkillExecutionError("'seconds' must be between 0 and 60")
 
-        await asyncio.sleep(seconds)
-        return {"slept": seconds} 
+        await asyncio.sleep(float(seconds))
+        return {"slept": float(seconds)}

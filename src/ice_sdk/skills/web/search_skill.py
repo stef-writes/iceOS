@@ -6,8 +6,8 @@ from typing import Any, Dict, List
 import httpx
 from pydantic import BaseModel, Field, model_validator
 
-from ..base import SkillBase
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 __all__ = ["WebSearchSkill", "WebSearchConfig"]
 
@@ -61,12 +61,26 @@ class WebSearchSkill(SkillBase):
     # ---------------------------------------------------------------------
     # Private helpers
     # ---------------------------------------------------------------------
-    async def _execute_impl(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        query: str = input_data.get("query", "").strip()
+    async def _execute_impl(
+        self,
+        *,
+        query: str | None = None,
+        num: int | None = None,
+        input_data: Dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        # Accept legacy *input_data* mapping.
+        if query is None and input_data is not None:
+            query = str(input_data.get("query", "")).strip()
+
+        if num is None and input_data is not None:
+            num = int(input_data.get("num", self.config.num_results))
+
+        query = (query or "").strip()
         if not query:
             raise SkillExecutionError("'query' parameter is required")
 
-        n: int = input_data.get("num", self.config.num_results)
+        n: int = num or self.config.num_results
 
         params: Dict[str, Any] = {
             "q": query,
@@ -98,4 +112,4 @@ class WebSearchSkill(SkillBase):
 
     # Required config keys for validation --------------------------------
     def get_required_config(self):  # noqa: D401 – simple method name
-        return ["api_key"] 
+        return ["api_key"]

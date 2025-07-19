@@ -4,7 +4,7 @@ from ice_core.models.model_registry import get_default_model_id
 from ice_orchestrator.workflow import ScriptChain
 from ice_sdk.models.node_models import LLMOperatorConfig
 from ice_sdk.providers.llm_service import LLMService
-from ice_sdk.tools.base import ToolContext, function_tool
+from ice_sdk.skills import ToolContext, function_tool
 
 
 @function_tool(name_override="my_tool")

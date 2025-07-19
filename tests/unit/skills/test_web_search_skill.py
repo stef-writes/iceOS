@@ -1,7 +1,3 @@
-import os
-import asyncio
-from unittest import mock
-
 import httpx
 import pytest
 
@@ -15,8 +11,9 @@ async def test_web_search_skill_exec(monkeypatch):
     skill = WebSearchSkill()
 
     # Monkeypatch HTTP call
-    async def fake_get(self, url: str, params: dict |
-                       None = None):  # noqa: D401, ANN001, E501
+    async def fake_get(
+        self, url: str, params: dict | None = None
+    ):  # noqa: D401, ANN001, E501
         class _Resp:
             status_code = 200
 
@@ -41,4 +38,4 @@ async def test_web_search_skill_exec(monkeypatch):
 
     # Assert
     assert "results" in res
-    assert res["results"][0]["title"] == "Foo" 
+    assert res["results"][0]["title"] == "Foo"

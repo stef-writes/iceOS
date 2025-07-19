@@ -36,9 +36,9 @@ from __future__ import annotations
 import asyncio
 from threading import Lock
 from typing import Any, Dict, Optional
+
 from pydantic import BaseModel, ValidationError
 
-from ice_sdk.models.config import LLMConfig
 from ice_sdk.providers.costs import CostTracker
 
 __all__: list[str] = ["ServiceLocator", "ChainService"]
@@ -46,6 +46,7 @@ __all__: list[str] = ["ServiceLocator", "ChainService"]
 
 class ChainInput(BaseModel):
     """Validated input for chain execution"""
+
     data: Dict[str, Any]
     runtime: Optional[Dict[str, Any]] = None
     budget: Optional[float] = None
@@ -53,41 +54,43 @@ class ChainInput(BaseModel):
 
 class ChainService:
     """Public interface for chain execution with validation and cost tracking"""
-    
+
     _chains: Dict[str, Any] = {}
     _cost_tracker = CostTracker()
-    
+
     @classmethod
     def register(cls, chain_id: str, chain: Any) -> None:
         """Register a chain for execution"""
         cls._chains[chain_id] = chain
-    
+
     @classmethod
     def _get_chain(cls, chain_id: str) -> Any:
         """Get registered chain or raise KeyError"""
         if chain_id not in cls._chains:
             raise KeyError(f"Chain '{chain_id}' not registered")
         return cls._chains[chain_id]
-    
+
     @classmethod
-    async def execute_async(cls, chain_id: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_async(
+        cls, chain_id: str, input_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Async execution with validation and cost tracking"""
         # Input validation
         try:
             validated_input = ChainInput(data=input_data)
         except ValidationError as e:
             raise ValueError(f"Invalid chain input: {e}")
-        
+
         # Get chain
         chain = cls._get_chain(chain_id)
-        
+
         # Reset cost tracking
         cls._cost_tracker.reset()
-        
+
         # Execute with budget enforcement
         if validated_input.budget:
             cls._cost_tracker.set_budget(validated_input.budget)
-        
+
         try:
             result = await chain.execute_async(validated_input.data)
             return {
@@ -95,12 +98,12 @@ class ChainService:
                 "costs": cls._cost_tracker.get_costs(),
                 "metadata": {
                     "chain_id": chain_id,
-                    "execution_time": cls._cost_tracker.get_execution_time()
-                }
+                    "execution_time": cls._cost_tracker.get_execution_time(),
+                },
             }
         except Exception as e:
             raise RuntimeError(f"Chain execution failed: {str(e)}")
-    
+
     @classmethod
     def execute(cls, chain_id: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Synchronous wrapper for async execution"""

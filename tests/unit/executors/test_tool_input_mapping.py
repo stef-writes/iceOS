@@ -5,8 +5,12 @@ from typing import Dict
 import pytest
 
 from ice_orchestrator.workflow import ScriptChain
-from ice_sdk.models.node_models import InputMapping, NodeExecutionResult, SkillNodeConfig
-from ice_sdk.tools.base import SkillBase, ToolContext, function_tool
+from ice_sdk.models.node_models import (
+    InputMapping,
+    NodeExecutionResult,
+    SkillNodeConfig,
+)
+from ice_sdk.skills import SkillBase, ToolContext, function_tool
 
 # ---------------------------------------------------------------------------
 # Helper tools --------------------------------------------------------------

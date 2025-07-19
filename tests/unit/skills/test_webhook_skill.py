@@ -1,5 +1,3 @@
-import types
-
 import httpx
 import pytest
 
@@ -23,5 +21,7 @@ async def test_webhook_skill(monkeypatch):
         return _Resp()
 
     monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)  # type: ignore[arg-type]
-    res = await WebhookSkill().execute({"url": "https://example.com", "ctx": _CtxStub()})
-    assert res["status_code"] == 204 
+    res = await WebhookSkill().execute(
+        {"url": "https://example.com", "ctx": _CtxStub()}
+    )
+    assert res["status_code"] == 204

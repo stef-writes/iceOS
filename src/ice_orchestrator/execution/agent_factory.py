@@ -8,12 +8,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, List
 
+from ice_sdk.skills.base import SkillBase as BaseTool  # noqa: F401 – legacy name
+
+# ------------------------------------------------------------------
+# Backwards-compatibility: *BaseTool* alias -------------------------
+# ------------------------------------------------------------------
+
+
 if TYPE_CHECKING:  # pragma: no cover
     from ice_sdk.agents.agent_node import AgentNode
     from ice_sdk.context import GraphContextManager
     from ice_sdk.models.agent_models import AgentConfig, ModelSettings
     from ice_sdk.models.node_models import LLMOperatorConfig
-    from ice_sdk.tools.base import SkillBase
 
 
 class AgentFactory:  # noqa: D101 – internal utility

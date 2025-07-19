@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, TypeVar, ParamSpec
+from typing import TYPE_CHECKING, Callable, ParamSpec, TypeVar
 
 from ice_core.utils.logging import logger, setup_logger  # noqa: F401 re-export
 from ice_core.utils.meta import public  # noqa: F401 re-export
@@ -29,6 +29,11 @@ __all__ = [
 ]
 
 __all__.append("public")
+
+# Public re-export for backwards compatibility ---------------------------------
+from .hashing import stable_hash  # noqa: E402 F401
+
+__all__.append("stable_hash")
 
 # Lazy imports to avoid unnecessary dependency loading on lightweight clients.
 

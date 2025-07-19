@@ -1,7 +1,5 @@
-import asyncio
-
-import pytest
 import httpx
+import pytest
 
 from ice_sdk.skills.web import HttpRequestSkill
 
@@ -21,4 +19,4 @@ async def test_http_request_skill(monkeypatch):
     skill = HttpRequestSkill()
     res = await skill.execute({"url": "https://example.com"})
     assert res["status_code"] == 200
-    assert res["body"].startswith("hello") 
+    assert res["body"].startswith("hello")

@@ -20,8 +20,8 @@ if os.getenv("ICE_SDK_FAST_TEST") == "1":
     from ice_sdk.interfaces.chain import ScriptChainLike
     from ice_sdk.models.node_models import NodeExecutionResult  # lightweight import
     from ice_sdk.models.node_models import (
-        LLMOperatorConfig,
         ConditionNodeConfig,
+        LLMOperatorConfig,
         NestedChainConfig,
         SkillNodeConfig,
     )
@@ -63,7 +63,11 @@ else:
 
     from ice_sdk.agents.loop_node import LoopNode
     from ice_sdk.interfaces.chain import ScriptChainLike
-    from ice_sdk.models.node_models import LLMOperatorConfig, NodeConfig, NodeExecutionResult
+    from ice_sdk.models.node_models import (
+        LLMOperatorConfig,
+        NodeConfig,
+        NodeExecutionResult,
+    )
     from ice_sdk.node_registry import register_node
 
     # Local alias for type hints -----------------------------------------

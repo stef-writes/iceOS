@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from ..base import SkillBase
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 __all__ = ["IndexAdvisorSkill"]
 
@@ -18,9 +18,19 @@ class IndexAdvisorSkill(SkillBase):
     def get_required_config(self):
         return []
 
-    async def _execute_impl(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        table = input_data.get("table")
-        queries = input_data.get("query_samples", [])
+    async def _execute_impl(
+        self,
+        *,
+        table: str | None = None,
+        query_samples: List[str] | None = None,
+        input_data: Dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        if input_data is not None:
+            table = table or input_data.get("table")  # type: ignore[assignment]
+            query_samples = query_samples or input_data.get("query_samples", [])
+
+        queries = query_samples or []
         if not isinstance(table, str):
             raise SkillExecutionError("'table' must be a string")
         if not isinstance(queries, list):
@@ -33,4 +43,4 @@ class IndexAdvisorSkill(SkillBase):
                 if parts:
                     suggestions.append(parts[0])
 
-        return {"suggestions": suggestions or ["id"]} 
+        return {"suggestions": suggestions or ["id"]}

@@ -5,14 +5,14 @@ from ice_orchestrator.workflow import ScriptChain
 from ice_sdk.context import GraphContextManager
 from ice_sdk.context.manager import GraphContext
 from ice_sdk.models.node_models import SkillNodeConfig
-from ice_sdk.tools.service import ToolService
-from ice_sdk.tools.system import SumTool
+from ice_sdk.skills.service import ToolService
+from ice_sdk.skills.system.sum_skill import SumSkill
 
 
 @pytest.mark.asyncio
 async def test_depth_ceiling_stops_execution():
     ts = ToolService()
-    ts.register(SumTool)  # already registered but safe
+    ts.register(SumSkill)  # already registered but safe
 
     # Build 3-level linear chain with dummy tool nodes
     nodes = [  # type: ignore[var-annotated]
@@ -38,7 +38,7 @@ async def test_depth_ceiling_stops_execution():
         name="depth-test",
         token_ceiling=None,
         depth_ceiling=2,
-        tools=[SumTool()],
+        tools=[SumSkill()],
         context_manager=ctx_mgr,
     )
     result = await chain.execute()

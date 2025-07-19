@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, List, Dict
+from typing import Any, Dict, List
 
-from ..base import SkillBase
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 __all__ = ["SumSkill"]
 
@@ -15,19 +15,15 @@ class SumSkill(SkillBase):
     description: str = "Add a list of numbers and return the total"
     tags: List[str] = ["math", "utility"]
 
-    def get_required_config(self):  # noqa: D401
+    def get_required_config(self) -> list[str]:  # noqa: D401
         return []
 
-    async def _execute_impl(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        numbers_raw = input_data.get("numbers", [])
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
+        numbers_raw = kwargs.get("numbers")
         if not isinstance(numbers_raw, list):
-            raise SkillExecutionError("'numbers' must be an array of numbers")
-
-        numbers: List[float] = []
+            raise SkillExecutionError("'numbers' must be list[float]")
         try:
-            for x in numbers_raw:
-                numbers.append(float(x))
-        except Exception as exc:  # noqa: BLE001
-            raise SkillExecutionError(f"Invalid number in input: {exc}") from exc
-
-        return {"sum": sum(numbers)} 
+            numbers: List[float] = [float(n) for n in numbers_raw]
+        except Exception as exc:
+            raise SkillExecutionError("'numbers' must contain numeric values") from exc
+        return {"sum": sum(numbers)}

@@ -31,7 +31,7 @@ from ice_sdk.capabilities.card import CapabilityCard, KindLiteral  # noqa: F401
 from ice_sdk.capabilities.registry import CapabilityRegistry
 from ice_sdk.node_registry import NODE_REGISTRY
 from ice_sdk.services import ServiceLocator
-from ice_sdk.tools.service import ToolService
+from ice_sdk.skills.service import ToolService
 
 # Optional imports guarded – the orchestrator layer may not be present in all
 # runtime contexts (e.g. minimal lambda functions).

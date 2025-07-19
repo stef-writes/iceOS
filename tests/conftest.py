@@ -3,8 +3,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from ice_sdk.tools.base import ToolContext, function_tool
-from ice_orchestrator.workflow import Workflow
+from ice_sdk.skills import ToolContext, function_tool
 
 # ruff: noqa: E402
 

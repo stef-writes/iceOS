@@ -3,18 +3,18 @@ import pytest
 from ice_orchestrator.workflow import ScriptChain
 from ice_sdk.models.node_models import SkillNodeConfig
 from ice_sdk.services import ServiceLocator
-from ice_sdk.tools.system import SumTool
+from ice_sdk.skills.system.sum_skill import SumSkill
 
 
 @pytest.mark.asyncio
 async def test_tool_node_sum_execution() -> None:
-    """ScriptChain should execute a ToolNode backed by SumTool and return correct sum."""
+    """ScriptChain should execute a ToolNode backed by SumSkill and return correct sum."""
 
     # Ensure clean registry ------------------------------------------------------
     ServiceLocator.clear()
 
     # Register deterministic tool ------------------------------------------------
-    sum_tool = SumTool()
+    sum_tool = SumSkill()
 
     # Create single ToolNodeConfig ---------------------------------------------
     node_cfg = SkillNodeConfig(

@@ -33,6 +33,7 @@ ALLOWED_DEPENDENCIES: dict[str, list[str]] = {
 # Core validator ------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 def validate_imports() -> int:  # noqa: D401
     """Return number of layer violations found across *src/*.py* files."""
 
@@ -88,9 +89,7 @@ def _is_forbidden(imported_root: str, current_service: str, allowed: list[str]) 
 
 
 def _report(py_file: Path, imported: str, allowed: list[str]) -> None:
-    print(
-        f"VIOLATION: {py_file} imports {imported} (allowed: {allowed or 'none'})"
-    )
+    print(f"VIOLATION: {py_file} imports {imported} (allowed: {allowed or 'none'})")
 
 
 # ---------------------------------------------------------------------------

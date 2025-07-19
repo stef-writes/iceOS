@@ -73,7 +73,9 @@ class BuilderEngine:  # noqa: D401 – stateless helper
         node_idx = len(draft.nodes) - (1 if draft.current_step < 1 else 0)
 
         if draft.current_step == 0:
-            return Question(key="type", prompt="Node type", choices=["llm", "skill", "tool"])
+            return Question(
+                key="type", prompt="Node type", choices=["llm", "skill", "tool"]
+            )
         elif draft.current_step == 1:
             return Question(key="name", prompt="Node name")
         elif draft.current_step == 2:
@@ -131,7 +133,7 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                 draft.save()
                 return
             draft.current_step += 1
-        elif draft.current_step == 3 and key=="skills":
+        elif draft.current_step == 3 and key == "skills":
             skills = [t.strip() for t in answer.split(",") if t.strip()]
             draft.nodes[-1]["tools"] = skills  # keep json key 'tools' for compatibility
             draft.current_step += 1
@@ -212,11 +214,11 @@ class BuilderEngine:  # noqa: D401 – stateless helper
             "from typing import List\n\n"
             "from ice_orchestrator.workflow import Workflow\n"
             "from ice_sdk.models.node_models import LLMOperatorConfig, SkillNodeConfig\n"
-            "from ice_sdk.tools.system.sum_tool import SumTool\n\n"
+            "from ice_sdk.skills.system.sum_skill import SumSkill\n\n"
             "nodes: List[LLMOperatorConfig | SkillNodeConfig] = [\n"
             f"{nodes_block}\n"  # noqa: E501
             "]\n\n"
-            f'chain = Workflow(nodes=nodes, tools=[SumTool()], name="{draft.name}", persist_intermediate_outputs={draft.persist_interm_outputs if draft.persist_interm_outputs is not None else True})\n\n'
+            f'chain = Workflow(nodes=nodes, tools=[SumSkill()], name="{draft.name}", persist_intermediate_outputs={draft.persist_interm_outputs if draft.persist_interm_outputs is not None else True})\n\n'
             'if __name__ == "__main__":\n    import asyncio, rich; rich.print(asyncio.run(chain.execute()).model_dump())\n'
         )
         return textwrap.dedent(template)
@@ -260,10 +262,15 @@ class BuilderEngine:  # noqa: D401 – stateless helper
                     )
         return errors
 
+
 # ------------------------------------------------------------------ naming alignment shims -------------------------------------------------
 WorkflowDraft = ChainDraft  # type: ignore
 WorkflowBuilder = BuilderEngine  # type: ignore
 
 # Deprecation breadcrumbs ----------------------------------------------------
-ChainDraft.__doc__ = (ChainDraft.__doc__ or "") + "\n\nDeprecated alias: use WorkflowDraft instead."
-BuilderEngine.__doc__ = (BuilderEngine.__doc__ or "") + "\n\nDeprecated alias: use WorkflowBuilder instead."
+ChainDraft.__doc__ = (
+    ChainDraft.__doc__ or ""
+) + "\n\nDeprecated alias: use WorkflowDraft instead."
+BuilderEngine.__doc__ = (
+    BuilderEngine.__doc__ or ""
+) + "\n\nDeprecated alias: use WorkflowBuilder instead."

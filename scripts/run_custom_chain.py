@@ -21,9 +21,9 @@ from typing import Any, Dict, List, Tuple
 from ice_core.models.enums import ModelProvider
 from ice_core.models.llm import LLMConfig
 from ice_orchestrator.workflow import ScriptChain
-from ice_sdk.models.node_models import AiNodeConfig, InputMapping, ToolNodeConfig
+from ice_sdk.models.node_models import InputMapping, LLMOperatorConfig, SkillNodeConfig
 from ice_sdk.providers.llm_service import LLMService  # noqa: E402
-from ice_sdk.tools.web.search_tool import WebSearchTool
+from ice_sdk.skills.web.search_skill import WebSearchSkill
 
 # ---------------------------------------------------------------------------
 # Helper – stub LLM responses so the demo runs offline
@@ -74,9 +74,9 @@ LLMService.generate = _generate_stub  # type: ignore[method-assign]
 # Build nodes ----------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-reasoner_node = AiNodeConfig(
+reasoner_node = LLMOperatorConfig(
     id="reasoner",
-    type="ai",
+    type="llm",
     name="Chain-of-Thought Reasoner",
     prompt=(
         "You are a knowledgeable assistant. Think step-by-step and craft a concise "
@@ -89,11 +89,11 @@ reasoner_node = AiNodeConfig(
     llm_config=LLMConfig(provider="openai", model="gpt-3.5-turbo"),
 )
 
-search_tool_node = ToolNodeConfig(
+search_tool_node = SkillNodeConfig(
     id="web_search",
-    type="tool",
+    type="skill",
     name="Web Search",
-    tool_name=WebSearchTool.name,
+    tool_name=WebSearchSkill.name,
     tool_args={"query": "{search_query}"},  # placeholder – not used in stub
     dependencies=[reasoner_node.id],
     # Map input: search_query comes from reasoner output (raw string)
@@ -104,9 +104,9 @@ search_tool_node = ToolNodeConfig(
     },
 )
 
-summary_node = AiNodeConfig(
+summary_node = LLMOperatorConfig(
     id="summariser",
-    type="ai",
+    type="llm",
     name="Summariser",
     prompt="Summarise the following search results in one sentence:\n\n{{search_results}}",
     model="claude-3-haiku-20240307",
@@ -120,9 +120,9 @@ summary_node = AiNodeConfig(
     },
 )
 
-final_node = AiNodeConfig(
+final_node = LLMOperatorConfig(
     id="refiner",
-    type="ai",
+    type="llm",
     name="Answer Refiner",
     prompt="Use the summary to answer the original question clearly and concisely.\n\nSummary: {{summary}}",
     model="gemini-1.0-pro-latest",
@@ -149,7 +149,7 @@ async def main() -> None:
         nodes=nodes,
         name="Demo Chain",
         initial_context={"question": question},
-        tools=[WebSearchTool()],
+        tools=[WebSearchSkill()],
     )
 
     result = await chain.execute()

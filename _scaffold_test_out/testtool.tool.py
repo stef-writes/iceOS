@@ -1,7 +1,7 @@
-from ice_sdk.tools.base import BaseTool
+from ice_sdk.skills import SkillBase
 
 
-class testtool(BaseTool):
+class testtool(SkillBase):
     name = "testtool"
     description = "A test resource"
 

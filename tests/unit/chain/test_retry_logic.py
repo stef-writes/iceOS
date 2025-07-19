@@ -6,7 +6,7 @@ import pytest
 
 from ice_orchestrator.workflow import ScriptChain
 from ice_sdk.models.node_models import SkillNodeConfig
-from ice_sdk.tools.base import SkillBase
+from ice_sdk.skills import SkillBase
 
 
 class FlakyTool(SkillBase):

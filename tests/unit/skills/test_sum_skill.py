@@ -19,4 +19,4 @@ async def test_sum_skill_input_coercion():
 @pytest.mark.asyncio
 async def test_sum_skill_invalid_element():
     with pytest.raises(Exception):
-        await SumSkill().execute({"numbers": [1, "x"]}) 
+        await SumSkill().execute({"numbers": [1, "x"]})

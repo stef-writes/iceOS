@@ -93,7 +93,7 @@ production-check:
 	git-secrets --scan 
 
 audit:
-    python -m scripts.check_layer_violations
-    python -m scripts.check_service_contracts
-    python -m scripts.validate_decision_records
-    pytest tests/unit/lint -v 
+	python -m scripts.check_layer_violations
+	python -m scripts.check_service_contracts
+	python -m scripts.validate_decision_records
+	pytest tests/unit/lint -v 

@@ -4,6 +4,7 @@ This module defines the foundational ABC for workflow execution.  New code
 should import `BaseWorkflow` – an alias of `BaseScriptChain` kept for
 compatibility while we migrate away from the *ScriptChain* terminology.
 """
+
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
@@ -140,6 +141,7 @@ class BaseScriptChain(ABC):
     ) -> NodeExecutionResult:
         """Execute a single node and return its :class:`NodeExecutionResult`.  Must be
         implemented by concrete subclasses (e.g. :class:`ScriptChain`)."""
+
 
 # ---------------------------------------------------------------------------
 # Preferred naming shim ------------------------------------------------------

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Type
+from typing import Any, Dict, Mapping
 
 # Pydantic v2 migrated – PrivateAttr for internal attributes
-from pydantic import BaseModel, PrivateAttr, validator
+from pydantic import BaseModel, PrivateAttr
 
 from .base import SkillBase
 
@@ -52,7 +52,9 @@ class SkillRegistry(BaseModel):
 
         # Pre-condition: developer must call validate() on skill instance.
         if hasattr(skill, "validate") and callable(skill.validate):
-            if not skill.validate(skill.config.dict() if hasattr(skill, "config") else {}):
+            if not skill.validate(
+                skill.config.model_dump() if hasattr(skill, "config") else {}
+            ):
                 raise SkillRegistrationError(f"Skill '{name}' failed self-validation")
 
         self._skills[name] = skill
@@ -61,7 +63,7 @@ class SkillRegistry(BaseModel):
         # Legacy ToolService synchronisation – keeps tool nodes working
         # ------------------------------------------------------------------
         try:
-            from ice_sdk.tools.service import ToolService  # late import – shim module
+            from ice_sdk.skills.service import ToolService  # updated import path
 
             ToolService._registry[name] = skill.__class__  # type: ignore[attr-defined]
         except Exception:  # pragma: no cover – never break registration
@@ -73,7 +75,9 @@ class SkillRegistry(BaseModel):
         except KeyError as exc:
             raise SkillRegistrationError(f"Skill '{name}' not found") from exc
 
-    async def execute(self, name: str, payload: Mapping[str, Any]) -> Any:  # noqa: ANN401 – Any by design
+    async def execute(
+        self, name: str, payload: Mapping[str, Any]
+    ) -> Any:  # noqa: ANN401 – Any by design
         """Execute *skill* identified by *name* with *payload*.
 
         The call propagates the underlying *Skill* exception semantics.
@@ -93,4 +97,4 @@ class SkillRegistry(BaseModel):
 
 # Global default registry -----------------------------------------------------
 
-global_skill_registry: SkillRegistry = SkillRegistry() 
+global_skill_registry: SkillRegistry = SkillRegistry()

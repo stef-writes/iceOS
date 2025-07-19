@@ -11,7 +11,7 @@ from typing import Any, Generator
 
 import pytest  # type: ignore
 
-from ice_sdk.tools.web import HttpRequestTool
+from ice_sdk.skills.web.http_request_skill import HttpRequestSkill
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -56,9 +56,9 @@ def http_server() -> Generator[str, None, None]:
 @pytest.mark.contract
 @pytest.mark.asyncio
 async def test_http_request_tool_against_local_server(http_server: str) -> None:
-    """HttpRequestTool should successfully GET /get from the local test server."""
+    """HttpRequestSkill should successfully GET /get from the local test server."""
 
-    tool = HttpRequestTool()
+    tool = HttpRequestSkill()
     result: Any = await tool.run(url=f"{http_server}/get", method="GET")
 
     assert result["status_code"] == 200

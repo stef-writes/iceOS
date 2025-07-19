@@ -10,11 +10,10 @@ import networkx as nx
 from pydantic import BaseModel, Field
 
 from ice_sdk.services import ServiceLocator  # new
+from ice_sdk.skills import SkillBase, ToolContext
 
 # Unified tool execution via ToolService -------------------------------
-from ice_sdk.tools.service import ToolRequest, ToolService
-
-from ..tools.base import SkillBase, ToolContext
+from ice_sdk.skills.service import ToolRequest, ToolService
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
@@ -287,6 +286,22 @@ class GraphContextManager:
     ) -> str:
         """Format context content according to rules."""
         return self.formatter.format(content, rule, format_specs)
+
+    async def _apply_formatter(self, value: Any) -> Any:
+        """Apply the configured formatter to *value* if it is a string.
+
+        The formatter may be implemented as a synchronous **or** asynchronous
+        callable.  We therefore detect coroutine results at runtime and await
+        them when necessary.  Non-string payloads are forwarded unchanged.
+        """
+        if isinstance(value, str) and self.formatter:
+            result = self.formatter.format(value, context=self)  # type: ignore[arg-type]
+            import inspect
+
+            if inspect.isawaitable(result):
+                return await result  # type: ignore[return-value]
+            return result
+        return value
 
     def validate_context_rules(self, rules: Dict[str, Any]) -> bool:
         """Validate context rules against graph structure."""

@@ -5,6 +5,7 @@ user preferences and enforcing validation or persistence policies.  It is
 engine-agnostic and therefore usable with both the legacy `ScriptChain` (now
 aliased as `Workflow`) and future orchestration engines.
 """
+
 # ---------------------------------------------------------------------------
 # Lightweight state persistence & batching ----------------------------------
 # ---------------------------------------------------------------------------

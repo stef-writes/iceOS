@@ -120,8 +120,8 @@ async def start_run(req: RunRequest) -> RunAck:  # noqa: D401
 
     # Convert NodeSpec list into proper SkillNodeConfig / LLMOperatorConfig objects --------------
     from ice_sdk.models.node_models import (  # type: ignore
-        LLMOperatorConfig,
         ConditionNodeConfig,
+        LLMOperatorConfig,
         NodeConfig,
         SkillNodeConfig,
     )

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import json
 from typing import Any, Dict
 
-from jsonschema import Draft7Validator, ValidationError  # type: ignore
+from jsonschema import Draft7Validator  # type: ignore
 
-from ..base import SkillBase
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 __all__ = ["SchemaValidatorSkill"]
 
@@ -21,9 +20,17 @@ class SchemaValidatorSkill(SkillBase):
     def get_required_config(self):
         return []
 
-    async def _execute_impl(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        schema = input_data.get("schema")
-        data = input_data.get("data")
+    async def _execute_impl(
+        self,
+        *,
+        schema: Dict[str, Any] | None = None,
+        data: Any | None = None,
+        input_data: Dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        if input_data is not None:
+            schema = schema or input_data.get("schema")  # type: ignore[assignment]
+            data = data or input_data.get("data")  # type: ignore[assignment]
         if not isinstance(schema, dict):
             raise SkillExecutionError("'schema' must be object")
         if data is None:
@@ -34,4 +41,4 @@ class SchemaValidatorSkill(SkillBase):
         if errors:
             msgs = [e.message for e in errors]
             return {"valid": False, "errors": msgs}
-        return {"valid": True} 
+        return {"valid": True}

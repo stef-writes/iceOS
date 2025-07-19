@@ -10,6 +10,7 @@ This script is executed inside GitHub Actions by the *consumer-samples* job:
 
 It exits with non-zero status if anything fails, triggering a CI failure.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -31,11 +32,13 @@ if str(SRC_PATH) in sys.path:
 # Run the marketing demo as a real consumer would
 # ---------------------------------------------------------------------------
 
-from samples.marketing_chain import create_marketing_chain  # noqa: E402  – after sys.path fix
+from samples.marketing_chain import (  # noqa: E402  – after sys.path fix
+    create_marketing_chain,
+)
 
 chain = create_marketing_chain()
 
 # Simple assertion: chain compiles & carries the expected identifier
 assert chain.id == "MarketingCopyDemo", "Unexpected chain ID from sample"
 
-print("[consumer_smoke] Sample chain built successfully – wheel import verified.") 
+print("[consumer_smoke] Sample chain built successfully – wheel import verified.")

@@ -6,8 +6,6 @@ the separate ``samples`` package and should be registered by the caller (e.g.
 CLI command or application startup code) rather than from within the SDK.
 """
 
-from ice_sdk.services import ChainService
-
 
 def register_builtin_chains() -> None:  # noqa: D401
     """No-op placeholder.
@@ -17,4 +15,4 @@ def register_builtin_chains() -> None:  # noqa: D401
     """
 
     # Intentionally empty – add real production chains here in the future.
-    return None 
+    return None

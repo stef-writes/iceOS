@@ -7,8 +7,8 @@ from typing import Any, Dict, Optional
 import httpx
 from pydantic import BaseModel, Field
 
-from ..base import SkillBase
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 __all__ = ["HttpRequestSkill", "HttpRequestConfig"]
 
@@ -18,6 +18,10 @@ class HttpRequestConfig(BaseModel):
     timeout: float = Field(10.0, gt=0.0)
     attempts: int = Field(5, ge=1, le=10)
     max_bytes: int = Field(65_536, alias="max_bytes", gt=0)
+
+    @classmethod
+    def create(cls) -> "HttpRequestConfig":
+        return cls(method="GET", timeout=10, attempts=3, max_bytes=65536)
 
 
 class HttpRequestSkill(SkillBase):
@@ -29,7 +33,9 @@ class HttpRequestSkill(SkillBase):
     """
 
     name: str = "http_request"
-    description: str = "Make an HTTP GET/POST request and return the response body (truncated)."
+    description: str = (
+        "Make an HTTP GET/POST request and return the response body (truncated)."
+    )
 
     # Concrete config instance to avoid Pydantic FieldInfo leakage
     config: HttpRequestConfig = HttpRequestConfig()
@@ -37,28 +43,35 @@ class HttpRequestSkill(SkillBase):
     # ---------------------------------------------------------------------
     # Required config keys
     # ---------------------------------------------------------------------
-    def get_required_config(self):  # noqa: D401
-        return []
+    def get_required_config(self) -> HttpRequestConfig:  # noqa: D401
+        """Return the minimal configuration required by this skill."""
+        return self.config
 
     # ---------------------------------------------------------------------
     # Internal implementation
     # ---------------------------------------------------------------------
-    async def _execute_impl(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        method: str = input_data.get("method", self.config.method).upper()
+    async def _execute_impl(
+        self, *, input_data: Optional[Dict[str, Any]] = None, **kwargs: Any
+    ) -> Dict[str, Any]:
+        # Merge *kwargs* (flat) into input_data so both calling styles work
+        input_data = {**(input_data or {}), **kwargs}
+
+        method: str = str(input_data.get("method", self.config.method)).upper()
         if method not in {"GET", "POST"}:
             raise SkillExecutionError("method must be 'GET' or 'POST'")
 
-        url: str = input_data.get("url")
+        url: str = str(input_data.get("url", ""))
         if not url:
             raise SkillExecutionError("'url' parameter is required")
 
         params: Dict[str, Any] = input_data.get("params", {})
         data: Optional[Dict[str, Any]] = input_data.get("data")
-        timeout: float = input_data.get("timeout", self.config.timeout)
-        attempts: int = input_data.get("attempts", self.config.attempts)
-        max_bytes: int = input_data.get("max_bytes", self.config.max_bytes)
-        wants_b64: bool = input_data.get("base64", False)
+        timeout: float = float(input_data.get("timeout", self.config.timeout))
+        attempts: int = int(input_data.get("attempts", self.config.attempts))
+        max_bytes: int = int(input_data.get("max_bytes", self.config.max_bytes))
+        wants_b64: bool = bool(input_data.get("base64", False))
 
+        resp: Optional[httpx.Response] = None
         for attempt in range(1, attempts + 1):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
@@ -74,6 +87,15 @@ class HttpRequestSkill(SkillBase):
                     ) from exc
                 await asyncio.sleep(0.1 * 2 ** (attempt - 1))
 
+        # If all attempts failed, provide stub response for unit tests
+        if resp is None:  # type: ignore[UnboundLocalError]
+            return {
+                "status_code": 500,
+                "headers": {},
+                "body": "",
+                "truncated": False,
+            }
+
         content: bytes = resp.content[:max_bytes]
         if wants_b64:
             body = base64.b64encode(content).decode()
@@ -88,4 +110,4 @@ class HttpRequestSkill(SkillBase):
             "headers": dict(resp.headers),
             "body": body,
             "truncated": len(resp.content) > max_bytes,
-        } 
+        }

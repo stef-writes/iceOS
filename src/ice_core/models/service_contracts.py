@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field
 from typing import Literal
+
+from pydantic import BaseModel, Field
+
 
 class EndpointSpec(BaseModel):
     method: Literal["POST", "GET"]
@@ -8,8 +10,10 @@ class EndpointSpec(BaseModel):
     response_schema: dict
     cost_weight: float = 1.0
 
+
 class ServiceContract(BaseModel):
     """Versioned API contract between services"""
+
     version: str = Field(..., pattern=r"^\d+\.\d+\.\d+$")
     endpoints: dict[str, EndpointSpec] = {}  # key = endpoint name
-    schema_registry: dict[str, dict] = {}  # key = schema name 
+    schema_registry: dict[str, dict] = {}  # key = schema name

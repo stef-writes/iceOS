@@ -3,6 +3,8 @@
 This package provides workflow orchestration capabilities for iceOS.
 """
 
+# ruff: noqa: E402
+
 import warnings
 
 # Emit deprecation notice once per import
@@ -12,18 +14,24 @@ warnings.warn(
     stacklevel=2,
 )
 
-# Prefer BaseWorkflow
-from ice_sdk.orchestrator.base_workflow import BaseWorkflow, FailurePolicy  # type: ignore
+# Public contract facade ------------------------------------------------------
+from ice_core.contracts.mvp_contract import MVPContract  # noqa: F401
 
-# Public re-export
-from .workflow import Workflow
+# Prefer BaseWorkflow
+from ice_sdk.orchestrator.base_workflow import (  # type: ignore
+    BaseWorkflow,
+    FailurePolicy,
+)
+from ice_sdk.orchestrator.workflow_execution_context import WorkflowExecutionContext
 
 # New exports ---------------------------------------------------------------
 from .core.chain_registry import get_chain, list_chains, register_chain  # noqa: F401
 from .core.network_factory import NetworkFactory  # noqa: F401
-from ice_sdk.orchestrator.workflow_execution_context import WorkflowExecutionContext
 from .errors.chain_errors import ScriptChainError as ChainError
 from .graph.dependency_graph import DependencyGraph
+
+# existing exports
+from .workflow import Workflow
 
 # Deprecated alias for backward-compat ------------------------------------------------
 ScriptChain = Workflow  # type: ignore
@@ -39,4 +47,5 @@ __all__ = [
     "get_chain",
     "list_chains",
     "NetworkFactory",
+    "MVPContract",
 ]

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import time
 from decimal import Decimal
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
 
 from ice_sdk.models.config import ModelProvider
 
@@ -76,51 +76,65 @@ def calculate_cost(
 
 class CostTracker:
     """Tracks execution costs and time for chain execution"""
-    
+
     def __init__(self):
         self._total_cost = Decimal("0")
         self._budget: Optional[Decimal] = None
         self._start_time: Optional[float] = None
         self._execution_time: Optional[float] = None
-    
+
     def reset(self) -> None:
         """Reset tracker state"""
         self._total_cost = Decimal("0")
         self._budget = None
         self._start_time = None
         self._execution_time = None
-    
+
     def set_budget(self, budget: float) -> None:
         """Set execution budget in USD"""
         self._budget = Decimal(str(budget))
-    
+
     def add_cost(self, cost: Decimal) -> None:
         """Add cost to total"""
         self._total_cost += cost
-        
+
         # Check budget limit
         if self._budget and self._total_cost > self._budget:
-            raise RuntimeError(f"Budget exceeded: ${self._total_cost} > ${self._budget}")
-    
+            raise RuntimeError(
+                f"Budget exceeded: ${self._total_cost} > ${self._budget}"
+            )
+
     def start_tracking(self) -> None:
         """Start execution time tracking"""
         self._start_time = time.time()
-    
+
     def stop_tracking(self) -> None:
         """Stop execution time tracking"""
         if self._start_time:
             self._execution_time = time.time() - self._start_time
-    
+
     def get_costs(self) -> Dict[str, float]:
         """Get cost summary"""
         return {
             "total": float(self._total_cost),
-            "budget": float(self._budget) if self._budget else None
+            "budget": float(self._budget) if self._budget else None,
         }
-    
+
     def get_execution_time(self) -> Optional[float]:
         """Get execution time in seconds"""
         return self._execution_time
+
+    # ------------------------------------------------------------------
+    # No-op *span* helpers used by SkillBase for cheap instrumentation.
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def start_span(cls, _name: str) -> None:  # noqa: D401 – metric helper
+        """Begin a logical cost span (no-op placeholder)."""
+
+    @classmethod
+    def end_span(cls, *, success: bool, error: str | None = None) -> None:  # noqa: D401
+        """Finish a cost span – collects nothing for now."""
 
 
 # Backward compatibility alias

@@ -310,7 +310,8 @@ class BaseNodeConfig(BaseModel):
 class LLMOperatorConfig(BaseNodeConfig):
     """Configuration for an LLM-powered node."""
 
-    type: Literal["ai"] = "ai"
+    # Accept both the legacy "ai" and the new "llm" discriminator values
+    type: Literal["ai", "llm"] = "llm"
 
     # LLM-specific ----------------------------------------------------------------
     model: str = Field(..., description="Model name, e.g. gpt-3.5-turbo")
@@ -345,7 +346,8 @@ class LLMOperatorConfig(BaseNodeConfig):
 class SkillNodeConfig(BaseNodeConfig):
     """Configuration for a deterministic tool execution."""
 
-    type: Literal["tool"] = "tool"
+    # Accept both legacy "tool" and new "skill" discriminator values
+    type: Literal["tool", "skill"] = "skill"
 
     tool_name: str = Field(..., description="Registered name of the tool to invoke")
     tool_args: Dict[str, Any] = Field(
@@ -471,16 +473,18 @@ class PrebuiltAgentConfig(BaseNodeConfig):
 # ---------------------------------------------------------------------------
 
 # Discriminated union used throughout the codebase
+# (Removed duplicate NodeConfig alias – defined later after class definitions.)
+
 NodeConfig = Annotated[
     Union[
         LLMOperatorConfig,
         SkillNodeConfig,
         ConditionNodeConfig,
         NestedChainConfig,
-        PrebuiltAgentConfig,  # <-- NEW
+        PrebuiltAgentConfig,
     ],
     Field(discriminator="type"),
-]  # Historical alias preserved for backwards-compatibility
+]
 
 
 class NodeExecutionRecord(BaseModel):
@@ -659,27 +663,15 @@ class EvaluatorNodeConfig:  # noqa: D101 – test stub
 # v2 Alias classes (AiNodeConfig → LLMOperatorConfig, ToolNodeConfig → SkillNodeConfig)
 # ---------------------------------------------------------------------------
 
-class LLMOperatorConfig(LLMOperatorConfig):  # noqa: D401 – alias wrapper
-    """Alias for :class:`AiNodeConfig` using the new v2 terminology.
 
-    Accepts both legacy ``"ai"`` and the new ``"llm"`` discriminator values so
-    that un-migrated test fixtures keep passing while the rest of the codebase
-    moves forward.
-    """
+# ---------------------------------------------------------------------------
+# Public discriminated union -------------------------------------------------
+# ---------------------------------------------------------------------------
 
-    type: Literal["ai", "llm"] = "llm"  # ← accept both for transitional window
+# Compose the public NodeConfig using the *original* class definitions. The
+# discriminator fields on those classes now accept both legacy and new
+# literals, so we don't need duplicate alias wrappers.
 
-
-class SkillNodeConfig(SkillNodeConfig):  # noqa: D401 – alias wrapper
-    """Alias for :class:`ToolNodeConfig` using the new v2 terminology.
-
-    Accepts both legacy ``"tool"`` and the new ``"skill"`` discriminator.
-    """
-
-    type: Literal["tool", "skill"] = "skill"
-
-
-# Extend public union alias so both old and new discriminators are accepted
 NodeConfig = Annotated[
     Union[
         LLMOperatorConfig,
@@ -687,8 +679,6 @@ NodeConfig = Annotated[
         ConditionNodeConfig,
         NestedChainConfig,
         PrebuiltAgentConfig,
-        LLMOperatorConfig,   # new
-        SkillNodeConfig,     # new
     ],
     Field(discriminator="type"),
 ]

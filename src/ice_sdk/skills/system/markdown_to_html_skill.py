@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import html
 import importlib
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from ..base import SkillBase
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 __all__ = ["MarkdownToHTMLSkill"]
 
@@ -17,14 +17,14 @@ class MarkdownToHTMLSkill(SkillBase):
     description: str = "Convert Markdown formatted text to HTML."
     tags: List[str] = ["markdown", "conversion", "utility"]
 
-    def get_required_config(self):  # noqa: D401
+    def get_required_config(self) -> list[str]:  # noqa: D401
         return []
 
     @staticmethod
     def _convert(text: str) -> str:  # noqa: D401 – helper
         try:
-            markdown_mod = importlib.import_module("markdown")
-            return markdown_mod.markdown(text)  # type: ignore[attr-defined]
+            markdown_mod = importlib.import_module("markdown")  # type: ignore
+            return str(markdown_mod.markdown(text))  # type: ignore[attr-defined,arg-type]
         except ModuleNotFoundError:
             lines = text.splitlines()
             out: List[str] = []
@@ -37,9 +37,12 @@ class MarkdownToHTMLSkill(SkillBase):
                     out.append(f"<p>{html.escape(line.strip())}</p>")
             return "\n".join(out)
 
-    async def _execute_impl(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        md = input_data.get("markdown")
-        if not isinstance(md, str):
-            raise SkillExecutionError("'markdown' parameter must be a string")
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
+        markdown_content: Optional[str] = kwargs.get("markdown_content") or kwargs.get(
+            "markdown"
+        )
+        if not isinstance(markdown_content, str):
+            raise SkillExecutionError("'markdown_content' must be a string")
 
-        return {"html": self._convert(md)} 
+        html_output = self._convert(markdown_content)
+        return {"html": html_output}

@@ -9,7 +9,7 @@ from ice_orchestrator.workflow import ScriptChain
 from ice_sdk.models.config import LLMConfig, ModelProvider
 from ice_sdk.models.node_models import LLMOperatorConfig, SkillNodeConfig
 from ice_sdk.providers.llm_service import LLMService
-from ice_sdk.tools.base import SkillBase
+from ice_sdk.skills import SkillBase
 
 
 class EchoTool(SkillBase):

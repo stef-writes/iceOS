@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Tuple
 
 from pydantic import ConfigDict
 
-from ..base import SkillBase
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 __all__ = ["ComputerSkill"]
 
@@ -27,10 +27,11 @@ class ComputerSkill(SkillBase):
         super().__init__()
         self.dimensions = dimensions or (1280, 720)
 
-    def get_required_config(self):  # noqa: D401
+    def get_required_config(self) -> list[str]:  # noqa: D401
         return []
 
-    async def _execute_impl(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
+        input_data: Dict[str, Any] = kwargs.get("input_data", kwargs)
         action = input_data.get("action")
         if action not in {"click", "type", "scroll", "screenshot"}:
             raise SkillExecutionError("Unsupported action for computer skill")
@@ -38,7 +39,9 @@ class ComputerSkill(SkillBase):
         try:
             import pyautogui  # type: ignore
         except ImportError as exc:  # pragma: no cover
-            raise SkillExecutionError("'pyautogui' package is required for ComputerSkill") from exc
+            raise SkillExecutionError(
+                "'pyautogui' package is required for ComputerSkill"
+            ) from exc
 
         try:
             if action == "click":
@@ -73,4 +76,4 @@ class ComputerSkill(SkillBase):
         except Exception as exc:  # pragma: no cover
             raise SkillExecutionError(f"Computer action failed: {exc}") from exc
 
-        return {"success": False} 
+        return {"success": False}

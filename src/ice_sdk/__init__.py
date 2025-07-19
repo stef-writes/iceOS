@@ -12,15 +12,20 @@ from .models.node_models import (  # noqa: F401
 
 # from .models.network import NetworkSpec  # noqa: F401
 from .services import ServiceLocator  # noqa: F401
-from .tools.base import SkillBase, ToolContext, SkillExecutionError, function_tool  # noqa: F401
-from .tools.service import ToolService  # noqa: F401
+from .skills import (  # noqa: F401
+    SkillBase,
+    SkillExecutionError,
+    ToolContext,
+    function_tool,
+)
+from .skills.service import ToolService  # noqa: F401
 
 # NOTE: Lazy import of IceCopilot to avoid circular dependencies with ice_orchestrator.
 
 __all__ = [
     # Core abstractions
     "BaseNode",
-    "BaseTool",
+    "SkillBase",  # supplant BaseTool alias
     "ToolService",
     # Data models
     "NodeConfig",

@@ -8,7 +8,7 @@ import pytest
 from ice_core.models.model_registry import get_default_model_id
 from ice_orchestrator.errors.chain_errors import CircularDependencyError
 from ice_orchestrator.graph.dependency_graph import DependencyGraph
-from ice_sdk.models.node_models import LLMOperatorConfig, LLMConfig, ModelProvider
+from ice_sdk.models.node_models import LLMConfig, LLMOperatorConfig, ModelProvider
 from ice_sdk.orchestrator.workflow_execution_context import (
     _BulkSaveProtocol,  # type: ignore
 )

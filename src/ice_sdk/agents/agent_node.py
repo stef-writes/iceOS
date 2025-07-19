@@ -2,7 +2,6 @@ from contextvars import ContextVar  # Track agent call stack across coroutines
 from typing import Any, ClassVar, Dict, List, Optional
 
 from ice_sdk.services import ServiceLocator  # new
-from ice_sdk.protocols.mcp.client import MCPClient  # Proper service interface
 
 from ..context.manager import GraphContextManager
 from ..exceptions import CycleDetectionError
@@ -10,7 +9,7 @@ from ..models.agent_models import AgentConfig
 from ..models.config import LLMConfig, ModelProvider
 from ..models.node_models import NodeExecutionResult
 from ..providers.costs import calculate_cost
-from ..tools.base import SkillBase
+from ..skills import SkillBase
 
 # Context-local stack of agent names to detect cycles -------------------------
 _AGENT_CALL_STACK: ContextVar[list[str]] = ContextVar("_AGENT_CALL_STACK", default=[])
@@ -48,11 +47,10 @@ class AgentNode:
             name: Tool name
             description: Tool description
         """
-        tool_name = name  # capture outer vars for class body access
         tool_description = description
 
         class AgentTool(SkillBase):
-            name: ClassVar[str] = tool_name  # type: ignore[misc]
+            name: str = "base_agent_tool"  # Instance variable instead of ClassVar
             description: ClassVar[str] = tool_description  # type: ignore[misc]
             parameters_schema: ClassVar[Dict[str, Any]] = {
                 "type": "object",
@@ -70,8 +68,10 @@ class AgentNode:
             # analysis is aware of it.
             agent: Optional["AgentNode"] = None  # type: ignore[assignment]
 
-            async def run(self, input: Dict[str, Any], **_kwargs: Any) -> Any:  # type: ignore[override]
-                """Execute the underlying agent while guarding against cycles."""
+            async def _execute_impl(
+                self, *, input_data: Optional[Dict[str, Any]] = None, **kwargs: Any
+            ) -> Dict[str, Any]:
+                """Override this with skill-specific logic"""
                 assert self.agent is not None
 
                 # ----------------------------------------------------------
@@ -90,13 +90,18 @@ class AgentNode:
                 _AGENT_CALL_STACK.set(stack)
 
                 try:
-                    result = await self.agent.execute(input)
+                    result = await self.agent.execute(input_data or {})
                 finally:
                     # Pop after execution regardless of success/failure
                     stack.pop()
                     _AGENT_CALL_STACK.set(stack)
 
                 return result.output
+
+            async def execute(
+                self, input_data: Optional[Dict[str, Any]] = None, **kwargs: Any
+            ) -> Dict[str, Any]:
+                return await self._execute_impl(input_data=input_data, **kwargs)
 
         tool = AgentTool()
         tool.agent = self
