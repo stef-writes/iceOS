@@ -1,5 +1,3 @@
-# Orchestrator API Reference
+# Orchestrator API (Work in Progress)
 
-::: ice_orchestrator.agents.composite_agent.CompositeAgent
-
-::: ice_orchestrator.tools.chain_executor_tool.ChainExecutorTool 
+Detailed reference documentation for the Orchestrator will be provided soon. 
