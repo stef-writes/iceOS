@@ -1,0 +1,3 @@
+# This file is kept for CI compatibility.
+# The project uses Poetry; dependencies are declared in pyproject.toml
+# An empty requirements file avoids CI failure when 'pip install -r' is executed. 
