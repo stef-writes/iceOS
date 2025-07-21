@@ -41,7 +41,7 @@ from ice_sdk.protocols.mcp.client import MCPClient
 DEFAULT_BASE_URL = os.getenv("ICEOS_API", "http://localhost:8000")
 
 
-def build_nodes(csv_path: Path) -> List[NodeSpec]:  # – helper
+def build_nodes(csv_path: Path, request_text: str) -> List[NodeSpec]:  # – helper
     """Build NodeSpec list for the CSV → Summary pipeline."""
 
     reader_spec = NodeSpec(
@@ -75,10 +75,61 @@ def build_nodes(csv_path: Path) -> List[NodeSpec]:  # – helper
         output_schema={"summary": "str"},
     )
 
+    # ------------------------------------------------------------------
+    # 2. Line-item generator (LLM) --------------------------------------
+    # ------------------------------------------------------------------
+
+    line_gen = NodeSpec(
+        id="line_gen",
+        type="tool",
+        dependencies=["reader"],
+        tool_name="line_item_generator",
+        tool_args={
+            "request_text": request_text,
+            "headers": "{headers_list}",
+        },
+        input_mappings={
+            "headers_list": {
+                "source_node_id": "reader",
+                "source_output_key": "headers",
+            }
+        },
+        output_schema={"row": "dict", "action": "str"},
+    )
+
+    # ------------------------------------------------------------------
+    # 3. CSV writer ------------------------------------------------------
+    # ------------------------------------------------------------------
+
+    writer_spec = NodeSpec(
+        id="writer",
+        type="tool",
+        dependencies=["line_gen"],
+        tool_name="csv_writer",
+        tool_args={
+            "file_path": str(csv_path),
+            "row": "{row_json}",
+            "action": "{line_action}",
+            "key_column": "Item_ID",
+        },
+        input_mappings={
+            "row_json": {"source_node_id": "line_gen", "source_output_key": "row"},
+            "line_action": {
+                "source_node_id": "line_gen",
+                "source_output_key": "action",
+            },
+        },
+        output_schema={"success": "bool", "rows_json": "str"},
+    )
+
+    # ------------------------------------------------------------------
+    # 4. Rows validator (after mutation) ---------------------------------
+    # ------------------------------------------------------------------
+
     validator_spec = NodeSpec(
         id="validator",
         type="tool",
-        dependencies=["reader"],
+        dependencies=["writer"],
         tool_name="rows_validator",
         tool_args={
             "rows": "{rows_json}",
@@ -91,14 +142,9 @@ def build_nodes(csv_path: Path) -> List[NodeSpec]:  # – helper
             "drop_invalid": True,
         },
         input_mappings={
-            "rows_json": {
-                "source_node_id": "reader",
-                "source_output_key": "rows_json",
-            }
+            "rows_json": {"source_node_id": "writer", "source_output_key": "rows_json"}
         },
-        output_mappings={
-            "clean_rows_json": "clean_rows_json",
-        },
+        output_mappings={"clean_rows_json": "clean_rows_json"},
         output_schema={
             "valid": "bool",
             "clean_rows_json": "str",
@@ -126,7 +172,14 @@ def build_nodes(csv_path: Path) -> List[NodeSpec]:  # – helper
         output_schema={"insights": "list[str]"},
     )
 
-    return [reader_spec, validator_spec, summarizer_spec, insights_spec]
+    return [
+        reader_spec,
+        line_gen,
+        writer_spec,
+        validator_spec,
+        summarizer_spec,
+        insights_spec,
+    ]
 
 
 async def main() -> None:  # – async entrypoint
@@ -139,6 +192,13 @@ async def main() -> None:  # – async entrypoint
         help="Path to CSV file to summarise",
     )
     parser.add_argument(
+        "--request",
+        dest="request_text",
+        type=str,
+        default="Add 10 units of 12mm plywood at $17 each (New).",
+        help="Natural-language request to convert into a CSV row",
+    )
+    parser.add_argument(
         "--base-url",
         dest="base_url",
         type=str,
@@ -147,6 +207,10 @@ async def main() -> None:  # – async entrypoint
     )
     args = parser.parse_args()
 
+    user_request = args.request_text.strip()
+    if not user_request:
+        raise SystemExit("--request text must not be empty")
+
     csv_path = Path(args.csv_path).expanduser().resolve()
     if not csv_path.exists():
         raise SystemExit(f"CSV file not found: {csv_path}")
@@ -154,7 +218,8 @@ async def main() -> None:  # – async entrypoint
     # ------------------------------------------------------------------
     # 1. Build blueprint ------------------------------------------------
     # ------------------------------------------------------------------
-    nodes = build_nodes(csv_path)
+
+    nodes = build_nodes(csv_path, user_request)
     blueprint = Blueprint(nodes=nodes)
 
     client = MCPClient(base_url=args.base_url)
@@ -190,10 +255,10 @@ async def main() -> None:  # – async entrypoint
 
         insights_node = result.output.get("insights")
         if insights_node and getattr(insights_node, "output", None):
-            insights = insights_node.output.get("insights")
-            if insights:
+            ins = insights_node.output.get("insights", [])
+            if ins:
                 print("\n=== Insights ===")
-                for idx, insight in enumerate(insights, 1):
+                for idx, insight in enumerate(ins, 1):
                     print(f"{idx}. {insight}")
         else:
             print("\nRun succeeded but summarizer output missing. Full payload:")

@@ -24,5 +24,12 @@ try:
     from .insights_skill import InsightsSkill
 
     global_skill_registry.register("insights", InsightsSkill())
+    from .line_item_generator_skill import LineItemGeneratorSkill
+
+    global_skill_registry.register("line_item_generator", LineItemGeneratorSkill())
+
+    from .csv_writer_skill import CSVWriterSkill
+
+    global_skill_registry.register("csv_writer", CSVWriterSkill())
 except Exception:  # pragma: no cover
     pass

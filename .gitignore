@@ -83,6 +83,17 @@ config/api_keys.json
 # Generated docs
 docs/generated/
 
+# Docs source (Markdown, plans, guides, etc.)
+docs/
+
+# Individual reference markdown files kept at root (deprecated) – ignore
+api.md
+architecture.md
+cli.md
+healthchecks.md
+what_we_can_prove.md
+iceos-vision.md
+
 # Runtime drafts
 .ice/ 
 
