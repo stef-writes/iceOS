@@ -20,6 +20,16 @@ from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-fo
 # Import globally to avoid local shadowing errors
 from ice_core.models import NodeConfig, NodeExecutionResult
 from ice_core.models.node_models import NodeMetadata
+
+# ---------------------------------------------------------------------------
+# Ensure built-in node executors are registered *before* any workflow runs.
+# Merely importing these modules triggers the @register_node decorators.
+# ---------------------------------------------------------------------------
+# ruff: noqa: F401 – imported for side-effects only
+from ice_orchestrator.execution.executors import (
+    builtin as _exec_builtin,  # type: ignore
+)
+from ice_orchestrator.execution.executors import condition as _exec_cond  # type: ignore
 from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
 from ice_sdk.registry.node import get_executor
 
@@ -152,24 +162,32 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                         "node_id": node_id,
                         "node_type": str(getattr(node, "type", "")),
                     },
-                ) as node_span:
+                ):
                     # MyPy may not recognise that *executor* is an async callable – cast for clarity.
 
                     result_raw = await executor(chain, node, input_data)
 
-                    node_span.set_attribute(
-                        "success", True
-                    )  # Mark as success for now, validation will handle
-                    node_span.set_attribute("retry_count", attempt)
-                    if (
-                        not result_raw
-                    ):  # If executor returned None or empty, mark as failure
-                        node_span.set_status(
-                            Status(StatusCode.ERROR, "Executor returned empty output")
-                        )
-                        result_raw = (
-                            None  # Ensure raw_output is None for further processing
-                        )
+                    # If the executor already returned a fully-formed
+                    # NodeExecutionResult, we can short-circuit all further
+                    # post-processing.  This avoids serialisation issues when
+                    # trying to treat the rich object as plain JSON.
+                    from ice_core.models import (
+                        NodeExecutionResult as _NER,  # local import
+                    )
+
+                    if isinstance(result_raw, _NER):
+                        # Allow budget tracking before returning ----------
+                        if node.type == "ai":
+                            cost = (
+                                getattr(result_raw.usage, "cost", 0.0)
+                                if result_raw.usage
+                                else 0.0
+                            )
+                            self.budget.register_llm_call(cost=cost)
+                        elif node.type == "tool":
+                            self.budget.register_tool_execution()
+
+                        return result_raw
 
                 # --------------------------------------------------
                 # Opportunistic JSON repair ------------------------
@@ -237,16 +255,18 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
 
                 # Attach retry metadata -----------------------------
                 if processed_output:  # Only update if output was processed
-                    result = NodeExecutionResult(success=True, output=processed_output)
-                    result.metadata = NodeMetadata(
-                        node_id=node_id,
-                        node_type=str(getattr(node, "type", "")),
-                        name=getattr(node, "name", None),
-                        version="1.0.0",
-                        start_time=datetime.utcnow(),
-                        end_time=datetime.utcnow(),
-                        duration=0.0,
-                        error_type=None,
+                    result = NodeExecutionResult(  # type: ignore[call-arg]
+                        success=True,
+                        output=processed_output,
+                        metadata=NodeMetadata(  # type: ignore[call-arg]
+                            node_id=node_id,
+                            node_type=str(getattr(node, "type", "")),
+                            name=getattr(node, "name", None),
+                            version="1.0.0",
+                            start_time=datetime.utcnow(),
+                            end_time=datetime.utcnow(),
+                        ),
+                        execution_time=0.0,
                     )
                     result.budget_status = self.budget.get_status()  # Add this field
 

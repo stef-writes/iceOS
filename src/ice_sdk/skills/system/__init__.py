@@ -18,5 +18,11 @@ try:
     global_skill_registry.register("jinja_render", JinjaRenderSkill())
     global_skill_registry.register("csv_reader", CSVReaderSkill())
     global_skill_registry.register("summarizer", SummarizerSkill())
+    from .rows_validator_skill import RowsValidatorSkill
+
+    global_skill_registry.register("rows_validator", RowsValidatorSkill())
+    from .insights_skill import InsightsSkill
+
+    global_skill_registry.register("insights", InsightsSkill())
 except Exception:  # pragma: no cover
     pass

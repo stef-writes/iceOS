@@ -10,36 +10,114 @@ Usage::
 """
 
 import os
-from functools import lru_cache
+from typing import Optional
 
 try:
+    # ``redis.asyncio`` provides the fully featured async client, including the
+    # ``from_url`` helper used throughout the codebase.  Importing it under the
+    # name *redis* keeps the API identical to the sync variant and avoids a
+    # ``NameError`` when calling ``redis.from_url``.
+    import redis.asyncio as redis  # type: ignore
     from redis.asyncio import Redis  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover – optional for unit tests
 
     class _RedisStub:  # type: ignore
-        async def ping(self):
+        """Minimal async stub when the *redis* package is not installed.
+
+        The real Redis client is only required in production.  Unit-tests that
+        mock out persistence can rely on this lightweight replacement.
+        """
+
+        # ------------------------------------------------------------
+        # Internal storage ------------------------------------------
+        # ------------------------------------------------------------
+        _hashes: dict[str, dict[str, str]] = {}
+        _streams: dict[str, list[tuple[str, dict[str, str]]]] = {}
+
+        async def ping(self) -> bool:  # noqa: D401 – stub method
             return True
 
-        async def __getattr__(self, name):  # noqa: D401 – stub
-            async def _dummy(*args, **kwargs):
+        def __getattr__(self, name: str):  # noqa: D401 – dynamic stub
+            async def _dummy(*_args, **_kwargs):  # type: ignore[return-value]
                 return None
 
             return _dummy
 
+        # ------------------------------------------------------------
+        # Hash helpers (minimal subset) ------------------------------
+        # ------------------------------------------------------------
+
+        async def hset(self, key: str, mapping: dict[str, str]):  # type: ignore[override]
+            self._hashes.setdefault(key, {}).update(mapping)
+            # Redis returns the number of fields that were added.
+            return len(mapping)
+
+        async def hget(self, key: str, field: str):  # type: ignore[override]
+            return self._hashes.get(key, {}).get(field)
+
+        async def exists(self, key: str):  # type: ignore[override]
+            return key in self._hashes or key in self._streams
+
+        # ------------------------------------------------------------
+        # Stream helpers (very coarse – good enough for demo) --------
+        # ------------------------------------------------------------
+
+        async def xadd(self, stream: str, data: dict[str, str]):  # type: ignore[override]
+            lst = self._streams.setdefault(stream, [])
+            # Simplified ID generation (monotonic counter per stream)
+            seq_id = f"{len(lst)}-0"
+            lst.append((seq_id, data))
+            return seq_id
+
+        async def xread(self, streams: dict[str, str], block: int = 0, count: int | None = None):  # type: ignore[override]
+            # Very naive implementation – returns *all* new entries after the
+            # provided IDs (ignores *block* semantics).
+            results: list[tuple[str, list[tuple[str, dict[str, str]]]]] = []
+            for stream, last_id in streams.items():
+                entries = []
+                all_items = self._streams.get(stream, [])
+                # Collect items with ID greater than last_id (string compare OK here)
+                for seq_id, data in all_items:
+                    if seq_id > last_id:
+                        entries.append((seq_id, data))
+                        if count and len(entries) >= count:
+                            break
+                if entries:
+                    results.append((stream, entries))
+            return results
+
+    redis = None  # type: ignore  # keeps mypy happy when package missing
     Redis = _RedisStub  # type: ignore
 
 __all__: list[str] = ["get_redis"]
 
+# ---------------------------------------------------------------------------
+# Singleton helper ----------------------------------------------------------
+# ---------------------------------------------------------------------------
 
-@lru_cache(maxsize=1)
-def get_redis() -> Redis:  # – singleton
-    """Return shared :class:`redis.asyncio.Redis` instance.
+_redis_client: Optional[Redis] = None
+
+
+def get_redis() -> Redis:  # – singleton, *sync* accessor
+    """Return the shared :class:`redis.asyncio.Redis` client.
 
     The connection URL is read from the ``REDIS_URL`` environment variable and
     defaults to ``redis://localhost:6379/0`` when not set.
+
+    The function is intentionally synchronous so call-sites can obtain the
+    client without ``await`` – only individual Redis operations must be
+    awaited.  This design aligns with FastAPI startup hooks that run in a sync
+    context.
     """
 
-    url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    if hasattr(Redis, "from_url"):
-        return Redis.from_url(url, decode_responses=True)  # type: ignore[attr-defined]
-    return Redis()  # type: ignore[call-arg]
+    global _redis_client
+
+    if _redis_client is None:
+        if redis is None:  # Stub fallback – Redis package missing
+            _redis_client = Redis()  # type: ignore[call-arg]
+        else:
+            _redis_client = redis.from_url(
+                os.getenv("REDIS_URL", "redis://localhost:6379/0")
+            )
+
+    return _redis_client

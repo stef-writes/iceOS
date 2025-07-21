@@ -49,12 +49,18 @@ def build_nodes(csv_path: Path) -> List[NodeSpec]:  # – helper
         type="tool",  # Conversion logic in API maps "tool" → SkillNodeConfig
         tool_name="csv_reader",
         tool_args={"file_path": str(csv_path)},
+        output_schema={  # Minimal schema so orchestrator mapping validator passes
+            "headers": "list[str]",
+            "rows": "list[dict[str, Any]]",
+            "rows_json": "str",
+            "total_rows": "int",
+        },
     )
 
     summarizer_spec = NodeSpec(
         id="summarizer",
         type="tool",
-        dependencies=["reader"],
+        dependencies=["validator"],
         tool_name="summarizer",
         tool_args={
             "rows": "{rows_json}",  # Placeholder resolved by ContextBuilder
@@ -62,13 +68,65 @@ def build_nodes(csv_path: Path) -> List[NodeSpec]:  # – helper
         },
         input_mappings={
             "rows_json": {
+                "source_node_id": "validator",
+                "source_output_key": "clean_rows_json",
+            }
+        },
+        output_schema={"summary": "str"},
+    )
+
+    validator_spec = NodeSpec(
+        id="validator",
+        type="tool",
+        dependencies=["reader"],
+        tool_name="rows_validator",
+        tool_args={
+            "rows": "{rows_json}",
+            "required_columns": [
+                "Item_ID",
+                "Name",
+                "Qty",
+                "Unit_Price",
+            ],
+            "drop_invalid": True,
+        },
+        input_mappings={
+            "rows_json": {
                 "source_node_id": "reader",
                 "source_output_key": "rows_json",
             }
         },
+        output_mappings={
+            "clean_rows_json": "clean_rows_json",
+        },
+        output_schema={
+            "valid": "bool",
+            "clean_rows_json": "str",
+            "errors": "list[str]",
+        },
     )
 
-    return [reader_spec, summarizer_spec]
+    # Chain-of-thought insights node (LLM) ---------------------------------
+
+    insights_spec = NodeSpec(
+        id="insights",
+        type="tool",
+        dependencies=["summarizer"],
+        tool_name="insights",
+        tool_args={
+            "summary": "{summary_text}",
+            "max_tokens": 256,
+        },
+        input_mappings={
+            "summary_text": {
+                "source_node_id": "summarizer",
+                "source_output_key": "summary",
+            }
+        },
+        output_schema={"insights": "list[str]"},
+    )
+
+    return [reader_spec, validator_spec, summarizer_spec, insights_spec]
 
 
 async def main() -> None:  # – async entrypoint
@@ -129,6 +187,14 @@ async def main() -> None:  # – async entrypoint
         if summarizer_node and getattr(summarizer_node, "output", None):
             summary: str = summarizer_node.output.get("summary", "<missing>")
             print("\n=== Summary ===\n" + summary)
+
+        insights_node = result.output.get("insights")
+        if insights_node and getattr(insights_node, "output", None):
+            insights = insights_node.output.get("insights")
+            if insights:
+                print("\n=== Insights ===")
+                for idx, insight in enumerate(insights, 1):
+                    print(f"{idx}. {insight}")
         else:
             print("\nRun succeeded but summarizer output missing. Full payload:")
             print(result.output)

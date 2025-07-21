@@ -619,8 +619,14 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
 
     def validate(self) -> None:
         """Implements WorkflowProto.validate()"""
-        self.graph.validate_schema_alignment(self.nodes)
-        SafetyValidator.validate_node_tool_access(self.nodes)
+        # ``DependencyGraph.validate_schema_alignment`` expects an *iterable* of
+        # ``NodeConfig`` objects.  ``self.nodes`` is a *dict* keyed by node_id,
+        # so passing it directly yields an iterator over the **keys** (str),
+        # triggering AttributeError: 'str' object has no attribute 'id'.
+        # We need the *values*.
+
+        self.graph.validate_schema_alignment(list(self.nodes.values()))
+        SafetyValidator.validate_node_tool_access(list(self.nodes.values()))
         ChainValidator(self.failure_policy, self.levels, self.nodes).validate_chain()
 
     def to_dict(self) -> dict:

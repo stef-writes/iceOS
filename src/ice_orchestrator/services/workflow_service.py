@@ -54,12 +54,17 @@ class WorkflowService(IWorkflowService):
             # Convert dict nodes to NodeConfig objects if needed
             node_configs = []
             for node in nodes:
+                # Accept both raw dicts and already-built NodeConfig (or any
+                # subclass thereof).  We avoid ``isinstance(..., NodeConfig)``
+                # because ``NodeConfig`` is a *typing.Annotated* alias which
+                # raises ``TypeError`` when used with ``isinstance``.
                 if isinstance(node, dict):
                     node_configs.append(NodeConfig(**node))
-                elif isinstance(node, NodeConfig):
-                    node_configs.append(node)
                 else:
-                    raise ValueError(f"Invalid node type: {type(node)}")
+                    # Assume it's a valid *BaseNodeConfig* or compatible
+                    # object; Pydantic validation inside ``Workflow`` will
+                    # surface any structural issues later.
+                    node_configs.append(node)  # type: ignore[arg-type]
 
             # Create event emitter closure if provided
             def _emit(event_name: str, payload: Dict[str, Any]) -> None:
@@ -69,8 +74,8 @@ class WorkflowService(IWorkflowService):
             workflow = Workflow(
                 nodes=node_configs,
                 name=name,
-                run_id=run_id,
-                event_emitter=_emit if event_emitter else None,
+                chain_id=run_id,
+                context_manager=self._context_manager,
             )
 
             # Validate workflow before execution
@@ -80,7 +85,7 @@ class WorkflowService(IWorkflowService):
             start_time = datetime.utcnow()
 
             # Execute the workflow
-            result = await workflow.execute(context_manager=self._context_manager)
+            result = await workflow.execute()
 
             end_time = datetime.utcnow()
             execution_time = (end_time - start_time).total_seconds()

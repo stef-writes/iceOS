@@ -120,8 +120,20 @@ async def start_run(req: RunRequest) -> RunAck:
             run_id=run_id,
             event_emitter=_emit,
         )
+        from pydantic import BaseModel
+
+        def _serialize(obj):
+            """Recursively convert Pydantic models to plain dicts."""
+            if isinstance(obj, BaseModel):
+                return obj.model_dump()
+            if isinstance(obj, dict):
+                return {k: _serialize(v) for k, v in obj.items()}
+            if isinstance(obj, (list, tuple)):
+                return [_serialize(x) for x in obj]
+            return obj
+
         success = result_obj.get("success", False)
-        output = result_obj.get("output", {})
+        output = _serialize(result_obj.get("output", {}))
         error_msg: str | None = result_obj.get("error")
     except Exception as exc:  # pragma: no cover – runtime failure fallback
         success = False

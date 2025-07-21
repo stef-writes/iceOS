@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Union
+from typing import Any, ClassVar, Dict, List, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -53,8 +53,8 @@ class SummarizerSkill(SkillBase):
     name: str = "summarizer"
     description: str = "Summarize structured tabular data into natural language."
 
-    InputModel: type[BaseModel] = SummarizerInput  # type: ignore[assignment]
-    OutputModel: type[BaseModel] = SummarizerOutput  # type: ignore[assignment]
+    InputModel: ClassVar[type[BaseModel]] = SummarizerInput  # type: ignore[assignment]
+    OutputModel: ClassVar[type[BaseModel]] = SummarizerOutput  # type: ignore[assignment]
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         try:
