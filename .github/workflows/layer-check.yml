@@ -9,5 +9,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - run: pip install -r scripts/requirements.txt
+      # No external Python dependencies; check_layers uses stdlib only
       - run: python scripts/check_layers.py 
