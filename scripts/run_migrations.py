@@ -20,7 +20,7 @@ sys.path.append(str(ROOT))
 ALEMBIC_INI_PATH = ROOT / "alembic.ini"
 
 
-def _upgrade_head() -> None:  # noqa: D401
+def _upgrade_head() -> None:
     cfg = Config(str(ALEMBIC_INI_PATH))
     cfg.set_main_option("script_location", str(ROOT / "alembic"))
     cfg.set_main_option(

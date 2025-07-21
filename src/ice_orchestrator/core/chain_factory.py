@@ -7,10 +7,13 @@ Extracted from `Workflow` (formerly `ScriptChain`).  New code should import
 
 from __future__ import annotations
 
-from typing import Any, Dict, cast
+from typing import TYPE_CHECKING, Any, Dict, cast
+
+if TYPE_CHECKING:
+    from ice_orchestrator.workflow import Workflow
 
 
-class ChainFactory:  # noqa: D101 – internal utility
+class ChainFactory:  # – internal utility
     """Factory for creating ScriptChain instances from JSON-compatible payloads."""
 
     @classmethod
@@ -37,13 +40,14 @@ class ChainFactory:  # noqa: D101 – internal utility
             raise ValueError("Workflow payload must contain 'nodes' key")
 
         # Discriminated union parsing (manual to avoid Annotated typing issues)
+        from pydantic import BaseModel
+
         from ice_core.models.node_models import (
             ConditionNodeConfig,
             LLMOperatorConfig,
             NestedChainConfig,
             SkillNodeConfig,
         )
-        from pydantic import BaseModel
 
         _parser_map: Dict[str, type[BaseModel]] = {
             "ai": LLMOperatorConfig,  # legacy discriminator kept for B/C

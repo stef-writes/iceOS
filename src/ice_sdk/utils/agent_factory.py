@@ -16,7 +16,7 @@ from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 __all__ = ["AgentFactory"]
 
 
-class AgentFactory:  # noqa: D101 – simple utility, not part of public stable API
+class AgentFactory:  # – simple utility, not part of public stable API
     """Centralised factory for *AgentConfig* creation.
 
     Example
@@ -37,7 +37,7 @@ class AgentFactory:  # noqa: D101 – simple utility, not part of public stable 
     DEFAULT_PROVIDER: str = "openai"
 
     @classmethod
-    def create_default(cls, name: str, instructions: str) -> AgentConfig:  # noqa: D401
+    def create_default(cls, name: str, instructions: str) -> AgentConfig:
         """Return an :class:`AgentConfig` with project-wide defaults.
 
         Parameters

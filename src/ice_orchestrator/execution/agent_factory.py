@@ -9,7 +9,8 @@ from __future__ import annotations
 # NOTE: Use AgentNode from ice_sdk to avoid dependency on ice_core
 from typing import TYPE_CHECKING, Dict, List
 
-from ice_sdk.agents import AgentNode  # runtime import
+from ice_core.models.llm import LLMConfig
+from ice_sdk.agents import AgentNode, AgentNodeConfig  # runtime import
 from ice_sdk.skills.base import SkillBase
 
 # ------------------------------------------------------------------
@@ -19,14 +20,14 @@ from ice_sdk.skills.base import SkillBase
 
 if TYPE_CHECKING:  # pragma: no cover
     # Type-checking imports using SDK alias to avoid cross-layer dependency
-    from ice_core.models.agent_models import AgentConfig, ModelSettings
+    from ice_core.models.llm import LLMConfig
     from ice_core.models.node_models import LLMOperatorConfig
-
     from ice_sdk import AgentNode
+    from ice_sdk.agents.agent_node import AgentNodeConfig
     from ice_sdk.context import GraphContextManager
 
 
-class AgentFactory:  # noqa: D101 – internal utility
+class AgentFactory:  # – internal utility
     """Factory for creating AgentNode instances from LLMOperatorConfig."""
 
     def __init__(
@@ -64,20 +65,13 @@ class AgentFactory:  # noqa: D101 – internal utility
         tools: List["SkillBase"] = list(tool_map.values())
 
         # Build AgentConfig ----------------------------------------------
-        model_settings = ModelSettings(
-            model=node.model,
-            temperature=getattr(node, "temperature", 0.7),
-            max_tokens=getattr(node, "max_tokens", None),
-            provider=str(getattr(node.provider, "value", node.provider)),
-        )
+        llm_cfg = LLMConfig(provider=node.provider)  # minimal mapping
 
-        agent_cfg = AgentConfig(
-            name=node.name or node.id,
-            instructions=node.prompt,
-            model=node.model,
-            model_settings=model_settings,
-            tools=tools,
-        )  # type: ignore[call-arg]
+        agent_cfg = AgentNodeConfig(  # type: ignore[call-arg]
+            llm_config=llm_cfg,
+            system_prompt=node.prompt,
+            tools=[t.name for t in tools],
+        )
 
         agent = AgentNode(config=agent_cfg, context_manager=self.context_manager)
         agent.tools = tools  # expose on instance (used by AgentNode.execute)

@@ -1,8 +1,8 @@
 import json
-from typing import Any, Dict
+from typing import Any, Mapping
 
 
-def auto_coerce(value: Any, target_schema: Dict) -> Any:
+def auto_coerce(value: Any, target_schema: Mapping[str, Any]) -> Any:
     """Enhanced coercion based on schema patterns seen in your examples."""
     # JSON string → dict/list
     if isinstance(value, str) and target_schema.get("type") in ["object", "array"]:
@@ -26,6 +26,8 @@ def auto_coerce(value: Any, target_schema: Dict) -> Any:
     return value  # Fallback to original value
 
 
-def schema_match(source_schema: Dict, target_schema: Dict) -> bool:
+def schema_match(
+    source_schema: Mapping[str, Any], target_schema: Mapping[str, Any]
+) -> bool:
     """Simplified schema compatibility check from your test cases."""
     return source_schema.get("type") == target_schema.get("type")

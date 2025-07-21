@@ -20,12 +20,12 @@ class TokenGuard(Protocol):
     Return ``True`` to continue, ``False`` to abort.
     """
 
-    def __call__(self, total_tokens: int, ceiling: int | None) -> bool:  # noqa: D401
-        ...  # pragma: no cover
+    def __call__(
+        self, total_tokens: int, ceiling: int | None
+    ) -> bool: ...  # pragma: no cover
 
 
 class DepthGuard(Protocol):
     """Decide whether execution can continue at a given depth level."""
 
-    def __call__(self, depth: int, ceiling: int | None) -> bool:  # noqa: D401
-        ...  # pragma: no cover
+    def __call__(self, depth: int, ceiling: int | None) -> bool: ...  # pragma: no cover

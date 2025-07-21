@@ -72,7 +72,7 @@ def _load_module_from_path(path: Path) -> ModuleType:
     return module
 
 
-def discover_tools(root: Path | str) -> List[Type[SkillBase]]:  # noqa: D401
+def discover_tools(root: Path | str) -> List[Type[SkillBase]]:
     """Return a list of *SkillBase* subclasses found under *root* directory."""
     root_path = Path(root)
     tool_classes: list[Type[SkillBase]] = []
@@ -80,7 +80,7 @@ def discover_tools(root: Path | str) -> List[Type[SkillBase]]:  # noqa: D401
     for path in root_path.rglob("*.tool.py"):
         try:
             mod = _load_module_from_path(path)
-        except Exception:  # noqa: BLE001 – skip faulty modules
+        except Exception:  # – skip faulty modules
             continue
 
         for _, obj in inspect.getmembers(mod, inspect.isclass):

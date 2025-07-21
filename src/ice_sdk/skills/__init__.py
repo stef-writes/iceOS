@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from ..utils.errors import SkillExecutionError  # noqa: F401
-from .base import SkillBase, ToolContext, function_tool  # noqa: F401
-from .registry import SkillRegistry, global_skill_registry  # noqa: F401
+from ..utils.errors import SkillExecutionError
+from .base import SkillBase, ToolContext, function_tool
+from .registry import SkillRegistry, global_skill_registry
 
 # Domain skills -------------------------------------------------------------
-from .web.search_skill import WebSearchSkill  # noqa: F401 – default registration
+from .web.search_skill import WebSearchSkill  # – default registration
 
 # ---------------------------------------------------------------------------
 # Default skill registrations – executed on package import -------------------

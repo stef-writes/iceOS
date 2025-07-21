@@ -1,21 +1,11 @@
-from __future__ import annotations
+"""Node configuration models for iceOS workflows.
 
-"""Node configuration and execution models (moved from *ice_sdk.models*).
-
-This module defines the canonical Pydantic models used by *ice_core*,
-*ice_sdk* and *ice_orchestrator* for describing workflow nodes and their
-execution metadata.
-
-It deliberately lives in the **core** layer so both higher-level layers can
-import it **without** creating circular or upward dependencies (Cursor rule
-#4).
+This module defines the configuration models for different types of nodes
+that can be used in iceOS workflows, including LLM operators, tools, conditions,
+and nested chains.
 """
 
-# NOTE: The original implementation lived in ``ice_sdk.models.node_models``.
-#       This is a verbatim copy with only the following adjustments:
-#       • Internal imports now reference *ice_core.models* siblings
-#       • All deprecation/compat-shims have been removed
-#       • File is fully mypy --strict compliant
+from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
@@ -35,9 +25,10 @@ from typing import (
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .enums import ModelProvider
-from .llm import LLMConfig
-from .node_metadata import NodeMetadata
+from ice_core.models.enums import ModelProvider
+
+# ruff: noqa: F811
+
 
 # ---------------------------------------------------------------------------
 # Forward-decl imports to avoid heavyweight runtime deps in typing-only mode
@@ -51,7 +42,7 @@ else:
 ScriptChainLike: TypeAlias = _ScriptChainLike  # public alias
 
 # ---------------------------------------------------------------------------
-# Supporting value objects
+# Tool configuration --------------------------------------------------------
 # ---------------------------------------------------------------------------
 
 
@@ -61,6 +52,14 @@ class ToolConfig(BaseModel):
     name: str
     description: Optional[str] = None
     parameters: Dict[str, Any]
+    required: List[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+# ---------------------------------------------------------------------------
+# Context handling ---------------------------------------------------------
+# ---------------------------------------------------------------------------
 
 
 class ContextFormat(str, Enum):
@@ -78,11 +77,12 @@ class InputMapping(BaseModel):
         ..., description="Source node ID (UUID of the dependency)"
     )
     source_output_key: str = Field(
-        ..., description="Key from the source node's output object to use (e.g. 'text', 'result', 'data.items.0')",
+        ...,
+        description="Key from the source node's output object to use (e.g. 'text', 'result', 'data.items.0')",
     )
     rules: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Optional mapping/transformation rules (currently unused)",
+        description="Optional transformation rules (e.g. 'truncate', 'format')",
     )
 
 
@@ -100,13 +100,46 @@ class ContextRule(BaseModel):
         None, description="Maximum tokens allowed for this context"
     )
     truncate: bool = Field(
-        default=True, description="Whether to truncate if over token limit"
+        default=True, description="Whether to truncate if context exceeds max_tokens"
     )
 
 
 # ---------------------------------------------------------------------------
-# Base node configuration
+# LLM configuration --------------------------------------------------------
 # ---------------------------------------------------------------------------
+
+
+class LLMConfig(BaseModel):
+    """Provider-specific LLM configuration."""
+
+    provider: ModelProvider = Field(..., description="LLM provider")
+    api_key: Optional[str] = Field(None, description="API key (from env if None)")
+    base_url: Optional[str] = Field(None, description="Custom base URL")
+    timeout: int = Field(30, description="Request timeout in seconds")
+    max_retries: int = Field(3, description="Maximum retry attempts")
+
+    # Provider-specific settings
+    openai_api_version: Optional[str] = Field(None, description="OpenAI API version")
+    anthropic_version: Optional[str] = Field(None, description="Anthropic API version")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+# ---------------------------------------------------------------------------
+# Base node configuration --------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class NodeMetadata(BaseModel):
+    """Metadata for a node execution."""
+
+    node_id: str
+    node_type: str
+    name: Optional[str] = None
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    version: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
 
 
 class BaseNodeConfig(BaseModel):
@@ -152,51 +185,50 @@ class BaseNodeConfig(BaseModel):
     )
 
     input_selection: Optional[List[str]] = Field(
-        default=None,
-        description="Ordered list of input keys to include in the prompt. None = include all.",
+        None, description="List of input keys to include (None = all)"
+    )
+    output_selection: Optional[List[str]] = Field(
+        None, description="List of output keys to include (None = all)"
     )
 
-    # ------------------------------------------------------------------
-    # Validators & helpers
-    # ------------------------------------------------------------------
+    # Context rules for this node
+    context_rules: Dict[str, ContextRule] = Field(default_factory=dict)
+
+    model_config = ConfigDict(extra="forbid")
 
     @field_validator("dependencies")
     @classmethod
-    def _no_self_dependency(cls, v: List[str], info: Any) -> List[str]:  # noqa: D401
-        node_id = info.data.get("id")
+    def _no_self_dependency(cls, v: List[str], info: Any) -> List[str]:
+        """Ensure node doesn't depend on itself."""
+        node_id = info.data.get("id") if info.data else None
         if node_id and node_id in v:
-            raise ValueError(f"Node {node_id} cannot depend on itself")
+            raise ValueError(f"Node '{node_id}' cannot depend on itself")
         return v
 
     @model_validator(mode="after")
-    def _ensure_metadata(self) -> "BaseNodeConfig":  # noqa: D401
+    def _ensure_metadata(self) -> "BaseNodeConfig":
+        """Ensure metadata is populated with node info."""
         if self.metadata is None:
-            self.metadata = NodeMetadata(  # type: ignore[call-arg]
+            self.metadata = NodeMetadata(
                 node_id=self.id,
                 node_type=self.type,
-                version="1.0.0",
-                description=f"Node {self.id} (type={self.type})",
-                tags=["auto"],
+                name=self.name,
+                start_time=datetime.utcnow(),
             )
         return self
 
-    # -- runtime hooks -------------------------------------------------------
-
-    def runtime_validate(self) -> None:  # noqa: D401 – override in subclasses
-        """Idempotent runtime validation hook (no-op by default)."""
-        return None
-
-    # Static helpers ---------------------------------------------------------
+    def runtime_validate(self) -> None:  # – override in subclasses
+        """Validate configuration at runtime."""
+        pass
 
     @staticmethod
-    def is_pydantic_schema(schema: Any) -> bool:  # noqa: D401
-        from pydantic import BaseModel as _BaseModelChecker
-
-        return isinstance(schema, type) and issubclass(schema, _BaseModelChecker)
+    def is_pydantic_schema(schema: Any) -> bool:
+        """Check if schema is a Pydantic model."""
+        return isinstance(schema, type) and issubclass(schema, BaseModel)
 
 
 # ---------------------------------------------------------------------------
-# Concrete node types
+# Specific node configurations ----------------------------------------------
 # ---------------------------------------------------------------------------
 
 
@@ -221,6 +253,12 @@ class LLMOperatorConfig(BaseNodeConfig):
     allowed_tools: Optional[List[str]] = Field(default=None)
     tool_args: Dict[str, Any] = Field(default_factory=dict)
 
+    # Output formatting
+    output_format: Optional[str] = Field(None, description="Expected output format")
+    json_schema: Optional[Dict[str, Any]] = Field(
+        None, description="JSON schema for output"
+    )
+
 
 class SkillNodeConfig(BaseNodeConfig):
     """Configuration for an idempotent tool execution."""
@@ -236,7 +274,9 @@ class ConditionNodeConfig(BaseNodeConfig):
 
     type: Literal["condition"] = "condition"
 
-    expression: str = Field(..., description="Boolean expression evaluated against context")
+    expression: str = Field(
+        ..., description="Boolean expression evaluated against context"
+    )
     true_branch: List[str] = Field(default_factory=list)
     false_branch: Optional[List[str]] = Field(default=None)
 
@@ -255,15 +295,26 @@ class PrebuiltAgentConfig(BaseNodeConfig):
 
     type: Literal["prebuilt"] = "prebuilt"
 
-    package: str = Field(..., description="Import path or installed package exposing the agent")
+    package: str = Field(
+        ..., description="Import path or installed package exposing the agent"
+    )
     agent_attr: Optional[str] = Field(None)
     model: Optional[str] = Field(None)
     version_constraint: Optional[str] = Field(None)
 
+    # Agent-specific configuration
+    agent_config: Dict[str, Any] = Field(default_factory=dict)
+    tools: Optional[List[ToolConfig]] = Field(default=None)
+    memory: Optional[Dict[str, Any]] = Field(default=None)
+
     @model_validator(mode="after")
-    def _validate_attr(self) -> "PrebuiltAgentConfig":  # noqa: D401
-        if ":" in self.package and self.agent_attr is None:
-            self.package, self.agent_attr = self.package.split(":", 1)
+    def _validate_attr(self) -> "PrebuiltAgentConfig":
+        """Validate agent attribute configuration."""
+        if not self.agent_attr:
+            # Try to infer from package name
+            package_parts = self.package.split(".")
+            if package_parts:
+                self.agent_attr = package_parts[-1]
         return self
 
 
@@ -284,11 +335,13 @@ NodeConfig = Annotated[
 
 
 # ---------------------------------------------------------------------------
-# Execution metadata
+# Execution results -------------------------------------------------------
 # ---------------------------------------------------------------------------
 
 
 class NodeExecutionRecord(BaseModel):
+    """Record of node execution statistics."""
+
     node_id: str
     executions: int = Field(0, ge=0)
     successes: int = Field(0, ge=0)
@@ -300,11 +353,15 @@ class NodeExecutionRecord(BaseModel):
 
 
 class NodeIO(BaseModel):
+    """Input/output schema for a node."""
+
     data_schema: Dict[str, Any] = Field(default_factory=dict)
     required: List[str] = Field(default_factory=list)
 
 
 class UsageMetadata(BaseModel):
+    """Token usage and cost metadata."""
+
     prompt_tokens: int = Field(0, ge=0)
     completion_tokens: int = Field(0, ge=0)
     total_tokens: int = Field(0, ge=0)
@@ -313,16 +370,20 @@ class UsageMetadata(BaseModel):
     model: str
     node_id: str
     provider: ModelProvider
-    token_limits: Dict[str, int] = Field(default_factory=lambda: {"context": 4096, "completion": 1024})
+    token_limits: Dict[str, int] = Field(
+        default_factory=lambda: {"context": 4096, "completion": 1024}
+    )
 
     @model_validator(mode="after")
-    def _autofill_totals(self) -> "UsageMetadata":  # noqa: D401
+    def _autofill_totals(self) -> "UsageMetadata":
         if self.total_tokens == 0 and (self.prompt_tokens or self.completion_tokens):
             self.total_tokens = self.prompt_tokens + self.completion_tokens
         return self
 
 
 class NodeExecutionResult(BaseModel):
+    """Result of a node execution."""
+
     success: bool = True
     error: Optional[str] = None
     output: Optional[Any] = Field(None, json_schema_extra={"coerce": True})
@@ -337,6 +398,8 @@ class NodeExecutionResult(BaseModel):
 
 
 class ChainExecutionResult(BaseModel):
+    """Result of a chain execution."""
+
     success: bool = True
     error: Optional[str] = None
     output: Optional[Any] = None
@@ -347,6 +410,8 @@ class ChainExecutionResult(BaseModel):
 
 
 class ChainMetadata(BaseModel):
+    """Metadata for a chain execution."""
+
     chain_id: str
     name: str
     version: str = Field(pattern=r"^\d+\.\d+\.\d+$")
@@ -366,31 +431,13 @@ except NameError:
 
 
 # ---------------------------------------------------------------------------
-# Stubs required by tests – kept as dataclasses to minimise dep-surface
-# ---------------------------------------------------------------------------
-
-from dataclasses import dataclass
-
-
-@dataclass(slots=True)
-class LoopNodeConfig:  # noqa: D101 – test stub
-    id: str
-    items: Optional[List[int]] = None
-    iteration_key: Optional[str] = None
-
-
-@dataclass(slots=True)
-class EvaluatorNodeConfig:  # noqa: D101 – test stub
-    id: str
-    reference: str
-    threshold: float = 0.5
-
-
-# ---------------------------------------------------------------------------
 # Serializable ChainSpec (v1)
 # ---------------------------------------------------------------------------
 
+
 class ChainSpec(BaseModel):
+    """Serializable chain specification."""
+
     api_version: str = Field("chain.v1", frozen=True)
     metadata: Dict[str, Any] = Field(default_factory=lambda: {"version": "1.0.0"})
     nodes: List[NodeConfig] = Field(min_length=1)

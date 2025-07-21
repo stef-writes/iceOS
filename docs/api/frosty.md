@@ -9,7 +9,7 @@ AI copilot for chain construction. Uses:
 ```python
 from ice_sdk.services import FrostyAIService
 
-async def create_chain(prompt: str) -> ChainSpec:
+async def create_chain(prompt: str) -> Blueprint:
     frosty = FrostyAIService()
     return await frosty.generate_chain_interactive(prompt)
 ```

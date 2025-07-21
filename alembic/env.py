@@ -49,7 +49,7 @@ target_metadata = Base.metadata  # type: ignore[assignment]
 # ---------------------------------------------------------------------------
 
 
-def run_migrations_offline() -> None:  # noqa: D401
+def run_migrations_offline() -> None:
     """Run "offline" migrations – emit SQL to script instead of DB."""
 
     url = config.get_main_option("sqlalchemy.url")
@@ -64,7 +64,7 @@ def run_migrations_offline() -> None:  # noqa: D401
         context.run_migrations()  # type: ignore[attr-defined]
 
 
-def run_migrations_online() -> None:  # noqa: D401
+def run_migrations_online() -> None:
     """Run migrations in "online" mode – direct DB connection."""
 
     connectable = engine_from_config(  # type: ignore[arg-type]

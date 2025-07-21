@@ -26,7 +26,7 @@ class SkillExecutionRequest(BaseModel):
 class SkillGateway:
     """Thin gateway around `global_skill_registry` with sync helpers."""
 
-    def register(self, name: str, skill_cls: Type[SkillBase]) -> bool:  # noqa: D401
+    def register(self, name: str, skill_cls: Type[SkillBase]) -> bool:
         try:
             global_skill_registry.register(name, skill_cls())  # type: ignore[arg-type]
             return True
@@ -36,9 +36,7 @@ class SkillGateway:
     async def _execute_async(self, req: SkillExecutionRequest) -> Any:
         return await global_skill_registry.execute(req.skill_name, req.inputs)
 
-    def execute(
-        self, skill_name: str, inputs: Mapping[str, Any]
-    ) -> Any:  # noqa: D401 ANN401
+    def execute(self, skill_name: str, inputs: Mapping[str, Any]) -> Any:
         try:
             req = SkillExecutionRequest(skill_name=skill_name, inputs=dict(inputs))
         except ValidationError as err:

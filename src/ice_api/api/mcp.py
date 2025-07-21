@@ -1,4 +1,4 @@
-"""MCP (Model Context Protocol) HTTP endpoint – minimal alpha implementation.
+"""MCP (Model Context Protocol) HTTP endpoint – complete implementation.
 
 Exposes three operations required for the Frosty ➔ iceOS control-plane loop:
 1. POST /blueprints – register or upsert a workflow blueprint.
@@ -12,122 +12,44 @@ OpenAPI later with *fastapi.openapi.utils.get_openapi*.
 
 from __future__ import annotations
 
-import asyncio
 import datetime as _dt
+import json
 import uuid
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, status
-from ice_core.services.contracts import IWorkflowService
-from pydantic import BaseModel, Field
 
+# Redis helper
+from ice_api.redis_client import get_redis
+from ice_core.models.mcp import Blueprint, BlueprintAck, RunAck, RunRequest, RunResult
+from ice_core.services.contracts import IWorkflowService
 from ice_sdk.services.locator import ServiceLocator
 
 
-# ---------------------------------------------------------------------------
-# Fallback stub workflow service (no-op) to satisfy unit tests
-# ---------------------------------------------------------------------------
+# Fetch service lazily to avoid bootstrap order problems --------------------
+def _get_workflow_service() -> IWorkflowService:
+    return ServiceLocator.get("workflow_service")  # type: ignore[return-value]
 
-
-class _StubWorkflowService(IWorkflowService):
-    async def execute(
-        self,
-        nodes: list[Any],
-        name: str,
-        max_parallel: int = 5,
-    ) -> Any:  # type: ignore[override]
-        return {
-            "run_id": f"run_{uuid.uuid4().hex[:8]}",
-            "success": True,
-            "start_time": _dt.datetime.utcnow(),
-            "end_time": _dt.datetime.utcnow(),
-            "output": {},
-            "error": None,
-        }
-
-    # Legacy convenience alias used by tests ---------------------------------
-    async def execute_workflow(self, blueprint_id: str, options: dict | None = None):
-        return {
-            "run_id": f"run_{uuid.uuid4().hex[:8]}",
-            "success": True,
-            "start_time": _dt.datetime.utcnow(),
-            "end_time": _dt.datetime.utcnow(),
-            "output": {},
-            "error": None,
-        }
-
-
-# Ensure service registration ------------------------------------------------
-if "workflow_service" not in ServiceLocator._services:  # type: ignore[attr-defined]
-    ServiceLocator.register("workflow_service", _StubWorkflowService())
-
-_WORKFLOW_SVC: IWorkflowService = ServiceLocator.get("workflow_service")  # type: ignore[assignment]
 
 router = APIRouter(prefix="/api/v1/mcp", tags=["mcp"])
-
-# ---------------------------------------------------------------------------
-# Pydantic models – kept tiny for alpha -------------------------------------
-# ---------------------------------------------------------------------------
-
-
-class NodeSpec(BaseModel):
-    """JSON-friendly node description (same keys as NodeConfig)."""
-
-    id: str
-    type: str
-
-    # Accept arbitrary extra fields so callers can embed the full NodeConfig.
-    model_config = {"extra": "allow"}
-
-
-class Blueprint(BaseModel):
-    """A design-time workflow blueprint."""
-
-    blueprint_id: str = Field(default_factory=lambda: f"bp_{uuid.uuid4().hex[:8]}")
-    version: str = "1.0.0"
-    nodes: List[NodeSpec]
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-
-class BlueprintAck(BaseModel):
-    blueprint_id: str
-    status: str = "accepted"
-
-
-class RunOptions(BaseModel):
-    max_parallel: int = Field(5, ge=1, le=20)
-
-
-class RunRequest(BaseModel):
-    blueprint_id: Optional[str] = None
-    blueprint: Optional[Blueprint] = None
-    options: RunOptions = Field(default_factory=lambda: RunOptions(max_parallel=5))
-
-    model_config = {"extra": "forbid"}
-
-
-class RunAck(BaseModel):
-    run_id: str
-    status_endpoint: str
-    events_endpoint: str
-
-
-class RunResult(BaseModel):
-    run_id: str
-    success: bool
-    start_time: _dt.datetime
-    end_time: _dt.datetime
-    output: Dict[str, Any]
-    error: Optional[str] = None
-
 
 # ---------------------------------------------------------------------------
 # In-memory stores – good enough for MVP; swap with DB / Redis later --------
 # ---------------------------------------------------------------------------
 
-_BLUEPRINTS: Dict[str, Blueprint] = {}
+# In-memory fallback stores (only for unit-tests) ---------------------------
 _RUNS: Dict[str, RunResult] = {}
 _EVENTS: Dict[str, List[str]] = {}
+
+# Redis keys helpers --------------------------------------------------------
+
+
+def _bp_key(bp_id: str) -> str:
+    return f"bp:{bp_id}"
+
+
+def _stream_key(run_id: str) -> str:
+    return f"stream:{run_id}"
 
 
 # ---------------------------------------------------------------------------
@@ -138,15 +60,22 @@ _EVENTS: Dict[str, List[str]] = {}
 @router.post(
     "/blueprints", response_model=BlueprintAck, status_code=status.HTTP_201_CREATED
 )
-async def create_blueprint(bp: Blueprint) -> BlueprintAck:  # noqa: D401
+async def create_blueprint(bp: Blueprint) -> BlueprintAck:
     """Register (or upsert) a *Blueprint*."""
 
-    _BLUEPRINTS[bp.blueprint_id] = bp
+    # Validate nodes before persisting
+    try:
+        bp.validate_runtime()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid blueprint: {exc}")
+
+    redis = get_redis()
+    await redis.hset(_bp_key(bp.blueprint_id), mapping={"json": bp.model_dump_json()})
     return BlueprintAck(blueprint_id=bp.blueprint_id, status="accepted")
 
 
 @router.post("/runs", response_model=RunAck, status_code=status.HTTP_202_ACCEPTED)
-async def start_run(req: RunRequest) -> RunAck:  # noqa: D401
+async def start_run(req: RunRequest) -> RunAck:
     """Execute a blueprint by *id* or inline definition and return *run_id*."""
 
     if req.blueprint is None and req.blueprint_id is None:
@@ -155,44 +84,45 @@ async def start_run(req: RunRequest) -> RunAck:  # noqa: D401
         )
 
     # Resolve blueprint object ------------------------------------------------
-    bp = req.blueprint or _BLUEPRINTS.get(req.blueprint_id)  # type: ignore[arg-type]
+    bp: Optional[Blueprint]
+    if req.blueprint is not None:
+        bp = req.blueprint
+    else:
+        redis = get_redis()
+        raw_json = await redis.hget(_bp_key(req.blueprint_id), "json")  # type: ignore[arg-type]
+        bp = Blueprint.model_validate_json(raw_json) if raw_json else None
     if bp is None:
         raise HTTPException(status_code=404, detail="blueprint_id not found")
 
-    # Convert NodeSpec list into proper SkillNodeConfig / LLMOperatorConfig objects --------------
-    from ice_core.models import (
-        ConditionNodeConfig,
-        LLMOperatorConfig,
-        NodeConfig,
-        SkillNodeConfig,
-    )
+    # Validate (and implicitly convert) the blueprint -------------------------
+    try:
+        bp.validate_runtime()
+        from ice_core.utils.node_conversion import convert_node_specs
 
-    conv_nodes: list[NodeConfig] = []
-    for ns in bp.nodes:
-        payload = ns.model_dump()
-        node_type = payload.get("type")
-        try:
-            if node_type == "tool":
-                conv_nodes.append(SkillNodeConfig.model_validate(payload))
-            elif node_type == "ai":
-                conv_nodes.append(LLMOperatorConfig.model_validate(payload))
-            elif node_type == "condition":
-                conv_nodes.append(ConditionNodeConfig.model_validate(payload))
-            else:
-                raise ValueError(f"Unknown node type '{node_type}'")
-        except Exception as exc:
-            raise HTTPException(status_code=400, detail=f"Invalid node spec: {exc}")
+        conv_nodes = convert_node_specs(bp.nodes)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid node spec: {exc}")
 
     run_id = f"run_{uuid.uuid4().hex[:8]}"
     start_ts = _dt.datetime.utcnow()
 
     try:
-        result_obj = await _WORKFLOW_SVC.execute(
-            conv_nodes, bp.blueprint_id, req.options.max_parallel
+        redis = get_redis()
+
+        # Event emitter closure ---------------------------------------
+        def _emit(evt_name: str, payload: dict) -> None:
+            redis.xadd(_stream_key(run_id), {"event": evt_name, "payload": json.dumps(payload)})  # type: ignore[arg-type]
+
+        result_obj = await _get_workflow_service().execute(
+            conv_nodes,
+            bp.blueprint_id,
+            req.options.max_parallel,
+            run_id=run_id,
+            event_emitter=_emit,
         )
-        success = result_obj.success
-        output = result_obj.output or {}  # type: ignore[arg-type]
-        error_msg: str | None = result_obj.error
+        success = result_obj.get("success", False)
+        output = result_obj.get("output", {})
+        error_msg: str | None = result_obj.get("error")
     except Exception as exc:  # pragma: no cover – runtime failure fallback
         success = False
         output = {}
@@ -210,8 +140,13 @@ async def start_run(req: RunRequest) -> RunAck:  # noqa: D401
     )
     _RUNS[run_id] = run_result
     # Pre-populate first event (finished) so SSE clients receive something.
-    _EVENTS.setdefault(run_id, []).append(
-        f'event: run_finished\ndata: {{"run_id":"{run_id}", "success": {str(success).lower()} }}\n'
+    # Push terminal event to stream
+    await redis.xadd(
+        _stream_key(run_id),
+        {
+            "event": "workflow.finished",
+            "payload": json.dumps({"run_id": run_id, "success": success}),
+        },
     )
 
     return RunAck(
@@ -222,7 +157,7 @@ async def start_run(req: RunRequest) -> RunAck:  # noqa: D401
 
 
 @router.get("/runs/{run_id}", response_model=RunResult)
-async def get_result(run_id: str) -> RunResult:  # noqa: D401
+async def get_result(run_id: str) -> RunResult:
     """Return the final *RunResult* if available, else 202."""
 
     result = _RUNS.get(run_id)
@@ -241,24 +176,28 @@ try:
     @router.get("/runs/{run_id}/events")
     async def event_stream(
         run_id: str,
-    ) -> EventSourceResponse:  # noqa: D401 – async generator
+    ) -> EventSourceResponse:  # – async generator
         """Stream events for *run_id* via Server-Sent Events."""
 
-        queue = _EVENTS.get(run_id)
-        if queue is None:
+        redis = get_redis()
+
+        stream = _stream_key(run_id)
+        # Check stream exists
+        exists = await redis.exists(stream)
+        if not exists:
             raise HTTPException(status_code=404, detail="run_id not found")
 
-        async def _gen() -> AsyncGenerator[str, None]:  # noqa: D401 – async generator
-            idx = 0
+        async def _gen() -> AsyncGenerator[str, None]:
+            last_id: str = "0-0"
             while True:
-                if idx < len(queue):
-                    yield queue[idx]
-                    idx += 1
-                else:
-                    await asyncio.sleep(0.1)
-                    # Break when run finished and all events delivered
-                    if _RUNS.get(run_id) is not None:
-                        break
+                events = await redis.xread({stream: last_id}, block=1000, count=10)  # type: ignore[arg-type]
+                if events:
+                    for _, batches in events:
+                        for ev_id, data in batches:
+                            last_id = ev_id
+                            yield f"event: {data['event']}\ndata: {data['payload']}\n\n"
+                            if data.get("event") == "workflow.finished":
+                                return
 
         return EventSourceResponse(_gen())
 
@@ -267,7 +206,7 @@ except ImportError:  # pragma: no cover – SSE optional
     from typing import Any  # Imported here to avoid unconditional dependency
 
     @router.get("/runs/{run_id}/events")
-    async def event_stream_plain(run_id: str) -> Any:  # noqa: D401
+    async def event_stream_plain(run_id: str) -> Any:
         """Fallback plain text when *sse_starlette* is missing."""
 
         from fastapi.responses import PlainTextResponse

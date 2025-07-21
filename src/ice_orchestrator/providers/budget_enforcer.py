@@ -8,7 +8,7 @@ from ice_sdk.config import runtime_config
 logger = logging.getLogger(__name__)
 
 
-class BudgetEnforcer:  # noqa: D101 – runtime helper
+class BudgetEnforcer:  # – runtime helper
     """Configurable budget enforcement for LLM calls and tool executions."""
 
     def __init__(
@@ -73,12 +73,14 @@ class BudgetEnforcer:  # noqa: D101 – runtime helper
 
         if self._llm_calls > self.max_llm_calls:
             self._handle_violation(
-                "llm_calls", f"LLM call budget exceeded (max={self.max_llm_calls}, current={self._llm_calls})"
+                "llm_calls",
+                f"LLM call budget exceeded (max={self.max_llm_calls}, current={self._llm_calls})",
             )
 
         if self.org_budget_usd and self._total_cost > self.org_budget_usd:
             self._handle_violation(
-                "cost", f"Cost budget exceeded (max=${self.org_budget_usd:.2f}, current=${self._total_cost:.2f})"
+                "cost",
+                f"Cost budget exceeded (max=${self.org_budget_usd:.2f}, current=${self._total_cost:.2f})",
             )
 
     def register_tool_execution(self) -> None:
@@ -102,15 +104,15 @@ class BudgetEnforcer:  # noqa: D101 – runtime helper
 
     # --------------------------------------------------------------------- properties
     @property
-    def llm_calls(self) -> int:  # noqa: D401
+    def llm_calls(self) -> int:
         return self._llm_calls
 
     @property
-    def tool_execs(self) -> int:  # noqa: D401
+    def tool_execs(self) -> int:
         return self._tool_execs
 
     @property
-    def total_cost(self) -> float:  # noqa: D401
+    def total_cost(self) -> float:
         return self._total_cost
 
     def get_status(self) -> dict[str, float | int | bool | str | None]:
@@ -123,4 +125,4 @@ class BudgetEnforcer:  # noqa: D101 – runtime helper
             "org_budget_usd": self.org_budget_usd,
             "runtime_mode": self._runtime_mode,
             "fail_open": self._fail_open,
-        } 
+        }

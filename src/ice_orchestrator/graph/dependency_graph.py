@@ -188,7 +188,7 @@ class DependencyGraph:
     # Developer ergonomics -------------------------------------------------
     # ---------------------------------------------------------------------
 
-    def __repr__(self) -> str:  # noqa: D401
+    def __repr__(self) -> str:
         return (
             f"<DependencyGraph nodes={self.graph.number_of_nodes()} "
             f"edges={self.graph.number_of_edges()} "

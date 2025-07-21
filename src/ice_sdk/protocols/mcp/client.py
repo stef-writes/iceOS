@@ -2,7 +2,8 @@
 
 Example::
 
-    from protocols.mcp.client import MCPClient, Blueprint, NodeSpec
+    from ice_core.models.mcp import Blueprint, NodeSpec
+    from ice_sdk.protocols.mcp.client import MCPClient
 
     client = MCPClient()
     bp = Blueprint(nodes=[NodeSpec(id="echo", type="tool", command="echo hi")])
@@ -19,12 +20,12 @@ from typing import Optional
 
 import httpx
 
-from .models import Blueprint, BlueprintAck, RunAck, RunRequest, RunResult
+from ice_core.models.mcp import Blueprint, BlueprintAck, RunAck, RunRequest, RunResult
 
 __all__ = ["MCPClient"]
 
 
-class MCPClient:  # noqa: D101 – thin wrapper
+class MCPClient:  # – thin wrapper
     def __init__(self, base_url: str | None = None, *, timeout: float = 30.0) -> None:
         self.base_url = base_url or os.getenv("ICEOS_API", "http://localhost:8000")
         self.timeout = timeout
@@ -32,9 +33,7 @@ class MCPClient:  # noqa: D101 – thin wrapper
     # ------------------------------------------------------------------
     # Blueprint helpers -------------------------------------------------
     # ------------------------------------------------------------------
-    async def create_blueprint(
-        self, blueprint: Blueprint
-    ) -> BlueprintAck:  # noqa: D401
+    async def create_blueprint(self, blueprint: Blueprint) -> BlueprintAck:
         url = f"{self.base_url}/api/v1/mcp/blueprints"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.post(url, json=blueprint.model_dump(mode="json"))
@@ -50,8 +49,8 @@ class MCPClient:  # noqa: D101 – thin wrapper
         blueprint_id: str | None = None,
         blueprint: Blueprint | None = None,
         max_parallel: int = 5,
-    ) -> RunAck:  # noqa: D401
-        from .models import RunOptions
+    ) -> RunAck:
+        from ice_core.models.mcp import RunOptions
 
         req = RunRequest(
             blueprint_id=blueprint_id,
@@ -64,7 +63,7 @@ class MCPClient:  # noqa: D101 – thin wrapper
             resp.raise_for_status()
             return RunAck.model_validate(resp.json())
 
-    async def get_result(self, run_id: str) -> Optional[RunResult]:  # noqa: D401
+    async def get_result(self, run_id: str) -> Optional[RunResult]:
         url = f"{self.base_url}/api/v1/mcp/runs/{run_id}"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             resp = await client.get(url, params={"wait": False})
@@ -73,9 +72,7 @@ class MCPClient:  # noqa: D101 – thin wrapper
             resp.raise_for_status()
             return RunResult.model_validate(resp.json())
 
-    async def await_result(
-        self, run_id: str, poll_interval: float = 0.5
-    ) -> RunResult:  # noqa: D401
+    async def await_result(self, run_id: str, poll_interval: float = 0.5) -> RunResult:
         while True:
             res = await self.get_result(run_id)
             if res is not None:

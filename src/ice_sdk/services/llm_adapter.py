@@ -7,7 +7,7 @@ import asyncio
 from typing import Any, Dict
 
 try:
-    import openai  # noqa: F401 – optional
+    import openai  # – optional
 except Exception:
     openai = None  # type: ignore
 

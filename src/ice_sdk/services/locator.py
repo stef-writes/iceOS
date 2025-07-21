@@ -105,7 +105,7 @@ class ChainService:
                     "execution_time": cls._cost_tracker.get_execution_time(),
                 },
             }
-        except Exception as exc:  # noqa: BLE001 – propagate as runtime
+        except Exception as exc:  # – propagate as runtime
             raise RuntimeError(f"Chain execution failed: {exc}") from exc
 
     @classmethod
@@ -114,7 +114,7 @@ class ChainService:
         return asyncio.run(cls.execute_async(chain_id, input_data))
 
 
-class ServiceLocator:  # noqa: D401 – simple registry
+class ServiceLocator:  # – simple registry
     """Very small global registry mapping *service names* to instances."""
 
     _services: Dict[str, Any] = {}
@@ -145,7 +145,7 @@ class ServiceLocator:  # noqa: D401 – simple registry
             ) from exc
 
     @classmethod
-    def clear(cls) -> None:  # noqa: D401 – test helper
+    def clear(cls) -> None:  # – test helper
         """Remove **all** registered services (useful in unit tests)."""
         with cls._lock:
             cls._services.clear()

@@ -27,17 +27,18 @@ class NetworkMetadata(BaseModel):
 
 class NetworkValidationError(ValueError):
     """Raised when network spec validation fails."""
-    
+
     def __init__(self, msg: str):
         super().__init__(f"Network validation failed: {msg}")
         self.error_code = "NETWORK_VALIDATION_ERROR"
+
 
 class NetworkSpec(BaseModel):
     api_version: Literal["network.v1"] = "network.v1"
     id: str = Field(..., min_length=3, pattern=r"^[a-z0-9_-]+$")
     node_ids: list[str] = Field(default_factory=list)
     nodes: Dict[str, Dict[str, Any]] = Field(..., description="Node declarations")
-    
+
     def validate(self) -> None:
         """Business logic validation separate from Pydantic schema checks."""
         if not self.node_ids:

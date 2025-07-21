@@ -15,13 +15,12 @@ from ice_sdk.context.type_manager import context_type_manager
 if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models.node_models import NodeConfig
     from ice_core.models.script_chain import ChainSpec, ValidationResult
-
     from ice_orchestrator.base_workflow import FailurePolicy
 
 logger = get_logger(__name__)
 
 
-class ChainValidator:  # noqa: D101 – internal utility
+class ChainValidator:  # – internal utility
     def __init__(
         self,
         failure_policy: "FailurePolicy",
@@ -106,7 +105,7 @@ class ChainValidator:  # noqa: D101 – internal utility
 
     _PLACEHOLDER_REGEX = r"\{\s*([a-zA-Z0-9_\.]+?)\s*\}"
 
-    def _extract_placeholders(self, template: str) -> set[str]:  # noqa: D401
+    def _extract_placeholders(self, template: str) -> set[str]:
         import re
 
         return set(re.findall(self._PLACEHOLDER_REGEX, template))
@@ -190,10 +189,14 @@ class ChainValidator:  # noqa: D101 – internal utility
 
             return ValidationResult(is_valid=len(errors) == 0, errors=errors)
         except Exception:  # pragma: no cover – fallback minimal structure
-            return type("_ValidationResult", (), {  # noqa: D401 – dynamic stub
-                "is_valid": len(errors) == 0,
-                "errors": errors,
-            })()
+            return type(
+                "_ValidationResult",
+                (),
+                {  # – dynamic stub
+                    "is_valid": len(errors) == 0,
+                    "errors": errors,
+                },
+            )()
 
     def suggest_fixes(self, result: ValidationResult) -> list[str]:
         """AI-friendly fix suggestions using context registry."""

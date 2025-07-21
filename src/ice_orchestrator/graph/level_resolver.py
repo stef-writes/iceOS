@@ -11,7 +11,7 @@ from typing import Any, Dict, Mapping
 from ice_core.models.node_models import ConditionNodeConfig  # avoid heavy import cycles
 
 
-class BranchGatingResolver:  # noqa: D101
+class BranchGatingResolver:
     def __init__(self, nodes: Mapping[str, Any], graph: Any) -> None:
         # We keep references to the chain's *nodes* mapping and *DependencyGraph*
         self._nodes = nodes
@@ -36,7 +36,7 @@ class BranchGatingResolver:  # noqa: D101
     # Query helpers -----------------------------------------------------
     # ------------------------------------------------------------------
 
-    def is_node_active(self, node_id: str) -> bool:  # noqa: D401 – helper
+    def is_node_active(self, node_id: str) -> bool:  # – helper
         """Return *True* when *node_id* should run given current branch decisions."""
 
         # 1. Explicit branch gating ------------------------------------
@@ -72,9 +72,9 @@ class BranchGatingResolver:  # noqa: D101
     # ------------------------------------------------------------------
 
     @property
-    def branch_decisions(self) -> Dict[str, bool]:  # noqa: D401
+    def branch_decisions(self) -> Dict[str, bool]:
         return self._branch_decisions
 
     @property
-    def active_cache(self) -> Dict[str, bool]:  # noqa: D401
+    def active_cache(self) -> Dict[str, bool]:
         return self._active_cache

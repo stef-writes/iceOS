@@ -13,7 +13,7 @@ pipes, API keys, observability glue.  iceOS removes that friction by
 combining three super-powers:
 
 1. **Intelligent Canvas** — describe intent in plain English; the canvas
-   sketches a ScriptChain, cost/latency estimates, and data contracts.
+   sketches a Workflow, cost/latency estimates, and data contracts.
 2. **Deterministic Runtime** — the same blueprint that visualises on the
    canvas runs in prod with strict budget & safety guarantees.
 3. **Team Memory** — meetings, decisions and telemetry are captured and tied

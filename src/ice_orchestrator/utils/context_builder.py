@@ -9,7 +9,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models import NodeConfig, NodeExecutionResult
 
 
-class ContextBuilder:  # noqa: D101 – utility helper
+class ContextBuilder:  # – utility helper
     """Helper responsible for constructing per-node execution contexts.
 
     Extracted verbatim from `ScriptChain._build_node_context` so unit-tests and
@@ -77,7 +77,7 @@ class ContextBuilder:  # noqa: D101 – utility helper
     # ------------------------------------------------------------------
 
     @staticmethod
-    def resolve_nested_path(data: Any, path: str) -> Any:  # noqa: ANN401 – generic
+    def resolve_nested_path(data: Any, path: str) -> Any:  # – generic
         """Resolve *path* in *data* using dot-notation.
 
         Special cases

@@ -13,20 +13,17 @@ through the *tool* executor without additional wiring.
 """
 from __future__ import annotations
 
+import argparse
 import asyncio
 from pathlib import Path
-import sys
-import argparse
 
-from ice_sdk.models.node_models import InputMapping, SkillNodeConfig
-from ice_sdk.skills.system.csv_reader_skill import CSVReaderSkill
-from ice_sdk.skills.system.summarizer_skill import SummarizerSkill
+# InputMapping and SkillNodeConfig now live in *ice_core.models.node_models*.
+from ice_core.models.node_models import InputMapping, SkillNodeConfig
+
+# NOTE: The builder service was removed; construct the workflow directly.
+# Updated imports to match current module locations.
 from ice_orchestrator.workflow import Workflow
-from ice_orchestrator.workflow_execution_context import (  # Proper public API
-    NodeConfig,
-    InputMapping
-)
-from ice_api.services.builder import WorkflowBuilderService  # Service interface
+from ice_sdk.skills.system.csv_reader_skill import CSVReaderSkill
 
 # ---------------------------------------------------------------------------
 # Ensure sample CSV exists next to the script --------------------------------
@@ -52,72 +49,51 @@ else:
 # Build Workflow nodes -------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-# Node 1: CSV Reader
+# Node 1: CSV Reader – use *CSV_PATH* resolved above
 csv_node = SkillNodeConfig(
     id="reader",
     tool_name="csv_reader",
-    tool_args={"file_path": "items.csv"},
-    output_schema=CSVReaderSkill.OutputModel.model_json_schema()  # Explicit schema
+    tool_args={"file_path": str(CSV_PATH)},
+    output_schema=CSVReaderSkill.OutputModel.model_json_schema(),
 )
 
-# Node 2: Summarizer 
+# Node 2: Summarizer
 summarizer_node = SkillNodeConfig(
     id="summarizer",
     tool_name="summarizer",
     tool_args={
         "rows": "{rows_json}",  # Bind to CSV node's JSON output
-        "max_summary_tokens": 256
+        "max_summary_tokens": 256,
     },
     dependencies=["reader"],
     input_mappings={
         "rows_json": InputMapping(
-            source_node_id="reader",
-            source_output_key="rows_json"
+            source_node_id="reader", source_output_key="rows_json"
         )
-    }
+    },
 )
 
-# Create and execute workflow
-workflow = Workflow(
-    nodes=[csv_node, summarizer_node],
-    name="CSV Analysis Pipeline"
-)
+# ---------------------------------------------------------------------------
+# Build Workflow and run it directly (no builder service required) -----------
+# ---------------------------------------------------------------------------
+
+workflow = Workflow(nodes=[csv_node, summarizer_node], name="CSV Analysis Pipeline")
 
 
-async def main() -> None:  # noqa: D401 – script entrypoint
-    builder = WorkflowBuilderService()
-    
-    # Build via service interface instead of direct configs
-    workflow = await builder.create_workflow(
-        name="CSV Analysis Pipeline",
-        nodes=[
-            {
-                "id": "reader",
-                "tool": "csv_reader",
-                "params": {"file_path": str(CSV_PATH)},  # Use validated path
-                "validate": True  # Rule 13
-            },
-            {
-                "id": "summarizer", 
-                "tool": "summarizer",
-                "deps": ["reader"],
-                "input_mappings": {
-                    "rows_json": {"reader": "rows_json"} 
-                },
-                "validate": True
-            }
-        ]
-    )
-    
-    # Execute through service with metrics
-    result = await workflow.execute_with_metrics()
+async def main() -> None:  # – script entrypoint
+    result = await workflow.execute()
 
     print("\n=== Workflow Output ===")
-    if result.success:
-        print(result.output)
+    if result.success and isinstance(result.output, dict):
+        # Fetch summarizer node output for convenience
+        summarizer_res = result.output.get("summarizer")
+        if summarizer_res and getattr(summarizer_res, "output", None):
+            print("Summary:\n", summarizer_res.output.get("summary"))
+        else:
+            print("Full result object:", result.output)
     else:
         print("Workflow failed:", result.error)
 
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

@@ -4,29 +4,19 @@
 # Public agent-facing exports (moved from deprecated ``ice_sdk.agents`` package)
 # ---------------------------------------------------------------------------
 
-from ice_sdk.agents import AgentNode  # noqa: F401
 
 # Keep AgentConfig & ModelSettings re-export unchanged (order after AgentNode)
-from ice_sdk.models.agent_models import AgentConfig, ModelSettings  # noqa: F401
 
-from .base_node import BaseNode  # noqa: F401
-from .context import GraphContextManager  # noqa: F401
-from .models.config import LLMConfig, MessageTemplate  # noqa: F401
-from .models.node_models import (  # noqa: F401
-    NodeConfig,
-    NodeExecutionResult,
-    NodeMetadata,
-)
+# Re-export AgentNode for orchestrator compatibility
+from .agents.agent_node import AgentNode
+from .base_node import BaseNode
+from .context import GraphContextManager
+from .models.config import LLMConfig, MessageTemplate
+from .models.node_models import NodeConfig, NodeExecutionResult, NodeMetadata
 
-# from .models.network import NetworkSpec  # noqa: F401
-from .services import ServiceLocator  # noqa: F401
-from .skills import (  # noqa: F401
-    SkillBase,
-    SkillExecutionError,
-    ToolContext,
-    function_tool,
-)
-from .skills.service import ToolService  # noqa: F401
+# from .models.network import NetworkSpec
+from .skills import SkillBase
+from .skills.service import ToolService
 
 # NOTE: Lazy import of IceCopilot to avoid circular dependencies with ice_orchestrator.
 
@@ -35,6 +25,7 @@ __all__ = [
     "BaseNode",
     "SkillBase",  # supplant BaseTool alias
     "ToolService",
+    "AgentNode",
     # Data models
     "NodeConfig",
     "NodeExecutionResult",

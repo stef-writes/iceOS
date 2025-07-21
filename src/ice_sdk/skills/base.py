@@ -1,51 +1,42 @@
+"""Base classes for iceOS skills and tools.
+
+This module provides the foundational classes that all skills and tools inherit from.
+It includes the base Skill class, metadata structures, and common utilities.
+"""
+
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Optional, Protocol, Type
+from typing import Any, Callable, Dict, Optional, Type
 
 from pydantic import BaseModel, ConfigDict
-from pydantic.json_schema import JsonSchemaValue
 
 from ice_sdk.providers.costs import CostTracker
-from ice_sdk.utils.circuit_breaker import CircuitBreaker
 from ice_sdk.utils.hashing import stable_hash
 
 # ---------------------------------------------------------------------------
-# Public protocol representing the minimal *skill* surface required by
-# orchestrator/executor layers.  Defining it here avoids repeated ``# type:
-# ignore[attr-defined]`` errors throughout the codebase.
+# Metadata structures --------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-
-class SupportsSkill(Protocol):  # noqa: D401 – structural typing
-    name: str
-    description: str
+JsonSchemaValue = Dict[str, Any]
 
 
-# ---------------------------------------------------------------------------
-# Fallback *InputModel* allows concrete Skills to omit a custom schema until
-# they mature.  Tests relying on direct instantiation therefore succeed even
-# when the author hasn’t provided one.
-# ---------------------------------------------------------------------------
+class SkillMeta:
+    """Metadata for a skill instance."""
+
+    def __init__(
+        self,
+        *,
+        node_subtype: Optional[str] = None,
+        commercializable: bool = False,
+        license: str = "Proprietary",
+    ):
+        self.node_subtype = node_subtype
+        self.commercializable = commercializable
+        self.license = license
 
 
 class _EmptyInputModel(BaseModel):
-    """Placeholder model used when a Skill does not declare an InputModel."""
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-# ---------------------------------------------------------------------------
-# New: Skill metadata model – enriches runtime discoverability without
-#       touching core schemas.  Placed here to avoid cross-layer imports.
-# ---------------------------------------------------------------------------
-
-
-class SkillMeta(BaseModel):
-    """Light-weight container describing additional characteristics of a *Skill*."""
-
-    node_subtype: Optional[str] = None
-    commercializable: bool = False
-    license: str = "Proprietary"
+    """Empty input model for skills that don't require inputs."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -72,13 +63,13 @@ class SkillBase(BaseModel):
         # CircuitBreaker is a **no-op** stub for now, but keeping the interface
         # in place allows later drop-in of a real implementation without
         # touching call-sites.
-        self._circuit_breaker = CircuitBreaker(failure_threshold=3, recovery_timeout=30)
+        pass
 
     # ------------------------------------------------------------------
     # Structured representation for LLM function-calling ----------------
     # ------------------------------------------------------------------
 
-    def as_dict(self) -> dict[str, Any]:  # noqa: D401 – helper name
+    def as_dict(self) -> dict[str, Any]:  # – helper name
         """Return an OpenAI-style function description.
 
         Many LLM providers expect a list of *function* objects each having a
@@ -88,7 +79,7 @@ class SkillBase(BaseModel):
         """
 
         return {
-            "name": getattr(self, "name", self.__class__.__name__.lower()),
+            "name": getattr(self, "name", ""),
             "description": getattr(self, "description", ""),
             "parameters": getattr(self, "parameters_schema", self.parameters_schema),
         }
@@ -117,7 +108,7 @@ class SkillBase(BaseModel):
 
     async def run(
         self, *args: Any, **kwargs: Any
-    ) -> Dict[str, Any]:  # noqa: D401 – unified entrypoint
+    ) -> Dict[str, Any]:  # – unified entrypoint
         """Execute the skill as a *tool*.
 
         The orchestrator calls ``tool.run(ctx=ToolContext(), **tool_args)``.
@@ -138,7 +129,7 @@ class SkillBase(BaseModel):
             )
 
         # Forward gathered *kwargs* as *input_data* preserving legacy calling
-        # contract.  Use an explicitly typed local variable so mypy sees a
+        # contract.  Use an explicitly typed local v
         # generic-aware *dict[str, Any]* instance.
         kwdict: Dict[str, Any] = dict(kwargs)
         return await self.execute(input_data=kwdict)
@@ -173,7 +164,7 @@ class SkillBase(BaseModel):
         # Merge *input_data* into kwargs for backward compatibility.
         merged_kwargs: Dict[str, Any] = {**(input_data or {}), **kwargs}
 
-        # Build key lazily so hashing doesn’t cost when unused.
+        # Build key lazily so hashing doesn't cost when unused.
         idempotency_key = idempotency_key or stable_hash(
             (self.__class__.__name__, merged_kwargs)
         )
@@ -181,15 +172,14 @@ class SkillBase(BaseModel):
         # Run with cost-tracking and circuit-breaking wrappers.
         CostTracker.start_span(self.__class__.__name__)
         try:
-            async with self._circuit_breaker:  # type: ignore[attr-defined]
-                result: Dict[str, Any] = await self._execute_impl(**merged_kwargs)  # type: ignore[assignment]
+            result: Dict[str, Any] = await self._execute_impl(**merged_kwargs)  # type: ignore[assignment]
             CostTracker.end_span(success=True)
             return result
-        except Exception as exc:  # noqa: BLE001 – propagate specific errors
+        except Exception as exc:  # – propagate specific errors
             CostTracker.end_span(success=False, error=str(exc))
             raise
 
-    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # noqa: D401
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         """Default passthrough implementation.
 
         Concrete subclasses should override this.  For simple *function_tool*
@@ -227,10 +217,9 @@ class SkillBase(BaseModel):
 # Legacy compatibility: ToolContext & @function_tool decorator
 # ---------------------------------------------------------------------------
 
+
 # Provide a minimal *ToolContext* stub for tests that still expect it.
-
-
-class ToolContext(dict[str, Any]):  # type: ignore[D101]
+class ToolContext:
     """Context object passed into legacy *function_tool* wrappers."""
 
 
@@ -240,18 +229,12 @@ def _build_function_tool(
     name: str | None = None,
     description: str | None = None,
     tags: list[str] | None = None,
-) -> SkillBase:
-    """Return a lightweight SkillBase instance that wraps *func*.
+) -> Type[SkillBase]:
+    """Build a *SkillBase* subclass that delegates to *func*.
 
-    The orchestrator only requires the wrapper to expose the following API:
-
-    1.  ``name`` attribute → for lookup/registration.
-    2.  ``run`` coroutine/function → actual execution path consumed by
-        :pymeth:`ice_sdk.context.manager.GraphContextManager.execute_tool`.
-
-    Any other SkillBase helpers (``execute`` with retries, etc.) are not
-    strictly needed for these test utilities, therefore we keep the wrapper
-    minimal and steer clear of additional runtime overhead.
+    This helper creates a minimal class that satisfies the *SkillBase* interface
+    while delegating actual execution to the provided callable.  It's used by
+    the *@function_tool* decorator to create test-friendly tool implementations.
     """
 
     _name = name or func.__name__
@@ -288,49 +271,37 @@ def _build_function_tool(
         async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
             return await self.run(**kwargs)
 
-    # Expose original callable for introspection and doctest friendliness
-    _FunctionTool.__wrapped__ = func  # type: ignore[attr-defined]
+    # Expose original callable as *func* attribute for debugging
+    _FunctionTool.func = func  # type: ignore[attr-defined]
 
-    return _FunctionTool()
-
-
-# ---------------------------------------------------------------------------
-# Public decorator – legacy signature compatible
-# ---------------------------------------------------------------------------
+    return _FunctionTool
 
 
-def function_tool(*_decorator_args, **_decorator_kwargs):  # type: ignore[D401]
-    """Decorator that converts a plain async/sync function into a *Skill*.
+def function_tool(
+    *,
+    name_override: str | None = None,
+    description: str | None = None,
+    tags: list[str] | None = None,
+) -> Callable[[Callable[..., Any]], Type[SkillBase]]:
+    """Decorator that converts a function into a *SkillBase* subclass.
 
-    Legacy tests use two equivalent forms::
+    This decorator is used primarily for testing and prototyping.  It creates
+    a minimal *SkillBase* implementation that delegates execution to the
+    decorated function.
 
-        @function_tool
-        async def my_tool(ctx: ToolContext, ...):
-            ...
-
-        @function_tool(name_override="foo")
-        async def my_tool(ctx: ToolContext, ...):
-            ...
+    Examples
+    --------
+    >>> @function_tool(description="Adds two numbers")
+    ... def add(a: int, b: int) -> int:
+    ...     return a + b
+    >>> tool = add()
+    >>> await tool.execute(a=1, b=2)
+    {'result': 3}
     """
 
-    # Case 1: Bare decorator usage → first arg is the target function.
-    if _decorator_args and callable(_decorator_args[0]) and not _decorator_kwargs:
-        return _build_function_tool(_decorator_args[0])
+    def decorator(func: Callable[..., Any]) -> Type[SkillBase]:
+        return _build_function_tool(
+            func, name=name_override, description=description, tags=tags
+        )
 
-    # Case 2: Decorator with keyword args (e.g. name_override="x") → return
-    #         a decorator expecting the target function.
-    def _decorator(
-        func: Callable[..., Any]
-    ) -> SkillBase:  # noqa: D401 – simple wrapper
-        name = _decorator_kwargs.get("name_override") or _decorator_kwargs.get("name")
-        description = _decorator_kwargs.get("description")
-        tags = _decorator_kwargs.get("tags")
-        return _build_function_tool(func, name=name, description=description, tags=tags)
-
-    return _decorator
-
-
-# ---------------------------------------------------------------------------
-# NOTE: Legacy *BaseTool* compatibility aliases were removed in v0.6.
-# Downstream code must import :class:`SkillBase` directly.
-# ---------------------------------------------------------------------------
+    return decorator

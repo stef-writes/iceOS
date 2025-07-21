@@ -25,7 +25,7 @@ class WebhookSkill(SkillBase):
     # Annotate as class variable
     tags: ClassVar[list[str]] = ["integration", "webhook", "event"]
 
-    def get_required_config(self) -> list[str]:  # noqa: D401
+    def get_required_config(self) -> list[str]:
         return []
 
     async def _execute_impl(

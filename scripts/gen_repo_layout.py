@@ -78,7 +78,7 @@ def _build_tree(root: Path, prefix: str = "") -> List[str]:
 # ---------------------------------------------------------------------------
 
 
-def main() -> None:  # noqa: D401 – CLI entry-point
+def main() -> None:  # – CLI entry-point
     """Write the *repo_layout.md* file under *docs/architecture*."""
     md_lines: List[str] = ["# Repository Layout (auto-generated)", "", "```text"]
     for root_name in _ROOTS:

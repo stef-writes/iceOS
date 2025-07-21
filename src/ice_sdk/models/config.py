@@ -24,10 +24,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 logger = logging.getLogger(__name__)
 
 
-import warnings as _warnings  # noqa: E402
+import warnings as _warnings
 
 # Use the canonical enum from core and emit deprecation warning --------------
-from ice_core.models.enums import ModelProvider as _CoreModelProvider  # noqa: E402
+from ice_core.models.enums import ModelProvider as _CoreModelProvider
 
 # Re-export for backward compatibility so MyPy recognises ModelProvider attribute
 ModelProvider: TypeAlias = _CoreModelProvider
@@ -347,11 +347,11 @@ class _LegacyAppConfig(BaseModel):
 # Alias to core domain model (preferred)
 # ---------------------------------------------------------------------------
 
-import warnings as _warnings  # noqa: E402
+import warnings as _warnings
 
-from ice_core.models.app_config import AppConfig as AppConfig  # noqa: E402, F401
-from ice_core.models.llm import LLMConfig as LLMConfig  # noqa: E402, F401
-from ice_core.models.llm import MessageTemplate as MessageTemplate  # noqa: E402
+from ice_core.models.app_config import AppConfig as AppConfig
+from ice_core.models.llm import LLMConfig as LLMConfig
+from ice_core.models.llm import MessageTemplate as MessageTemplate
 
 _warnings.warn(
     "ice_sdk.models.config.AppConfig is deprecated; import from ice_core.models.app_config instead.",

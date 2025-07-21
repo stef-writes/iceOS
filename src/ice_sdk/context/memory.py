@@ -20,15 +20,11 @@ class BaseMemory(ABC):
     """Abstract base class for pluggable memory back-ends."""
 
     @abstractmethod
-    async def add(
-        self, content: str, metadata: dict[str, Any] | None = None
-    ) -> None:  # noqa: D401
+    async def add(self, content: str, metadata: dict[str, Any] | None = None) -> None:
         """Persist *content* in memory."""
 
     @abstractmethod
-    async def retrieve(
-        self, query: str, k: int = 5
-    ) -> List[Tuple[str, float]]:  # noqa: D401
+    async def retrieve(self, query: str, k: int = 5) -> List[Tuple[str, float]]:
         """Return top-*k* ``(content, score)`` pairs ranked by similarity."""
 
     # ------------------------------------------------------------------
@@ -45,21 +41,17 @@ class BaseMemory(ABC):
         """
 
     @abstractmethod
-    def recall(self, query: List[float], top_k: int = 5) -> List[str]:  # noqa: D401
+    def recall(self, query: List[float], top_k: int = 5) -> List[str]:
         """Return up to *top_k* keys ranked by similarity against *query*."""
 
 
 class NullMemory(BaseMemory):
     """No-op adapter used as default when no memory is configured."""
 
-    async def add(
-        self, content: str, metadata: dict[str, Any] | None = None
-    ) -> None:  # noqa: D401
+    async def add(self, content: str, metadata: dict[str, Any] | None = None) -> None:
         return None
 
-    async def retrieve(
-        self, query: str, k: int = 5
-    ) -> List[Tuple[str, float]]:  # noqa: D401
+    async def retrieve(self, query: str, k: int = 5) -> List[Tuple[str, float]]:
         return []
 
     # ------------------------------------------------------------------
@@ -94,9 +86,7 @@ class SQLiteVectorMemory(BaseMemory):
     # ------------------------------------------------------------------
     # Public API --------------------------------------------------------
     # ------------------------------------------------------------------
-    async def add(
-        self, content: str, metadata: dict[str, Any] | None = None
-    ) -> None:  # noqa: D401
+    async def add(self, content: str, metadata: dict[str, Any] | None = None) -> None:
         vector = self._encode(content)
         blob = sqlite3.Binary(json.dumps(vector).encode())
         with self.conn:
@@ -104,9 +94,7 @@ class SQLiteVectorMemory(BaseMemory):
                 "INSERT INTO memory (content, vector) VALUES (?, ?)", (content, blob)
             )
 
-    async def retrieve(
-        self, query: str, k: int = 5
-    ) -> List[Tuple[str, float]]:  # noqa: D401
+    async def retrieve(self, query: str, k: int = 5) -> List[Tuple[str, float]]:
         q_vec = self._encode(query)
         rows = self.conn.execute("SELECT content, vector FROM memory").fetchall()
         scored: list[tuple[str, float]] = []
@@ -160,7 +148,7 @@ class SQLiteVectorMemory(BaseMemory):
                 "INSERT INTO memory (content, vector) VALUES (?, ?)", (key, blob)
             )
 
-    def recall(self, query: List[float], top_k: int = 5) -> List[str]:  # noqa: D401
+    def recall(self, query: List[float], top_k: int = 5) -> List[str]:
         rows = self.conn.execute("SELECT content, vector FROM memory").fetchall()
         scored: list[tuple[str, float]] = []
         for content, blob in rows:

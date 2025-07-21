@@ -1,14 +1,14 @@
 openapi: 3.1.0
 info:
   title: iceOS Model Context Protocol (MCP)
-  version: 0.0.1-alpha
+  version: 0.2.0
   description: |
     Minimal MCP contract for alpha release.
     Covers:
       • Blueprint registration / upsert
       • Run execution
       • Result polling
-      • Telemetry (SSE stub)
+      • Telemetry (SSE stream via Redis)
 servers:
   - url: https://{host}/api/v1/mcp
 paths:
@@ -71,7 +71,7 @@ paths:
           description: Still running
   /runs/{run_id}/events:
     get:
-      summary: Server-Sent Events stream for telemetry
+      summary: Server-Sent Events stream – emits `workflow.nodeStarted`, `workflow.nodeFinished`, `workflow.finished` events
       parameters:
         - in: path
           name: run_id

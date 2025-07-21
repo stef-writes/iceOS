@@ -2,6 +2,9 @@ line-length = 88
 target-version = "py310"
 exclude = ["site", "htmlcov"]
 
+# Ignore import-at-top-level rule across repo (legacy modules still reordering)
+ignore = ["E402"]
+
 # Ignore vendored / generated / env directories
 extend-exclude = [
     ".venv",

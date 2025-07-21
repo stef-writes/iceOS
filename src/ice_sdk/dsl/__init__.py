@@ -31,7 +31,6 @@ and type checking.
 from typing import Any, Callable, Dict, List, Optional
 
 from ice_core.models.model_registry import get_default_model_id
-
 from ice_sdk.models.node_models import LLMOperatorConfig, SkillNodeConfig
 
 # ---------------------------------------------------------------------------
@@ -39,9 +38,7 @@ from ice_sdk.models.node_models import LLMOperatorConfig, SkillNodeConfig
 # ---------------------------------------------------------------------------
 
 
-def _coerce_llm_kwargs(
-    model: str | None = None, **kwargs: Any
-) -> Dict[str, Any]:  # noqa: D401
+def _coerce_llm_kwargs(model: str | None = None, **kwargs: Any) -> Dict[str, Any]:
     """Build llm_config dict from helper kwargs."""
 
     llm_conf: Dict[str, Any] = (
@@ -69,16 +66,14 @@ def ai(
     dependencies: Optional[List[str]] = None,
     name: str | None = None,
     **llm_kwargs: Any,
-) -> Callable[[Callable[..., Any]], LLMOperatorConfig]:  # noqa: D401
+) -> Callable[[Callable[..., Any]], LLMOperatorConfig]:
     """Decorator that converts a Python function into an *LLMOperatorConfig*.
 
     Parameters correspond 1-to-1 with the YAML schema.  Additional keyword
     arguments map into *llm_config* automatically (temperature, top_p, …).
     """
 
-    def _wrapper(
-        func: Callable[..., Any]
-    ) -> LLMOperatorConfig:  # noqa: D401 – inner factory
+    def _wrapper(func: Callable[..., Any]) -> LLMOperatorConfig:  # – inner factory
         llm_conf = _coerce_llm_kwargs(model, **llm_kwargs)
 
         cfg = LLMOperatorConfig(
@@ -104,7 +99,7 @@ def tool(
     name: str | None = None,
     tool_args: Optional[Dict[str, Any]] = None,
     dependencies: Optional[List[str]] = None,
-) -> Callable[[Callable[..., Any]], SkillNodeConfig]:  # noqa: D401
+) -> Callable[[Callable[..., Any]], SkillNodeConfig]:
     """Decorator that returns a *SkillNodeConfig* bound to an existing Skill class."""
 
     def _wrapper(func: Callable[..., Any]) -> SkillNodeConfig:

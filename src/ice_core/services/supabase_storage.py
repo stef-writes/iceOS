@@ -25,7 +25,7 @@ class SupabaseNetworkStorage(NetworkStorage):
     # NetworkStorage implementation
     # ------------------------------------------------------------------
 
-    async def get(self, spec_id: str) -> Optional[dict]:  # noqa: D401 – simple CRUD
+    async def get(self, spec_id: str) -> Optional[dict]:  # – simple CRUD
         resp = (
             await self._client.table("network_specs")
             .select("*")
@@ -34,14 +34,14 @@ class SupabaseNetworkStorage(NetworkStorage):
         )
         return resp.data[0] if resp.data else None
 
-    async def put(self, spec_id: str, spec: dict) -> None:  # noqa: D401 – simple CRUD
+    async def put(self, spec_id: str, spec: dict) -> None:  # – simple CRUD
         await (
             self._client.table("network_specs")
             .upsert({**spec, "id": spec_id})
             .execute()
         )
 
-    async def query(self, filter: str = "") -> List[dict]:  # noqa: D401 – simple CRUD
+    async def query(self, filter: str = "") -> List[dict]:  # – simple CRUD
         query_builder = self._client.table("network_specs").select("*")
         if filter:
             # Basic example using ILIKE for name filtering.

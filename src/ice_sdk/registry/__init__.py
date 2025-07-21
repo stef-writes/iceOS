@@ -12,13 +12,13 @@ Example
 
 from __future__ import annotations
 
-from ice_sdk.capabilities.registry import CapabilityRegistry  # noqa: F401
+from ice_sdk.capabilities.registry import CapabilityRegistry
 
-from .node import NODE_REGISTRY as NodeRegistry  # noqa: F401 – re-export
-from .processor import global_processor_registry as ProcessorRegistry  # noqa: F401
-from .skill import SkillRegistry as SkillRegistry  # noqa: F401 – re-export class
-from .skill import (  # noqa: F401 – convenience instance
-    global_skill_registry as global_skill_registry,
+from .node import NODE_REGISTRY as NodeRegistry  # – re-export
+from .processor import global_processor_registry as ProcessorRegistry
+from .skill import SkillRegistry as SkillRegistry  # – re-export class
+from .skill import (
+    global_skill_registry as global_skill_registry,  # – convenience instance
 )
 
 __all__: list[str] = [

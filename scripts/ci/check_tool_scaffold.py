@@ -15,7 +15,7 @@ from typing import List
 RE_TOOL_PATH = re.compile(r"src/ice_sdk/tools/(?P<name>[a-zA-Z0-9_]+)/__init__\.py")
 
 
-def _find_new_tools() -> List[str]:  # noqa: D401 – helper
+def _find_new_tools() -> List[str]:  # – helper
     changed_files = Path(".git").parent.rglob(
         "*__init__.py"
     )  # simplistic – in CI use git diff --name-only
@@ -28,12 +28,12 @@ def _find_new_tools() -> List[str]:  # noqa: D401 – helper
     return tools
 
 
-def _check_tests_exist(tool: str) -> bool:  # noqa: D401
+def _check_tests_exist(tool: str) -> bool:
     test_file = Path(f"tests/tools/test_{tool}_tool.py")
     return test_file.exists()
 
 
-def main() -> None:  # noqa: D401
+def main() -> None:
     failed: List[str] = []
     for tool in _find_new_tools():
         if not _check_tests_exist(tool):

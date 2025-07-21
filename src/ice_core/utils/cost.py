@@ -33,7 +33,7 @@ _PRICING_TABLE: Dict[ModelProvider, Dict[str, Tuple[Decimal, Decimal]]] = {
 
 def _get_price_per_token(
     provider: ModelProvider, model: str
-) -> Tuple[Decimal, Decimal]:  # noqa: D401
+) -> Tuple[Decimal, Decimal]:
     """Return *(prompt_price, completion_price)* for *model* or zeros if unknown."""
 
     return _PRICING_TABLE.get(provider, {}).get(model, (Decimal("0"), Decimal("0")))
@@ -44,7 +44,7 @@ def _get_price_per_token(
 # ---------------------------------------------------------------------------
 
 
-def estimate_chain_cost(chain_spec: Dict[str, Any]) -> float:  # noqa: D401
+def estimate_chain_cost(chain_spec: Dict[str, Any]) -> float:
     """Return rough USD cost for *chain_spec* without external dependencies."""
 
     total: Decimal = Decimal("0")

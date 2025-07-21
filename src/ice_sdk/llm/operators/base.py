@@ -13,9 +13,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def _noop_decorator(
-    func: Callable[P, R]
-) -> Callable[P, R]:  # noqa: D401 – pass‐through
+def _noop_decorator(func: Callable[P, R]) -> Callable[P, R]:  # – pass‐through
     return func
 
 
@@ -25,7 +23,7 @@ except Exception:  # pragma: no cover – util may not exist yet
     track_cost = _noop_decorator  # type: ignore[assignment]
 
 
-def operator(func: Callable[P, R]) -> Callable[P, R]:  # noqa: D401
+def operator(func: Callable[P, R]) -> Callable[P, R]:
     """Marker decorator for LLM operator functions (currently a no-op)."""
     return func
 
@@ -42,7 +40,7 @@ class LLMOperator(Processor[LLMOperatorConfig]):  # Inherits validation
     config: LLMOperatorConfig  # explicit for static checkers
 
     @track_cost(category="llm_operator")
-    async def generate(self, prompt: str) -> str:  # noqa: D401
+    async def generate(self, prompt: str) -> str:
         # *llm_service* is provided by concrete subclasses / DI; treat as Any
         llm_svc: Any = getattr(self, "llm_service", None)
         if llm_svc is None:

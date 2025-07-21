@@ -17,11 +17,11 @@ class MarkdownToHTMLSkill(SkillBase):
     description: str = "Convert Markdown formatted text to HTML."
     tags: List[str] = ["markdown", "conversion", "utility"]
 
-    def get_required_config(self) -> list[str]:  # noqa: D401
+    def get_required_config(self) -> list[str]:
         return []
 
     @staticmethod
-    def _convert(text: str) -> str:  # noqa: D401 – helper
+    def _convert(text: str) -> str:  # – helper
         try:
             markdown_mod = importlib.import_module("markdown")  # type: ignore
             return str(markdown_mod.markdown(text))  # type: ignore[attr-defined,arg-type]

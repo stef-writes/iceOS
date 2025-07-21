@@ -1,6 +1,6 @@
 """Agent models."""
 
-from typing import Any, List, Literal, Optional, Type  # noqa: I001
+from typing import Any, List, Literal, Optional, Type
 
 from pydantic import BaseModel, Field
 

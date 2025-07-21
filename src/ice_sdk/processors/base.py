@@ -13,7 +13,7 @@ C = TypeVar("C", bound=BaseModel)
 
 def validate_schemas(
     input_schema: Dict[str, Any], output_schema: Dict[str, Any]
-) -> bool:  # noqa: D401
+) -> bool:
     """Return *True* when the provided JSON schemas have basic structure."""
 
     return isinstance(input_schema, dict) and isinstance(output_schema, dict)
@@ -26,7 +26,7 @@ class ProcessorConfig(BaseModel):
 
 
 @deprecated("0.4.0", "Use Processor instead")
-class Node:  # noqa: D101 – legacy alias
+class Node:  # – legacy alias
     pass
 
 
@@ -47,8 +47,8 @@ class Processor(Generic[C]):
     # attribute so that static type checkers recognise its existence.
     config: C  # type: ignore[assignment]
 
-    def validate(self) -> bool:  # noqa: D401
+    def validate(self) -> bool:
         return validate_schemas(self.config.input_schema, self.config.output_schema)  # type: ignore[attr-defined]
 
-    async def process(self, data: Dict[str, Any]) -> Dict[str, Any]:  # noqa: D401
+    async def process(self, data: Dict[str, Any]) -> Dict[str, Any]:
         raise NotImplementedError

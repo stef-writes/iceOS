@@ -22,9 +22,9 @@ from ice_orchestrator.core.chain_registry import get_chain
 from ice_sdk.models.network import NetworkSpec
 
 
-class NetworkFactory:  # noqa: D101 – internal helper
+class NetworkFactory:  # – internal helper
     @staticmethod
-    async def from_yaml(path: str | Path, **kwargs: Any) -> "Workflow":  # noqa: D401
+    async def from_yaml(path: str | Path, **kwargs: Any) -> "Workflow":
         """Build a :class:`Workflow` from a *NetworkSpec* YAML file.
 
         Args:
@@ -86,10 +86,7 @@ class NetworkFactory:  # noqa: D101 – internal helper
             "nodes": node_payloads,
         }
 
-        # noqa comment for unused alias in postponed annotations
-        from ice_orchestrator.workflow import (
-            Workflow,  # noqa: F401  local import for type-hints
-        )
+        # comment for unused alias in postponed annotations
 
         chain_obj: Workflow = await ChainFactory.from_dict(
             payload, validate_outputs=False, **kwargs
@@ -98,7 +95,7 @@ class NetworkFactory:  # noqa: D101 – internal helper
 
     # Convenience synchronous wrapper ---------------------------------------
     @staticmethod
-    def build(path: str | Path, **kwargs: Any) -> "Workflow":  # noqa: D401
+    def build(path: str | Path, **kwargs: Any) -> "Workflow":
         """Synchronous convenience wrapper around `from_yaml`.
 
         This helper runs the async factory under the hood so callers in
@@ -116,10 +113,7 @@ class NetworkFactory:  # noqa: D101 – internal helper
             >>> result = chain.execute()  # blocks until finished
         """
 
-        # noqa comment
-        from ice_orchestrator.workflow import (
-            Workflow,  # noqa: F401 local import for type-hints
-        )
+        # comment
 
         async def _inner() -> "Workflow":
             return await NetworkFactory.from_yaml(path, **kwargs)

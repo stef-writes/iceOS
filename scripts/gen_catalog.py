@@ -56,7 +56,7 @@ class _ClassCollector(ast.NodeVisitor):
     def __init__(self):
         self.definitions: list[str] = []
 
-    def visit_ClassDef(self, node: ast.ClassDef):  # noqa: N802
+    def visit_ClassDef(self, node: ast.ClassDef):
         self.definitions.append(node.name)
 
 
@@ -75,7 +75,7 @@ def analyse_file(path: Path, project_root: Path) -> list[Capability]:
     return caps
 
 
-def main() -> None:  # noqa: D401
+def main() -> None:
     project_root = Path(__file__).resolve().parent.parent
     all_caps: list[Capability] = []
     for py_file in discover_py_files():

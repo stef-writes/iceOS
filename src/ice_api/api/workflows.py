@@ -53,7 +53,7 @@ class WorkflowDefinition(BaseModel):
     nodes: List[NodeModel]
     edges: List[EdgeModel]
 
-    async def validate_for_demo(self) -> None:  # noqa: D401
+    async def validate_for_demo(self) -> None:
         """Lightweight async validation.
 
         * Ensures Skill names are resolvable.
@@ -87,7 +87,7 @@ _STORE_LOCK: asyncio.Lock = asyncio.Lock()
 
 
 @router.post("/workflows", response_model=dict[str, str])
-async def save_workflow(workflow: WorkflowDefinition) -> dict[str, str]:  # noqa: D401
+async def save_workflow(workflow: WorkflowDefinition) -> dict[str, str]:
     """Persist a workflow in memory and return its id."""
 
     await workflow.validate_for_demo()
@@ -98,7 +98,7 @@ async def save_workflow(workflow: WorkflowDefinition) -> dict[str, str]:  # noqa
 
 
 @router.get("/workflows/{workflow_id}", response_model=WorkflowDefinition)
-async def get_workflow(workflow_id: str) -> WorkflowDefinition:  # noqa: D401
+async def get_workflow(workflow_id: str) -> WorkflowDefinition:
     """Fetch a stored workflow by id."""
 
     wf = _WORKFLOW_STORE.get(workflow_id)
@@ -126,7 +126,7 @@ async def _demo_status_generator() -> AsyncIterator[dict[str, Any]]:  # type: ig
 
 
 @router.websocket("/ws/execution")
-async def execution_updates(ws: WebSocket) -> None:  # noqa: D401 – FastAPI handler
+async def execution_updates(ws: WebSocket) -> None:  # – FastAPI handler
     """Stream real-time execution telemetry to the canvas UI.
 
     The initial version is stubbed with synthetic data so the front-end can

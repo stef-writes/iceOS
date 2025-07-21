@@ -18,7 +18,7 @@ from ice_core.utils.hashing import HashMode, compute_hash  # re-export core help
 __all__: list[str] = ["stable_hash", "compute_hash", "HashMode"]
 
 
-def _to_bytes(payload: Any) -> bytes:  # noqa: D401 – helper
+def _to_bytes(payload: Any) -> bytes:  # – helper
     """Serialise *payload* deterministically, falling back to ``repr``.
 
     We try JSON‐serialisation with ``sort_keys=True`` first so that dictionaries
@@ -34,7 +34,7 @@ def _to_bytes(payload: Any) -> bytes:  # noqa: D401 – helper
         return repr(payload).encode()
 
 
-def stable_hash(payload: Any) -> str:  # noqa: D401 – public API
+def stable_hash(payload: Any) -> str:  # – public API
     """Return a SHA-256 hash of *payload* suitable for idempotency keys.
 
     The implementation is **content-based** – any Python object that can be

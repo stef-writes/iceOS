@@ -28,7 +28,7 @@ class WebSearchConfig(BaseModel):
     num_results: int = Field(default=10, ge=1, le=20, alias="num")
 
     @model_validator(mode="after")
-    def _populate_key(cls, model: "WebSearchConfig") -> "WebSearchConfig":  # type: ignore[override,arg-type]  # noqa: N805 – pydantic API
+    def _populate_key(cls, model: "WebSearchConfig") -> "WebSearchConfig":  # type: ignore[override,arg-type]  # – pydantic API
         # Pull from environment if missing; fallback to dummy value during tests
         if not model.api_key:
             env_key = os.getenv("SERPAPI_KEY")
@@ -62,7 +62,7 @@ class WebSearchSkill(SkillBase):
     config: WebSearchConfig = WebSearchConfig.default()
     model_config = ConfigDict(extra="allow")
 
-    def __init__(self) -> None:  # noqa: D401
+    def __init__(self) -> None:
         super().__init__()
         # Guarantee attribute for tests
         if not hasattr(self, "config"):
@@ -133,7 +133,7 @@ class WebSearchSkill(SkillBase):
         return {"results": simplified}
 
     # Required config keys for validation --------------------------------
-    def get_required_config(self) -> list[str]:  # noqa: D401 – simple method name
+    def get_required_config(self) -> list[str]:  # – simple method name
         return ["api_key"]
 
     @classmethod

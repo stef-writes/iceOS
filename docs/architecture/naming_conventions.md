@@ -14,7 +14,7 @@ This document captures **why** we picked the current vocabulary (Node, Skill, Ag
 | **Skill** | SDK | A concrete behaviour that can satisfy a Node at runtime (`SkillBase`). |
 | **Agent** | SDK | _Specialised_ Skill that maintains memory / tool-use. Implemented via `AgentSkill` (subclass of `SkillBase`). |
 | **LLM Operator** | SDK | Skill that wraps a direct LLM call with prompt template + parsing. |
-| **Chain** | Orchestrator | Composition of Nodes; can itself be wrapped as a `NestedChainConfig` Node. |
+| **Workflow** | Orchestrator | Composition of Nodes; can itself be wrapped as a `NestedChainConfig` Node. |
 
 ### 1.1 Why “Agent = Skill”
 

@@ -80,7 +80,7 @@ class SkillRegistry(BaseModel):
 
     async def execute(
         self, name: str, payload: Mapping[str, Any]
-    ) -> Any:  # noqa: ANN401 – Any by design
+    ) -> Any:  # – Any by design
         """Execute *skill* identified by *name* with *payload*.
 
         The call propagates the underlying *Skill* exception semantics.

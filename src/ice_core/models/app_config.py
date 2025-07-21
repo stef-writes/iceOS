@@ -30,14 +30,14 @@ class AppConfig(BaseModel):
 
     @field_validator("version")
     @classmethod
-    def _validate_version(cls, v: str) -> str:  # noqa: D401 – validator
+    def _validate_version(cls, v: str) -> str:  # – validator
         if not re.fullmatch(r"^\d+\.\d+\.\d+$", v):
             raise ValueError("Version must use semantic format (e.g., 1.2.3)")
         return v
 
     @field_validator("environment")
     @classmethod
-    def _validate_environment(cls, v: str) -> str:  # noqa: D401 – validator
+    def _validate_environment(cls, v: str) -> str:  # – validator
         valid_envs = {"development", "testing", "staging", "production"}
         v_lower = v.lower()
         if v_lower not in valid_envs:
@@ -48,7 +48,7 @@ class AppConfig(BaseModel):
 
     @field_validator("log_level")
     @classmethod
-    def _validate_log_level(cls, v: str) -> str:  # noqa: D401 – validator
+    def _validate_log_level(cls, v: str) -> str:  # – validator
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
         upper = v.upper()
         if upper not in valid_levels:

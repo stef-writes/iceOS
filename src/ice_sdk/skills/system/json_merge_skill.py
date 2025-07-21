@@ -15,7 +15,7 @@ class JSONMergeSkill(SkillBase):
     description: str = "Deep-merge multiple JSON documents."
     tags: List[str] = ["json", "merge", "utility"]
 
-    def get_required_config(self) -> list[str]:  # noqa: D401
+    def get_required_config(self) -> list[str]:
         return []
 
     # Internal helper

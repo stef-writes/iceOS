@@ -41,7 +41,6 @@ nav:
       - Repo Layout: architecture/repo_layout.md
   - Core Concepts:
       - Nodes, Tools & Agents: core_concepts/nodes_tools_agents.md
-      - ScriptChain Runtime: core_concepts/script_chain.md
   - How-to Guides:
       - Build a Custom Tool: how_to/build_custom_tool.md
       - Build an Agent: how_to/build_agent.md
@@ -49,7 +48,6 @@ nav:
       - CLI Commands: reference/cli.md
       - REST API: reference/api.md
       - Architecture Internals: reference/architecture.md
-      - Orchestrator API: api/orchestrator.md
       - Health-check Matrix: reference/healthchecks.md
   - Plans & Roadmaps:
       - Docker + Poetry Strategy: plans/docker_poetry_strategy.md

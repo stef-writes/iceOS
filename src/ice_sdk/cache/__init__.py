@@ -53,7 +53,7 @@ class LRUCache:
 _global_cache: Optional[LRUCache] = None
 
 
-def global_cache() -> LRUCache:  # noqa: D401
+def global_cache() -> LRUCache:
     """Return the singleton in-memory cache instance."""
     global _global_cache  # pylint: disable=global-statement
     if _global_cache is None:

@@ -38,8 +38,7 @@ class NodeExecutor(Protocol):
         chain: ScriptChain,
         cfg: NodeConfig,
         ctx: Dict[str, Any],
-    ) -> NodeExecutionResult:  # noqa: D401
-        ...
+    ) -> NodeExecutionResult: ...
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +53,7 @@ F = TypeVar("F", bound=ExecCallable)
 NODE_REGISTRY: Dict[str, ExecCallable] = {}
 
 
-def register_node(mode: str) -> Callable[[F], F]:  # noqa: D401
+def register_node(mode: str) -> Callable[[F], F]:
     """Decorator to register *mode* → executor mapping.
 
     Raises
@@ -63,7 +62,7 @@ def register_node(mode: str) -> Callable[[F], F]:  # noqa: D401
         If *mode* is already registered.
     """
 
-    def decorator(func: F) -> F:  # noqa: D401 – nested helper
+    def decorator(func: F) -> F:  # – nested helper
         if mode in NODE_REGISTRY:
             raise ValueError(f"Node mode '{mode}' is already registered")
         NODE_REGISTRY[mode] = func
@@ -72,7 +71,7 @@ def register_node(mode: str) -> Callable[[F], F]:  # noqa: D401
     return decorator
 
 
-def get_executor(mode: str) -> ExecCallable:  # noqa: D401
+def get_executor(mode: str) -> ExecCallable:
     """Return executor for *mode* or raise *KeyError*."""
 
     try:

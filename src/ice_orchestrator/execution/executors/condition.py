@@ -1,17 +1,15 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 """Executor for *condition* nodes – moved from SDK layer."""
 
 from datetime import datetime
 from typing import Any, Dict, TypeAlias
 
+from ice_core.models import ConditionNodeConfig, NodeConfig, NodeExecutionResult
+from ice_core.models.node_models import NodeMetadata
 from ice_sdk.interfaces.chain import ScriptChainLike
-from ice_core.models import (
-    ConditionNodeConfig,
-    NodeConfig,
-    NodeExecutionResult,
-    NodeMetadata,
-)
 from ice_sdk.registry.node import register_node
 
 ScriptChain: TypeAlias = ScriptChainLike
@@ -22,7 +20,7 @@ async def condition_executor(
     chain: ScriptChain,
     cfg: NodeConfig,
     ctx: Dict[str, Any],
-) -> NodeExecutionResult:  # noqa: D401
+) -> NodeExecutionResult:
     """Evaluate *cfg.expression* in a limited sandbox."""
 
     if not isinstance(cfg, ConditionNodeConfig):
@@ -36,15 +34,17 @@ async def condition_executor(
     try:
         from restrictedpython import compile_restricted  # type: ignore
 
-        byte_code = compile_restricted(cfg.expression, filename="<condition>", mode="eval")
+        byte_code = compile_restricted(
+            cfg.expression, filename="<condition>", mode="eval"
+        )
         sandbox_globals: Dict[str, Any] = {"__builtins__": {}}
-        result = bool(eval(byte_code, sandbox_globals, sandbox_locals))  # noqa: S307
+        result = bool(eval(byte_code, sandbox_globals, sandbox_locals))
         success = True
         error_msg: str | None = None
     except ModuleNotFoundError:
         sandbox_globals = {"__builtins__": {}}
         try:
-            result = bool(eval(cfg.expression, sandbox_globals, sandbox_locals))  # noqa: S307
+            result = bool(eval(cfg.expression, sandbox_globals, sandbox_locals))
             success = True
             error_msg = None
         except Exception as exc:
@@ -72,4 +72,4 @@ async def condition_executor(
         output={"result": result},
         metadata=metadata,
         execution_time=(end - start).total_seconds(),
-    ) 
+    )

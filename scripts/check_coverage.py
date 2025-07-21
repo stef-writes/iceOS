@@ -13,7 +13,7 @@ import coverage  # ``pytest-cov`` dependency pulls this in already
 MIN_COVERAGE = 60  # Percentage threshold – keep in sync with repo rules
 
 
-def enforce_coverage() -> None:  # noqa: D401 – CLI helper
+def enforce_coverage() -> None:  # – CLI helper
     """Exit ``1`` when overall coverage is below *MIN_COVERAGE*."""
 
     cov = coverage.Coverage()

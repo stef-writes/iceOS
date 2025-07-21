@@ -11,17 +11,16 @@ python -m venv .venv && source .venv/bin/activate
 pip install iceos  # once published; for local dev use `pip install -e .`
 ```
 
-## 2. Inspect the Chain Spec
+## 2. Define a Blueprint
 
-```json title="examples/mvp_demo/sum_chain.json"
+```json title="examples/mvp_demo/sum_blueprint.json"
 {
   "version": "1.0.0",
   "name": "hello-sum",
   "nodes": [
     {
       "id": "sum1",
-      "type": "skill",
-      "name": "add_numbers",
+      "type": "tool",
       "tool_name": "sum",
       "tool_args": {"a": 2, "b": 3}
     }
@@ -32,45 +31,32 @@ pip install iceos  # once published; for local dev use `pip install -e .`
 * `type": "skill"` → invokes a deterministic action.
 * `tool_name": "sum"` → maps to **SumSkill** shipped with the core.
 
-## 3. Estimate Cost
+## 3. Execute via MCP API
 
 ```bash
-ice run-chain examples/mvp_demo/sum_chain.json --estimate
-```
+# 1) Register blueprint
+curl -X POST http://localhost:8000/api/v1/mcp/blueprints \
+     -H "Content-Type: application/json" \
+     -d @examples/mvp_demo/sum_blueprint.json
 
-Output (USD):
-```json
-{
-  "estimated_cost_usd": 0.0
-}
-```
-A pure Skill has no token cost.
+# 2) Start run (returns run_id)
+curl -X POST http://localhost:8000/api/v1/mcp/runs \
+     -H "Content-Type: application/json" \
+     -d '{"blueprint_id": "hello-sum"}'
 
-## 4. Execute
+# 3) Tail events (requires curl 7.72+)
+curl --no-buffer http://localhost:8000/api/v1/mcp/runs/<run_id>/events
 
-```bash
-ice run-chain examples/mvp_demo/sum_chain.json
-```
-
-Example result:
-```json
-{
-  "success": true,
-  "output": {
-    "sum1": {
-      "success": true,
-      "output": {"result": 5}
-    }
-  }
-}
+# 4) Get final result
+curl http://localhost:8000/api/v1/mcp/runs/<run_id>
 ```
 
 ---
 
 That’s it! You just:
-1. Parsed a JSON workflow via **MVPContract**.  
-2. Validated + executed through **SkillGateway**.  
-3. Got deterministic output without any external API calls.
+1. Registered a **Blueprint** via MCP.  
+2. Executed it through the orchestrator, with events streamed from Redis.  
+3. Received deterministic output without external LLM cost.
 
 Next steps:
 * Explore `examples/` for more specs.

@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
 from ice_core.models import (
     ChainExecutionResult,
     LLMOperatorConfig,
@@ -21,6 +20,7 @@ from ice_core.models import (
     NodeMetadata,
     SkillNodeConfig,
 )
+from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
 
 TARGET_DIR = Path(__file__).resolve().parent.parent / "schemas" / "runtime"
 TARGET_DIR.mkdir(parents=True, exist_ok=True)
@@ -38,7 +38,7 @@ MODELS = {
 }
 
 
-def main() -> None:  # noqa: D401
+def main() -> None:
     """Generate schema files under *TARGET_DIR*."""
     for filename, model in MODELS.items():
         schema = model.model_json_schema()  # type: ignore[attr-defined]

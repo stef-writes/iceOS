@@ -21,7 +21,7 @@ if not SAMPLE_CSV.exists():
     SAMPLE_CSV.write_text("name,age\nAlice,30\nBob,25\n", encoding="utf-8")
 
 
-async def main() -> None:  # noqa: D401 – script entrypoint
+async def main() -> None:  # – script entrypoint
     skill = CSVReaderSkill()
     result = await skill.execute({"file_path": str(SAMPLE_CSV)})
 
@@ -33,4 +33,4 @@ async def main() -> None:  # noqa: D401 – script entrypoint
 
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

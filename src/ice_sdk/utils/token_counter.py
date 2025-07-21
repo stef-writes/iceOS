@@ -101,4 +101,4 @@ class TokenCounter:
             token_count = cls.count_tokens(text, model, provider)
             return token_count <= max_tokens
         except ValueError:
-            return cls.estimate_tokens(text, model, provider) <= max_tokens 
+            return cls.estimate_tokens(text, model, provider) <= max_tokens

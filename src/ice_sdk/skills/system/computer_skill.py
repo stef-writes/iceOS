@@ -23,12 +23,12 @@ class ComputerSkill(SkillBase):
     # Accept custom screen dimensions via instance __init__ -------------------
     model_config = ConfigDict(extra="allow")  # type: ignore[var-annotated]
 
-    def __init__(self, dimensions: Tuple[int, int] | None = None):  # noqa: D401
+    def __init__(self, dimensions: Tuple[int, int] | None = None):
         super().__init__()
         # Bypass Pydantic attribute validation for runtime-only data
         object.__setattr__(self, "dimensions", dimensions or (1280, 720))
 
-    def get_required_config(self) -> list[str]:  # noqa: D401
+    def get_required_config(self) -> list[str]:
         return []
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:

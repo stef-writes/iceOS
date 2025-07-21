@@ -70,7 +70,7 @@ class ProcessorRegistry(Generic[ProcessorT]):
             proc_instance = processor_type()  # type: ignore[call-arg]
         except Exception as exc:  # pragma: no cover – defensive
             raise ProcessorRegistrationError(
-                f"Processor '{processor_type.name}' failed to instantiate: {exc}"  # noqa: TRY003
+                f"Processor '{processor_type.name}' failed to instantiate: {exc}"
             ) from exc
 
         if hasattr(proc_instance, "validate") and not proc_instance.validate():
@@ -93,9 +93,7 @@ class ProcessorRegistry(Generic[ProcessorT]):
     # ------------------------------------------------------------------
     # Convenience async execution --------------------------------------
     # ------------------------------------------------------------------
-    async def execute(
-        self, name: str, payload: Mapping[str, Any]
-    ) -> Any:  # noqa: ANN401
+    async def execute(self, name: str, payload: Mapping[str, Any]) -> Any:
         """Instantiate & run *processor* with *payload* (async-compatible)."""
 
         proc_cls = self.get(name)
@@ -112,10 +110,10 @@ class ProcessorRegistry(Generic[ProcessorT]):
     # ------------------------------------------------------------------
     # Dunder helpers ----------------------------------------------------
     # ------------------------------------------------------------------
-    def __iter__(self) -> Iterator[tuple[str, Type[ProcessorT]]]:  # noqa: D401
+    def __iter__(self) -> Iterator[tuple[str, Type[ProcessorT]]]:
         yield from self._processors.items()
 
-    def __len__(self) -> int:  # noqa: D401 – simple helper
+    def __len__(self) -> int:  # – simple helper
         return len(self._processors)
 
 

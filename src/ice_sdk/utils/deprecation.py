@@ -17,7 +17,7 @@ def deprecated(version: str, replacement: str) -> Callable[[T], T]:
         Suggested fully‐qualified replacement.
     """
 
-    def wrapper(cls: T) -> T:  # noqa: D401 – simple decorator wrapper
+    def wrapper(cls: T) -> T:  # – simple decorator wrapper
         warned: bool = False
 
         def _warn() -> None:
@@ -34,7 +34,7 @@ def deprecated(version: str, replacement: str) -> Callable[[T], T]:
         # Preserve original __init__ so behaviour stays identical ------------
         orig_init = cls.__init__  # type: ignore[attr-defined]
 
-        def new_init(self: Any, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+        def new_init(self: Any, *args: Any, **kwargs: Any) -> None:
             _warn()
             orig_init(self, *args, **kwargs)  # type: ignore[misc]
 

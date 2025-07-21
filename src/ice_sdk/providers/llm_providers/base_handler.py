@@ -28,7 +28,7 @@ class BaseLLMHandler(ABC):
     # ---------------------------------------------------------------------
 
     @staticmethod
-    def _usage_from_openai(resp: Any) -> Optional[dict[str, int]]:  # noqa: D401
+    def _usage_from_openai(resp: Any) -> Optional[dict[str, int]]:
         """Extract *prompt/completion/total* tokens from an OpenAI-style
         response object (also used by DeepSeek which follows the same schema).
 
@@ -46,7 +46,7 @@ class BaseLLMHandler(ABC):
         }
 
     @staticmethod
-    def _format_function_call(name: str, arguments_json: str) -> str:  # noqa: D401
+    def _format_function_call(name: str, arguments_json: str) -> str:
         """Convert *function_call* into the compact JSON string shared by SDK.
 
         The *arguments_json* string is parsed with ``json.loads`` first so we

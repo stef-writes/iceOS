@@ -2,6 +2,8 @@
 Gaffer - AI Workflow Orchestration System
 """
 
+from typing import Any
+
 from fastapi import FastAPI
 
 # NOTE: The legacy alias `ScriptChain` has been removed to comply with layer
@@ -14,10 +16,10 @@ from fastapi import FastAPI
 # smoother migration path.
 
 
-class _RemovedScriptChain:  # noqa: D401 – shim for backwards compatibility
+class _RemovedScriptChain:  # – shim for backwards compatibility
     """Stub that raises informative error on usage."""
 
-    def __getattr__(self, name: str):  # noqa: D401 – proxy shim
+    def __getattr__(self, name: str) -> Any:  # – proxy shim
         raise ImportError(
             "`ice_api.ScriptChain` has been removed. Import `Workflow` from the"
             " public orchestrator client or migrate to the new execution API."

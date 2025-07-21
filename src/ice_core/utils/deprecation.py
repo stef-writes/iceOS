@@ -32,7 +32,7 @@ def _build_message(obj_name: str, version: str, replacement: str | None) -> str:
     return msg
 
 
-def _warn_or_error(message: str) -> None:  # noqa: D401 – imperative mood
+def _warn_or_error(message: str) -> None:  # – imperative mood
     """Emit a :class:`DeprecationWarning` or raise :class:`DeprecatedError`.
 
     The behaviour is controlled by the env var ``ICE_STRICT_SHIMS``.  When set to

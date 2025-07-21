@@ -16,7 +16,7 @@ from .card import CapabilityCard
 __all__ = ["CapabilityRegistry"]
 
 
-class CapabilityRegistry:  # noqa: D101 – simple data holder
+class CapabilityRegistry:  # – simple data holder
     def __init__(self) -> None:
         self._cards: dict[str, CapabilityCard] = {}
 
@@ -25,7 +25,7 @@ class CapabilityRegistry:  # noqa: D101 – simple data holder
     # ------------------------------------------------------------------
     def add(
         self, card: CapabilityCard, *, overwrite: bool = False
-    ) -> None:  # noqa: D401 – verb clause
+    ) -> None:  # – verb clause
         """Register *card* keyed by its ``id``.
 
         Args
@@ -37,7 +37,7 @@ class CapabilityRegistry:  # noqa: D101 – simple data holder
             same *id* already exists.  When *True* the existing entry is
             replaced (used when re-loading updated metadata).
         """
-        if card.id in self._cards and not overwrite:  # noqa: R504
+        if card.id in self._cards and not overwrite:
             raise ValueError(f"Capability '{card.id}' already registered")
         self._cards[card.id] = card
 
@@ -51,16 +51,16 @@ class CapabilityRegistry:  # noqa: D101 – simple data holder
     # ------------------------------------------------------------------
     # Query helpers -----------------------------------------------------
     # ------------------------------------------------------------------
-    def get(self, id_: str) -> CapabilityCard | None:  # noqa: D401 – getter
+    def get(self, id_: str) -> CapabilityCard | None:  # – getter
         """Return a card by *id* or **None** when missing."""
         return self._cards.get(id_)
 
-    def list(self) -> List[CapabilityCard]:  # noqa: D401 – list helper
+    def list(self) -> List[CapabilityCard]:  # – list helper
         """Return **all** cards in insertion order."""
         return list(self._cards.values())
 
     # ------------------------------------------------- search ----------
-    def search(self, query: str) -> List[CapabilityCard]:  # noqa: D401
+    def search(self, query: str) -> List[CapabilityCard]:
         """Very small search util.
 
         Matching strategy (quick & dirty):
@@ -99,8 +99,8 @@ class CapabilityRegistry:  # noqa: D101 – simple data holder
     # ------------------------------------------------------------------
     # Representation ----------------------------------------------------
     # ------------------------------------------------------------------
-    def __len__(self) -> int:  # noqa: D401 – dunder
+    def __len__(self) -> int:  # – dunder
         return len(self._cards)
 
-    def __iter__(self) -> Iterable[CapabilityCard]:  # noqa: D401 – dunder
+    def __iter__(self) -> Iterable[CapabilityCard]:  # – dunder
         return iter(self._cards.values())

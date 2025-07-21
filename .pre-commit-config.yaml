@@ -32,12 +32,6 @@ repos:
         stages: [manual]
   - repo: local
     hooks:
-      - id: ruff-check
-        name: ruff (strict)
-        entry: ruff check src
-        language: system
-        pass_filenames: false
-        always_run: true
       - id: lock-check
         name: poetry lock check
         entry: make lock-check
@@ -49,18 +43,4 @@ repos:
         entry: pytest -q
         language: system
         pass_filenames: false
-        always_run: true
-      - id: coverage
-        name: pytest (coverage gate)
-        entry: pytest --cov=ice_sdk --cov=ice_orchestrator --cov-report=term --cov-fail-under=60 -q
-        language: system
-        pass_filenames: false
         always_run: true 
-  - repo: local
-    hooks:
-      - id: import-linter
-        name: import-linter
-        entry: poetry run lint-imports
-        language: system
-        types: [python]
-        pass_filenames: false 

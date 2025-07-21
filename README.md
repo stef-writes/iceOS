@@ -1,120 +1,132 @@
-# iceOS – AI Agent & Workflow Orchestration Platform
+# iceOS
 
-[![CI](https://img.shields.io/github/actions/workflow/status/iceos-ai/iceOS/ci.yml?label=CI&logo=github)](https://github.com/iceos-ai/iceOS/actions)
-[![Coverage](https://img.shields.io/codecov/c/github/iceos-ai/iceOS?logo=codecov)](https://codecov.io/gh/iceos-ai/iceOS)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-mkdocs%20latest-blue)](https://iceos.ai/docs)
-
-> **iceOS** is an open-source, plugin-driven operating system for building, testing and shipping AI-native applications – from single-shot tools to multi-agent reasoning chains.
-
-## ✨ Key Features
-
-* **Composable Workflows** – build agent graphs with Python, YAML _or_ the CLI wizard.
-* **Strict Typing** – every node/tool uses Pydantic models; `mypy --strict` enforced by CI.
-* **Async-First Runtime** – non-blocking execution with automatic context propagation.
-* **Observability Out-of-the-box** – spans & metrics for every node/tool invocation.
-* **Pluggable Providers** – swap LLMs (OpenAI, Anthropic, Gemini…), vector DBs (Chroma, Annoy …) or custom tools at runtime.
-* **Frosty Meta-Layer** – optional UX/CLI wrapper that converts natural-language goals into ScriptChains and delegates execution to iceOS.
-* **First-Class Tooling** – CLI, REST + WebSocket API, SDK, and rich test harness.
-
-## 📦 Quick Start (Users)
-
-```bash
-# Clone & install (Python 3.10+)
-git clone https://github.com/iceos-ai/iceOS.git && cd iceOS
-poetry install --no-interaction --with dev
-
-# Run the API server (localhost:8000)
-poetry run uvicorn ice_api.main:app --reload --host 0.0.0.0 --port 8000
-
-# Execute a sample chain via CLI
-echo '"Hello AI"' | poetry run ice run examples/create_reasoning_chain.py --json
-```
-
-The interactive API docs are now live at `http://localhost:8000/docs` (FastAPI Swagger UI).
+> *“Give every distributed team a shared canvas where natural-language ideas become governance-ready AI workflows in seconds.”*
 
 ---
 
-## 🛠️  Developer Guide
+## What is iceOS?
 
-### 1. Project Setup
+iceOS is an **alpha-stage AI workflow runtime** designed for:
+
+* **Zero-code design** – blueprints created from natural language via Frosty or the canvas editor
+* **Governed execution** – budget & safety guardrails enforced at runtime
+* **Team memory** – every run is traceable, costed and searchable
+
+The runtime is powered by a deterministic DAG engine (**Workflow**) and exposed through the **Model Context Protocol (MCP)** HTTP API.
+
+---
+
+## Quick Start
+
+### 1 · Prerequisites
+
+* Python 3.11+
+* Redis ≥6 (for blueprint + event persistence)
+* Poetry (`pip install poetry`)
+
+### 2 · Clone & install
 
 ```bash
-# Install dev dependencies and Git hooks
-make install          # == poetry install --with dev
-pre-commit install    # Lint/type/test hooks before every commit
+poetry install --with dev
 ```
 
-Environment variables (API keys, etc.) live in `.env.local` (ignored) – copy `.env.example` to get started.
+### 3 · Start the API
 
-### 2. Essential Commands
+```bash
+export REDIS_URL="redis://localhost:6379/0"  # adjust as needed
+poetry run uvicorn ice_api.main:app --reload
+```
 
-| Task                  | Command                              |
-|-----------------------|--------------------------------------|
-| Lint & format         | `make lint`  /  `make format`        |
-| Static typing         | `make type` (mypy --strict)          |
-| Unit / integration CI | `make test`                          |
-| Mutation testing      | `make mutation`                      |
-| Build docs            | `make docs` → `site/`                |
-| Full quality gate     | `make doctor`                        |
+### 4 · Run a workflow
 
-> All quality targets mirror what runs in GitHub Actions; a green local `make doctor` == green CI.
+```bash
+# sum_blueprint.json
+{
+  "blueprint_id": "hello-sum",
+  "nodes": [
+    {"id": "sum1", "type": "tool", "tool_name": "sum", "tool_args": {"a": 2, "b": 3}}
+  ]
+}
 
-### 3. Directory Layout (TL;DR)
+# Register blueprint
+curl -X POST http://localhost:8000/api/v1/mcp/blueprints \
+     -H "Content-Type: application/json" \
+     -d @sum_blueprint.json
 
-```text
+# Execute blueprint
+RUN_ID=$(curl -s -X POST http://localhost:8000/api/v1/mcp/runs \
+  -H "Content-Type: application/json" \
+  -d '{"blueprint_id":"hello-sum"}' | jq -r .run_id)
+
+# Stream node-level events (requires curl ≥7.72)
+curl --no-buffer http://localhost:8000/api/v1/mcp/runs/$RUN_ID/events
+
+# Fetch final result
+curl http://localhost:8000/api/v1/mcp/runs/$RUN_ID | jq
+```
+
+---
+
+## Repository Layout
+
+```
 src/
-  ice_sdk/          # Core SDK – nodes, tools, providers, context store
-  ice_orchestrator/ # Execution engine (DAG -> async graph runtime)
-  ice_api/          # FastAPI server exposing REST & WS Gateway
-  ice_cli/          # Typer-powered developer CLI
-schemas/            # JSON Schema contracts (runtime & configuration)
-docs/               # MkDocs site (architecture, guides, API spec)
+  ice_core/          # shared models, contracts, utilities
+  ice_sdk/           # design-time SDK & client helpers
+  ice_orchestrator/  # runtime execution engine
+  ice_api/           # FastAPI HTTP façade
+examples/            # runnable samples
 ```
 
-A full breakdown is available in [docs/architecture/repo_layout.md](docs/architecture/repo_layout.md).
-
-### 4. Running Tests
-
-```bash
-# Run all tests with coverage
-make test
-# or just a subset
-pytest tests/unit/agents -q
-```
-
-Tests use **pytest** with fixtures in `tests/conftest.py`. Coverage ≥ 90 % on new lines is enforced by CI.
-
-### 5. Coding Standards
-
-1. **Type hints everywhere** – unchecked code is a bug magnet.
-2. **No cross-layer imports** – enforced by `scripts/check_layers.py`.
-3. **External side-effects only inside Tool implementations**.
-4. **Raise domain-specific exceptions**; catch narrow subclasses.
-5. All public APIs need Google-style docstrings **+** a minimal example.
-
-See the full rule-set in [rules section](#) or `repo_specific_rule` in `.github/*`.
-
-### 6. Contribution Workflow
-
-1. Fork → feature branch (`feat/xyz`)
-2. Commit messages: _<type>(scope): summary_ (Conventional Commits)
-3. `make doctor` locally – must pass lint/type/test
-4. Open PR; GH Actions will run the same suite + security scans
-5. Once merged, the docs site auto-deploys via MkDocs Material.
+More details in [docs/architecture/repo_layout.md](docs/architecture/repo_layout.md).
 
 ---
 
-## 🌐  Documentation & Community
+## Key Concepts
 
-* **User / Architecture Docs:** https://iceos.ai/docs
-* **API Spec:** `docs/api/mcp.yaml` (OpenAPI 3)
-* **Discussions & Support:** GitHub Discussions / Discord (*invite link TBD*)
+| Term           | Description |
+|----------------|-------------|
+| **Blueprint**  | Design-time JSON object defining nodes and edges |
+| **Workflow**   | In-memory runtime representation of a blueprint |
+| **Node**       | Atomic unit – either *tool*, *ai* (LLM operator) or *condition* |
+| **MCP**        | HTTP protocol for creating blueprints, starting runs and tailing events |
+| **Event Stream** | Redis Stream `stream:{run_id}` emitting `workflow.nodeStarted`, `workflow.nodeFinished`, `workflow.finished` |
 
-Found a bug or have a feature request? Open an issue or start a discussion – contributions welcome! 🤗
+---
 
-## 📄 License
+## Roadmap (H2 2025)
 
-iceOS is released under the [MIT License](LICENSE).
+| Milestone | ETA | Highlights |
+|-----------|-----|-----------|
+| **B0 – Alpha Solo** | Aug 2025 | Natural-language → Blueprint parser; local canvas prototype |
+| **B1 – Private Beta Teams** | Nov 2025 | Real-time **Canvas** collaboration; live cost overlay |
+| **B2 – Public Beta** | Feb 2026 | One-click deploy; **Frosty** optimisation loop |
+| **B3 – Marketplace** | Jun 2026 | Paid third-party tools; revenue share |
 
-> © 2024 iceOS Contributors – Made with 💙 and **async / await**. 
+> The current repository implements the **B0 runtime spine** (MCP API + Redis persistence). The canvas editor and Frosty meta-agents live in separate repos and will be merged once stabilised.
+
+---
+
+## Development
+
+Run the full suite (type-check, lint, tests, coverage):
+
+```bash
+make test
+```
+
+Strict mypy config is enforced (`mypy --strict`). Test coverage on changed lines must be ≥ 90 %.
+
+---
+
+## Contributing
+
+1. Fork and create a feature branch.
+2. Follow repository rules (see `.github/CONTRIBUTING.md`).
+3. Ensure **CI is green** (`make test`) before opening PR.
+
+---
+
+## License
+
+[Apache-2.0](LICENSE) 

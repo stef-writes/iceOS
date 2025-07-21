@@ -33,11 +33,11 @@ class HashMode(str, Enum):
     SEMANTIC = "minhash"  # Near-duplicate detection (not yet implemented)
 
 
-def _sha256(data: bytes) -> str:  # noqa: D401 – helper
+def _sha256(data: bytes) -> str:  # – helper
     return hashlib.sha256(data).hexdigest()
 
 
-def _blake3(data: bytes) -> str:  # noqa: D401 – helper
+def _blake3(data: bytes) -> str:  # – helper
     if blake3 is None:  # pragma: no cover – optional dep
         return _sha256(data)
     return cast(str, blake3.blake3(data).hexdigest())  # type: ignore[attr-defined]
@@ -49,7 +49,7 @@ _HASH_IMPL: dict[HashMode, Callable[[bytes], str]] = {
 }
 
 
-def _minhash_sig(text: str) -> str:  # noqa: D401 – helper
+def _minhash_sig(text: str) -> str:  # – helper
     if MinHash is None:  # pragma: no cover – optional dep
         return _sha256(text.encode())
 
@@ -59,7 +59,7 @@ def _minhash_sig(text: str) -> str:  # noqa: D401 – helper
     return cast(str, m.digest().hex())
 
 
-def compute_hash(content: str, mode: HashMode = HashMode.SECURITY) -> str:  # noqa: D401
+def compute_hash(content: str, mode: HashMode = HashMode.SECURITY) -> str:
     """Return hexadecimal hash digest of *content* using *mode*."""
     if mode is HashMode.SEMANTIC:
         return _minhash_sig(content)

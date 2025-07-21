@@ -27,9 +27,7 @@ class SchemaValidationError(ValueError):
     """Raised when `validate_or_raise` detects an invalid payload."""
 
 
-def _validate_with_pydantic_model(
-    data: Any, model: Type[BaseModel]
-) -> None:  # noqa: D401
+def _validate_with_pydantic_model(data: Any, model: Type[BaseModel]) -> None:
     """Validate *data* against a Pydantic model class and re-raise uniformly."""
     try:
         model.model_validate(data)  # type: ignore[arg-type]
@@ -37,7 +35,7 @@ def _validate_with_pydantic_model(
         raise SchemaValidationError(str(exc)) from exc
 
 
-def validate_or_raise(data: Any, schema: Any | None = None) -> None:  # noqa: D401
+def validate_or_raise(data: Any, schema: Any | None = None) -> None:
     """Validate *data* against *schema* or raise :class:`SchemaValidationError`.
 
     Parameters

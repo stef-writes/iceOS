@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 """Lightweight in-memory cache for core-level consumers.
 
 This file restores the original *ice_core.cache* public surface relied upon by
@@ -15,7 +17,7 @@ from typing import Any, Optional
 __all__: list[str] = ["LRUCache", "global_cache"]
 
 
-class LRUCache:  # noqa: D101 – simple helper
+class LRUCache:  # – simple helper
     """Thread-safe LRU cache suitable for unit tests and single-process runs."""
 
     def __init__(self, capacity: int = 256):
@@ -25,7 +27,7 @@ class LRUCache:  # noqa: D101 – simple helper
         self._store: "OrderedDict[str, Any]" = OrderedDict()
         self._lock = Lock()
 
-    def get(self, key: str) -> Optional[Any]:  # noqa: D401
+    def get(self, key: str) -> Optional[Any]:
         with self._lock:
             if key not in self._store:
                 return None
@@ -33,7 +35,7 @@ class LRUCache:  # noqa: D101 – simple helper
             self._store[key] = value  # mark as recently used
             return value
 
-    def set(self, key: str, value: Any) -> None:  # noqa: D401
+    def set(self, key: str, value: Any) -> None:
         with self._lock:
             if key in self._store:
                 self._store.pop(key)
@@ -41,7 +43,7 @@ class LRUCache:  # noqa: D101 – simple helper
             if len(self._store) > self.capacity:
                 self._store.popitem(last=False)
 
-    def clear(self) -> None:  # noqa: D401
+    def clear(self) -> None:
         with self._lock:
             self._store.clear()
 
@@ -51,10 +53,10 @@ class LRUCache:  # noqa: D101 – simple helper
 _global_cache: Optional[LRUCache] = None
 
 
-def global_cache() -> LRUCache:  # noqa: D401
+def global_cache() -> LRUCache:
     """Return process-wide shared LRU cache instance."""
 
     global _global_cache  # pylint: disable=global-statement
     if _global_cache is None:
         _global_cache = LRUCache(capacity=512)
-    return _global_cache 
+    return _global_cache

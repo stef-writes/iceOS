@@ -10,21 +10,30 @@ from typing import AsyncIterator, List
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from ice_core.utils.logging import setup_logger
+
+from ice_api.redis_client import get_redis
 
 # NEW MCP router import
+# Service registration (orchestrator runtime) ------------------------------
+from ice_orchestrator.services.workflow_service import WorkflowService
+from ice_sdk.services import ServiceLocator as _SvcLoc  # avoid name clash later
+
+# Register once at import time so routers can resolve it
+if "workflow_service" not in _SvcLoc._services:  # type: ignore[attr-defined]
+    _SvcLoc.register("workflow_service", WorkflowService())
+
+# Router imports (can now resolve service)
 from ice_api.api.builder import router as builder_router
 from ice_api.api.mcp import router as mcp_router
 from ice_api.ws_gateway import router as ws_router
+from ice_core.utils.logging import setup_logger
 from ice_sdk import ToolService
 from ice_sdk.context import GraphContextManager
 
 # kb_router removed - focusing on core patterns
 from ice_sdk.providers.llm_service import LLMService
-from ice_sdk.services import (
-    ChainService,  # Proper service boundary
-    ServiceLocator,
-)
+from ice_sdk.services import ChainService  # Proper service boundary
+from ice_sdk.services import ServiceLocator
 from ice_sdk.utils.errors import add_exception_handlers
 
 # Setup logging
@@ -52,6 +61,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.tool_service = tool_service
     ctx_manager = GraphContextManager()
 
+    # Initialize Redis -----------------------------------------------------
+    redis = get_redis()
+    try:
+        await redis.ping()
+    except Exception as exc:
+        logger.warning("Redis connection failed: %s", exc)
+
+    app.state.redis = redis  # type: ignore[attr-defined]
+
     # Register in global ServiceLocator ------------------------------------
     ServiceLocator.register("tool_service", tool_service)
     ServiceLocator.register("context_manager", ctx_manager)
@@ -69,7 +87,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Auto-discover additional `*.tool.py` modules in the repository ---------
     try:
         tool_service.discover_and_register(project_root)
-    except Exception as exc:  # noqa: BLE001 – best-effort discovery
+    except Exception as exc:  # – best-effort discovery
         logger.warning("Tool auto-discovery failed: %s", exc)
 
     app.state.context_manager = ctx_manager  # type: ignore[attr-defined]
@@ -122,6 +140,7 @@ app = FastAPI(title="iceOS API")
 tool_service_global = ToolService()
 app.state.tool_service = tool_service_global  # type: ignore[attr-defined]
 app.state.context_manager = GraphContextManager()  # type: ignore[attr-defined]
+app.state.redis = get_redis()  # type: ignore[attr-defined]
 
 # ---------------------------------------------------------------------------
 # CORS – allow any origin for demo/testing so smoke tests pass --------------
@@ -140,9 +159,7 @@ app.include_router(builder_router)
 # kb_router removed - focusing on core patterns
 app.include_router(ws_router)
 # Canvas workflow endpoints
-from ice_api.api.workflows import (  # noqa: E402 – after FastAPI init
-    router as workflows_router,
-)
+from ice_api.api.workflows import router as workflows_router  # – after FastAPI init
 
 app.include_router(workflows_router)
 
@@ -158,13 +175,13 @@ async def root() -> dict[str, str]:
 
 
 @app.get("/health", tags=["utils"])
-async def health_check() -> dict[str, str]:  # noqa: D401
+async def health_check() -> dict[str, str]:
     """Return simple health status so external monitors can probe the API."""
     return {"status": "ok"}
 
 
 @app.get("/v1/tools", response_model=List[str], tags=["utils"])
-async def list_tools_v1(request: Request) -> List[str]:  # noqa: D401
+async def list_tools_v1(request: Request) -> List[str]:
     """Return all registered tool names (legacy alias without /api prefix)."""
     tool_service = request.app.state.tool_service  # type: ignore[attr-defined]
     return sorted(tool_service.available_tools())
@@ -173,16 +190,6 @@ async def list_tools_v1(request: Request) -> List[str]:  # noqa: D401
 # ---------------------------------------------------------------------------
 # Capability catalog endpoint ------------------------------------------------
 # ---------------------------------------------------------------------------
-
-
-from ice_sdk.adapters.catalog import CatalogSummary, get_catalog  # noqa: E402
-
-
-@app.get("/v1/catalog", response_model=CatalogSummary, tags=["utils"])
-async def get_catalog_v1() -> CatalogSummary:  # noqa: D401
-    """Return a high-level summary of all registered tools, chains, nodes and agents."""
-
-    return get_catalog(refresh=False).summary()
 
 
 router = APIRouter()

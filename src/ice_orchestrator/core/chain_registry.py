@@ -35,9 +35,7 @@ _REGISTRY: Dict[str, ScriptChainLike] = {}
 # ---------------------------------------------------------------------------
 
 
-def register_chain(
-    chain: ScriptChainLike, alias: str | None = None
-) -> None:  # noqa: D401
+def register_chain(chain: ScriptChainLike, alias: str | None = None) -> None:
     """Register *chain* under *alias* (defaults to ``chain.name``).
 
     Registration overrides existing entries with the same alias.
@@ -52,13 +50,13 @@ def register_chain(
     _REGISTRY[key] = chain
 
 
-def get_chain(alias: str) -> ScriptChainLike | None:  # noqa: D401
+def get_chain(alias: str) -> ScriptChainLike | None:
     """Return chain registered under *alias* or *None* when missing."""
 
     return _REGISTRY.get(alias)
 
 
-def list_chains() -> dict[str, ScriptChainLike]:  # noqa: D401
+def list_chains() -> dict[str, ScriptChainLike]:
     """Return copy of the current registry mapping."""
 
     return dict(_REGISTRY)

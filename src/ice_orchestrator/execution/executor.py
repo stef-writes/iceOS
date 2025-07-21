@@ -4,21 +4,23 @@ import asyncio
 import hashlib
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, cast
 
 # ---------------------------------------------------------------------------
 # Local type alias to satisfy static analysis on forward reference annotations.
 # ---------------------------------------------------------------------------
+from typing import TYPE_CHECKING
+from typing import Any
 from typing import Any as _Any
+from typing import Dict, cast
 
 import structlog
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
-from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
-
 # Import globally to avoid local shadowing errors
-from ice_core.models import NodeConfig, NodeExecutionResult, NodeMetadata
+from ice_core.models import NodeConfig, NodeExecutionResult
+from ice_core.models.node_models import NodeMetadata
+from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
 from ice_sdk.registry.node import get_executor
 
 # Local alias to avoid circular import; resolved at runtime
@@ -31,7 +33,7 @@ tracer = trace.get_tracer(__name__)
 logger = structlog.get_logger(__name__)
 
 
-class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChain
+class NodeExecutor:  # – internal utility extracted from ScriptChain
     """Execute individual nodes with retry, caching & tracing.
 
     The implementation is **functionally identical** to the original logic in
@@ -39,7 +41,7 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
     ScriptChain instance so that no behaviour changes are required elsewhere.
     """
 
-    def __init__(self, chain: "ScriptChain") -> None:  # noqa: D401
+    def __init__(self, chain: "ScriptChain") -> None:
         self.chain = chain
         self.budget = BudgetEnforcer()  # Add enforcer
 
@@ -54,6 +56,12 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
         orchestration semantics (cache, retries, validation, etc.)."""
 
         chain = self.chain  # local alias for brevity
+        emit = getattr(chain, "_emit_event", None)
+        if callable(emit):
+            emit(
+                "workflow.nodeStarted",
+                {"run_id": getattr(chain, "run_id", None), "node_id": node_id},
+            )
         node = chain.nodes.get(node_id)
         if node is None:
             raise ValueError(f"Node '{node_id}' not found in chain configuration")
@@ -130,7 +138,7 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
                         cached = chain._cache.get(cache_key)
                         if cached is not None:
                             return cast(NodeExecutionResult, cached)
-                    except Exception:  # noqa: BLE001 – never fail due to cache
+                    except Exception:  # – never fail due to cache
                         cache_key = None
 
                 # --------------------------------------------------
@@ -146,51 +154,52 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
                     },
                 ) as node_span:
                     # MyPy may not recognise that *executor* is an async callable – cast for clarity.
-                    from typing import Awaitable
-                    from typing import cast as _cast
 
-                    raw_output = await _cast(
-                        Awaitable[Any],
-                        executor(chain, node, input_data),
-                    )
+                    result_raw = await executor(chain, node, input_data)
 
                     node_span.set_attribute(
                         "success", True
                     )  # Mark as success for now, validation will handle
                     node_span.set_attribute("retry_count", attempt)
                     if (
-                        not raw_output
+                        not result_raw
                     ):  # If executor returned None or empty, mark as failure
                         node_span.set_status(
                             Status(StatusCode.ERROR, "Executor returned empty output")
                         )
-                        raw_output = (
+                        result_raw = (
                             None  # Ensure raw_output is None for further processing
                         )
 
                 # --------------------------------------------------
                 # Opportunistic JSON repair ------------------------
                 # --------------------------------------------------
-                if isinstance(raw_output, str) and getattr(node, "output_schema", None):
+                if isinstance(result_raw, str) and getattr(node, "output_schema", None):
                     import re
 
-                    raw = raw_output.strip()
+                    raw = result_raw.strip()
                     if raw.startswith("```") and raw.endswith("```"):
                         raw = re.sub(r"^```.*?\n|\n```$", "", raw, count=1, flags=re.S)
                     try:
                         repaired = json.loads(raw)
-                        raw_output = repaired  # type: ignore[assignment]
+                        result_raw = repaired  # type: ignore[assignment]
                     except Exception:
                         pass  # leave unchanged – validation will handle
 
                 # New coercion layer
-                processed_output = self._coerce_output(node, raw_output)
+                processed_output = self._coerce_output(node, result_raw)
 
                 # Store in cache if enabled & succeeded -------------
-                if cache_key and processed_output is not None:
-                    chain._cache.set(
-                        cache_key,
-                        NodeExecutionResult(success=True, output=processed_output),
+
+                # Emit finished event after successful execution
+                if callable(emit):
+                    emit(
+                        "workflow.nodeFinished",
+                        {
+                            "run_id": getattr(chain, "run_id", None),
+                            "node_id": node_id,
+                            "success": True,
+                        },
                     )
 
                 # ------------------------------------------------------------------
@@ -238,7 +247,6 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
                         end_time=datetime.utcnow(),
                         duration=0.0,
                         error_type=None,
-                        retry_count=attempt,
                     )
                     result.budget_status = self.budget.get_status()  # Add this field
 
@@ -300,7 +308,6 @@ class NodeExecutor:  # noqa: D101 – internal utility extracted from ScriptChai
                         error_type=(
                             type(last_error).__name__ if last_error else "UnknownError"
                         ),
-                        retry_count=attempt,
                     )
                     result.budget_status = self.budget.get_status()
                     return result

@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""Demo: Register & execute a CSV → Summary workflow via MCP.
+
+Usage (ensure FastAPI server is running on localhost:8000):
+    python examples/mcp/csv_summary_mcp.py --csv /path/to/file.csv
+
+This script demonstrates the *frontend-style* flow:
+1. Build NodeSpec objects one by one (as a UI would).
+2. POST a Blueprint to /api/v1/mcp/blueprints.
+3. POST /runs to execute the blueprint.
+4. Poll /runs/{id} until completion.
+5. Print the summarizer output.
+
+It relies on:
+• csv_reader_skill (deterministic)  – no API key needed.
+• summarizer_skill  – picks provider via env (OPENAI_API_KEY, ANTHROPIC_API_KEY, …).
+"""
+from __future__ import annotations
+
+import argparse
+import asyncio
+import os
+from pathlib import Path
+from typing import List
+
+try:
+    from dotenv import load_dotenv  # type: ignore
+
+    load_dotenv()
+except ModuleNotFoundError:
+    # Optional dependency – skip quietly when not installed.
+    pass
+
+from ice_core.models.mcp import Blueprint, NodeSpec
+from ice_sdk.protocols.mcp.client import MCPClient
+
+# ---------------------------------------------------------------------------
+# Helpers -------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+DEFAULT_BASE_URL = os.getenv("ICEOS_API", "http://localhost:8000")
+
+
+def build_nodes(csv_path: Path) -> List[NodeSpec]:  # – helper
+    """Build NodeSpec list for the CSV → Summary pipeline."""
+
+    reader_spec = NodeSpec(
+        id="reader",
+        type="tool",  # Conversion logic in API maps "tool" → SkillNodeConfig
+        tool_name="csv_reader",
+        tool_args={"file_path": str(csv_path)},
+    )
+
+    summarizer_spec = NodeSpec(
+        id="summarizer",
+        type="tool",
+        dependencies=["reader"],
+        tool_name="summarizer",
+        tool_args={
+            "rows": "{rows_json}",  # Placeholder resolved by ContextBuilder
+            "max_summary_tokens": 256,
+        },
+        input_mappings={
+            "rows_json": {
+                "source_node_id": "reader",
+                "source_output_key": "rows_json",
+            }
+        },
+    )
+
+    return [reader_spec, summarizer_spec]
+
+
+async def main() -> None:  # – async entrypoint
+    parser = argparse.ArgumentParser(description="MCP CSV → Summary demo")
+    parser.add_argument(
+        "--csv",
+        dest="csv_path",
+        type=str,
+        required=True,
+        help="Path to CSV file to summarise",
+    )
+    parser.add_argument(
+        "--base-url",
+        dest="base_url",
+        type=str,
+        default=DEFAULT_BASE_URL,
+        help="MCP service base URL (default: http://localhost:8000)",
+    )
+    args = parser.parse_args()
+
+    csv_path = Path(args.csv_path).expanduser().resolve()
+    if not csv_path.exists():
+        raise SystemExit(f"CSV file not found: {csv_path}")
+
+    # ------------------------------------------------------------------
+    # 1. Build blueprint ------------------------------------------------
+    # ------------------------------------------------------------------
+    nodes = build_nodes(csv_path)
+    blueprint = Blueprint(nodes=nodes)
+
+    client = MCPClient(base_url=args.base_url)
+
+    # ------------------------------------------------------------------
+    # 2. Register blueprint --------------------------------------------
+    # ------------------------------------------------------------------
+    print("Registering blueprint …", end=" ")
+    ack = await client.create_blueprint(blueprint)
+    print("OK (id:", ack.blueprint_id + ")")
+
+    # ------------------------------------------------------------------
+    # 3. Start run ------------------------------------------------------
+    # ------------------------------------------------------------------
+    print("Starting run …", end=" ")
+    run = await client.start_run(blueprint_id=ack.blueprint_id)
+    print("run_id:", run.run_id)
+
+    # ------------------------------------------------------------------
+    # 4. Await result ---------------------------------------------------
+    # ------------------------------------------------------------------
+    print("Waiting for completion …")
+    result = await client.await_result(run.run_id)
+
+    # ------------------------------------------------------------------
+    # 5. Inspect & print summary ---------------------------------------
+    # ------------------------------------------------------------------
+    if result.success and isinstance(result.output, dict):
+        summarizer_node = result.output.get("summarizer")
+        if summarizer_node and getattr(summarizer_node, "output", None):
+            summary: str = summarizer_node.output.get("summary", "<missing>")
+            print("\n=== Summary ===\n" + summary)
+        else:
+            print("\nRun succeeded but summarizer output missing. Full payload:")
+            print(result.output)
+    else:
+        print("Run failed:", result.error)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

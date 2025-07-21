@@ -1,13 +1,13 @@
-from typing import Dict
+from typing import Any, Dict, Mapping
 
 from ice_sdk.utils.coercion import schema_match  # From untracked files
 
 
 class ContextTypeManager:
     def __init__(self):
-        self._registry: Dict[str, dict] = {}
+        self._registry: Dict[str, Mapping[str, Any]] = {}
 
-    def register_context_key(self, key: str, schema: dict) -> None:
+    def register_context_key(self, key: str, schema: Mapping[str, Any]) -> None:
         """Register a context key with its JSON Schema type definition.
 
         Args:
@@ -18,7 +18,7 @@ class ContextTypeManager:
             raise ValueError(f"Context key {key} already registered")
         self._registry[key] = schema
 
-    def get_compatible_keys(self, target_schema: dict) -> list[str]:
+    def get_compatible_keys(self, target_schema: Mapping[str, Any]) -> list[str]:
         """Find context keys whose schema matches the target requirements.
 
         Args:

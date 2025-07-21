@@ -5,31 +5,24 @@ This package provides workflow orchestration capabilities for iceOS.
 
 # ruff: noqa: E402
 
-import warnings
-
-# Emit deprecation notice once per import
-warnings.warn(
-    "`ice_orchestrator.ScriptChain` is deprecated; use `ice_orchestrator.Workflow` instead.",
-    DeprecationWarning,
-    stacklevel=2,
-)
-
 # Prefer BaseWorkflow
 from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy  # type: ignore
 from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 
 # Public contract facade (optional) ------------------------------------------
 try:
-    from ice_orchestrator.contracts.mvp_contract import MVPContract  # noqa: F401
+    from ice_orchestrator.contracts.mvp_contract import MVPContract
 except ModuleNotFoundError:  # pragma: no cover – optional component missing
+
     class MVPContract:  # type: ignore
         """Placeholder when *contracts* submodule is absent."""
 
         pass
 
+
 # New exports ---------------------------------------------------------------
-from .core.chain_registry import get_chain, list_chains, register_chain  # noqa: F401
-from .core.network_factory import NetworkFactory  # noqa: F401
+from .core.chain_registry import get_chain, list_chains, register_chain
+from .core.network_factory import NetworkFactory
 from .errors.chain_errors import ScriptChainError as ChainError
 from .graph.dependency_graph import DependencyGraph
 
@@ -49,9 +42,6 @@ try:
     ServiceLocator.register("workflow_proto", Workflow)  # type: ignore[arg-type]
 except Exception:  # pragma: no cover – defensive: ignore if locator unavailable
     pass
-
-# Deprecated alias for backward-compat ------------------------------------------------
-ScriptChain = Workflow  # type: ignore
 
 __all__ = [
     "BaseWorkflow",

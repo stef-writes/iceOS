@@ -49,7 +49,7 @@ class _LazyModuleProxy(ModuleType):
             self._real_module = import_module(self._target_module)
         return self._real_module
 
-    def __getattr__(self, item: str) -> Any:  # noqa: D401 – passthrough attr access
+    def __getattr__(self, item: str) -> Any:  # – passthrough attr access
         return getattr(self._load(), item)
 
 

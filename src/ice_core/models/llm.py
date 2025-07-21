@@ -32,7 +32,7 @@ _logger = logging.getLogger(__name__)
 
 def parse_model_version(
     model_name: str, provider: ModelProvider = ModelProvider.OPENAI
-) -> str:  # noqa: D401
+) -> str:
     """Return semantic version string for *model_name*.
 
     Replicates the lookup logic originally hosted in *ice_sdk.models.config*.
@@ -117,7 +117,7 @@ class MessageTemplate(BaseModel):
     # Helper methods
     # ------------------------------------------------------------------
 
-    def format(self, **kwargs: Any) -> str:  # noqa: D401 – mimic str.format API
+    def format(self, **kwargs: Any) -> str:  # – mimic str.format API
         """Return formatted *content*; missing keys keep original placeholder."""
         try:
             return self.content.format(**kwargs)
@@ -133,7 +133,7 @@ class MessageTemplate(BaseModel):
 
     @field_validator("role")
     @classmethod
-    def _validate_role(cls, v: str) -> str:  # noqa: D401 – validator
+    def _validate_role(cls, v: str) -> str:  # – validator
         valid_roles = {"system", "user", "assistant"}
         if v not in valid_roles:
             raise ValueError(
@@ -143,14 +143,14 @@ class MessageTemplate(BaseModel):
 
     @field_validator("version")
     @classmethod
-    def _validate_version(cls, v: str) -> str:  # noqa: D401 – validator
+    def _validate_version(cls, v: str) -> str:  # – validator
         if not re.fullmatch(r"^\d+\.\d+\.\d+$", v):
             raise ValueError("Version must use semantic format (e.g., 1.2.3)")
         return v
 
     @field_validator("min_model_version")
     @classmethod
-    def _validate_min_model_version(cls, v: str, info: Any) -> str:  # noqa: D401
+    def _validate_min_model_version(cls, v: str, info: Any) -> str:
         provider = info.data.get("provider", ModelProvider.OPENAI)
         parse_model_version(v, provider)  # will raise if unsupported
         return v
@@ -159,7 +159,7 @@ class MessageTemplate(BaseModel):
 
     def is_compatible_with_model(
         self, model_name: str, *, provider: ModelProvider = ModelProvider.OPENAI
-    ) -> bool:  # noqa: D401
+    ) -> bool:
         """Return ``True`` when *model_name* meets *min_model_version*."""
         try:
             model_ver = version.parse(parse_model_version(model_name, provider))
@@ -201,9 +201,7 @@ class LLMConfig(BaseModel):
 
     @field_validator("api_key")
     @classmethod
-    def _validate_api_key(
-        cls, v: Optional[str], info: Any
-    ) -> Optional[str]:  # noqa: D401
+    def _validate_api_key(cls, v: Optional[str], info: Any) -> Optional[str]:
         provider = info.data.get("provider", ModelProvider.OPENAI)
         if v is None:
             return v  # loaded from env elsewhere
@@ -221,7 +219,7 @@ class LLMConfig(BaseModel):
 
     @field_validator("model")
     @classmethod
-    def _validate_model(cls, v: str, info: Any) -> str:  # noqa: D401
+    def _validate_model(cls, v: str, info: Any) -> str:
         provider = info.data.get("provider", ModelProvider.OPENAI)
         parse_model_version(v, provider)  # validates format/provider
 

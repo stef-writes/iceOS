@@ -34,7 +34,7 @@ ALLOWED_DEPENDENCIES: dict[str, list[str]] = {
 # ---------------------------------------------------------------------------
 
 
-def validate_imports() -> int:  # noqa: D401
+def validate_imports() -> int:
     """Return number of layer violations found across *src/*.py* files."""
 
     errors = 0
@@ -97,7 +97,7 @@ def _report(py_file: Path, imported: str, allowed: list[str]) -> None:
 # ---------------------------------------------------------------------------
 
 
-def main() -> None:  # noqa: D401
+def main() -> None:
     """Entry-point so the script can be run via *python scripts/check_layers.py*."""
 
     parser = argparse.ArgumentParser(description="Validate cross-layer imports")

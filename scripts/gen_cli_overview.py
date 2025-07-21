@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Final, List
 
 import click  # Typer builds on Click
+
 from ice_cli.cli import app  # The canonical CLI definition (root group)
 
 _OUTPUT_PATH: Final[Path] = Path("docs/architecture/cli_overview.md")
@@ -45,7 +46,7 @@ def _walk(cmd: click.Command, depth: int = 0) -> List[str]:
     return lines
 
 
-def main() -> None:  # noqa: D401 – CLI entry-point
+def main() -> None:  # – CLI entry-point
     """Write the up-to-date CLI overview Markdown file."""
     md_lines: List[str] = [
         "# ice CLI Overview (auto-generated)",

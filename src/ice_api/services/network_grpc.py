@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     # Real generated modules are only available in a fully generated env.
     from ice_api.proto import network_pb2, network_pb2_grpc  # pragma: no cover
 else:  # Fallback so mypy/tests succeed without generated stubs
-    import types  # noqa: D401 – internal workaround
+    import types  # – internal workaround
 
     network_pb2 = types.ModuleType("network_pb2")
     network_pb2.CreateNetworkSpecResponse = type("CreateNetworkSpecResponse", (), {})
@@ -35,7 +35,7 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
     # gRPC method handlers ------------------------------------------------
     # ------------------------------------------------------------------
 
-    async def CreateNetworkSpec(self, request, context):  # noqa: N802 – protobuf naming
+    async def CreateNetworkSpec(self, request, context):  # – protobuf naming
         try:
             spec_id = await self._service.create_network_spec(request.spec)  # type: ignore[arg-type]
             return network_pb2.CreateNetworkSpecResponse(spec_id=spec_id)  # type: ignore[attr-defined]
@@ -44,7 +44,7 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
             context.set_details(str(exc))
             return network_pb2.CreateNetworkSpecResponse()  # type: ignore[attr-defined]
 
-    async def ListNetworkSpecs(self, request, context):  # noqa: N802
+    async def ListNetworkSpecs(self, request, context):
         try:
             specs = await self._service.list_network_specs(request.filter)  # type: ignore[attr-defined]
             return network_pb2.ListNetworkSpecsResponse(specs=specs)  # type: ignore[attr-defined]
@@ -53,7 +53,7 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
             context.set_details(str(exc))
             return network_pb2.ListNetworkSpecsResponse()  # type: ignore[attr-defined]
 
-    async def GetNetworkSpec(self, request, context):  # noqa: N802
+    async def GetNetworkSpec(self, request, context):
         try:
             specs = await self._service.list_network_specs(filter=f"id={request.spec_id}")  # type: ignore[attr-defined]
             if not specs:
@@ -63,4 +63,4 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
         except Exception as exc:
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(str(exc))
-            return network_pb2.GetNetworkSpecResponse()  # type: ignore[attr-defined] 
+            return network_pb2.GetNetworkSpecResponse()  # type: ignore[attr-defined]

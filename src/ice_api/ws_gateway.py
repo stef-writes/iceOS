@@ -113,7 +113,7 @@ aio_bg_task: asyncio.Task[None] | None = None
 
 
 @router.websocket("/")
-async def mcp_ws(ws: WebSocket) -> None:  # noqa: D401 – FastAPI handler
+async def mcp_ws(ws: WebSocket) -> None:  # – FastAPI handler
     """Bidirectional WS endpoint for live patch + telemetry messages."""
 
     await ws.accept(subprotocol=_auth_token())
@@ -122,7 +122,7 @@ async def mcp_ws(ws: WebSocket) -> None:  # noqa: D401 – FastAPI handler
     except WebSocketDisconnect:
         return
 
-    global aio_bg_task  # noqa: PLW0603 – single global background task
+    global aio_bg_task  # – single global background task
     if aio_bg_task is None:
         aio_bg_task = asyncio.create_task(_broadcast_worker())
 

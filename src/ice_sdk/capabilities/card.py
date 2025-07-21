@@ -123,9 +123,7 @@ class CapabilityCard(BaseModel):
         """Build a card from an :class:`LLMOperatorConfig`."""
 
         # Avoid heavy dependencies – import lazily ---------------------
-        from ice_sdk.models.node_models import (  # noqa: WPS433 – runtime import
-            LLMOperatorConfig,
-        )
+        from ice_sdk.models.node_models import LLMOperatorConfig  # – runtime import
 
         assert isinstance(node_cfg, LLMOperatorConfig), "Expected LLMOperatorConfig"
 
@@ -151,9 +149,7 @@ class CapabilityCard(BaseModel):
     def from_chain_metadata(cls, chain_meta: "ChainMetadata") -> "CapabilityCard":
         """Generate a card from :class:`ChainMetadata`."""
 
-        from ice_sdk.models.node_models import (  # noqa: WPS433 – runtime import
-            ChainMetadata,
-        )
+        from ice_sdk.models.node_models import ChainMetadata  # – runtime import
 
         assert isinstance(chain_meta, ChainMetadata)
 

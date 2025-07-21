@@ -5,6 +5,8 @@ Domain-level, typed exceptions used across layers.
 
 from __future__ import annotations
 
+from typing import Any, Dict
+
 
 class IceCoreError(Exception):
     """Base-class for all core-layer exceptions."""
@@ -18,7 +20,7 @@ class DeprecatedError(ImportError, IceCoreError):
     process (CI can flip this flag once all migrations are complete).
     """
 
-    def __init__(self, message: str) -> None:  # noqa: D401 – imperative mood
+    def __init__(self, message: str) -> None:  # – imperative mood
         super().__init__(message)
 
 
@@ -30,7 +32,7 @@ class DeprecatedError(ImportError, IceCoreError):
 class SecurityViolationError(IceCoreError):
     """Raised when a provided path escapes allowed root directory."""
 
-    def __init__(self, path: str):  # noqa: D401 – param path only
+    def __init__(self, path: str):  # – param path only
         super().__init__(f"Illegal path traversal attempt detected: {path}")
 
 
@@ -53,7 +55,7 @@ class SubDAGError(WorkflowError):
             logger.error(f"SubDAG failed: {e.workflow_data}")
     """
 
-    def __init__(self, message: str, workflow_data: dict):
+    def __init__(self, message: str, workflow_data: Dict[str, Any]):
         super().__init__(message)
         self.workflow_data = workflow_data
 

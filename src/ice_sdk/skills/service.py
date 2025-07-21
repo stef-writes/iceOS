@@ -1,3 +1,10 @@
+"""Tool service for executing skills by name.
+
+This module provides the ToolService class that acts as a registry and executor
+for skills. It maintains a registry of skill classes and can instantiate and
+execute them on demand.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,8 +13,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from pydantic import BaseModel
-
-__all__: list[str] = ["ToolRequest", "ToolService"]
 
 
 class ToolRequest(BaseModel):  # pylint: disable=too-few-public-methods
@@ -18,7 +23,7 @@ class ToolRequest(BaseModel):  # pylint: disable=too-few-public-methods
     context: Dict[str, Any]
 
 
-class ToolService:  # noqa: D401 – thin orchestration facade
+class ToolService:  # – thin orchestration facade
     """Unified adapter that runs *Skill* implementations by name.
 
     The service acts as a lightweight compatibility layer between the
@@ -29,8 +34,22 @@ class ToolService:  # noqa: D401 – thin orchestration facade
 
     _registry: Dict[str, type] = {}
 
+    # ------------------------------------------------------------------ legacy discovery
+    def discover_and_register(self, path: "Path") -> None:  # noqa: D401
+        """Legacy no-op stub.
+
+        Older GraphContextManager versions called this method to auto-register
+        skills discovered in the workspace.  The actual discovery logic was
+        removed during the v0.10 refactor.  We keep a harmless placeholder so
+        that dependent code can still run without attribute errors while the
+        new plugin system matures.
+        """
+
+        # TODO: Re-implement proper plugin discovery in a dedicated registry.
+        _ = path  # Quell unused variable warning
+
     # ------------------------------------------------------------------ API
-    def register(self, tool_cls: type) -> None:  # noqa: D401 – simple wrapper
+    def register(self, tool_cls: type) -> None:  # – simple wrapper
         """Register *tool_cls* so it can be executed by name."""
 
         tool_name: str = getattr(tool_cls, "name", tool_cls.__name__)
@@ -40,13 +59,13 @@ class ToolService:  # noqa: D401 – thin orchestration facade
             return
         self._registry[tool_name] = tool_cls
 
-    def available_tools(self) -> list[str]:  # noqa: D401 – enumeration helper
+    def available_tools(self) -> list[str]:  # – enumeration helper
         """Return human-readable list of registered tool names (sorted)."""
 
         return sorted(self._registry.keys())
 
     # ------------------------------------------------------------------ metadata helpers
-    def cards(self) -> List[Any]:  # noqa: D401
+    def cards(self) -> List[Any]:
         """Return :class:`CapabilityCard` instances for each registered tool."""
 
         try:
@@ -58,10 +77,6 @@ class ToolService:  # noqa: D401 – thin orchestration facade
         except Exception:  # pragma: no cover – soft dependency
             # Fallback when *capabilities* package is unavailable in minimal builds
             return []
-
-    # Dynamic discovery via *.tool.py was removed in v0.5 – keep stub --------
-    def discover_and_register(self, _: Path) -> None:  # noqa: D401 – noop stub
-        """Legacy no-op kept for backward compatibility with CLI tooling."""
 
     # ------------------------------------------------------------------ core
     async def execute(self, request: ToolRequest) -> Dict[str, Any]:

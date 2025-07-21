@@ -45,7 +45,7 @@ _VALID_TARGETS: dict[str, List[str]] = {
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-def cli() -> None:  # noqa: D401 – entrypoint
+def cli() -> None:  # – entrypoint
     """iceOS CLI utilities (run ``ice --help`` for details)."""
 
 
@@ -56,7 +56,7 @@ def cli() -> None:  # noqa: D401 – entrypoint
     default="all",
     metavar="{lint|type|test|all}",
 )
-def doctor(category: str) -> None:  # noqa: D401 – imperative mood
+def doctor(category: str) -> None:  # – imperative mood
     """Run repository health-checks (lint, type, test).
 
     ``CATEGORY`` selects which subset of checks to perform.  The default

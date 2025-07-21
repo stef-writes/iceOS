@@ -8,9 +8,9 @@ import logging
 import os
 from typing import Any, Optional
 
-from ice_core.models.model_registry import get_default_model_id
 from openai import AsyncOpenAI
 
+from ice_core.models.model_registry import get_default_model_id
 from ice_sdk.models.config import LLMConfig
 
 from .base_handler import BaseLLMHandler

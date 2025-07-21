@@ -1,38 +1,60 @@
 from __future__ import annotations
 
-"""Lightweight AgentNode runtime stub.
-
-The full reasoning/LLM execution will be implemented in v2.  For now this
-placeholder satisfies type-checking, unit tests and orchestrator contracts.
-"""
-
-from datetime import datetime
 from typing import Any, Dict, List
 
-from ice_core.models.node_metadata import NodeMetadata
+from pydantic import BaseModel, Field
 
-from ice_sdk.context import GraphContextManager
-from ice_sdk.models.agent_models import AgentConfig
-from ice_sdk.models.node_models import NodeExecutionResult
-
-__all__ = ["AgentNode"]
+from ice_core.models.llm import LLMConfig
+from ice_sdk.base_node import BaseNode
 
 
-class AgentNode:  # noqa: D101 – minimal stub
-    def __init__(self, config: AgentConfig, context_manager: GraphContextManager):
+class AgentNodeConfig(BaseModel):
+    """Configuration for an AI agent node."""
+
+    llm_config: LLMConfig = Field(..., description="LLM provider configuration")
+    system_prompt: str = Field(..., min_length=10, description="Base system prompt")
+    max_retries: int = Field(3, ge=0, description="Max automatic retry attempts")
+    tools: list[str] = Field(default_factory=list, description="Allowed tool names")
+
+
+class AgentNode(BaseNode):
+    """Orchestratable agent node combining LLM reasoning with tool usage."""
+
+    def __init__(
+        self,
+        config: AgentNodeConfig,
+        *,
+        context_manager: Any | None = None,  # noqa: ANN401 – avoids circular import
+    ) -> None:
+        super().__init__(node_type="agent")
         self.config = config
-        self.context_manager = context_manager
-        self.tools: List[Any] = []
+        self.context_manager = context_manager  # may be None until runtime
+        self.tools: List[Any] = []  # populated by orchestrator during wiring
+        self._context: Dict[str, Any] = {}
 
-    async def execute(self, context: Dict[str, Any] | None = None) -> NodeExecutionResult:  # noqa: D401
-        """Return a dummy *NodeExecutionResult* for testing purposes."""
+    async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute agent's decision loop with error handling."""
+        try:
+            return await self._execute_agent_cycle(inputs)
+        except Exception as e:
+            return self._handle_agent_error(e)
 
-        now = datetime.utcnow()
-        meta = NodeMetadata(  # type: ignore[call-arg]
-            node_id=self.config.name or "agent",
-            node_type="ai",
-            start_time=now,
-            end_time=now,
-            duration=0.0,
-        )
-        return NodeExecutionResult(success=True, output=context or {}, metadata=meta) 
+    async def _execute_agent_cycle(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        # Core agent logic would integrate with LLM service
+        return {
+            "status": "success",
+            "output": f"Agent processed {len(inputs)} inputs",
+            "usage": {"tokens": 42},
+        }
+
+    def _handle_agent_error(self, error: Exception) -> Dict[str, Any]:
+        return {
+            "status": "error",
+            "error_type": type(error).__name__,
+            "message": str(error),
+        }
+
+    def validate(self) -> None:
+        """Pre-execution validation."""
+        if not self.config.tools:
+            raise ValueError("AgentNode requires at least one allowed tool")

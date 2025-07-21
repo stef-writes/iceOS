@@ -44,7 +44,7 @@ class RuntimeConfig(BaseModel):
     # ------------------------------------------------------------------
 
     @property
-    def testing_mode(self) -> bool:  # noqa: D401 – convenience accessor
+    def testing_mode(self) -> bool:  # – convenience accessor
         """Return *True* when the test-suite runs with ``ICE_TESTING=1``.
 
         Having a single feature flag makes it easy for skills and services to

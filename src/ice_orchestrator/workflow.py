@@ -12,11 +12,19 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
-from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
-import ice_orchestrator.execution.executors  # noqa: F401 – side-effect import registers built-in executors
+from ice_core.models import (
+    ChainExecutionResult,
+    ConditionNodeConfig,
+    LLMOperatorConfig,
+    NestedChainConfig,
+    NodeConfig,
+    NodeExecutionResult,
+)
+from ice_core.models.node_models import NodeMetadata
+from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy
 from ice_orchestrator.core import ChainFactory
 from ice_orchestrator.execution.agent_factory import AgentFactory
@@ -32,15 +40,6 @@ from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 from ice_sdk.agents import AgentNode
 from ice_sdk.config import runtime_config
 from ice_sdk.context import GraphContextManager
-from ice_core.models import (
-    ChainExecutionResult,
-    ConditionNodeConfig,
-    LLMOperatorConfig,
-    NestedChainConfig,
-    NodeConfig,
-    NodeExecutionResult,
-    NodeMetadata,
-)
 from ice_sdk.services.locator import get_workflow_proto
 from ice_sdk.skills.base import SkillBase
 
@@ -447,7 +446,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 # Preserve explicit mappings when keys overlap ----------------
                 merged = {**current_ctx.metadata, **node_ctx}
                 return merged
-        except Exception:  # noqa: BLE001 – never break execution due to ctx issues
+        except Exception:  # – never break execution due to ctx issues
             pass
 
         return node_ctx
@@ -576,7 +575,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
     # Composition helper -------------------------------------------------
     # -------------------------------------------------------------------
 
-    def as_nested_node(  # noqa: D401 – helper name
+    def as_nested_node(  # – helper name
         self,
         id: str | None = None,
         *,

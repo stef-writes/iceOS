@@ -16,7 +16,7 @@ class SleepSkill(SkillBase):
     description: str = "Pause execution for a number of seconds"
     tags: ClassVar[list[str]] = ["utility", "time"]
 
-    def get_required_config(self) -> list[str]:  # noqa: D401
+    def get_required_config(self) -> list[str]:
         return []
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:

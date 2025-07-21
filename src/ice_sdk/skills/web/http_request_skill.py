@@ -42,7 +42,7 @@ class HttpRequestSkill(SkillBase):
 
     model_config = ConfigDict(extra="allow")
 
-    def __init__(self) -> None:  # noqa: D401 – simple constructor
+    def __init__(self) -> None:  # – simple constructor
         super().__init__()
         # Ensure *config* is present on the instance even if Pydantic strips
         # class-level defaults under certain validation modes.
@@ -52,7 +52,7 @@ class HttpRequestSkill(SkillBase):
     # ---------------------------------------------------------------------
     # Required config keys
     # ---------------------------------------------------------------------
-    def get_required_config(self) -> HttpRequestConfig:  # noqa: D401
+    def get_required_config(self) -> HttpRequestConfig:
         """Return the minimal configuration required by this skill."""
         return self.config
 

@@ -17,4 +17,4 @@ __all__: list[str] = [
     "exceptions",
 ]
 
-from . import exceptions  # noqa: E402, F401 import after __all__ definition
+from . import exceptions  # import after __all__ definition

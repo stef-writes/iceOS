@@ -19,15 +19,14 @@ def _get_module(obj: _T) -> ModuleType:  # pragma: no cover – trivial helper
 
 
 @overload
-def public(obj: _T) -> _T:  # noqa: D401
-    ...
+def public(obj: _T) -> _T: ...
 
 
 @overload
 def public(*, name: str | None = None) -> Callable[[_T], _T]: ...
 
 
-def public(obj: _T | None = None, *, name: str | None = None):  # type: ignore[override]
+def public(obj: _T | None = None, *, name: str | None = None):
     """Mark *obj* as part of the public API of its defining module."""
 
     def _decorator(target: _T) -> _T:

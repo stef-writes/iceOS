@@ -60,14 +60,12 @@ class NodeMetadata(BaseModel):
 
     @model_validator(mode="before")  # type: ignore[override]
     @classmethod
-    def _set_modified_at(
-        cls, values: Dict[str, Any]
-    ) -> Dict[str, Any]:  # noqa: D401 – validator
+    def _set_modified_at(cls, values: Dict[str, Any]) -> Dict[str, Any]:  # – validator
         values["modified_at"] = datetime.utcnow()
         return values
 
     @model_validator(mode="after")  # type: ignore[override]
-    def _set_duration(self) -> "NodeMetadata":  # noqa: D401 – validator
+    def _set_duration(self) -> "NodeMetadata":  # – validator
         if self.start_time and self.end_time and self.duration is None:
             self.duration = (self.end_time - self.start_time).total_seconds()
         elif self.start_time and self.duration is not None and self.end_time is None:
@@ -81,7 +79,7 @@ class NodeMetadata(BaseModel):
     # ------------------------------------------------------------------
 
     @model_validator(mode="after")  # type: ignore[override]
-    def _ensure_description_tags(self) -> "NodeMetadata":  # noqa: D401 – validator
+    def _ensure_description_tags(self) -> "NodeMetadata":  # – validator
         if not self.description or not self.description.strip():
             self.description = f"Node {self.node_id} (type={self.node_type})"
         if not self.tags:

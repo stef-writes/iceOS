@@ -56,7 +56,7 @@ class TextProcessor(BaseModel):  # type: ignore[misc]
     # ------------------------------------------------------------------
     # Public helpers ----------------------------------------------------
     # ------------------------------------------------------------------
-    def extract_text(self, file_path: Path) -> str:  # noqa: D401
+    def extract_text(self, file_path: Path) -> str:
         """Return UTF-8 text extracted from *file_path*.
 
         Supported formats (auto-detected by extension):
@@ -79,7 +79,7 @@ class TextProcessor(BaseModel):  # type: ignore[misc]
         text: str,
         chunk_size: int | None = None,
         chunk_overlap: int | None = None,
-    ) -> List[str]:  # noqa: D401
+    ) -> List[str]:
         """Deterministically split *text* into overlapping chunks."""
 
         size = chunk_size or self.default_chunk_size
@@ -108,7 +108,7 @@ class TextProcessor(BaseModel):  # type: ignore[misc]
     # Internal helpers --------------------------------------------------
     # ------------------------------------------------------------------
     @staticmethod
-    def _extract_pdf(file_path: Path) -> str:  # noqa: D401
+    def _extract_pdf(file_path: Path) -> str:
         try:
             import pypdf  # type: ignore
         except ImportError as exc:
@@ -125,7 +125,7 @@ class TextProcessor(BaseModel):  # type: ignore[misc]
         return text_io.getvalue()
 
     @staticmethod
-    def _extract_docx(file_path: Path) -> str:  # noqa: D401
+    def _extract_docx(file_path: Path) -> str:
         try:
             import docx  # type: ignore
         except ImportError as exc:

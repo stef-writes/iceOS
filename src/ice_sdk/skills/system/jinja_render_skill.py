@@ -16,11 +16,11 @@ class JinjaRenderSkill(SkillBase):
     description: str = "Render a Jinja2 template with variables."
     tags: List[str] = ["jinja", "template", "utility"]
 
-    def get_required_config(self) -> list[str]:  # noqa: D401
+    def get_required_config(self) -> list[str]:
         return []
 
     @staticmethod
-    def _render_with_jinja(template_str: str, ctx: Dict[str, Any]) -> str:  # noqa: D401
+    def _render_with_jinja(template_str: str, ctx: Dict[str, Any]) -> str:
         try:
             jinja2 = importlib.import_module("jinja2")  # type: ignore
             env = jinja2.Environment(autoescape=True)
@@ -38,7 +38,7 @@ class JinjaRenderSkill(SkillBase):
         except ModuleNotFoundError:
             try:
                 return template_str.format(**ctx)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 raise SkillExecutionError(f"Template rendering failed: {exc}") from exc
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:

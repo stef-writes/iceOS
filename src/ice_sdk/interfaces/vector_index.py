@@ -15,8 +15,7 @@ class IVectorIndex(Protocol):
         *,
         model_version: str,
         dedup: bool = False,
-    ) -> None:  # noqa: D401
-        ...
+    ) -> None: ...
 
     async def query(
         self,
@@ -25,5 +24,4 @@ class IVectorIndex(Protocol):
         *,
         k: int = 5,
         filter: Dict[str, Any] | None = None,
-    ) -> List[Tuple[str, float]]:  # noqa: D401
-        ...
+    ) -> List[Tuple[str, float]]: ...

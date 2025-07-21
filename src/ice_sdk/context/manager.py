@@ -16,11 +16,7 @@ from ice_sdk.skills.service import ToolRequest, ToolService
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
-from .memory import (  # noqa: F401 – optional adapter
-    BaseMemory,
-    NullMemory,
-    SQLiteVectorMemory,
-)
+from .memory import BaseMemory, SQLiteVectorMemory  # – optional adapter
 from .store import ContextStore
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -97,7 +93,7 @@ class GraphContextManager:
         try:
             # Scan from CWD – assumes chains/nodes/tools live under workspace.
             self.tool_service.discover_and_register(Path.cwd())
-        except Exception:  # noqa: BLE001 – best-effort, never hard-fail
+        except Exception:  # – best-effort, never hard-fail
             # Any import error is logged inside ToolService; we silently
             # continue so orchestrator startup is resilient.
             pass
@@ -407,7 +403,7 @@ class GraphContextManager:
                     content, schema=schema, max_tokens=effective_max_tokens
                 )
                 return summary
-            except Exception:  # noqa: BLE001
+            except Exception:
                 # Fall back to plain truncation when summarisation unavailable
                 return self.smart_context_compression(
                     content,

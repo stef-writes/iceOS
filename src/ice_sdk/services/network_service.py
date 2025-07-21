@@ -4,7 +4,6 @@ from typing import List, Optional
 
 from ice_core.exceptions import SpecConflictError
 from ice_core.services.contracts import NetworkStorage
-
 from ice_sdk.models.network import NetworkSpec, NetworkValidationError
 from ice_sdk.utils.retry import async_retry
 
@@ -28,10 +27,10 @@ class NetworkService:
                 async def get(self, spec_id: str) -> Optional[dict]:
                     return self._data.get(spec_id)
 
-                async def put(self, spec_id: str, spec: dict) -> None:  # noqa: D401
+                async def put(self, spec_id: str, spec: dict) -> None:
                     self._data[spec_id] = spec
 
-                async def query(self, filter: str = "") -> List[dict]:  # noqa: D401
+                async def query(self, filter: str = "") -> List[dict]:
                     if not filter:
                         return list(self._data.values())
                     return [v for v in self._data.values() if filter in v.get("name", "")]  # type: ignore[arg-type]
@@ -65,4 +64,4 @@ class NetworkService:
         """Return NetworkSpec objects matching *filter* (simple contains)."""
 
         raw_specs = await self._storage.query(filter)
-        return [NetworkSpec(**s) for s in raw_specs] 
+        return [NetworkSpec(**s) for s in raw_specs]

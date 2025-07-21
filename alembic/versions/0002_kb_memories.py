@@ -14,10 +14,10 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade() -> None:  # noqa: D401
+def upgrade() -> None:
     # Delegated to automatic create_all in dev/test; production will autogenerate.
     pass
 
 
-def downgrade() -> None:  # noqa: D401
+def downgrade() -> None:
     pass

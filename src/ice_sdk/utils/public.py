@@ -8,6 +8,6 @@ changes until the next major version.
 
 from __future__ import annotations
 
-from ice_core.utils.meta import public  # noqa: F401
+from ice_core.utils.meta import public
 
 __all__: list[str] = ["public"]

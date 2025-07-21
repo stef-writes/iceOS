@@ -38,7 +38,7 @@ def file_has_header(path: Path, needle: str, max_lines: int) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def build_parser() -> argparse.ArgumentParser:  # noqa: D401
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="License header checker")
     parser.add_argument(
         "--license-string",

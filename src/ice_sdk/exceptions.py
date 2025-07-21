@@ -14,9 +14,7 @@ from enum import IntEnum
 from typing import Any, Optional
 
 # Re-export core-level security error to avoid cross-layer import in lower packages
-from ice_core.exceptions import (  # noqa: E402
-    SecurityViolationError as _CoreSecurityViolationError,
-)
+from ice_core.exceptions import SecurityViolationError as _CoreSecurityViolationError
 
 __all__ = [
     "ErrorCode",
@@ -37,7 +35,7 @@ class ErrorCode(IntEnum):
     # Generic fall-back
     UNKNOWN = 9000
 
-    def describe(self) -> str:  # noqa: D401
+    def describe(self) -> str:
         """Return human-readable description."""
         mapping = {
             ErrorCode.CYCLIC_TOOL_COMPOSITION: "Cyclic tool/agent invocation detected",
@@ -87,7 +85,7 @@ class CycleDetectionError(CoreError):
 class LayerViolationError(CoreError):
     """Raised when lower-layer code imports or uses forbidden higher-layer modules."""
 
-    def __init__(self, message: str):  # noqa: D401 – thin wrapper
+    def __init__(self, message: str):  # – thin wrapper
         super().__init__(ErrorCode.LAYER_VIOLATION, message)
 
 

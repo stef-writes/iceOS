@@ -7,8 +7,9 @@ from pydantic import BaseModel, Field, field_validator
 
 from ice_core.models.llm import LLMConfig, ModelProvider
 from ice_sdk.providers.llm_service import LLMService
-from ..base import SkillBase
+
 from ...utils.errors import SkillExecutionError
+from ..base import SkillBase
 
 
 class SummarizerInput(BaseModel):
@@ -18,7 +19,9 @@ class SummarizerInput(BaseModel):
     string (which is convenient when passed through template placeholders).
     """
 
-    rows: Union[List[Dict[str, Any]], str] = Field(..., description="Rows as list or JSON")
+    rows: Union[List[Dict[str, Any]], str] = Field(
+        ..., description="Rows as list or JSON"
+    )
     max_summary_tokens: int = Field(128, ge=16, le=1024)
 
     @field_validator("rows")
@@ -26,6 +29,7 @@ class SummarizerInput(BaseModel):
     def parse_rows(cls, value):
         if isinstance(value, str):
             import json
+
             return json.loads(value)
         return value
 
@@ -52,7 +56,7 @@ class SummarizerSkill(SkillBase):
     InputModel: type[BaseModel] = SummarizerInput  # type: ignore[assignment]
     OutputModel: type[BaseModel] = SummarizerOutput  # type: ignore[assignment]
 
-    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # noqa: D401
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         try:
             inp = self.InputModel(**kwargs)
         except Exception as exc:
@@ -110,4 +114,4 @@ class SummarizerSkill(SkillBase):
         if err:
             raise SkillExecutionError(f"LLM summarization failed: {err}")
 
-        return {"summary": text.strip()} 
+        return {"summary": text.strip()}

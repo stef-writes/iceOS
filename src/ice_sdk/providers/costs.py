@@ -127,9 +127,9 @@ class CostTracker:
     # ------------------------------------------------------------------
 
     @classmethod
-    def start_span(cls, _name: str) -> None:  # noqa: D401 – metric helper
+    def start_span(cls, _name: str) -> None:  # – metric helper
         """Begin a logical cost span (no-op placeholder)."""
 
     @classmethod
-    def end_span(cls, *, success: bool, error: str | None = None) -> None:  # noqa: D401
+    def end_span(cls, *, success: bool, error: str | None = None) -> None:
         """Finish a cost span – collects nothing for now."""

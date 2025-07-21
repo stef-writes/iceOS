@@ -24,8 +24,8 @@ from typing import Dict, Type
 
 from pydantic import BaseModel  # type: ignore
 
-from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
 from ice_core.models import LLMOperatorConfig, SkillNodeConfig, ToolConfig
+from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -51,7 +51,7 @@ MODELS: Dict[str, Type[BaseModel]] = {
 # ---------------------------------------------------------------------------
 
 
-def _dump_schema(model: Type[BaseModel], out_path: pathlib.Path) -> None:  # noqa: D401
+def _dump_schema(model: Type[BaseModel], out_path: pathlib.Path) -> None:
     """Write the JSON schema of *model* to *out_path*."""
 
     # Pydantic ≥ 2.6 supports the ``mode`` kwarg. We detect support dynamically
@@ -70,7 +70,7 @@ def _dump_schema(model: Type[BaseModel], out_path: pathlib.Path) -> None:  # noq
 # ---------------------------------------------------------------------------
 
 
-def build_arg_parser() -> argparse.ArgumentParser:  # noqa: D401
+def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Export JSON schemas for public Pydantic models.",
     )
@@ -83,7 +83,7 @@ def build_arg_parser() -> argparse.ArgumentParser:  # noqa: D401
     return parser
 
 
-def main() -> None:  # noqa: D401 (imperative mood)
+def main() -> None:  # (imperative mood)
     parser = build_arg_parser()
     args = parser.parse_args()
 

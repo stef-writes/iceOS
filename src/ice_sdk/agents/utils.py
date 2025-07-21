@@ -16,7 +16,7 @@ __all__: list[str] = ["extract_json"]
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE | re.DOTALL)
 
 
-def extract_json(raw: str) -> Dict[str, Any]:  # noqa: D401 – util name
+def extract_json(raw: str) -> Dict[str, Any]:  # – util name
     """Return ``dict`` parsed from *raw* string.
 
     The helper tolerates common LLM quirks:
@@ -35,7 +35,7 @@ def extract_json(raw: str) -> Dict[str, Any]:  # noqa: D401 – util name
 # ---------------------------------------------------------------------------
 
 
-def parse_llm_outline(raw: str) -> Dict[str, str]:  # noqa: D401 – util name
+def parse_llm_outline(raw: str) -> Dict[str, str]:  # – util name
     """Return a dict with a single ``outline`` key extracted from *raw*.
 
     The helper is intentionally *forgiving* because LLMs often deviate from
@@ -64,4 +64,4 @@ def parse_llm_outline(raw: str) -> Dict[str, str]:  # noqa: D401 – util name
 
 
 # Public re-export -----------------------------------------------------------
-__all__.append("parse_llm_outline") 
+__all__.append("parse_llm_outline")

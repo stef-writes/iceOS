@@ -1,4 +1,4 @@
-# noqa: D400, D401 – docstrings kept minimal for internal module
+# – docstrings kept minimal for internal module
 from __future__ import annotations
 
 import asyncio
@@ -44,7 +44,7 @@ class GraphContextManager(_SyncGraphContextManager):
     concurrent code.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401, ANN401
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._async_lock: asyncio.Lock = asyncio.Lock()
         # branch_id -> BranchContext
@@ -55,7 +55,7 @@ class GraphContextManager(_SyncGraphContextManager):
     # ---------------------------------------------------------------------
 
     # Internal ------------------------------------------------------------
-    def _ensure_branch_context(self, branch_id: str) -> BranchContext:  # noqa: D401
+    def _ensure_branch_context(self, branch_id: str) -> BranchContext:
         """Return existing branch context or create a new one *without* touching
         the external async lock.
 
@@ -75,7 +75,7 @@ class GraphContextManager(_SyncGraphContextManager):
         return self._branch_stores[branch_id]
 
     # Public --------------------------------------------------------------
-    async def get_branch_context(self, branch_id: str) -> BranchContext:  # noqa: D401
+    async def get_branch_context(self, branch_id: str) -> BranchContext:
         """Return – and lazily create – the branch-isolated context."""
         async with self._async_lock:
             return self._ensure_branch_context(branch_id)

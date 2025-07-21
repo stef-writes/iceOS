@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from ice_core.models.workflow import SubDAGResult
 from pydantic import Field
 
+from ice_core.models.workflow import SubDAGResult
 from ice_sdk.models.agent_params import AgentParams
 from ice_sdk.services.locator import get_workflow_proto
 from ice_sdk.skills.base import SkillBase
@@ -28,7 +28,7 @@ class AgentSkill(SkillBase):
     # Replace generic *dict* parameters with strongly-typed schema
     parameters: AgentParams = Field(..., description="Agent runtime parameters")
 
-    class Meta:  # noqa: D401 – metadata container
+    class Meta:  # – metadata container
         node_subtype: str = "agent"
         commercializable: bool = True
 
@@ -56,7 +56,7 @@ class AgentSkill(SkillBase):
         ).model_dump()  # return as dict for SDK compatibility
 
     # Optional explicit validate hook (idempotent)
-    def validate(self) -> None:  # noqa: D401 – public API
+    def validate(self) -> None:  # – public API
         """Validate inner workflow before execution."""
 
         workflow_cls = get_workflow_proto()

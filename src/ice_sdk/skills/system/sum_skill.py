@@ -19,7 +19,7 @@ class SumSkill(SkillBase):
     # Allow tests to monkey-patch attributes like *execute* at runtime
     model_config: ClassVar[ConfigDict] = ConfigDict(extra="allow")
 
-    def __init__(self) -> None:  # noqa: D401
+    def __init__(self) -> None:
         super().__init__()
         # Guarantee presence of id attributes for wrappers/tests
         object.__setattr__(self, "name", "sum")
@@ -27,7 +27,7 @@ class SumSkill(SkillBase):
             self, "description", "Add a list of numbers and return the total"
         )
 
-    def get_required_config(self) -> list[str]:  # noqa: D401
+    def get_required_config(self) -> list[str]:
         return []
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:

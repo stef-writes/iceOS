@@ -11,7 +11,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models.node_models import NodeConfig
 
 
-class SchemaValidator:  # noqa: D101 – internal utility
+class SchemaValidator:  # – internal utility
     """Validates node outputs against declared schemas."""
 
     @staticmethod
@@ -72,7 +72,7 @@ class SchemaValidator:  # noqa: D101 – internal utility
                 if isinstance(expected, str):
                     try:
                         normalized_schema[key] = eval(expected)
-                    except Exception:  # noqa: S110
+                    except Exception:
                         # Fallback to 'Any' when type string cannot be resolved
                         from typing import Any  # local import to avoid top-level
 

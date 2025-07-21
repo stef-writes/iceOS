@@ -32,9 +32,7 @@ if str(SRC_PATH) in sys.path:
 # Run the marketing demo as a real consumer would
 # ---------------------------------------------------------------------------
 
-from samples.marketing_chain import (  # noqa: E402  – after sys.path fix
-    create_marketing_chain,
-)
+from samples.marketing_chain import create_marketing_chain  # – after sys.path fix
 
 chain = create_marketing_chain()
 

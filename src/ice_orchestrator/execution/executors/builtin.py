@@ -12,21 +12,21 @@ import re
 from datetime import datetime
 from typing import Any, Dict, TypeAlias
 
-# NOTE: use AgentNode from ice_sdk and WorkflowLike alias
-from ice_sdk import AgentNode
-from ice_sdk.interfaces.chain import WorkflowLike as _WorkflowLike
-from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 from ice_core.models import (
     LLMOperatorConfig,
     NodeConfig,
     NodeExecutionResult,
-    NodeMetadata,
     SkillNodeConfig,
-    NestedChainConfig,
 )
+from ice_core.models.node_models import NestedChainConfig, NodeMetadata
+
+# NOTE: use AgentNode from ice_sdk and WorkflowLike alias
+from ice_sdk import AgentNode
+from ice_sdk.interfaces.chain import WorkflowLike as _WorkflowLike
+from ice_sdk.models.agent_models import AgentConfig, ModelSettings
 from ice_sdk.registry.node import register_node
-from ice_sdk.utils.prompt_renderer import render_prompt
 from ice_sdk.skills import SkillBase
+from ice_sdk.utils.prompt_renderer import render_prompt
 
 # Alias used in annotations locally ------------------------------------------
 ScriptChain: TypeAlias = _WorkflowLike
@@ -146,7 +146,20 @@ async def ai_executor(  # type: ignore[type-var]
     cfg.prompt = rendered_prompt  # type: ignore[assignment]
 
     agent = _build_agent(chain, cfg)
-    return await agent.execute(ctx)
+    ai_output = await agent.execute(ctx)
+
+    return NodeExecutionResult(  # type: ignore[call-arg]
+        success=True,
+        output=ai_output,
+        metadata=NodeMetadata(
+            node_id=cfg.id,
+            node_type="llm",
+            name=cfg.name,
+            start_time=datetime.utcnow(),
+            end_time=datetime.utcnow(),
+        ),
+        execution_time=0.0,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +177,7 @@ async def tool_executor(  # type: ignore[type-var]
     if not isinstance(cfg, SkillNodeConfig):
         raise TypeError("tool_executor received incompatible cfg type")
 
-    def _apply_ctx(value: Any) -> Any:  # noqa: D401 – helper
+    def _apply_ctx(value: Any) -> Any:  # – helper
         """Recursively substitute `{key}` placeholders using *ctx*."""
         if isinstance(value, str):
             try:
@@ -214,10 +227,6 @@ async def nested_chain_executor(
     Input mappings are handled upstream by :class:`ScriptChain`; *ctx* is
     therefore the fully-rendered input for the child chain.
     """
-
-    from ice_core.models import (  # local import to avoid cycle
-        NestedChainConfig,
-    )
 
     if not isinstance(cfg, NestedChainConfig):
         raise TypeError("nested_chain_executor received incompatible cfg type")
@@ -284,4 +293,4 @@ async def nested_chain_executor(
         ),
         execution_time=child_result.execution_time,
     )
-    return result 
+    return result

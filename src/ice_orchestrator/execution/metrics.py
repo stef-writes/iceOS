@@ -19,7 +19,7 @@ class ChainMetrics(BaseModel):
     node_metrics: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     subdag_execution_time: float = 0.0
 
-    def update(self, node_id: str, result: "NodeExecutionResult") -> None:  # noqa: F821
+    def update(self, node_id: str, result: "NodeExecutionResult") -> None:
         """Merge *result.usage* stats into cumulative metrics.
 
         The method is intentionally tolerant: when *result.usage* is missing or

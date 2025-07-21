@@ -19,7 +19,7 @@ except ImportError:  # pragma: no cover
     yaml = None  # Will skip YAML files if PyYAML missing.
 
 # NEW: Try importing commentjson for JSONC support.
-try:  # noqa: WPS229 – nested try for optional import
+try:  # – nested try for optional import
     import commentjson  # type: ignore
 except ImportError:  # pragma: no cover – optional dependency
     commentjson = None  # type: ignore
@@ -61,7 +61,7 @@ def check_yaml(path: Path) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def build_parser() -> argparse.ArgumentParser:  # noqa: D401
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Syntax check for JSON/YAML files.")
     parser.add_argument(
         "--patterns",

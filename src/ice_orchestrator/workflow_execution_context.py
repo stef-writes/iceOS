@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# ruff: noqa: E402
+
 """WorkflowExecutionContext relocated from *ice_sdk.orchestrator*.
 
 No behavioural changes; path-only refactor.
@@ -11,10 +13,7 @@ from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 
 class _BulkSaveProtocol(Protocol):  # pragma: no cover – duck-typing helper
-    async def bulk_save(
-        self, data: List[Tuple[str, Dict[str, Any]]]
-    ) -> None:  # noqa: D401
-        ...
+    async def bulk_save(self, data: List[Tuple[str, Dict[str, Any]]]) -> None: ...
 
 
 class WorkflowExecutionContext:
@@ -80,4 +79,4 @@ class WorkflowExecutionContext:
                     "user_preferences",
                 }
             },
-        } 
+        }

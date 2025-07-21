@@ -21,22 +21,22 @@ class SessionState:
     # ------------------------------------------------------------------
     # Conversation helpers
     # ------------------------------------------------------------------
-    def add_message(self, role: str, content: str) -> None:  # noqa: D401
+    def add_message(self, role: str, content: str) -> None:
         self.conversation_history.append({"role": role, "content": content})
 
     # ------------------------------------------------------------------
     # Output helpers
     # ------------------------------------------------------------------
-    def set_output(self, source: str, output: Any) -> None:  # noqa: D401
+    def set_output(self, source: str, output: Any) -> None:
         self.last_outputs[source] = output
 
-    def get_output(self, source: str, default: Any = None) -> Any:  # noqa: D401
+    def get_output(self, source: str, default: Any = None) -> Any:
         return self.last_outputs.get(source, default)
 
     # ------------------------------------------------------------------
     # Pickle / dict helpers for persistence
     # ------------------------------------------------------------------
-    def to_dict(self) -> Dict[str, Any]:  # noqa: D401
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "session_id": self.session_id,
             "created_at": self.created_at.isoformat(),
@@ -46,7 +46,7 @@ class SessionState:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SessionState":  # noqa: D401
+    def from_dict(cls, data: Dict[str, Any]) -> "SessionState":
         obj = cls(
             data["session_id"], created_at=datetime.fromisoformat(data["created_at"])
         )

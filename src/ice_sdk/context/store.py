@@ -21,7 +21,7 @@ except ModuleNotFoundError:  # pragma: no cover – Windows compatibility
         LOCK_SH = LOCK_EX = LOCK_UN = 0
 
         @staticmethod
-        def flock(fd: int, op: int) -> None:  # noqa: D401 – mimic fcntl API
+        def flock(fd: int, op: int) -> None:  # – mimic fcntl API
             """No-op flock replacement – file locking is skipped on Windows."""
 
     fcntl = _FcntlStub()  # type: ignore
