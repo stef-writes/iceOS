@@ -1,0 +1,6 @@
+Item_ID,Name,Description,Category,Brand,Condition,Qty,Unit_Price,Original_Price,Discount,Image_URL,Location,Ready_For_Listing,Notes
+00123,2x4 Pressure-Treated Lumber,"8ft long, suitable for decks and framing",Lumber,YellaWood,New,125,4.25,6.0,29%,http://img.com/lumber_00123.jpg,"Pittsburgh, PA",True,Overstock from Q2 bulk order
+00124,Vinyl Window - 36x48,"Double-pane, white frame",Windows,Simonton,Like New,14,95.0,160.0,41%,http://img.com/window_00124.jpg,"Pittsburgh, PA",True,Ordered in wrong size
+00125,"Bathroom Vanity - 30""",White cabinet w/ sink top (slight scratch),Fixtures,Glacier Bay,Used,3,60.0,130.0,54%,http://img.com/vanity_00125.jpg,"Pittsburgh, PA",True,Display model clearance
+00126,Roofing Shingles (Bundle),"3-tab asphalt, dark gray",Roofing,GAF,New,48,24.0,33.0,27%,http://img.com/shingles_00126.jpg,"Pittsburgh, PA",False,Hold for internal use
+00127,Tile – 12x12 Ceramic,"Beige matte, 20 tiles/box (5 sqft)",Flooring,Daltile,New,87,12.0,18.0,33%,http://img.com/tile_00127.jpg,"Pittsburgh, PA",True,Clearance stock

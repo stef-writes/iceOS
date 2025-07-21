@@ -1,7 +1,7 @@
 import pytest
-
 from ice_core.models.model_registry import get_default_model_id
-from ice_orchestrator.workflow import ScriptChain
+
+from ice_orchestrator.workflow import Workflow
 from ice_sdk.models.node_models import LLMOperatorConfig
 
 
@@ -19,7 +19,7 @@ async def test_prompt_placeholder_validation():
         dependencies=[],
     )
 
-    chain = ScriptChain(
+    chain = Workflow(
         nodes=[node],
         name="invalid",
         persist_intermediate_outputs=False,

@@ -17,7 +17,11 @@ from __future__ import annotations
 
 from typing import Dict
 
-from ice_sdk.interfaces.chain import ScriptChainLike
+# NOTE: Use WorkflowLike alias; ScriptChainLike deprecated
+from ice_sdk.interfaces.chain import WorkflowLike as _WorkflowLike
+
+# Backwards-compat alias until callers updated
+ScriptChainLike = _WorkflowLike
 
 # ---------------------------------------------------------------------------
 # In-memory registry ---------------------------------------------------------

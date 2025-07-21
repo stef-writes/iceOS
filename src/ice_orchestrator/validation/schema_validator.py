@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_sdk.models.node_models import NodeConfig
+    from ice_core.models.node_models import NodeConfig
 
 
 class SchemaValidator:  # noqa: D101 – internal utility

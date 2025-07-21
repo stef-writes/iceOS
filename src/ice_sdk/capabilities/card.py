@@ -97,7 +97,7 @@ class CapabilityCard(BaseModel):
 
     @classmethod
     def from_tool_cls(cls, tool_cls: Type[SkillBase]) -> "CapabilityCard":
-        """Create a *CapabilityCard* from a ``BaseTool`` subclass."""
+        """Create a *CapabilityCard* from a ``SkillBase`` subclass."""
 
         return cls(
             id=tool_cls.name,

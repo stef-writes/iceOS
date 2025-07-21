@@ -28,7 +28,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict
 
-from ice_orchestrator.workflow import ScriptChain
+# Runtime import for modern Workflow class (used under legacy name ScriptChain)
+from ice_orchestrator.workflow import Workflow
 from ice_sdk.context import GraphContextManager
 
 # ---------------------------------------------------------------------------
@@ -50,20 +51,20 @@ def _load_module_from_path(path: Path) -> ModuleType:
     return module
 
 
-def _load_chain(path: Path) -> ScriptChain:
+def _load_chain(path: Path) -> Workflow:
     mod = _load_module_from_path(path)
 
-    if hasattr(mod, "chain") and isinstance(mod.chain, ScriptChain):  # type: ignore[attr-defined]
+    if hasattr(mod, "chain") and isinstance(mod.chain, Workflow):  # type: ignore[attr-defined]
         return mod.chain  # type: ignore[attr-return-value]
     if hasattr(mod, "get_chain") and callable(mod.get_chain):  # type: ignore[attr-defined]
         chain = mod.get_chain()
-        if isinstance(chain, ScriptChain):
+        if isinstance(chain, Workflow):
             return chain
-    # Fall back – scan for ScriptChain instances in globals
+    # Fall back – scan for Workflow instances in globals
     for value in mod.__dict__.values():
-        if isinstance(value, ScriptChain):
+        if isinstance(value, Workflow):
             return value
-    raise ValueError("No ScriptChain instance found in module")
+    raise ValueError("No Workflow instance found in module")
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +73,7 @@ def _load_chain(path: Path) -> ScriptChain:
 
 
 def _collect_run_data(
-    chain: ScriptChain, result: Any
+    chain: Workflow, result: Any
 ) -> Dict[str, Any]:  # noqa: ANN401 – free-form dict
     ctx_mgr: GraphContextManager = chain.context_manager
 

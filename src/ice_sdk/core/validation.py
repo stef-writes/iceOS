@@ -11,7 +11,10 @@ pure Python with no network / file IO.
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Type
+from typing import TYPE_CHECKING, Any, Dict, Mapping, Type
+
+if TYPE_CHECKING:  # pragma: no cover – import only for type checkers & linters
+    from ice_core.models.node_models import NodeConfig
 
 from pydantic import BaseModel, ValidationError
 
@@ -101,3 +104,19 @@ def validate_or_raise(data: Any, schema: Any | None = None) -> None:  # noqa: D4
     raise TypeError(
         "Unsupported schema type for validate_or_raise: " f"{type(schema).__name__}"
     )
+
+
+def validate_io(
+    node: "NodeConfig", inputs: Dict[str, Any], outputs: Dict[str, Any]
+) -> None:
+    # Input validation
+    for key, schema in node.input_schema.items():
+        actual = inputs.get(key)
+        if not isinstance(actual, schema):
+            raise TypeError(f"Input {key} expected {schema}, got {type(actual)}")
+
+    # Output validation
+    for key, schema in node.output_schema.items():
+        actual = outputs.get(key)
+        if not isinstance(actual, schema):
+            raise TypeError(f"Output {key} expected {schema}, got {type(actual)}")

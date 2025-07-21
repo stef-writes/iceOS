@@ -1,6 +1,5 @@
 """Context manager for graph execution."""
 
-import inspect
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -192,18 +191,23 @@ class GraphContextManager:
                 call_kwargs["ctx"] = ToolContext(**ctx_payload)  # type: ignore[arg-type]
 
                 try:
-                    if inspect.iscoroutinefunction(stateful_tool.run):  # type: ignore
-                        result = await stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                    result_obj = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+
+                    import inspect
+
+                    if inspect.isawaitable(result_obj):
+                        result = await result_obj  # type: ignore[assignment]
                     else:
-                        result = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                        result = result_obj  # type: ignore[assignment]
                 except TypeError as exc:
                     if "ctx" in str(exc):
                         # Retry without ctx when tool doesn't expect it ----
                         call_kwargs.pop("ctx", None)
-                        if inspect.iscoroutinefunction(stateful_tool.run):  # type: ignore
-                            result = await stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                        result_obj = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                        if inspect.isawaitable(result_obj):
+                            result = await result_obj  # type: ignore[assignment]
                         else:
-                            result = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                            result = result_obj  # type: ignore[assignment]
                     else:
                         raise
                 return result
@@ -238,7 +242,7 @@ class GraphContextManager:
             import json
 
             from ice_sdk.models.config import ModelProvider
-            from ice_sdk.runtime.token_counter import TokenCounter
+            from ice_sdk.utils.token_counter import TokenCounter
 
             if isinstance(content, str):
                 serialised = content
@@ -295,7 +299,8 @@ class GraphContextManager:
         them when necessary.  Non-string payloads are forwarded unchanged.
         """
         if isinstance(value, str) and self.formatter:
-            result = self.formatter.format(value, context=self)  # type: ignore[arg-type]
+            # Pass an empty rule object when formatting ad-hoc strings -------
+            result = self.formatter.format(value, rule="", format_specs=None)  # type: ignore[arg-type]
             import inspect
 
             if inspect.isawaitable(result):
@@ -371,7 +376,7 @@ class GraphContextManager:
 
         # Import token counter lazily to avoid heavy startup costs
         from ice_sdk.models.config import ModelProvider
-        from ice_sdk.runtime.token_counter import TokenCounter
+        from ice_sdk.utils.token_counter import TokenCounter
 
         def _estimate_tokens(text: str) -> int:
             """Return token estimate for *text* as *int*."""

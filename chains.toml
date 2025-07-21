@@ -1,3 +1,0 @@
-[ice.chains]
-essay = "demos/essay_writer/essay_chain.chain.py"
-demo_chain = "chains/demo_chain.chain.py"

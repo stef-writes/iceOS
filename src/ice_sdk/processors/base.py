@@ -31,8 +31,20 @@ class Node:  # noqa: D101 – legacy alias
 
 
 class Processor(Generic[C]):
-    """Base data transformation unit (generic over *config* type)."""
+    """Base data transformation unit (generic over *config* type).
 
+    Subclasses **must** override the class attribute ``name`` with a stable
+    identifier used for registry look-up.  A default empty string prevents
+    attribute-access errors during registration while still triggering
+    validation in :pymeth:`ProcessorRegistry.register`.
+    """
+
+    # Public identifier — overridden by concrete processors -----------------
+    name: str = ""
+
+    # Concrete configuration instance supplied by subclasses or dynamically
+    # injected by orchestration layers (e.g. CLI).  We only declare the
+    # attribute so that static type checkers recognise its existence.
     config: C  # type: ignore[assignment]
 
     def validate(self) -> bool:  # noqa: D401

@@ -1,7 +1,7 @@
 import pytest
+from ice_core.utils.coercion import coerce_types, coerce_value
 from pydantic import BaseModel
 
-from ice_core.utils.coercion import coerce_types, coerce_value
 from ice_sdk.core.validation import SchemaValidationError, validate_or_raise
 
 # ---------------------------------------------------------------------------

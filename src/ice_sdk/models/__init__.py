@@ -16,22 +16,21 @@ imports ``app.models.*`` keeps working *without* introducing a runtime
 
 from __future__ import annotations
 
+import importlib
 import sys
 
 # ---------------------------------------------------------------------------
-# Canonical model modules live locally in this package
+# Import canonical model definitions from *ice_core* -------------------------
 # ---------------------------------------------------------------------------
-from . import node_models as _node_models  # noqa: F401 (re-export)
+_node_models = importlib.import_module("ice_core.models.node_models")
 
-# Re-export their public symbols at package top-level so that
-# ``from ice_sdk.models import NodeConfig`` keeps working.
+# Re-export everything at top-level so callers can do
+# ``from ice_sdk.models import NodeConfig``.
 globals().update(_node_models.__dict__)
 
 # ---------------------------------------------------------------------------
-# Compatibility shims – register the old module paths that some external
-# code may still attempt to import.  Mapping them in ``sys.modules`` avoids
-# the need for deprecated code to change immediately while preserving the
-# package boundary (we *do not* import from app.models here).
+# Compatibility shims --------------------------------------------------------
 # ---------------------------------------------------------------------------
+# Ensure legacy import paths keep resolving but emit a deprecation warning.
 
 sys.modules.setdefault("ice_sdk.models.node_models", _node_models)

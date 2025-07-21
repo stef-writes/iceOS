@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, ClassVar, Dict, List
+
+from pydantic import ConfigDict
 
 from ...utils.errors import SkillExecutionError
 from ..base import SkillBase
@@ -14,6 +16,16 @@ class SumSkill(SkillBase):
     name: str = "sum"
     description: str = "Add a list of numbers and return the total"
     tags: List[str] = ["math", "utility"]
+    # Allow tests to monkey-patch attributes like *execute* at runtime
+    model_config: ClassVar[ConfigDict] = ConfigDict(extra="allow")
+
+    def __init__(self) -> None:  # noqa: D401
+        super().__init__()
+        # Guarantee presence of id attributes for wrappers/tests
+        object.__setattr__(self, "name", "sum")
+        object.__setattr__(
+            self, "description", "Add a list of numbers and return the total"
+        )
 
     def get_required_config(self) -> list[str]:  # noqa: D401
         return []

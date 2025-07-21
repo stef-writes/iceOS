@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 
 from ...utils.errors import SkillExecutionError
 from ..base import SkillBase
@@ -9,13 +9,13 @@ __all__ = ["ExplainPlanSkill"]
 
 
 class ExplainPlanSkill(SkillBase):
-    """Return a fake EXPLAIN plan for demonstration purposes."""
+    """Explain the execution plan for a SQL query."""
 
     name: str = "explain_plan"
-    description: str = "Generate a naive SQL EXPLAIN plan (stub)."
-    tags = ["db", "explain", "utility"]
+    description: str = "Explain the execution plan for a SQL query"
+    tags: ClassVar[list[str]] = ["db", "explain", "utility"]
 
-    def get_required_config(self):
+    def get_required_config(self) -> list[str]:
         return []
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:

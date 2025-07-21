@@ -7,10 +7,7 @@ Extracted from `Workflow` (formerly `ScriptChain`).  New code should import
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, cast
-
-if TYPE_CHECKING:  # pragma: no cover
-    from ice_orchestrator.workflow import ScriptChain
+from typing import Any, Dict, cast
 
 
 class ChainFactory:  # noqa: D101 – internal utility
@@ -23,7 +20,7 @@ class ChainFactory:  # noqa: D101 – internal utility
         *,
         target_version: str = "1.0.0",
         **kwargs: Any,
-    ) -> "ScriptChain":
+    ) -> "Workflow":
         """Create a ScriptChain from JSON-compatible *payload*.
 
         Currently supports version "1.0.0" without migration.
@@ -40,14 +37,13 @@ class ChainFactory:  # noqa: D101 – internal utility
             raise ValueError("Workflow payload must contain 'nodes' key")
 
         # Discriminated union parsing (manual to avoid Annotated typing issues)
-        from pydantic import BaseModel
-
-        from ice_sdk.models.node_models import (
+        from ice_core.models.node_models import (
             ConditionNodeConfig,
             LLMOperatorConfig,
             NestedChainConfig,
             SkillNodeConfig,
         )
+        from pydantic import BaseModel
 
         _parser_map: Dict[str, type[BaseModel]] = {
             "ai": LLMOperatorConfig,  # legacy discriminator kept for B/C
@@ -83,8 +79,10 @@ class ChainFactory:  # noqa: D101 – internal utility
         import hashlib
         import json
 
+        from ice_core.models.node_models import ChainMetadata
+
+        # Local import to avoid circular import at module load time
         from ice_orchestrator.workflow import Workflow
-        from ice_sdk.models.node_models import ChainMetadata
 
         # Compute basic DAG statistics & topology hash ------------------
         node_count = len(nodes)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, ParamSpec, TypeVar
 
 from pydantic import BaseModel
 
@@ -9,24 +9,25 @@ from ice_sdk.processors.base import Processor
 # ---------------------------------------------------------------------------
 # Optional cost-tracking decorator – gracefully degrade when unavailable ----
 
-T_Call = TypeVar("T_Call", bound=Callable[..., Any])
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
-def _noop_decorator(func: T_Call) -> T_Call:  # noqa: D401 – pass‐through
+def _noop_decorator(
+    func: Callable[P, R]
+) -> Callable[P, R]:  # noqa: D401 – pass‐through
     return func
 
 
 try:
     from ice_sdk.utils.cost import track_cost  # type: ignore  # pragma: no cover
 except Exception:  # pragma: no cover – util may not exist yet
-    track_cost = _noop_decorator  # type: ignore[arg-type]
-
-F = TypeVar("F", bound=Callable[..., Any])
+    track_cost = _noop_decorator  # type: ignore[assignment]
 
 
-def operator(func: F) -> F:  # noqa: D401
+def operator(func: Callable[P, R]) -> Callable[P, R]:  # noqa: D401
     """Marker decorator for LLM operator functions (currently a no-op)."""
-    return func  # type: ignore[misc]
+    return func
 
 
 class LLMOperatorConfig(BaseModel):

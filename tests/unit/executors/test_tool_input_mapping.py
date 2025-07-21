@@ -4,7 +4,7 @@ from typing import Dict
 
 import pytest
 
-from ice_orchestrator.workflow import ScriptChain
+from ice_orchestrator.workflow import Workflow
 from ice_sdk.models.node_models import (
     InputMapping,
     NodeExecutionResult,
@@ -60,7 +60,7 @@ async def test_tool_args_placeholder_substitution():
         },
     )
 
-    chain = ScriptChain(
+    chain = Workflow(
         nodes=[producer_node, consumer_node],  # type: ignore[arg-type]
         tools=[PRODUCER, CONSUMER],
         name="placeholder-test-chain",

@@ -1,7 +1,7 @@
 import pytest
-
 from ice_core.models.model_registry import get_default_model_id
-from ice_orchestrator.workflow import ScriptChain
+
+from ice_orchestrator.workflow import Workflow
 from ice_sdk.models.node_models import LLMOperatorConfig
 from ice_sdk.providers.llm_service import LLMService
 from ice_sdk.skills import ToolContext, function_tool
@@ -36,7 +36,7 @@ async def test_allowed_tools_whitelist():
         allowed_tools=["my_tool"],
     )
 
-    chain = ScriptChain(
+    chain = Workflow(
         nodes=[node],  # type: ignore[arg-type]
         tools=[_my_tool],
         name="allowed-tools-test",

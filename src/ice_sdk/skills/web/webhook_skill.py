@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, ClassVar, Dict, Optional
 
 import httpx
 from pydantic import AnyHttpUrl, BaseModel, Field
@@ -22,9 +22,10 @@ class WebhookSkill(SkillBase):
 
     name: str = "webhook_emitter"
     description: str = "Send event payloads to a webhook endpoint via HTTP POST."
-    tags = ["integration", "webhook", "event"]
+    # Annotate as class variable
+    tags: ClassVar[list[str]] = ["integration", "webhook", "event"]
 
-    def get_required_config(self):  # noqa: D401
+    def get_required_config(self) -> list[str]:  # noqa: D401
         return []
 
     async def _execute_impl(

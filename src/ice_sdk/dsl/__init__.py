@@ -31,6 +31,7 @@ and type checking.
 from typing import Any, Callable, Dict, List, Optional
 
 from ice_core.models.model_registry import get_default_model_id
+
 from ice_sdk.models.node_models import LLMOperatorConfig, SkillNodeConfig
 
 # ---------------------------------------------------------------------------

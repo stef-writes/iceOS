@@ -10,19 +10,21 @@ from typing import AsyncIterator, List
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from ice_core.utils.logging import setup_logger
 
 # NEW MCP router import
 from ice_api.api.builder import router as builder_router
 from ice_api.api.mcp import router as mcp_router
 from ice_api.ws_gateway import router as ws_router
-from ice_core.utils.logging import setup_logger
 from ice_sdk import ToolService
 from ice_sdk.context import GraphContextManager
 
 # kb_router removed - focusing on core patterns
 from ice_sdk.providers.llm_service import LLMService
-from ice_sdk.services import ChainService  # Proper service boundary
-from ice_sdk.services import ServiceLocator
+from ice_sdk.services import (
+    ChainService,  # Proper service boundary
+    ServiceLocator,
+)
 from ice_sdk.utils.errors import add_exception_handlers
 
 # Setup logging
@@ -173,7 +175,7 @@ async def list_tools_v1(request: Request) -> List[str]:  # noqa: D401
 # ---------------------------------------------------------------------------
 
 
-from iceos.catalog import CatalogSummary, get_catalog  # noqa: E402  – late import
+from ice_sdk.adapters.catalog import CatalogSummary, get_catalog  # noqa: E402
 
 
 @app.get("/v1/catalog", response_model=CatalogSummary, tags=["utils"])

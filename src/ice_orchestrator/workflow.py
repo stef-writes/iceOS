@@ -12,11 +12,12 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
+from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
-import ice_sdk.executors  # noqa: F401 – side-effect import registers built-in executors
-from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
+import ice_orchestrator.execution.executors  # noqa: F401 – side-effect import registers built-in executors
+from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy
 from ice_orchestrator.core import ChainFactory
 from ice_orchestrator.execution.agent_factory import AgentFactory
 from ice_orchestrator.execution.executor import NodeExecutor
@@ -25,10 +26,13 @@ from ice_orchestrator.graph.dependency_graph import DependencyGraph
 from ice_orchestrator.graph.level_resolver import BranchGatingResolver
 from ice_orchestrator.utils.context_builder import ContextBuilder
 from ice_orchestrator.validation import ChainValidator, SafetyValidator, SchemaValidator
-from ice_sdk.agents.agent_node import AgentNode
+from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
+
+# NOTE: use AgentNode from SDK to avoid core dependency
+from ice_sdk.agents import AgentNode
 from ice_sdk.config import runtime_config
 from ice_sdk.context import GraphContextManager
-from ice_sdk.models.node_models import (
+from ice_core.models import (
     ChainExecutionResult,
     ConditionNodeConfig,
     LLMOperatorConfig,
@@ -37,9 +41,8 @@ from ice_sdk.models.node_models import (
     NodeExecutionResult,
     NodeMetadata,
 )
-from ice_sdk.orchestrator.base_workflow import BaseWorkflow, FailurePolicy
-from ice_sdk.orchestrator.workflow_execution_context import WorkflowExecutionContext
-from ice_sdk.skills.base import SkillBase  # Updated from BaseTool
+from ice_sdk.services.locator import get_workflow_proto
+from ice_sdk.skills.base import SkillBase
 
 # ---------------------------------------------------------------------------
 # Tracing & logging setup ----------------------------------------------------
@@ -165,12 +168,16 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         self._branch_decisions = self._branch_resolver.branch_decisions  # type: ignore[attr-defined]
         self._active_cache = self._branch_resolver.active_cache  # type: ignore[attr-defined]
 
-        from ice_sdk.cache import global_cache  # local import to avoid cycles
+        from ice_core.cache import global_cache  # local import to avoid cycles
 
         self._cache = global_cache()
 
+        # Service locator for workflow protocol
+        self.workflow_cls = get_workflow_proto()
+
+        # Use the up-to-date component name in log output (rename: ScriptChain → Workflow)
         logger.info(
-            "Initialized ScriptChain with %d nodes across %d levels",
+            "Initialized Workflow with %d nodes across %d levels",
             len(nodes),
             len(self.levels),
         )
@@ -291,7 +298,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             error="\n".join(errors) if errors else None,
             metadata=NodeMetadata(
                 node_id=final_node_id,
-                node_type="script_chain",
+                node_type="workflow",
                 name=self.name,
                 version="1.0.0",
                 start_time=start_time,
@@ -353,7 +360,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                     # orchestrator can apply failure policies without blowing up.
                     from datetime import datetime
 
-                    from ice_sdk.models.node_models import (
+                    from ice_core.models.node_models import (
                         NodeExecutionResult,
                         NodeMetadata,
                     )
@@ -380,7 +387,10 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 import reprlib
                 from datetime import datetime
 
-                from ice_sdk.models.node_models import NodeExecutionResult, NodeMetadata
+                from ice_core.models.node_models import (
+                    NodeExecutionResult,
+                    NodeMetadata,
+                )
 
                 node_id = "unknown" if not item else str(item)
                 level_results[node_id] = NodeExecutionResult(  # type: ignore[call-arg]
@@ -477,7 +487,38 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
     ) -> NodeExecutionResult:
         """Execute a single processor – now delegated to *NodeExecutor* utility."""
 
-        return await self._executor.execute_node(node_id, input_data)
+        result = await self._executor.execute_node(node_id, input_data)
+
+        # Handle SubDAG results
+        if hasattr(result, "output") and result.output is not None:
+            from ice_core.models.workflow import SubDAGResult
+
+            if isinstance(result.output, SubDAGResult):
+                subdag = self.workflow_cls.from_dict(result.output.workflow_data)
+                subdag.validate()  # From Rule 13
+                return await self.execute_workflow(subdag)
+
+        return result
+
+    async def execute_workflow(self, workflow) -> NodeExecutionResult:
+        """Execute nested workflow and merge results"""
+        with tracer.start_as_current_span("subdag.execute") as span:
+            span.set_attribute("subdag.node_count", len(workflow.nodes))
+            start_time = datetime.utcnow()
+
+            try:
+                result = await workflow.execute()
+                duration = (datetime.utcnow() - start_time).total_seconds()
+
+                self.metrics.update_subdag_time(duration)
+                from ice_orchestrator.execution.metrics import SubDAGMetrics
+
+                SubDAGMetrics.record(duration)
+
+                return result
+            except Exception as e:
+                span.record_exception(e)
+                raise
 
     # ---------------------------------------------------------------------
     # Internal helpers -----------------------------------------------------
@@ -556,7 +597,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         """
 
         # Local import to avoid circular dependency at module import time
-        from ice_sdk.models.node_models import NestedChainConfig  # type: ignore
+        from ice_core.models.node_models import NestedChainConfig  # type: ignore
 
         return NestedChainConfig(
             id=id or self.chain_id,
@@ -568,15 +609,32 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             type="nested_chain",  # explicit for clarity
         )
 
+    def add_node(self, config: NodeConfig, depends_on: list[str] | None = None) -> str:
+        """Implements WorkflowProto.add_node()"""
+        new_id = f"node_{len(self.nodes)}"
+        config.id = new_id
+        config.dependencies = depends_on or []
+        self.nodes.append(config)
+        self.graph.add_node(new_id, config.dependencies)
+        return new_id
 
-# ---------------------------------------------------------------------------
-# Naming shim (vNext): make `Workflow` the preferred name; keep ScriptChain as
-# deprecated alias until final purge.
-# ---------------------------------------------------------------------------
+    def validate(self) -> None:
+        """Implements WorkflowProto.validate()"""
+        self.graph.validate_schema_alignment(self.nodes)
+        SafetyValidator.validate_node_tool_access(self.nodes)
+        ChainValidator(self.failure_policy, self.levels, self.nodes).validate_chain()
 
-# Deprecated alias – importers can still use the old name without breakage.
-ScriptChain = Workflow  # type: ignore  # noqa: E305 – intentional reassignment
-
-Workflow.__doc__ = (
-    Workflow.__doc__ or ""
-) + "\n\nPreferred name; replaces `ScriptChain`."
+    def to_dict(self) -> dict:
+        """Implements WorkflowProto.to_dict()"""
+        return {
+            "nodes": [n.dict() for n in self.nodes],
+            "name": self.name,
+            "version": self.version,
+            "chain_id": self.chain_id,
+            "max_parallel": self.max_parallel,
+            "failure_policy": (
+                self.failure_policy.value
+                if hasattr(self.failure_policy, "value")
+                else str(self.failure_policy)
+            ),
+        }

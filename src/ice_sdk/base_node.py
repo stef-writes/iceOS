@@ -9,9 +9,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Dict, cast
 
+from ice_core.models import NodeMetadata
 from pydantic import ValidationError, create_model
 
-from ice_core.models import NodeMetadata
 from ice_sdk.models.node_models import NodeConfig, NodeExecutionResult
 
 

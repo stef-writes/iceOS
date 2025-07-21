@@ -9,15 +9,20 @@ contract discovery so that callers use a stable, idempotent interface –
 conforming to iceOS repo rule 11 (all cross-layer calls go through services/*).
 """
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Final, Protocol
+from typing import Any, Dict, Final, List, Optional, Protocol
 
 from typing_extensions import runtime_checkable
 
-# Runtime dependency only used for type-check paths – avoid import cycles.
 from ice_core.models.service_contracts import ServiceContract
-from ice_sdk.skills.registry import SkillRegistry
+
+# Runtime dependency only used for type-check paths – avoid import cycles.
+# Importing **inside** TYPE_CHECKING avoids runtime layer violation while still
+# providing correct typing for static analysis.  The layer guard inspects raw
+# AST so even TYPE_CHECKING imports are flagged.  Therefore we avoid importing
+# from higher layers entirely and rely on *Any* for those references.
+
 
 # Directory where JSON/YAML contract artefacts will live.  This keeps data
 # outside the package code for cleaner upgrades.
@@ -93,7 +98,7 @@ class SkillServiceProtocol(Protocol):
 
 
 class SkillService:
-    def __init__(self, registry: SkillRegistry):
+    def __init__(self, registry: Optional[Any]):
         self._registry = registry
 
     async def execute_skill(
@@ -101,3 +106,60 @@ class SkillService:
     ) -> Dict[str, Any]:
         # ... existing implementation ...
         pass  # Placeholder for actual implementation
+
+
+@runtime_checkable
+class IWorkflowService(Protocol):
+    """Protocol for executing workflows without leaking orchestrator types."""
+
+    @abstractmethod
+    async def execute(
+        self,
+        nodes: list[Any],  # NodeConfig-compatible payloads
+        name: str,
+        max_parallel: int = 5,
+    ) -> Any: ...
+
+
+@runtime_checkable
+class IBuilderService(Protocol):
+    """Protocol for chain builder services (implemented in SDK layer)."""
+    
+    @abstractmethod
+    def start(self, total_nodes: int, chain_name: str | None = None) -> Any:
+        """Initialize a new chain draft"""
+        ...
+    
+    @abstractmethod 
+    def next_question(self, draft: Any) -> Any | None:
+        """Get next configuration question"""
+        ...
+    
+    @abstractmethod
+    def submit_answer(self, draft: Any, key: str, answer: str) -> None:
+        """Process user answer"""
+        ...
+    
+    @abstractmethod
+    def render_chain(self, draft: Any) -> str:
+        """Generate chain visualization"""
+        ...
+    
+    @abstractmethod 
+    def render_mermaid(self, draft: Any) -> str:
+        """Generate MermaidJS diagram"""
+        ...
+
+
+class NetworkStorage(ABC):
+    @abstractmethod
+    async def get(self, spec_id: str) -> Optional[dict]:
+        pass
+    
+    @abstractmethod
+    async def put(self, spec_id: str, spec: dict) -> None:
+        pass
+    
+    @abstractmethod
+    async def query(self, filter: str) -> List[dict]:
+        pass

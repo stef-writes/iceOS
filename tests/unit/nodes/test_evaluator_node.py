@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from ice_sdk.executors.evaluator import evaluator_executor
+from ice_orchestrator.execution.executors.evaluator import evaluator_executor
 from ice_sdk.models.node_models import EvaluatorNodeConfig
 
 

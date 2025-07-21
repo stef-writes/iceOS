@@ -6,9 +6,11 @@ respecting chain-level and global skill precedence.
 
 from __future__ import annotations
 
+# NOTE: Use AgentNode from ice_sdk to avoid dependency on ice_core
 from typing import TYPE_CHECKING, Dict, List
 
-from ice_sdk.skills.base import SkillBase as BaseTool  # noqa: F401 – legacy name
+from ice_sdk.agents import AgentNode  # runtime import
+from ice_sdk.skills.base import SkillBase
 
 # ------------------------------------------------------------------
 # Backwards-compatibility: *BaseTool* alias -------------------------
@@ -16,17 +18,19 @@ from ice_sdk.skills.base import SkillBase as BaseTool  # noqa: F401 – legacy n
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_sdk.agents.agent_node import AgentNode
+    # Type-checking imports using SDK alias to avoid cross-layer dependency
+    from ice_core.models.agent_models import AgentConfig, ModelSettings
+    from ice_core.models.node_models import LLMOperatorConfig
+
+    from ice_sdk import AgentNode
     from ice_sdk.context import GraphContextManager
-    from ice_sdk.models.agent_models import AgentConfig, ModelSettings
-    from ice_sdk.models.node_models import LLMOperatorConfig
 
 
 class AgentFactory:  # noqa: D101 – internal utility
     """Factory for creating AgentNode instances from LLMOperatorConfig."""
 
     def __init__(
-        self, context_manager: "GraphContextManager", chain_skills: List["BaseTool"]
+        self, context_manager: "GraphContextManager", chain_skills: List["SkillBase"]
     ) -> None:
         self.context_manager = context_manager
         self.chain_skills = chain_skills
@@ -41,7 +45,7 @@ class AgentFactory:  # noqa: D101 – internal utility
         """
 
         # Build tool map so later inserts override earlier ones (priority)
-        tool_map: Dict[str, "BaseTool"] = {}
+        tool_map: Dict[str, "SkillBase"] = {}
 
         # 1. Globally registered tools (lowest precedence) --------------
         for name, tool in self.context_manager.get_all_tools().items():
@@ -57,7 +61,7 @@ class AgentFactory:  # noqa: D101 – internal utility
             if t_obj is not None:
                 tool_map[t_obj.name] = t_obj
 
-        tools: List["BaseTool"] = list(tool_map.values())
+        tools: List["SkillBase"] = list(tool_map.values())
 
         # Build AgentConfig ----------------------------------------------
         model_settings = ModelSettings(

@@ -87,9 +87,7 @@ class ToolService:  # noqa: D401 – thin orchestration facade
         if tool_cls is None:
             # Attempt fallback via global_skill_registry --------------------
             try:
-                from ice_sdk.skills.registry import (
-                    global_skill_registry,  # local import
-                )
+                from ice_sdk.registry.skill import global_skill_registry  # local import
 
                 tool_instance_fallback = global_skill_registry.get(request.tool_name)
                 tool_cls = tool_instance_fallback.__class__

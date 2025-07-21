@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable, ParamSpec, TypeVar
+from types import TracebackType
+from typing import Callable, Optional, ParamSpec, TypeVar
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -23,7 +24,10 @@ class CircuitBreaker:  # noqa: D101 – placeholder stub
         return self
 
     async def __aexit__(
-        self, exc_type: type[BaseException] | None, exc: BaseException | None, tb
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc: Optional[BaseException],
+        tb: Optional[TracebackType],
     ) -> bool:  # noqa: D401 – ctx helper
         # Always propagate exceptions – the outer retry/backoff logic handles
         # error counting.  Returning *False* signals normal exception flow.
@@ -43,3 +47,11 @@ def circuit_breaker(func: Callable[P, R]) -> Callable[P, R]:  # noqa: D401
     """Decorator alias matching the previous API; no-op for now."""
 
     return func
+
+
+class NodeCircuitBreaker(CircuitBreaker):
+    """Per-node breaker placeholder – identical to base for now."""
+
+    def __init__(self, node_id: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.node_id = node_id

@@ -2,7 +2,7 @@
 
 import pytest
 
-from ice_sdk.providers.budget_enforcer import BudgetEnforcer
+from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
 
 
 class TestBudgetEnforcer:

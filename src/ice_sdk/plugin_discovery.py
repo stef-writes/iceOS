@@ -73,7 +73,7 @@ def _load_module_from_path(path: Path) -> ModuleType:
 
 
 def discover_tools(root: Path | str) -> List[Type[SkillBase]]:  # noqa: D401
-    """Return a list of *BaseTool* subclasses found under *root* directory."""
+    """Return a list of *SkillBase* subclasses found under *root* directory."""
     root_path = Path(root)
     tool_classes: list[Type[SkillBase]] = []
 

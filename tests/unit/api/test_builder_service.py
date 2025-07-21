@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
-
 from ice_api.main import app
 from ice_core.models.model_registry import get_default_model_id
 

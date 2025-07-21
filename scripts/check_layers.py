@@ -22,9 +22,9 @@ from pathlib import Path
 
 ALLOWED_DEPENDENCIES: dict[str, list[str]] = {
     "ice_cli": ["ice_core"],
-    "ice_api": ["ice_core", "ice_sdk"],
+    "ice_api": ["ice_core", "ice_sdk"],  # API can use SDK helpers like ServiceLocator
     "ice_sdk": ["ice_core"],
-    "ice_orchestrator": ["ice_core"],
+    "ice_orchestrator": ["ice_core", "ice_sdk"],
     "ice_core": [],  # Foundation layer
 }
 

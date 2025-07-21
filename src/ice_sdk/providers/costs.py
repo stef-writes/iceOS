@@ -15,8 +15,6 @@ from typing import Dict, Optional, Tuple
 
 from ice_sdk.models.config import ModelProvider
 
-from .budget_enforcer import BudgetEnforcer
-
 # ---------------------------------------------------------------------------
 # Per-token pricing tables ---------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -135,7 +133,3 @@ class CostTracker:
     @classmethod
     def end_span(cls, *, success: bool, error: str | None = None) -> None:  # noqa: D401
         """Finish a cost span – collects nothing for now."""
-
-
-# Backward compatibility alias
-DemoBudgetEnforcer = BudgetEnforcer

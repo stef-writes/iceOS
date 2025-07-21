@@ -17,10 +17,10 @@ from __future__ import annotations
 from typing import Any, Dict, Optional, Tuple
 
 import pytest
-
 from ice_core.models.enums import ModelProvider
 from ice_core.models.llm import LLMConfig  # noqa: WPS301 – re-exported in SDK path
 from ice_core.models.model_registry import get_default_model_id  # new import
+
 from ice_sdk.providers.llm_providers.base_handler import BaseLLMHandler
 from ice_sdk.providers.llm_service import LLMService
 

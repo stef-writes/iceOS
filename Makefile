@@ -41,7 +41,7 @@ typecheck: type  # alias for docs compatibility
 
 # Testing
 test:
-	poetry run ice doctor test
+	poetry run pytest
 
 refresh-docs:
 	$(PYTHON) scripts/gen_catalog.py

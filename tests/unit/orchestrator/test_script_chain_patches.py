@@ -2,9 +2,9 @@ from typing import Any, Dict, List
 
 import pytest
 
-from ice_orchestrator.workflow import ScriptChain
+from ice_orchestrator.base_workflow import FailurePolicy
+from ice_orchestrator.workflow import Workflow
 from ice_sdk.models.node_models import NodeExecutionResult, SkillNodeConfig
-from ice_sdk.orchestrator.base_workflow import FailurePolicy
 from ice_sdk.skills import SkillBase, ToolContext, function_tool
 
 # ---------------------------------------------------------------------------
@@ -24,7 +24,7 @@ async def _bad_tool(ctx: ToolContext) -> None:  # type: ignore[override]
     raise RuntimeError("intentional failure for test")
 
 
-# Cast to BaseTool so mypy/pyright are happy ---------------------------------
+# Cast to SkillBase so mypy/pyright are happy ---------------------------------
 GOOD_TOOL: SkillBase = _good_tool  # type: ignore[assignment]
 BAD_TOOL: SkillBase = _bad_tool  # type: ignore[assignment]
 
@@ -42,7 +42,7 @@ async def test_execute_level_handles_exceptions() -> None:
         ),
     ]
 
-    chain = ScriptChain(
+    chain = Workflow(
         nodes=nodes,  # type: ignore[arg-type]
         name="test_chain",
         tools=[GOOD_TOOL, BAD_TOOL],
@@ -69,7 +69,7 @@ async def test_execute_level_handles_exceptions() -> None:
 def test_resolve_nested_path_root() -> None:
     """Verify that path '.' returns the root object unchanged."""
 
-    from ice_orchestrator.workflow import ScriptChain as _SC
+    from ice_orchestrator.workflow import Workflow as _SC
 
     data: Dict[str, Any] = {"a": {"b": 1}}
 

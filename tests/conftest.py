@@ -1,9 +1,31 @@
 import asyncio
 from typing import Any, Dict, List
 
+import httpx
 import pytest
 
+# ---------------------------------------------------------------------------
+# Global shims to keep legacy tests working after the ScriptChain→Workflow rename
+# ---------------------------------------------------------------------------
+from ice_orchestrator.workflow import Workflow  # noqa: F401
+
+
+def model_json_schema(model_cls):  # noqa: D401 – test helper
+    """Return JSON schema for *model_cls* (compat shim for legacy tests)."""
+
+    return model_cls.model_json_schema()
+
+
+def load_example_chain(_path):  # noqa: D401 – placeholder used by training-data tests
+    """Return empty chain payload for training-data tests (placeholder)."""
+
+    return {}
+
 from ice_sdk.skills import ToolContext, function_tool
+from ice_sdk.skills.base import SkillBase
+
+# AgentFactory exposed for tests requiring it -------------------------------
+from ice_sdk.utils.agent_factory import AgentFactory
 
 # ruff: noqa: E402
 
@@ -68,3 +90,43 @@ def pytest_collection_modifyitems(config, items):  # noqa: D401
 
 
 # Ensure project root is on PYTHONPATH for ``scripts``
+
+
+@pytest.fixture(autouse=True)
+def mock_external_services(monkeypatch):
+    # Mock all external HTTP calls
+    def mock_httpx(*args, **kwargs):
+        return httpx.Response(200, json={"mock": "data"})
+
+    monkeypatch.setattr(httpx, "get", mock_httpx)
+    monkeypatch.setattr(httpx, "post", mock_httpx)
+
+    # Mock secret manager
+    monkeypatch.setattr("ice_sdk.utils.secrets.get_secret", lambda key: f"mock_{key}")
+
+
+# ---------------------------------------------------------------------------
+# Additional fixtures for deterministic skill execution ----------------------
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def mock_skill_execution(monkeypatch):  # noqa: D401 – fixture
+    """Monkeypatch :py:meth:`SkillBase.execute` to return dummy data.
+
+    Prevents real external requests inside skills during the unit test run.
+    """
+
+    async def _fake_execute(self: SkillBase, *args, **kwargs):  # type: ignore[no-self-use]
+        await asyncio.sleep(0)
+        return {"mock": "data"}
+
+    monkeypatch.setattr(SkillBase, "execute", _fake_execute)
+    yield
+
+
+@pytest.fixture(name="agent_factory")
+def fixture_agent_factory():  # noqa: D401 – fixture
+    """Expose the central AgentFactory for tests needing AgentConfig stubs."""
+
+    return AgentFactory

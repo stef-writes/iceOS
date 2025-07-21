@@ -1,8 +1,8 @@
 import pytest
 
-from ice_orchestrator.workflow import ScriptChain
+from ice_orchestrator.base_workflow import FailurePolicy
+from ice_orchestrator.workflow import Workflow
 from ice_sdk.models.node_models import SkillNodeConfig
-from ice_sdk.orchestrator.base_workflow import FailurePolicy
 
 
 class FailingNode(SkillNodeConfig):
@@ -16,7 +16,7 @@ class FailingNode(SkillNodeConfig):
 async def test_runtime_validate_failure():
     n1 = FailingNode(id="bad", name="bad", tool_name="dummy", dependencies=[])
 
-    chain = ScriptChain(
+    chain = Workflow(
         nodes=[n1],
         name="validate-test",
         failure_policy=FailurePolicy.CONTINUE_POSSIBLE,

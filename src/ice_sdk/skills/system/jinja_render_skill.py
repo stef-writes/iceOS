@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 from ...utils.errors import SkillExecutionError
 from ..base import SkillBase
@@ -25,7 +25,7 @@ class JinjaRenderSkill(SkillBase):
             jinja2 = importlib.import_module("jinja2")  # type: ignore
             env = jinja2.Environment(autoescape=True)
             template = env.from_string(template_str)
-            rendered = template.render(**ctx)
+            rendered: str = template.render(**ctx)
 
             # When developers use *format*-style placeholders ("{name}") Jinja2
             # leaves them untouched.  Detect that scenario and fall back to
@@ -42,8 +42,8 @@ class JinjaRenderSkill(SkillBase):
                 raise SkillExecutionError(f"Template rendering failed: {exc}") from exc
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
-        template: str = kwargs.get("template")
-        ctx: Dict[str, Any] = kwargs.get("context", {})
+        template = cast(str, kwargs.get("template", ""))
+        ctx = cast(Dict[str, Any], kwargs.get("context", {}))
         if not isinstance(template, str):
             raise SkillExecutionError("'template' must be a string")
         if not isinstance(ctx, dict):

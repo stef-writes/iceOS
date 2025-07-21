@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping
 
-from ice_sdk.models.node_models import ConditionNodeConfig  # avoid heavy import cycles
+from ice_core.models.node_models import ConditionNodeConfig  # avoid heavy import cycles
 
 
 class BranchGatingResolver:  # noqa: D101

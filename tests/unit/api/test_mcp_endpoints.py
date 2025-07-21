@@ -9,7 +9,6 @@ from typing import Any
 
 import pytest
 from httpx import AsyncClient
-
 from ice_api.main import app
 
 # ---------------------------------------------------------------------------

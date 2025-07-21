@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, ClassVar, Dict, List
 
 from ...utils.errors import SkillExecutionError
 from ..base import SkillBase
@@ -9,13 +9,13 @@ __all__ = ["IndexAdvisorSkill"]
 
 
 class IndexAdvisorSkill(SkillBase):
-    """Suggest naive index columns based on WHERE clauses."""
+    """Provide index recommendations for SQL queries."""
 
     name: str = "index_advisor"
-    description: str = "Suggest index columns based on sample queries."
-    tags = ["db", "index", "advisor"]
+    description: str = "Provide index recommendations for SQL queries"
+    tags: ClassVar[list[str]] = ["db", "index", "advisor"]
 
-    def get_required_config(self):
+    def get_required_config(self) -> list[str]:
         return []
 
     async def _execute_impl(

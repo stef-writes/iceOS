@@ -1,7 +1,7 @@
 import pytest
 
 from ice_orchestrator.errors.chain_errors import CircularDependencyError
-from ice_orchestrator.workflow import ScriptChain
+from ice_orchestrator.workflow import Workflow
 from ice_sdk.models.node_models import SkillNodeConfig
 
 
@@ -22,7 +22,7 @@ def test_circular_dependency_detection():
     node_c = _make_tool_node("C", deps=["B"])
 
     with pytest.raises(CircularDependencyError) as exc_info:
-        _ = ScriptChain(nodes=[node_a, node_b, node_c])
+        _ = Workflow(nodes=[node_a, node_b, node_c])
 
     # Error message should list the offending node ids
     msg = str(exc_info.value)

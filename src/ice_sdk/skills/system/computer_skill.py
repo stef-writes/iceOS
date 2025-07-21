@@ -25,7 +25,8 @@ class ComputerSkill(SkillBase):
 
     def __init__(self, dimensions: Tuple[int, int] | None = None):  # noqa: D401
         super().__init__()
-        self.dimensions = dimensions or (1280, 720)
+        # Bypass Pydantic attribute validation for runtime-only data
+        object.__setattr__(self, "dimensions", dimensions or (1280, 720))
 
     def get_required_config(self) -> list[str]:  # noqa: D401
         return []

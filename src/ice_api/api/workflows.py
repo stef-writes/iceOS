@@ -20,7 +20,7 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, st
 from fastapi.websockets import WebSocketState
 from pydantic import BaseModel, Field
 
-from ice_sdk.skills.registry import global_skill_registry
+from ice_sdk.registry.skill import global_skill_registry
 
 router = APIRouter(prefix="/v1", tags=["workflows"])
 

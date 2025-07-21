@@ -7,10 +7,10 @@ with an in-process handler so we still run offline.
 from __future__ import annotations
 
 import pytest
-
 from ice_core.models.enums import ModelProvider
 from ice_core.models.llm import LLMConfig
 from ice_core.models.model_registry import get_default_model_id
+
 from ice_sdk.providers.llm_providers.base_handler import BaseLLMHandler
 from ice_sdk.providers.llm_service import LLMService
 

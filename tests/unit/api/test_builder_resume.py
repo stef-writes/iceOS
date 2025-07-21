@@ -1,6 +1,5 @@
 import pytest
 from httpx import AsyncClient
-
 from ice_api.main import app
 
 

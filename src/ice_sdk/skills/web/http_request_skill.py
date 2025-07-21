@@ -5,7 +5,7 @@ import base64
 from typing import Any, Dict, Optional
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from ...utils.errors import SkillExecutionError
 from ..base import SkillBase
@@ -38,7 +38,16 @@ class HttpRequestSkill(SkillBase):
     )
 
     # Concrete config instance to avoid Pydantic FieldInfo leakage
-    config: HttpRequestConfig = HttpRequestConfig()
+    config: HttpRequestConfig = HttpRequestConfig.create()
+
+    model_config = ConfigDict(extra="allow")
+
+    def __init__(self) -> None:  # noqa: D401 – simple constructor
+        super().__init__()
+        # Ensure *config* is present on the instance even if Pydantic strips
+        # class-level defaults under certain validation modes.
+        if not hasattr(self, "config"):
+            object.__setattr__(self, "config", HttpRequestConfig.create())
 
     # ---------------------------------------------------------------------
     # Required config keys

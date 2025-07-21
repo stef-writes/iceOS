@@ -39,6 +39,22 @@ class RuntimeConfig(BaseModel):
         description="Whether to fail-open on budget violations in non-prod (BUDGET_FAIL_OPEN)",
     )
 
+    # ------------------------------------------------------------------
+    # Testing helpers ---------------------------------------------------
+    # ------------------------------------------------------------------
+
+    @property
+    def testing_mode(self) -> bool:  # noqa: D401 – convenience accessor
+        """Return *True* when the test-suite runs with ``ICE_TESTING=1``.
+
+        Having a single feature flag makes it easy for skills and services to
+        switch to deterministic fakes instead of performing real network
+        requests during the test run.  The property is **read-only** to keep
+        the pydantic model immutable after instantiation.
+        """
+
+        return os.getenv("ICE_TESTING", "0") == "1"
+
     @classmethod
     def from_env(cls) -> "RuntimeConfig":
         """Load configuration from environment variables."""

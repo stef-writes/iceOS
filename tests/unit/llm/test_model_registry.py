@@ -1,5 +1,4 @@
 import pytest
-
 from ice_core.models.llm import LLMConfig
 from ice_core.models.model_registry import is_allowed_model, list_models
 

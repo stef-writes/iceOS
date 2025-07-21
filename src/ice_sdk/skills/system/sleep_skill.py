@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 
 from ...utils.errors import SkillExecutionError
 from ..base import SkillBase
@@ -14,7 +14,7 @@ class SleepSkill(SkillBase):
 
     name: str = "sleep"
     description: str = "Pause execution for a number of seconds"
-    tags = ["utility", "time"]
+    tags: ClassVar[list[str]] = ["utility", "time"]
 
     def get_required_config(self) -> list[str]:  # noqa: D401
         return []

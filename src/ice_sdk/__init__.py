@@ -1,6 +1,14 @@
 """iceOS SDK."""
 
-from .agents import AgentConfig, AgentNode, ModelSettings  # noqa: F401
+# ---------------------------------------------------------------------------
+# Public agent-facing exports (moved from deprecated ``ice_sdk.agents`` package)
+# ---------------------------------------------------------------------------
+
+from ice_sdk.agents import AgentNode  # noqa: F401
+
+# Keep AgentConfig & ModelSettings re-export unchanged (order after AgentNode)
+from ice_sdk.models.agent_models import AgentConfig, ModelSettings  # noqa: F401
+
 from .base_node import BaseNode  # noqa: F401
 from .context import GraphContextManager  # noqa: F401
 from .models.config import LLMConfig, MessageTemplate  # noqa: F401

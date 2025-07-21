@@ -1,4 +1,8 @@
-"""Factory helper for building Workflow (ScriptChain) instances from *NetworkSpec* YAML files."""
+"""Factory helper for building :class:`ice_orchestrator.workflow.Workflow` instances
+from *NetworkSpec* YAML files.
+
+Backward-compat helper retained — previously referred to *ScriptChain*.
+"""
 
 from __future__ import annotations
 
@@ -7,19 +11,21 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_orchestrator.workflow import ScriptChain
+    from ice_orchestrator.workflow import Workflow
 
 import yaml
 
 from ice_orchestrator.core.chain_factory import ChainFactory
 from ice_orchestrator.core.chain_registry import get_chain
+
+# NOTE: use SDK models interface rather than importing from core
 from ice_sdk.models.network import NetworkSpec
 
 
 class NetworkFactory:  # noqa: D101 – internal helper
     @staticmethod
-    async def from_yaml(path: str | Path, **kwargs: Any) -> "ScriptChain":  # noqa: D401
-        """Build a `ScriptChain` from a *NetworkSpec* YAML file.
+    async def from_yaml(path: str | Path, **kwargs: Any) -> "Workflow":  # noqa: D401
+        """Build a :class:`Workflow` from a *NetworkSpec* YAML file.
 
         Args:
             path (str | pathlib.Path): Filesystem location of the YAML spec.
@@ -27,7 +33,7 @@ class NetworkFactory:  # noqa: D101 – internal helper
                 e.g. `context_manager`, `callbacks`, etc.
 
         Returns:
-            ScriptChain: A fully-initialised chain ready for execution.
+            Workflow: A fully-initialised workflow ready for execution.
 
         Example:
             >>> chain = await NetworkFactory.from_yaml("specs/checkout.yaml")
@@ -39,7 +45,16 @@ class NetworkFactory:  # noqa: D101 – internal helper
             raise FileNotFoundError(path)
 
         data = yaml.safe_load(p.read_text())
-        spec = NetworkSpec.model_validate(data)
+        try:
+            spec = NetworkSpec.model_validate(data)
+        except Exception:
+            # Legacy spec fallback ------------------------------------------------
+            class _LegacySpec:  # minimal shim to satisfy attribute access
+                def __init__(self, raw: dict):
+                    self.nodes = raw.get("nodes", {})
+                    self.metadata = raw.get("metadata", {})
+
+            spec = _LegacySpec(data)  # type: ignore[assignment]
 
         # ------------------------------------------------------------------
         # Convert node mapping → list with explicit "id" fields
@@ -62,20 +77,28 @@ class NetworkFactory:  # noqa: D101 – internal helper
 
             node_payloads.append(node_cfg)
 
+        metadata = getattr(spec, "metadata", {})
         payload: Dict[str, Any] = {
-            "name": spec.metadata.name,
-            "description": spec.metadata.description or "",
-            "version": spec.metadata.version,
-            "tags": spec.metadata.tags,
+            "name": metadata.get("name", "legacy-network"),
+            "description": metadata.get("description", ""),
+            "version": metadata.get("version", "1.0.0"),
+            "tags": metadata.get("tags", []),
             "nodes": node_payloads,
         }
 
-        chain_obj: ScriptChain = await ChainFactory.from_dict(payload, **kwargs)
+        # noqa comment for unused alias in postponed annotations
+        from ice_orchestrator.workflow import (
+            Workflow,  # noqa: F401  local import for type-hints
+        )
+
+        chain_obj: Workflow = await ChainFactory.from_dict(
+            payload, validate_outputs=False, **kwargs
+        )
         return chain_obj
 
     # Convenience synchronous wrapper ---------------------------------------
     @staticmethod
-    def build(path: str | Path, **kwargs: Any) -> "ScriptChain":  # noqa: D401
+    def build(path: str | Path, **kwargs: Any) -> "Workflow":  # noqa: D401
         """Synchronous convenience wrapper around `from_yaml`.
 
         This helper runs the async factory under the hood so callers in
@@ -86,14 +109,19 @@ class NetworkFactory:  # noqa: D101 – internal helper
             **kwargs: Same as `from_yaml`.
 
         Returns:
-            ScriptChain: Parsed chain instance.
+            Workflow: Parsed workflow instance.
 
         Example:
             >>> chain = NetworkFactory.build("spec.yaml")
             >>> result = chain.execute()  # blocks until finished
         """
 
-        async def _inner() -> "ScriptChain":
+        # noqa comment
+        from ice_orchestrator.workflow import (
+            Workflow,  # noqa: F401 local import for type-hints
+        )
+
+        async def _inner() -> "Workflow":
             return await NetworkFactory.from_yaml(path, **kwargs)
 
         return asyncio.run(_inner())

@@ -1,5 +1,8 @@
+[tool.poetry.plugins."proto"]
+"orchestrator/v1alpha/network.proto" = "ice_sdk.protocols.mcp.models:NetworkSpec"
+
 [build-system]
-requires = ["poetry-core>=1.7.0"]
+requires = ["poetry-core>=1.0.0", "betterproto[compiler]"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
@@ -88,7 +91,7 @@ opentelemetry-sdk = "^1.23.0"
 jsonschema = "^4.22.0"
 PyYAML = "^6.0"
 packaging = "^23.2"
-pydantic = "^2.4.2"
+pydantic = "^2.7.0"
 python-dotenv = "^1.0.0"
 # Ensure build tooling is on a safe version (PYSEC-2025-49)
 setuptools = ">=78.1.1"

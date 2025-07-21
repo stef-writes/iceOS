@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, List
 import structlog
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_sdk.models.node_models import NodeConfig
+    from ice_core.models.node_models import NodeConfig
 
 logger = structlog.get_logger(__name__)
 
@@ -23,9 +23,9 @@ class SafetyValidator:  # noqa: D101 – internal utility
     # Layer boundary validation ----------------------------------------------
     # ---------------------------------------------------------------------------
 
-    _FORBIDDEN_IMPORT_PREFIXES = (
-        "ice_sdk.tools",  # lower layer (sdk) exposing tool impls
-    )
+    _FORBIDDEN_IMPORT_PREFIXES: tuple[
+        str, ...
+    ] = ()  # No forbidden paths after v0.6 clean-up
 
     @classmethod
     def validate_layer_boundaries(cls) -> None:

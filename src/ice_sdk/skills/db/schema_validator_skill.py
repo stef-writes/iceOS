@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 
 from jsonschema import Draft7Validator  # type: ignore
 
@@ -11,13 +11,13 @@ __all__ = ["SchemaValidatorSkill"]
 
 
 class SchemaValidatorSkill(SkillBase):
-    """Validate JSON data against a JSONSchema."""
+    """Validate database schema against a set of rules."""
 
     name: str = "schema_validator"
-    description: str = "Validate JSON data against JSONSchema."
-    tags = ["db", "schema", "validation"]
+    description: str = "Validate database schema against a set of rules"
+    tags: ClassVar[list[str]] = ["db", "schema", "validation"]
 
-    def get_required_config(self):
+    def get_required_config(self) -> list[str]:
         return []
 
     async def _execute_impl(

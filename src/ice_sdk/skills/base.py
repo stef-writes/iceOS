@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from abc import ABC
 from typing import Any, Callable, Dict, Optional, Protocol, Type
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
+from pydantic.json_schema import JsonSchemaValue
 
 from ice_sdk.providers.costs import CostTracker
 from ice_sdk.utils.circuit_breaker import CircuitBreaker
-from ice_sdk.utils.errors import SkillExecutionError
 from ice_sdk.utils.hashing import stable_hash
 
 # ---------------------------------------------------------------------------
@@ -32,11 +31,32 @@ class SupportsSkill(Protocol):  # noqa: D401 – structural typing
 class _EmptyInputModel(BaseModel):
     """Placeholder model used when a Skill does not declare an InputModel."""
 
-    class Config:  # noqa: D401 – pydantic v1 stub
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class SkillBase(ABC):
+# ---------------------------------------------------------------------------
+# New: Skill metadata model – enriches runtime discoverability without
+#       touching core schemas.  Placed here to avoid cross-layer imports.
+# ---------------------------------------------------------------------------
+
+
+class SkillMeta(BaseModel):
+    """Light-weight container describing additional characteristics of a *Skill*."""
+
+    node_subtype: Optional[str] = None
+    commercializable: bool = False
+    license: str = "Proprietary"
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class SkillBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    @classmethod
+    def json_schema(cls) -> dict[str, JsonSchemaValue]:
+        return cls.model_json_schema()  # Class method access
+
     # Public identifying attributes populated by subclasses ------------------
     name: str = ""
     description: str = ""
@@ -74,6 +94,24 @@ class SkillBase(ABC):
         }
 
     # ------------------------------------------------------------------
+    # Metadata helper – surfaces nested ``Meta`` class as :class:`SkillMeta`
+    # ------------------------------------------------------------------
+
+    @property
+    def meta(self) -> "SkillMeta":  # type: ignore[name-defined]
+        """Return normalised :class:`SkillMeta` for this Skill instance."""
+
+        meta_cls = getattr(self.__class__, "Meta", None)
+        if meta_cls is None:
+            return SkillMeta()
+
+        return SkillMeta(
+            node_subtype=getattr(meta_cls, "node_subtype", None),
+            commercializable=getattr(meta_cls, "commercializable", False),
+            license=getattr(meta_cls, "license", "Proprietary"),
+        )
+
+    # ------------------------------------------------------------------
     # Default *run* shim (legacy compatibility) -------------------------
     # ------------------------------------------------------------------
 
@@ -99,7 +137,11 @@ class SkillBase(ABC):
                 "Skill.run accepts only keyword arguments; positional values found"
             )
 
-        return await self.execute(kwargs)
+        # Forward gathered *kwargs* as *input_data* preserving legacy calling
+        # contract.  Use an explicitly typed local variable so mypy sees a
+        # generic-aware *dict[str, Any]* instance.
+        kwdict: Dict[str, Any] = dict(kwargs)
+        return await self.execute(input_data=kwdict)
 
     # Concrete Skills may override this with their own pydantic schema.
     # Keeping it a *class* attribute (not property) simplifies subclassing.
@@ -140,7 +182,7 @@ class SkillBase(ABC):
         CostTracker.start_span(self.__class__.__name__)
         try:
             async with self._circuit_breaker:  # type: ignore[attr-defined]
-                result = await self._execute_impl(**merged_kwargs)
+                result: Dict[str, Any] = await self._execute_impl(**merged_kwargs)  # type: ignore[assignment]
             CostTracker.end_span(success=True)
             return result
         except Exception as exc:  # noqa: BLE001 – propagate specific errors
@@ -158,6 +200,24 @@ class SkillBase(ABC):
 
         return await self.run(**kwargs)
 
+    @classmethod
+    def get_input_schema(cls) -> dict:
+        """Get JSON schema for skill inputs.
+
+        Example:
+            WebSearchSkill.get_input_schema() => {'type': 'object', ...}
+        """
+        return cls.InputModel.model_json_schema()  # Fixed method call
+
+    @classmethod
+    def get_output_schema(cls) -> dict:
+        """Get JSON schema for skill outputs.
+
+        Example:
+            WebSearchSkill.get_output_schema() => {'type': 'object', ...}
+        """
+        return cls.OutputModel.model_json_schema()  # Fixed method call
+
 
 # Legacy compatibility -------------------------------------------------------
 # Some test files still import ToolContext / function_tool from the deleted
@@ -170,17 +230,17 @@ class SkillBase(ABC):
 # Provide a minimal *ToolContext* stub for tests that still expect it.
 
 
-class ToolContext(dict):  # type: ignore[D101]
+class ToolContext(dict[str, Any]):  # type: ignore[D101]
     """Context object passed into legacy *function_tool* wrappers."""
 
 
 def _build_function_tool(
-    func,
+    func: Callable[..., Any],
     *,
     name: str | None = None,
     description: str | None = None,
     tags: list[str] | None = None,
-):
+) -> SkillBase:
     """Return a lightweight SkillBase instance that wraps *func*.
 
     The orchestrator only requires the wrapper to expose the following API:
@@ -208,16 +268,21 @@ def _build_function_tool(
         # GraphContextManager invokes ``run`` directly.  We support both sync
         # and async callables for convenience.
 
-        async def run(self, *args, **kwargs):  # type: ignore[override]
+        async def run(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override,no-untyped-def]
             import asyncio  # local import to keep global footprint low
             import inspect
 
             if inspect.iscoroutinefunction(func):
-                return await func(*args, **kwargs)
-            # Execute sync function in thread-friendly executor to avoid
-            # blocking the event loop when called from async orchestrator.
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
+                res = await func(*args, **kwargs)
+            else:
+                # Execute sync function in thread-friendly executor to avoid
+                # blocking the event loop when called from async orchestrator.
+                loop = asyncio.get_event_loop()
+                res = await loop.run_in_executor(None, lambda: func(*args, **kwargs))
+
+            from typing import cast
+
+            return cast(Dict[str, Any], res or {})
 
         # Provide minimal _execute_impl so mypy recognises concrete subclass
         async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # type: ignore[override]
@@ -254,7 +319,9 @@ def function_tool(*_decorator_args, **_decorator_kwargs):  # type: ignore[D401]
 
     # Case 2: Decorator with keyword args (e.g. name_override="x") → return
     #         a decorator expecting the target function.
-    def _decorator(func: Callable[..., Any]) -> Any:  # noqa: D401 – simple wrapper
+    def _decorator(
+        func: Callable[..., Any]
+    ) -> SkillBase:  # noqa: D401 – simple wrapper
         name = _decorator_kwargs.get("name_override") or _decorator_kwargs.get("name")
         description = _decorator_kwargs.get("description")
         tags = _decorator_kwargs.get("tags")
@@ -264,13 +331,6 @@ def function_tool(*_decorator_args, **_decorator_kwargs):  # type: ignore[D401]
 
 
 # ---------------------------------------------------------------------------
-# Backwards-compatibility aliases (Phase 0 migration strategy)
+# NOTE: Legacy *BaseTool* compatibility aliases were removed in v0.6.
+# Downstream code must import :class:`SkillBase` directly.
 # ---------------------------------------------------------------------------
-
-# Older code imported *BaseTool* and *ToolError* from the now-removed
-# ``ice_sdk.tools.base`` module.  Provide thin aliases here so that those
-# imports resolve until the full vocabulary transition completes (v0.6.0).
-
-SkillBase = SkillBase  # noqa: D401 – temporary alias
-SkillExecutionError = SkillExecutionError  # noqa: D401 – temporary alias
-BaseTool = SkillBase  # noqa: D401 – compatibility alias

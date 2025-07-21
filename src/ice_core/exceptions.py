@@ -32,3 +32,35 @@ class SecurityViolationError(IceCoreError):
 
     def __init__(self, path: str):  # noqa: D401 – param path only
         super().__init__(f"Illegal path traversal attempt detected: {path}")
+
+
+# ---------------------------------------------------------------------------
+#  Workflow and SubDAG errors --------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class WorkflowError(IceCoreError):
+    """Base class for workflow-related errors."""
+
+
+class SubDAGError(WorkflowError):
+    """Raised when subDAG validation or execution fails.
+
+    Example:
+        try:
+            subdag.validate()
+        except SubDAGError as e:
+            logger.error(f"SubDAG failed: {e.workflow_data}")
+    """
+
+    def __init__(self, message: str, workflow_data: dict):
+        super().__init__(message)
+        self.workflow_data = workflow_data
+
+
+class SpecConflictError(IceCoreError):
+    """Raised when trying to create a spec that already exists."""
+
+
+class NetworkValidationError(IceCoreError):
+    """Raised when a network spec fails validation."""

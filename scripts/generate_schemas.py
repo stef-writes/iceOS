@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
-from ice_sdk.models.node_models import (
+from ice_core.models import (
     ChainExecutionResult,
     LLMOperatorConfig,
     NodeExecutionResult,

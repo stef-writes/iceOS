@@ -1,5 +1,43 @@
 from typing import List
 
+# ---------------------------------------------------------------------------
+# Test helper – locate forbidden imports ------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def find_imports(pkg_prefix: str, forbidden: str) -> List[str]:  # noqa: D401
+    """Return list of files inside *pkg_prefix* that import *forbidden* package.*"""
+
+    import ast
+    import os
+
+    offending: List[str] = []
+    root_dir = os.path.join('src', pkg_prefix)
+
+    for root, _dirs, files in os.walk(root_dir):
+        for filename in files:
+            if not filename.endswith('.py'):
+                continue
+            path = os.path.join(root, filename)
+            try:
+                with open(path, 'r', encoding='utf-8') as fp:
+                    tree = ast.parse(fp.read())
+            except (FileNotFoundError, SyntaxError):
+                continue
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name.startswith(forbidden):
+                            offending.append(path)
+                            break
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module and node.module.startswith(forbidden):
+                        offending.append(path)
+                        break
+
+    return offending
+
 
 def test_example_imports():
     """Ensure examples don't import from ice_sdk directly"""
@@ -70,3 +108,9 @@ def test_service_layer_usage():
     assert hasattr(ServiceLocator, "get")
     assert hasattr(ChainService, "execute")
     assert hasattr(ChainService, "execute_async")
+
+
+def test_no_internal_api_imports_in_sdk():
+    """Ensure ice_sdk doesn't import from internal_api"""
+    project_files = find_imports('ice_sdk', 'internal_api')
+    assert not project_files, f"Layer violation in files: {project_files}"

@@ -1,6 +1,6 @@
 import pytest
 
-from ice_orchestrator.workflow import ScriptChain
+from ice_orchestrator.workflow import Workflow
 from ice_sdk.models.node_models import SkillNodeConfig
 from ice_sdk.services import ServiceLocator
 from ice_sdk.skills.system.sum_skill import SumSkill
@@ -25,7 +25,7 @@ async def test_tool_node_sum_execution() -> None:
         tool_args={"numbers": [4, 5, 6]},
     )
 
-    chain = ScriptChain(nodes=[node_cfg], tools=[sum_tool], name="sum-chain")
+    chain = Workflow(nodes=[node_cfg], tools=[sum_tool], name="sum-chain")
 
     result = await chain.execute()
 

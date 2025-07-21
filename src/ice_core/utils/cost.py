@@ -1,35 +1,53 @@
 """Utility helpers for *predicting* chain execution cost.
 
-Unlike `ice_sdk.providers.costs.calculate_cost`, this module does **not** need
-actual token counts – it applies rough heuristics to a JSON Workflow spec so
-operators can gauge budget before execution (e.g. `ice run-chain --estimate`).
-
-Public API
-~~~~~~~~~~
-    estimate_chain_cost(chain_spec: dict) -> float
+This module is **self-contained** (no imports from higher layers) so that
+`ice_core` remains free of upward dependencies.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from decimal import Decimal
+from typing import Any, Dict, Tuple
 
 from ice_core.models.enums import ModelProvider
-from ice_sdk.providers.costs import get_price_per_token
 
 __all__: list[str] = ["estimate_chain_cost"]
 
+# ---------------------------------------------------------------------------
+# Minimal per-token pricing table (USD)
+# ---------------------------------------------------------------------------
+# Only OpenAI prices included for now; extend as needed.
+_OPENAI_PRICES: Dict[str, Tuple[Decimal, Decimal]] = {
+    "gpt-4o": (Decimal("0.000005"), Decimal("0.000015")),
+    "gpt-4o-mini": (Decimal("0.000003"), Decimal("0.000009")),
+    "gpt-4-turbo": (Decimal("0.000010"), Decimal("0.000030")),
+    "gpt-4": (Decimal("0.000030"), Decimal("0.000060")),
+    "gpt-3.5-turbo": (Decimal("0.0000005"), Decimal("0.0000015")),
+    "gpt-4-turbo-2024-04-09": (Decimal("0.000010"), Decimal("0.000030")),
+}
+
+_PRICING_TABLE: Dict[ModelProvider, Dict[str, Tuple[Decimal, Decimal]]] = {
+    ModelProvider.OPENAI: _OPENAI_PRICES,
+}
+
+
+def _get_price_per_token(
+    provider: ModelProvider, model: str
+) -> Tuple[Decimal, Decimal]:  # noqa: D401
+    """Return *(prompt_price, completion_price)* for *model* or zeros if unknown."""
+
+    return _PRICING_TABLE.get(provider, {}).get(model, (Decimal("0"), Decimal("0")))
+
+
+# ---------------------------------------------------------------------------
+# Public helper -------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
 
 def estimate_chain_cost(chain_spec: Dict[str, Any]) -> float:  # noqa: D401
-    """Return rough USD cost for *chain_spec*.
+    """Return rough USD cost for *chain_spec* without external dependencies."""
 
-    Heuristics:
-    1. Iterate nodes; only consider types "ai" or "llm".
-    2. For each node use `max_tokens` (default 2 000).
-    3. Assume prompt_tokens = 0.5 × max_tokens, completion_tokens = max_tokens.
-    4. Look-up per-token prices via :pymeth:`ice_sdk.providers.costs.get_price_per_token`.
-    """
-
-    total: float = 0.0
+    total: Decimal = Decimal("0")
 
     for node in chain_spec.get("nodes", []):
         if node.get("type") not in {"ai", "llm"}:
@@ -47,7 +65,7 @@ def estimate_chain_cost(chain_spec: Dict[str, Any]) -> float:  # noqa: D401
         prompt_tokens = max_tokens // 2
         completion_tokens = max_tokens
 
-        p_price, c_price = get_price_per_token(provider, model_name)
-        total += float(p_price * prompt_tokens + c_price * completion_tokens)
+        p_price, c_price = _get_price_per_token(provider, model_name)
+        total += p_price * prompt_tokens + c_price * completion_tokens
 
-    return round(total, 6)
+    return float(round(total, 6))

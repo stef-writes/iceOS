@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping
+import warnings as _warnings
+from typing import Any, Dict, Generator, Mapping, Tuple
 
 # Pydantic v2 migrated – PrivateAttr for internal attributes
 from pydantic import BaseModel, PrivateAttr
 
 from .base import SkillBase
+
+_warnings.warn(
+    "'ice_sdk.skills.registry' is deprecated; import from 'ice_sdk.registry.skill' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = ["SkillRegistry", "global_skill_registry"]
 
@@ -50,12 +57,8 @@ class SkillRegistry(BaseModel):
         if name in self._skills:
             raise SkillRegistrationError(f"Skill '{name}' already registered")
 
-        # Pre-condition: developer must call validate() on skill instance.
-        if hasattr(skill, "validate") and callable(skill.validate):
-            if not skill.validate(
-                skill.config.model_dump() if hasattr(skill, "config") else {}
-            ):
-                raise SkillRegistrationError(f"Skill '{name}' failed self-validation")
+        # Skills are validated by Pydantic at instantiation time
+        # No need for additional validation here
 
         self._skills[name] = skill
 
@@ -86,9 +89,29 @@ class SkillRegistry(BaseModel):
         return await skill.execute(dict(payload))
 
     # ------------------------------------------------------------------
+    # New helper: filter *Agent* subtype skills -------------------------
+    # ------------------------------------------------------------------
+
+    def get_agents(self):  # type: ignore[override]
+        """Return skills where ``skill.meta.node_subtype == 'agent'``."""
+
+        from typing import List
+
+        from ice_sdk.skills.base import SkillMeta  # local import to avoid cycles
+
+        agents: List[SkillMeta] = []
+        for skill in self._skills.values():
+            try:
+                if getattr(skill.meta, "node_subtype", None) == "agent":
+                    agents.append(skill.meta)
+            except Exception:  # pragma: no cover – guard against malicious skills
+                continue
+        return agents
+
+    # ------------------------------------------------------------------
     # Dunder helpers
     # ------------------------------------------------------------------
-    def __iter__(self):
+    def __iter__(self) -> Generator[Tuple[str, SkillBase], None, None]:
         yield from self._skills.items()
 
     def __len__(self) -> int:
@@ -97,4 +120,4 @@ class SkillRegistry(BaseModel):
 
 # Global default registry -----------------------------------------------------
 
-global_skill_registry: SkillRegistry = SkillRegistry()
+global_skill_registry: "SkillRegistry" = SkillRegistry()

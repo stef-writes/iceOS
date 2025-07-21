@@ -1,5 +1,5 @@
-import ice_sdk.executors  # noqa: F401 – ensures registration side-effect
-from ice_sdk.node_registry import get_executor
+import ice_orchestrator.execution.executors  # noqa: F401 – ensures registration side-effect
+from ice_sdk.registry.node import get_executor
 
 
 def test_builtin_executors_registered() -> None:

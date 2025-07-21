@@ -10,9 +10,13 @@ from typing import TYPE_CHECKING, List, Mapping, Set
 
 from structlog import get_logger
 
+from ice_sdk.context.type_manager import context_type_manager
+
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_sdk.models.node_models import NodeConfig
-    from ice_sdk.orchestrator.base_workflow import FailurePolicy
+    from ice_core.models.node_models import NodeConfig
+    from ice_core.models.script_chain import ChainSpec, ValidationResult
+
+    from ice_orchestrator.base_workflow import FailurePolicy
 
 logger = get_logger(__name__)
 
@@ -116,7 +120,7 @@ class ChainValidator:  # noqa: D101 – internal utility
         """
 
         errors: List[str] = []
-        from ice_sdk.models.node_models import LLMOperatorConfig
+        from ice_core.models.node_models import LLMOperatorConfig
 
         for node in self.nodes.values():
             if not isinstance(node, LLMOperatorConfig):
@@ -141,6 +145,69 @@ class ChainValidator:  # noqa: D101 – internal utility
                 )
 
         return errors
+
+    # ------------------------------------------------------------------
+    # Enhanced Chain Validator -----------------------------------------
+    # ------------------------------------------------------------------
+
+    # Legacy (advanced) validator kept under new name to avoid symbol clash ----
+    def validate_chain_advanced(self, chain: "ChainSpec") -> "ValidationResult":  # type: ignore[name-defined]
+        """Enhanced validation using context registry and skill schemas.
+
+        Retained for backward-compat; prefer :meth:`validate_chain`.
+        """
+
+        errors = []
+        context_keys = set()
+
+        for node in chain.nodes:  # type: ignore[attr-defined]
+            # Get skill metadata lazily to avoid heavy imports when unused
+            from ice_core.models.skill import get_skill_class  # local import
+
+            skill_cls = get_skill_class(node.type)
+            input_schema = skill_cls.get_input_schema()
+
+            # Check 1: Input context availability
+            for input_key in node.inputs:  # type: ignore[attr-defined]
+                if input_key not in context_keys:
+                    if not context_type_manager.get_compatible_keys(input_schema):
+                        errors.append(
+                            f"Missing context key '{input_key}' for {node.type} inputs"
+                        )
+
+            # Check 2: Output context registration
+            output_schema = skill_cls.get_output_schema()
+            context_type_manager.register_context_key(node.output_key, output_schema)  # type: ignore[arg-type]
+            context_keys.add(node.output_key)  # type: ignore[arg-type]
+
+            # Check 3: Side-effect validation
+            if skill_cls.is_pure() and getattr(node, "side_effects", None):
+                errors.append(f"Pure skill {node.type} cannot have side-effects")
+
+        # Use ValidationResult dataclass from legacy namespace when available
+        try:
+            from ice_core.models.script_chain import ValidationResult  # type: ignore
+
+            return ValidationResult(is_valid=len(errors) == 0, errors=errors)
+        except Exception:  # pragma: no cover – fallback minimal structure
+            return type("_ValidationResult", (), {  # noqa: D401 – dynamic stub
+                "is_valid": len(errors) == 0,
+                "errors": errors,
+            })()
+
+    def suggest_fixes(self, result: ValidationResult) -> list[str]:
+        """AI-friendly fix suggestions using context registry."""
+        fixes = []
+        for error in result.errors:
+            if "Missing context key" in error:
+                key = error.split("'")[1]
+                candidates = context_type_manager.get_compatible_keys(
+                    {"type": "string"}  # Simplified example
+                )
+                fixes.append(
+                    f"Replace '{key}' with similar keys: {', '.join(candidates)}"
+                )
+        return fixes
 
     # ------------------------------------------------------------------
     # Aggregated helper -------------------------------------------------

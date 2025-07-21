@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 from fastapi import WebSocketDisconnect
-
 from ice_api.ws_gateway import _SCHEMAS, _VALIDATORS, _assert_auth, _auth_token
 
 

@@ -15,8 +15,9 @@ import json
 from pathlib import Path
 from typing import Any, Dict
 
-from ice_core.contracts.mvp_contract import MVPContract
 from ice_core.utils.cost import estimate_chain_cost
+
+from ice_orchestrator.contracts.mvp_contract import MVPContract
 
 
 def _load_spec(path: Path) -> Dict[str, Any]:

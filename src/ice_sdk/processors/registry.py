@@ -12,11 +12,20 @@ Purpose
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, Generic, Mapping, Type, TypeVar
+from typing import Any, Dict, Generic, Iterator, Mapping, Type, TypeVar
 
 from pydantic import PrivateAttr
 
 from .base import Processor
+
+# Emit deprecation warning *after* imports to satisfy E402 -------------------
+import warnings as _warnings  # isort: skip
+
+_warnings.warn(
+    "'ice_sdk.processors.registry' is deprecated; import from 'ice_sdk.registry.processor' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = [
     "ProcessorRegistry",
@@ -28,7 +37,7 @@ class ProcessorRegistrationError(RuntimeError):
     """Raised when a processor cannot be registered or resolved."""
 
 
-ProcessorT = TypeVar("ProcessorT", bound=Processor)
+ProcessorT = TypeVar("ProcessorT", bound="Processor[Any]")
 
 
 class ProcessorRegistry(Generic[ProcessorT]):
@@ -103,7 +112,7 @@ class ProcessorRegistry(Generic[ProcessorT]):
     # ------------------------------------------------------------------
     # Dunder helpers ----------------------------------------------------
     # ------------------------------------------------------------------
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[str, Type[ProcessorT]]]:  # noqa: D401
         yield from self._processors.items()
 
     def __len__(self) -> int:  # noqa: D401 – simple helper
@@ -112,4 +121,4 @@ class ProcessorRegistry(Generic[ProcessorT]):
 
 # Global default registry -----------------------------------------------------
 
-global_processor_registry: ProcessorRegistry = ProcessorRegistry()
+global_processor_registry: "ProcessorRegistry[Processor[Any]]" = ProcessorRegistry()

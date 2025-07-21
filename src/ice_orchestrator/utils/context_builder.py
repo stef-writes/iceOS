@@ -6,7 +6,7 @@ from ice_orchestrator.errors.chain_errors import ChainError
 from ice_sdk.exceptions import ErrorCode
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_sdk.models.node_models import NodeConfig, NodeExecutionResult
+    from ice_core.models import NodeConfig, NodeExecutionResult
 
 
 class ContextBuilder:  # noqa: D101 – utility helper

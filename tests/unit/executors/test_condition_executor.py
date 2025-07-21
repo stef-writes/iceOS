@@ -2,7 +2,9 @@ from typing import Any
 
 import pytest
 
-from ice_sdk.executors.condition import condition_executor  # noqa: E402
+from ice_orchestrator.execution.executors.condition import (
+    condition_executor,  # noqa: E402
+)
 from ice_sdk.models.node_models import ConditionNodeConfig
 
 
