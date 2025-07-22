@@ -1,46 +1,31 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.2
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.4.0
     hooks:
       - id: ruff
-        args: ["--fix"]
-  - repo: https://github.com/PyCQA/isort
+        args: ["check"]
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3.10
+  - repo: https://github.com/timothycrosley/isort
     rev: 5.13.2
     hooks:
       - id: isort
-        args: ["--profile=black"]
-  # Pyright mirror temporarily disabled due to GitHub repo access issue
-  - repo: https://github.com/pypa/pip-audit
-    rev: v2.7.2
-    hooks:
-      - id: pip-audit
-  - repo: https://github.com/psf/black
-    rev: 24.3.0
-    hooks:
-      - id: black
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.402
-    hooks:
-      - id: pyright
-        args: ["--warnings", "src"]
-        stages: [manual]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
       - id: mypy
-        args: ["--strict", "--explicit-package-bases", "src"]
-        stages: [manual]
+        args: ["--strict", "--config-file", "mypy.ini", "src"]
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.9.0
+    hooks:
+      - id: python-check-blanket-noqa
   - repo: local
     hooks:
-      - id: lock-check
-        name: poetry lock check
-        entry: make lock-check
-        language: system
-        pass_filenames: false
-        always_run: true
       - id: pytest
         name: pytest
-        entry: pytest -q
+        entry: poetry run pytest -q
         language: system
-        pass_filenames: false
-        always_run: true 
+        pass_filenames: false 

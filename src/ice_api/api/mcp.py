@@ -63,11 +63,22 @@ def _stream_key(run_id: str) -> str:
 async def create_blueprint(bp: Blueprint) -> BlueprintAck:
     """Register (or upsert) a *Blueprint*."""
 
-    # Validate nodes before persisting
+    # Validate nodes before persisting – convert & run runtime_validate()
     try:
         bp.validate_runtime()
+        from ice_core.utils.node_conversion import convert_node_specs
+
+        cfgs = convert_node_specs(bp.nodes)
+        # Run runtime validation so schema presence & literals are enforced
+        for cfg in cfgs:
+            try:
+                if hasattr(cfg, "runtime_validate"):
+                    cfg.runtime_validate()
+            except ValueError as ve:
+                logger.error("Validation failed for node %s: %s", cfg.id, str(ve))
+                raise
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid blueprint: {exc}")
+        raise HTTPException(400, detail=str(exc))  # Now surfaces exact node+error
 
     redis = get_redis()
     await redis.hset(_bp_key(bp.blueprint_id), mapping={"json": bp.model_dump_json()})
@@ -100,6 +111,10 @@ async def start_run(req: RunRequest) -> RunAck:
         from ice_core.utils.node_conversion import convert_node_specs
 
         conv_nodes = convert_node_specs(bp.nodes)
+        # Enforce runtime validation before execution
+        for cfg in conv_nodes:
+            if hasattr(cfg, "runtime_validate"):
+                cfg.runtime_validate()  # type: ignore[attr-defined]
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid node spec: {exc}")
 

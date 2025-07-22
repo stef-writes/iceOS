@@ -14,6 +14,8 @@ from ice_core.models import (
     LLMOperatorConfig,
     NodeConfig,
     SkillNodeConfig,
+    PrebuiltAgentConfig,
+    NestedChainConfig,
 )
 from ice_core.models.mcp import NodeSpec
 
@@ -23,13 +25,22 @@ __all__: list[str] = [
 ]
 
 # ---------------------------------------------------------------------------
-# Registry -------------------------------------------------------------------
+# Internal registry ---------------------------------------------------------
 # ---------------------------------------------------------------------------
 
 _NODE_TYPE_MAP: Dict[str, Type[NodeConfig]] = {
+    # Deterministic skill/tool ---------------------------------------------
     "tool": SkillNodeConfig,
-    "ai": LLMOperatorConfig,
+
+    # LLM operator ----------------------------------------------------------
+    "llm": LLMOperatorConfig,
+
+    # Agent -----------------------------------------------------------------
+    "agent": PrebuiltAgentConfig,
+
+    # Control-flow ----------------------------------------------------------
     "condition": ConditionNodeConfig,
+    "nested_chain": NestedChainConfig,
 }
 
 
@@ -61,6 +72,8 @@ def convert_node_spec(spec: NodeSpec) -> NodeConfig:
     node_type = payload.get("type")
     if not node_type:
         raise ValueError("NodeSpec.type is required for conversion")
+
+# Alias handling removed – v1.1 now rejects *any* non-canonical node type.
 
     cfg_cls = _NODE_TYPE_MAP.get(node_type)
     if cfg_cls is None:

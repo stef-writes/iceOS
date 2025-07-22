@@ -11,6 +11,7 @@ observability for debugging and performance analysis.
 *  **Context Isolation** – Each run receives a dedicated `WorkflowExecutionContext`.
 *  **Async Execution** – Nodes run concurrently (level-based) without blocking the
 event-loop.
+*  **Agent Executor (v1.0-beta)** – First-class support for `agent` nodes via `execution/executors/agent.py`.
 *  **Error Containment** – Fine-grained failure policies (`HALT`, `CONTINUE_POSSIBLE`,
    `ALWAYS`).
 *  **Observability** – OpenTelemetry spans plus structured metrics for every node.
@@ -78,6 +79,7 @@ Apache-2.0 – see `LICENSE` at repo root.
  ice_orchestrator/
  ├─ core/           # Core orchestration logic (script_chain, chain_factory)
  ├─ execution/      # Runtime helpers (executor, agent_factory, metrics)
+│   ├─ executors/   # Built-in node executors inc. *agent_executor*
  ├─ graph/          # DAG helpers (dependency_graph, level_resolver)
  ├─ utils/          # Pure helpers (context_builder)
  ├─ validation/     # Static & runtime validation helpers

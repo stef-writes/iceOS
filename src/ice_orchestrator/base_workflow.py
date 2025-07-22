@@ -20,7 +20,7 @@ from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 from ice_sdk.context import GraphContextManager
 from ice_sdk.context.manager import GraphContext
 from ice_sdk.services import ServiceLocator
-from ice_sdk.skills.base import SkillBase
+from ice_sdk.tools.base import SkillBase
 
 
 class FailurePolicy(str, Enum):

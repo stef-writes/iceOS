@@ -2,7 +2,12 @@
 "orchestrator/v1alpha/network.proto" = "ice_sdk.protocols.mcp.models:NetworkSpec"
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "betterproto[compiler]"]
+requires = [
+  "poetry-core>=1.0.0",
+  "setuptools>=68",
+  "pip>=23",
+  "betterproto[compiler]",
+]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
@@ -30,7 +35,8 @@ addopts = """
 markers = [
     "slow: slow-running tests (contract/property)",
     "contract: contract tests against external services or containers",
-    "property: property-based tests via Hypothesis"
+    "property: property-based tests via Hypothesis",
+    "integration: live integration tests requiring API keys",
 ]
 
 [tool.black]
@@ -56,7 +62,8 @@ packages = [
   { include = "ice_sdk", from = "src" },
   { include = "ice_orchestrator", from = "src" },
   { include = "ice_cli", from = "src" },
-  { include = "ice_api", from = "src" }
+  { include = "ice_api", from = "src" },
+  { include = "ice_core", from = "src" }
 ]
 
 # Include non-Python assets (JSON templates & default context store)
@@ -77,6 +84,7 @@ exclude = [
 python = "^3.10"
 redis = "^4.6.0"  # Async Redis client for blueprint & event persistence
 aiohttp = ">=3.9.3"  # Async HTTP client
+numpy = "^1.26"  # Pin to ABI-compatible line; NumPy 2.x breaks torch wheels
 alembic = "^1.12.1"
 anthropic = "0.19.0"
 # Patched versions resolving CVE-2024-24762 (FastAPI) and CVE-2024-24762 (python-multipart)
@@ -95,6 +103,10 @@ PyYAML = "^6.0"
 packaging = "^23.2"
 pydantic = "^2.7.0"
 python-dotenv = "^1.0.0"
+# Heavy ML deps (optional)
+sentence-transformers = {version = "^2.6.0", optional = true}
+torch = {version = "^2.3.0", optional = true}
+scikit-learn = {version = "^1.5.0", optional = true}
 # Ensure build tooling is on a safe version (PYSEC-2025-49)
 setuptools = ">=78.1.1"
 # Ensure build tooling is on a safe version (PYSEC-2025-49)
@@ -153,7 +165,7 @@ mkdocstrings-python = "^1.7.0"
 mkdocs-include-markdown-plugin = "^6.0.4"
 mkdocs-autorefs = "^1.0.1"
 griffe = "<1.0"
-pre-commit = "^4.2.0"
+pre-commit = "4.2.0"
 pip = ">=23.3"
 setuptools = ">=78.1.1"
 sqlalchemy = "^2.0.23"
@@ -165,6 +177,13 @@ ice = "ice_cli.cli:app"
 llm_openai = ["openai", "tiktoken"]
 llm_anthropic = ["anthropic"]
 llm_gemini = ["google-generativeai"]
+
+# Optional heavy ML stack for vector memory & embeddings
+embeddings = [
+  "sentence-transformers",
+  "torch",
+  "scikit-learn"
+]
 
 # Alias for test & lint dependencies when installing via `pip` instead of Poetry
 dev = [
@@ -209,7 +228,6 @@ dev = [
 
 [tool.pyright]
 # Only enforce strict typing on new app & CLI code until older packages are modernised.
-# This keeps `make doctor` green without blocking development.
 # Packages listed in *exclude* are still type-checked in *basic* mode when imported
 # elsewhere, but errors are silenced for their own source files.
 typeCheckingMode = "basic"
@@ -245,4 +263,3 @@ exclude = [
 [tool.ruff.per-file-ignores]
 "tests/**/*" = ["E402", "F401", "F841"]  # noqa: imports-after-code & unused vars in tests
 "scripts/**/*" = ["E402"]  # noqa: imports-after-code in top-level scripts
-

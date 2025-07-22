@@ -4,7 +4,7 @@
     "nodes": [
         {
             "id": "story_generator",
-            "type": "ai",
+            "type": "llm",
             "model": "gpt-3.5-turbo",
             "prompt": "Write a short story about a robot learning to paint",
             "llm_config": {
@@ -17,7 +17,7 @@
         },
         {
             "id": "story_summarizer",
-            "type": "ai",
+            "type": "llm",
             "model": "gpt-3.5-turbo",
             "prompt": "Summarize this story in one sentence: {story}",
             "llm_config": {

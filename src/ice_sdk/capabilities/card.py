@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any, Dict, Literal, Type
 
 from pydantic import BaseModel, Field
 
-from ice_sdk.skills import SkillBase
+from ice_sdk.tools import SkillBase
 
 # Type-checking imports ------------------------------------------------------
 if TYPE_CHECKING:  # pragma: no cover – import only for type checkers

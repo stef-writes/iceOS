@@ -41,7 +41,7 @@ from ice_sdk.agents import AgentNode
 from ice_sdk.config import runtime_config
 from ice_sdk.context import GraphContextManager
 from ice_sdk.services.locator import get_workflow_proto
-from ice_sdk.skills.base import SkillBase
+from ice_sdk.tools.base import SkillBase
 
 # ---------------------------------------------------------------------------
 # Tracing & logging setup ----------------------------------------------------
@@ -119,7 +119,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         SafetyValidator.validate_node_tool_access(nodes)
 
         # Ensure _chain_tools is set before any use
-        self._chain_skills = tools or []  # Updated from _chain_tools
+        self._chain_tools = tools or []
 
         super().__init__(
             nodes,
@@ -156,7 +156,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         # Executor helper -----------------------------------------------------
         self._executor = NodeExecutor(self)
         # Agent factory helper ------------------------------------------------
-        self._agent_factory = AgentFactory(self.context_manager, self._chain_skills)
+        self._agent_factory = AgentFactory(self.context_manager, self._chain_tools)
         # Schema validator helper ---------------------------------------------
         self._schema_validator = SchemaValidator()
         # Agent instance cache -------------------------------------------

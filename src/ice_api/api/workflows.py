@@ -7,7 +7,7 @@ in-memory and *demo-only*.
 Rules honoured:
 * Pure Pydantic models (`NodeModel`, `EdgeModel`, `WorkflowDefinition`).
 * No cross-layer imports into core logic – we only touch the API layer and
-  the public `ice_sdk.skills.registry` interface.
+  the public `ice_sdk.tools` interface.
 * All external side-effects (storage, WS broadcast) live inside this module.
 * Async/await used exclusively – no blocking calls.
 """
@@ -20,7 +20,7 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, st
 from fastapi.websockets import WebSocketState
 from pydantic import BaseModel, Field
 
-from ice_sdk.registry.skill import global_skill_registry
+from ice_sdk.registry.tool import global_tool_registry
 
 router = APIRouter(prefix="/v1", tags=["workflows"])
 
@@ -33,7 +33,7 @@ class NodeModel(BaseModel):
     """Minimal node DTO for the canvas demo."""
 
     id: str = Field(..., description="Unique node identifier")
-    type: str = Field(..., description="Node kind, e.g. 'skill', 'llm'")
+    type: str = Field(..., description="Node kind, e.g. 'tool', 'llm'")
     name: str = Field(..., description="Human-readable name or registry key")
     config: Dict[str, Any] = Field(
         default_factory=dict, description="Opaque config blob"
@@ -61,9 +61,9 @@ class WorkflowDefinition(BaseModel):
         """
 
         for node in self.nodes:
-            if node.type == "skill":
+            if node.type == "tool":
                 try:
-                    skill = global_skill_registry.get(node.name)
+                    skill = global_tool_registry.get(node.name)
                 except Exception as exc:  # pragma: no cover – propagate clarity
                     raise ValueError(f"Unknown skill '{node.name}'") from exc
 

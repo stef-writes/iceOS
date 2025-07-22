@@ -218,8 +218,60 @@ class BaseNodeConfig(BaseModel):
         return self
 
     def runtime_validate(self) -> None:  # – override in subclasses
-        """Validate configuration at runtime."""
-        pass
+        """Validate configuration at runtime.
+
+        Enforces mandatory *input_schema* and *output_schema* for deterministic
+        node types (tool, agent, nested_chain, condition).  LLM nodes get a
+        fallback ``{"text": "string"}`` output schema if none is provided so
+        experimentation remains low-friction.
+        """
+
+        import warnings  # local import to avoid top-level dependency when unused
+
+        # Canonical discriminator is guaranteed by Pydantic Literal typing but
+        # we cast to *str* defensively for forward-compat.
+        node_type: str = str(self.type)
+
+        # Helper – detect “missing” schema (empty dict / None)
+        def _is_schema_missing(schema: Any) -> bool:  # noqa: ANN401 – generic
+            if schema is None:
+                return True
+            if isinstance(schema, dict):
+                return len(schema) == 0
+            # Pydantic model class present → not missing
+            return False
+
+        if node_type == "llm":
+            # Provide soft fallback so authors aren’t forced to specify schema
+            if _is_schema_missing(self.output_schema):
+                self.output_schema = {"text": "string"}  # type: ignore[assignment]
+                warnings.warn(
+                    "LLM node missing output_schema – defaulting to {'text':'string'} (will become a hard requirement in v2)",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            return  # No further checks for input_schema – prompts often vary.
+
+        # Deterministic nodes – require both schemas ------------------------
+        if _is_schema_missing(self.input_schema) or _is_schema_missing(self.output_schema):
+            raise ValueError(
+                f"Node '{self.id}' of type '{node_type}' must declare non-empty input_schema and output_schema."
+            )
+
+        # Validate literals inside *dict*-style schemas --------------------
+        from ice_core.utils.schema import is_valid_schema_dict  # local import
+
+        for field_name, schema_val in [
+            ("input_schema", self.input_schema),
+            ("output_schema", self.output_schema),
+        ]:
+            if isinstance(schema_val, dict):
+                ok, errs = is_valid_schema_dict(schema_val)
+                if not ok:
+                    joined = "; ".join(errs)
+                    raise ValueError(
+                        f"Node '{self.id}' has invalid {field_name}: {joined}"
+                    )
 
     @staticmethod
     def is_pydantic_schema(schema: Any) -> bool:
@@ -233,9 +285,16 @@ class BaseNodeConfig(BaseModel):
 
 
 class LLMOperatorConfig(BaseNodeConfig):
-    """Configuration for an LLM-powered node."""
+    """Configuration for an LLM-powered node.
 
-    type: Literal["ai", "llm"] = "llm"  # discriminator
+    Historical note: early prototypes used the short discriminator value
+    ``"ai"``.  This alias is now DEPRECATED – the canonical value going
+    forward is ``"llm"``.  Runtime conversion still accepts the legacy
+    string (see *node_conversion._NODE_TYPE_MAP*) but new blueprints MUST
+    emit ``type="llm"``.
+    """
+
+    type: Literal["llm"] = "llm"  # discriminator
 
     model: str = Field(..., description="Model name, e.g. gpt-3.5-turbo")
     prompt: str = Field(..., description="Prompt template")
@@ -263,7 +322,7 @@ class LLMOperatorConfig(BaseNodeConfig):
 class SkillNodeConfig(BaseNodeConfig):
     """Configuration for an idempotent tool execution."""
 
-    type: Literal["tool", "skill"] = "skill"
+    type: Literal["tool"] = "tool"
 
     tool_name: str = Field(..., description="Registered name of the tool to invoke")
     tool_args: Dict[str, Any] = Field(default_factory=dict)
@@ -291,9 +350,14 @@ class NestedChainConfig(BaseNodeConfig):
 
 
 class PrebuiltAgentConfig(BaseNodeConfig):
-    """Configuration for using a pre-built third-party agent."""
+    """Configuration for using a pre-built multi-tool agent.
 
-    type: Literal["prebuilt"] = "prebuilt"
+    Similar to :class:`LLMOperatorConfig` but encapsulates memory, multiple
+    tool calls, iterative reasoning etc.  The historical discriminator was
+    ``"prebuilt"`` – we now use ``"agent"`` across the board.
+    """
+
+    type: Literal["agent"] = "agent"  # canonical
 
     package: str = Field(
         ..., description="Import path or installed package exposing the agent"

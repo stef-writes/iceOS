@@ -6,9 +6,12 @@ Extracted from `ScriptChain._is_output_valid` to improve separation of concerns.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
+from collections import defaultdict, deque
+from typing import List, Set
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models.node_models import NodeConfig
+    from ice_core.models.mcp import Blueprint  # noqa: WPS433  – runtime import
 
 
 class SchemaValidator:  # – internal utility
@@ -24,8 +27,35 @@ class SchemaValidator:  # – internal utility
         """
 
         schema = getattr(node, "output_schema", None)
+
+        # ------------------------------------------------------------------
+        # Schema presence is now mandatory for all nodes except LLM (which
+        # gets a default {{"text":"string"}}).  If we *still* encounter a
+        # node without schema it means runtime_validate() was skipped – fail
+        # loudly so the bug surfaces during testing.
+        # ------------------------------------------------------------------
+
         if not schema:
-            return True
+            from ice_core.models.node_models import LLMOperatorConfig  # local import
+
+            if isinstance(node, LLMOperatorConfig):
+                # Gracefully accept; treat as passthrough text.
+                return True
+
+            raise ValueError(
+                f"Node '{getattr(node, 'id', '?')}' lacks output_schema despite mandatory policy."
+            )
+
+        # --------------------------------------------------------------
+        # Validate schema dict literals first -------------------------
+        if isinstance(schema, dict):
+            from ice_core.utils.schema import is_valid_schema_dict
+
+            ok, errs = is_valid_schema_dict(schema)
+            if not ok:
+                raise ValueError(
+                    f"Invalid output_schema for node '{getattr(node, 'id', '?')}' – {'; '.join(errs)}"
+                )
 
         # --------------------------------------------------------------
         # Attempt to coerce *str* outputs into JSON when a schema exists
@@ -87,3 +117,78 @@ class SchemaValidator:  # – internal utility
 
         # Unknown schema format – consider valid to avoid false negatives
         return True
+
+
+# ---------------------------------------------------------------------------
+# Custom exceptions ----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+class CircularDependencyError(ValueError):
+    """Raised when a blueprint contains circular dependencies."""
+
+
+class InvalidSchemaVersionError(ValueError):
+    """Raised when a blueprint's declared schema version is unsupported."""
+
+
+# ---------------------------------------------------------------------------
+# Blueprint-level validation --------------------------------------------------
+# ---------------------------------------------------------------------------
+
+async def validate_blueprint(blueprint: "Blueprint") -> None:  # type: ignore[FWDref]
+    """Validate a ``Blueprint`` object.
+
+    This helper is *async* so callers can await it in orchestration pipelines
+    without blocking the event loop (the implementation is CPU-bound but cheap).
+
+    Validation steps:
+      1. Schema version enforcement – currently only *1.1.0* is allowed.
+      2. Circular dependency detection using Kahn's algorithm.
+      3. Referential integrity – all *dependencies* must reference existing nodes
+         (already guaranteed by ``Blueprint`` model validator but re-checked for
+         completeness).
+
+    Raises
+    ------
+    InvalidSchemaVersionError
+        When the blueprint declares an unsupported ``schema_version``.
+    CircularDependencyError
+        When a cycle is detected in the node dependency graph.
+    """
+
+    # Lazy import to avoid cross-layer dependency at module import time
+    from ice_core.models.mcp import Blueprint  # noqa: WPS433  – runtime import
+
+    if blueprint.schema_version != "1.1.0":  # Hardcoded until next minor bump
+        raise InvalidSchemaVersionError(
+            f"Unsupported schema_version '{blueprint.schema_version}'. "
+            "Expected '1.1.0'."
+        )
+
+    # ------------------------------------------------------------------
+    # Cycle detection (Kahn's algorithm) --------------------------------
+    # ------------------------------------------------------------------
+    in_degree: dict[str, int] = {node.id: 0 for node in blueprint.nodes}
+    adjacency: dict[str, List[str]] = defaultdict(list)
+
+    for node in blueprint.nodes:
+        for dep in node.dependencies:
+            adjacency[dep].append(node.id)
+            in_degree[node.id] += 1
+
+    queue: deque[str] = deque([nid for nid, deg in in_degree.items() if deg == 0])
+    processed = 0
+
+    while queue:
+        current = queue.popleft()
+        processed += 1
+        for neighbour in adjacency.get(current, []):
+            in_degree[neighbour] -= 1
+            if in_degree[neighbour] == 0:
+                queue.append(neighbour)
+
+    if processed != len(blueprint.nodes):
+        raise CircularDependencyError("Blueprint contains circular dependencies")
+
+    # No exception means validation succeeded
+    return None

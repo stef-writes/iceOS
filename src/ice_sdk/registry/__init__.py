@@ -14,17 +14,25 @@ from __future__ import annotations
 
 from ice_sdk.capabilities.registry import CapabilityRegistry
 
-from .node import NODE_REGISTRY as NodeRegistry  # – re-export
-from .processor import global_processor_registry as ProcessorRegistry
-from .skill import SkillRegistry as SkillRegistry  # – re-export class
-from .skill import (
-    global_skill_registry as global_skill_registry,  # – convenience instance
-)
+# Canonical registries -------------------------------------------------------
+from .node import NODE_REGISTRY as NodeRegistry  # – executor map
+from .tool import ToolRegistry as ToolRegistry
+from .tool import global_tool_registry as global_tool_registry
+from .operator import OperatorRegistry as OperatorRegistry
+from .operator import global_operator_registry as global_operator_registry
+from .agent import AgentRegistry as AgentRegistry
+from .agent import global_agent_registry as global_agent_registry
+
+# ---------------------------------------------------------------------------
+# Public API surface ---------------------------------------------------------
 
 __all__: list[str] = [
     "NodeRegistry",
-    "SkillRegistry",
-    "ProcessorRegistry",
-    "global_skill_registry",
+    "ToolRegistry",
+    "OperatorRegistry",
+    "global_tool_registry",
+    "global_operator_registry",
     "CapabilityRegistry",
+    "AgentRegistry",
+    "global_agent_registry",
 ]

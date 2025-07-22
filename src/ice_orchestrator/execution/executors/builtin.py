@@ -9,6 +9,7 @@ orchestrator layer.
 
 # Standard library imports -----------------------------------------------------
 import re
+import warnings
 from datetime import datetime
 from typing import Any, Dict, TypeAlias
 
@@ -20,121 +21,55 @@ from ice_core.models import (
 )
 from ice_core.models.node_models import NestedChainConfig, NodeMetadata
 
-# NOTE: use AgentNode from ice_sdk and WorkflowLike alias
-from ice_sdk import AgentNode
-from ice_sdk.interfaces.chain import WorkflowLike as _WorkflowLike
-from ice_sdk.models.agent_models import AgentConfig, ModelSettings
+# Node registry decorator remains
 from ice_sdk.registry.node import register_node
-from ice_sdk.skills import SkillBase
+
+# Prompt rendering and LLM service helpers
 from ice_sdk.utils.prompt_renderer import render_prompt
+from ice_sdk.providers.llm_service import LLMService
+from ice_core.registry.prompt_template import global_prompt_template_registry
+
+# For type aliasing of script chains (keeps previous behaviour)
+from ice_sdk.interfaces.chain import WorkflowLike as _WorkflowLike
 
 # Alias used in annotations locally ------------------------------------------
 ScriptChain: TypeAlias = _WorkflowLike
 
 # ---------------------------------------------------------------------------
-# Helper – build AgentNode from LLMOperatorConfig (duplicated from ScriptChain._make_agent)
+# "llm" executor ------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
 
-def _build_agent(chain: ScriptChain, node: LLMOperatorConfig) -> AgentNode:
-    """Build or fetch a cached AgentNode instance for *node*."""
-    agent_cache: Dict[str, AgentNode] = getattr(chain, "_agent_cache")
-    existing = agent_cache.get(node.id)
-    if existing is not None:
-        return existing
-
-    # Build precedence-aware tool map ------------------------------------
-    tool_map: Dict[str, SkillBase] = {}
-
-    # 1. Globally registered tools (lowest precedence) -------------------
-    for name, tool in chain.context_manager.get_all_tools().items():
-        tool_map[name] = tool
-
-    # 2. Chain-level tools — override when name clashes ------------------
-    for t in getattr(chain, "_chain_skills", []):
-        tool_map[t.name] = t
-
-    # 3. Node-specific tool references — highest precedence -------------
-    if node.tools:
-        for cfg in node.tools:  # type: ignore[attr-defined]
-            t_obj = chain.context_manager.get_tool(cfg.name)
-            if t_obj is not None:
-                tool_map[t_obj.name] = t_obj
-
-    # -----------------------------------------------------------------------
-    # 4. Apply explicit *allowed_tools* whitelist on the node config ---------
-    # -----------------------------------------------------------------------
-
-    if node.allowed_tools is not None:
-        allowed_set = set(node.allowed_tools)
-        tool_map = {name: t for name, t in tool_map.items() if name in allowed_set}
-
-    tools: list[SkillBase] = list(tool_map.values())
-
-    model_settings = ModelSettings(
-        model=node.model,
-        temperature=getattr(node, "temperature", 0.7),
-        max_tokens=getattr(node, "max_tokens", None),
-        provider=str(getattr(node.provider, "value", node.provider)),
-    )
-
-    agent_cfg = AgentConfig(
-        name=node.name or node.id,
-        instructions=node.prompt,
-        model=node.model,
-        model_settings=model_settings,
-        tools=tools,
-    )  # type: ignore[call-arg]
-
-    agent = AgentNode(config=agent_cfg, context_manager=chain.context_manager)
-    agent.tools = tools
-
-    # Register with context manager
-    try:
-        chain.context_manager.register_agent(agent)
-    except ValueError:
-        pass
-
-    for tool in tools:
-        try:
-            chain.context_manager.register_tool(tool)
-        except ValueError:
-            continue
-
-    agent_cache[node.id] = agent
-    return agent
-
-
-# ---------------------------------------------------------------------------
-# "ai" executor ------------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-
-@register_node("ai")  # legacy discriminator  # type: ignore[type-var]
-@register_node("llm")  # new discriminator  # type: ignore[type-var]
-async def ai_executor(  # type: ignore[type-var]
+@register_node("llm")  # canonical discriminator  # type: ignore[type-var]
+async def llm_executor(  # type: ignore[type-var]
     chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
 ) -> NodeExecutionResult:
-    """Executor for LLM-powered *ai* nodes."""
+    """Executor for LLM-powered ``llm`` nodes."""
 
     if not isinstance(cfg, LLMOperatorConfig):
-        raise TypeError("ai_executor received incompatible cfg type")
+        raise TypeError("llm_executor received incompatible cfg type")
 
     # ------------------------------------------------------------------
-    # Dynamic prompt templating ----------------------------------------
+    # Resolve template references & dynamic prompt rendering ------------
     # ------------------------------------------------------------------
-    # *render_prompt* substitutes any placeholder expressions in the
-    # ``cfg.prompt`` string using the *ctx* dict prepared by ScriptChain.
-    # The helper falls back to the original string if rendering fails so
-    # we never break node execution due to missing keys.
+
+    prompt_source = cfg.prompt
+
+    if prompt_source.startswith("template:"):
+        tpl_name = prompt_source.split(":", 1)[1].strip()
+        tpl_obj = global_prompt_template_registry.get(tpl_name)
+        prompt_source = tpl_obj.format(**ctx)
+
+    # *render_prompt* substitutes {{ placeholders }} using the context.
+    # It falls back to the original string if rendering fails so we never
+    # break node execution due to missing keys.
 
     # Render template ---------------------------------------------------
     rendered_prompt: str
     try:
-        rendered_prompt = await render_prompt(cfg.prompt, ctx)
+        rendered_prompt = await render_prompt(prompt_source, ctx)
     except Exception:
-        # Keep original prompt on rendering failure but still check leftovers
-        rendered_prompt = cfg.prompt
+        rendered_prompt = prompt_source
 
     # After rendering, ensure no unresolved placeholders remain ---------
     _LEFTOVER_RE = re.compile(r"\{\s*[a-zA-Z0-9_\.]+\s*\}")
@@ -145,12 +80,29 @@ async def ai_executor(  # type: ignore[type-var]
 
     cfg.prompt = rendered_prompt  # type: ignore[assignment]
 
-    agent = _build_agent(chain, cfg)
-    ai_output = await agent.execute(ctx)
+    # ------------------------------------------------------------------
+    # Call provider-specific LLM service directly -----------------------
+    # ------------------------------------------------------------------
+
+    llm_service = LLMService()
+
+    tools_payload = [t.model_dump() for t in (cfg.tools or [])]  # type: ignore[attr-defined]
+
+    text, usage_stats, error_msg = await llm_service.generate(
+        llm_config=cfg.llm_config,
+        prompt=rendered_prompt,
+        context=ctx,
+        tools=tools_payload or None,
+        timeout_seconds=getattr(cfg, "timeout_seconds", 30),
+        max_retries=getattr(cfg, "retries", 2),
+    )
+
+    success_flag = error_msg is None or error_msg == ""
 
     return NodeExecutionResult(  # type: ignore[call-arg]
-        success=True,
-        output=ai_output,
+        success=success_flag,
+        error=error_msg,
+        output={"text": text, "usage": usage_stats},
         metadata=NodeMetadata(
             node_id=cfg.id,
             node_type="llm",
@@ -167,8 +119,7 @@ async def ai_executor(  # type: ignore[type-var]
 # ---------------------------------------------------------------------------
 
 
-@register_node("tool")  # legacy discriminator  # type: ignore[type-var]
-@register_node("skill")  # new discriminator  # type: ignore[type-var]
+@register_node("tool")  # canonical discriminator  # type: ignore[type-var]
 async def tool_executor(  # type: ignore[type-var]
     chain: ScriptChain, cfg: NodeConfig, ctx: Dict[str, Any]
 ) -> NodeExecutionResult:

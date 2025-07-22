@@ -10,7 +10,7 @@ Usage::
 """
 
 import os
-from typing import Optional
+from typing import Optional, Any, Awaitable, Callable
 
 try:
     # ``redis.asyncio`` provides the fully featured async client, including the
@@ -37,8 +37,8 @@ except ModuleNotFoundError:  # pragma: no cover – optional for unit tests
         async def ping(self) -> bool:  # noqa: D401 – stub method
             return True
 
-        def __getattr__(self, name: str):  # noqa: D401 – dynamic stub
-            async def _dummy(*_args, **_kwargs):  # type: ignore[return-value]
+        def __getattr__(self, name: str) -> Callable[..., Awaitable[Any]]:  # noqa: D401 – dynamic stub
+            async def _dummy(*_args: Any, **_kwargs: Any) -> None:  # noqa: D401
                 return None
 
             return _dummy
@@ -47,29 +47,34 @@ except ModuleNotFoundError:  # pragma: no cover – optional for unit tests
         # Hash helpers (minimal subset) ------------------------------
         # ------------------------------------------------------------
 
-        async def hset(self, key: str, mapping: dict[str, str]):  # type: ignore[override]
+        async def hset(self, key: str, mapping: dict[str, str]) -> int:  # type: ignore[override]
             self._hashes.setdefault(key, {}).update(mapping)
             # Redis returns the number of fields that were added.
             return len(mapping)
 
-        async def hget(self, key: str, field: str):  # type: ignore[override]
+        async def hget(self, key: str, field: str) -> Optional[str]:  # type: ignore[override]
             return self._hashes.get(key, {}).get(field)
 
-        async def exists(self, key: str):  # type: ignore[override]
+        async def exists(self, key: str) -> bool:  # type: ignore[override]
             return key in self._hashes or key in self._streams
 
         # ------------------------------------------------------------
         # Stream helpers (very coarse – good enough for demo) --------
         # ------------------------------------------------------------
 
-        async def xadd(self, stream: str, data: dict[str, str]):  # type: ignore[override]
+        async def xadd(self, stream: str, data: dict[str, str]) -> str:  # type: ignore[override]
             lst = self._streams.setdefault(stream, [])
             # Simplified ID generation (monotonic counter per stream)
             seq_id = f"{len(lst)}-0"
             lst.append((seq_id, data))
             return seq_id
 
-        async def xread(self, streams: dict[str, str], block: int = 0, count: int | None = None):  # type: ignore[override]
+        async def xread(
+            self,
+            streams: dict[str, str],
+            block: int = 0,
+            count: int | None = None,
+        ) -> list[tuple[str, list[tuple[str, dict[str, str]]]]]:  # type: ignore[override]
             # Very naive implementation – returns *all* new entries after the
             # provided IDs (ignores *block* semantics).
             results: list[tuple[str, list[tuple[str, dict[str, str]]]]] = []

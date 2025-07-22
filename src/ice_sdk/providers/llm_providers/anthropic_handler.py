@@ -5,9 +5,20 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
-from anthropic import AsyncAnthropic
+# ---------------------------------------------------------------------------
+# Optional SDK import – fallback to *None* when missing so that higher layers
+# can still import this module without the extra dependency being present.
+# ---------------------------------------------------------------------------
+
+try:
+    from anthropic import AsyncAnthropic as _AsyncAnthropic  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover – optional dep
+    _AsyncAnthropic = None  # type: ignore[assignment]
+
+# Re-export under stable name – ``Optional[Any]`` avoids strict type errors
+AsyncAnthropic = cast("Optional[Any]", _AsyncAnthropic)
 
 from ice_sdk.models.config import LLMConfig
 
@@ -28,11 +39,21 @@ class AnthropicHandler(BaseLLMHandler):
         context: dict[str, Any],
         tools: Optional[list[dict[str, Any]]] = None,
     ) -> tuple[str, Optional[dict[str, int]], Optional[str]]:
+        # ------------------------------------------------------------------
+        # Dependency + configuration validation -----------------------------
+        # ------------------------------------------------------------------
+
+        if AsyncAnthropic is None:
+            return "", None, (
+                "anthropic package not installed – install via "
+                "`poetry install -E llm_anthropic` or add it to dependencies"
+            )
+
         api_key = llm_config.api_key or os.getenv("ANTHROPIC_API_KEY")
         if not api_key:
             return "", None, "ANTHROPIC_API_KEY not set"
 
-        client = AsyncAnthropic(api_key=api_key)
+        client = AsyncAnthropic(api_key=api_key)  # type: ignore[operator]
 
         system_prompt = context.get("system_prompt")
         system_param = (

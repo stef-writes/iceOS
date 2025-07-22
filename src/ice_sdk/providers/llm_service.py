@@ -18,11 +18,13 @@ from typing import Any, Optional, Tuple
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from ice_sdk.models.config import LLMConfig, ModelProvider
-from ice_sdk.providers.llm_providers.anthropic_handler import AnthropicHandler
+from ice_sdk.providers.llm_providers import (
+    AnthropicHandler,
+    DeepSeekHandler,
+    GoogleGeminiHandler,
+    OpenAIHandler,
+)
 from ice_sdk.providers.llm_providers.base_handler import BaseLLMHandler
-from ice_sdk.providers.llm_providers.deepseek_handler import DeepSeekHandler
-from ice_sdk.providers.llm_providers.google_gemini_handler import GoogleGeminiHandler
-from ice_sdk.providers.llm_providers.openai_handler import OpenAIHandler
 
 try:
     from openai import error as openai_error  # type: ignore
@@ -53,12 +55,20 @@ class LLMService:
     """
 
     def __init__(self) -> None:
-        self.handlers = {
-            ModelProvider.OPENAI: OpenAIHandler(),
-            ModelProvider.ANTHROPIC: AnthropicHandler(),
-            ModelProvider.GOOGLE: GoogleGeminiHandler(),
-            ModelProvider.DEEPSEEK: DeepSeekHandler(),
-        }
+        # Instantiate available handlers only. Optional ones may be *None*
+        self.handlers: dict[ModelProvider, BaseLLMHandler] = {}
+
+        if OpenAIHandler is not None:  # Core provider – must be present
+            self.handlers[ModelProvider.OPENAI] = OpenAIHandler()
+
+        if AnthropicHandler is not None:
+            self.handlers[ModelProvider.ANTHROPIC] = AnthropicHandler()  # type: ignore[call-arg]
+
+        if GoogleGeminiHandler is not None:
+            self.handlers[ModelProvider.GOOGLE] = GoogleGeminiHandler()  # type: ignore[call-arg]
+
+        if DeepSeekHandler is not None:
+            self.handlers[ModelProvider.DEEPSEEK] = DeepSeekHandler()  # type: ignore[call-arg]
 
     async def generate(
         self,
@@ -98,9 +108,26 @@ class LLMService:
 
         handler_nn: BaseLLMHandler = handler
 
+        # ------------------------------------------------------------------
+        # Internal helper with logging --------------------------------------
+        # ------------------------------------------------------------------
+
         async def _call_handler() -> (
             Tuple[str, Optional[dict[str, int]], Optional[str]]
         ):
+            # Log configuration + prompt at DEBUG level so that users can
+            # inspect exactly what is being sent to the provider when they
+            # run with ``ICE_LOG_LEVEL=DEBUG``.
+
+            logger.debug(
+                "LLM request | provider=%s model=%s temperature=%s max_tokens=%s\nPrompt:%s",
+                provider_key,
+                llm_config.model,
+                llm_config.temperature,
+                llm_config.max_tokens,
+                prompt,
+            )
+
             try:
                 result_inner = await handler_nn.generate_text(
                     llm_config=llm_config,
@@ -108,7 +135,17 @@ class LLMService:
                     context=context or {},
                     tools=tools,
                 )
-                return result_inner
+                # Unpack tuple for logging before returning.
+                generated_text, usage_stats, error_msg = result_inner
+
+                logger.debug(
+                    "LLM response | error=%s usage=%s\nOutput:%s",
+                    error_msg,
+                    usage_stats,
+                    generated_text,
+                )
+
+                return generated_text, usage_stats, error_msg
             except (
                 openai_error.RateLimitError,  # type: ignore[attr-defined]
                 openai_error.Timeout,  # type: ignore[attr-defined]

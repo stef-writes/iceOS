@@ -9,14 +9,14 @@ import networkx as nx
 from pydantic import BaseModel, Field
 
 from ice_sdk.services import ServiceLocator  # new
-from ice_sdk.skills import SkillBase, ToolContext
+from ice_sdk.tools import SkillBase, ToolContext
 
 # Unified tool execution via ToolService -------------------------------
-from ice_sdk.skills.service import ToolRequest, ToolService
+from ice_sdk.tools.service import ToolRequest, ToolService
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
-from .memory import BaseMemory, SQLiteVectorMemory  # – optional adapter
+from .memory import BaseMemory, NullMemory  # simplified memory adapter
 from .store import ContextStore
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -68,7 +68,7 @@ class GraphContextManager:
         self.store = store or ContextStore()
         self.formatter = formatter or ContextFormatter()
         # Memory adapter ---------------------------------------------------
-        self.memory: BaseMemory = memory or SQLiteVectorMemory()
+        self.memory: BaseMemory = memory or NullMemory()
         self._agents: Dict[str, "AgentNode"] = {}
         self._tools: Dict[str, SkillBase] = {}
         # Map of session_id -> GraphContext (acts as LRU cache) --------------

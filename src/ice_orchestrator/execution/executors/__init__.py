@@ -1,4 +1,7 @@
 from importlib import import_module
+from ice_core.models.node_models import NodeSpec, NodeType
+from ice_sdk.registry.tool import global_tool_registry
+from ice_sdk.registry.operator import global_operator_registry
 
 """Runtime node executors for the orchestrator layer.
 
@@ -8,7 +11,11 @@ with the global :pymod:`ice_sdk.registry.node` mapping.
 """
 
 # Register built-in executor modules ----------------------------------------
-import_module(__name__ + ".builtin")
+_builtin = import_module(__name__ + ".builtin")
+
+# Re-export canonical & deprecated executor callables -----------------------
+llm_executor = getattr(_builtin, "llm_executor")  # type: ignore[attr-defined]
+tool_executor = getattr(_builtin, "tool_executor")  # type: ignore[attr-defined]
 import_module(__name__ + ".condition")
 
 # Optional evaluator stub may be removed later
@@ -18,7 +25,7 @@ except ModuleNotFoundError:  # pragma: no cover – optional stub
     pass
 
 __all__ = [
-    "ai_executor",
+    "llm_executor",  # canonical
     "tool_executor",
     "condition_executor",
     "evaluator_executor",

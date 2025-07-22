@@ -15,16 +15,17 @@ from .models.config import LLMConfig, MessageTemplate
 from .models.node_models import NodeConfig, NodeExecutionResult, NodeMetadata
 
 # from .models.network import NetworkSpec
-from .skills import SkillBase
-from .skills.service import ToolService
+from .tools import SkillBase, ToolContext, function_tool  # re-export helpers
+from .tools.service import ToolService
 
 # NOTE: Lazy import of IceCopilot to avoid circular dependencies with ice_orchestrator.
 
 __all__ = [
     # Core abstractions
     "BaseNode",
-    "SkillBase",  # supplant BaseTool alias
-    "ToolService",
+    "SkillBase",
+    "ToolContext",
+    "function_tool",
     "AgentNode",
     # Data models
     "NodeConfig",

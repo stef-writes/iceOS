@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Dict, List
 
 from ice_core.models.llm import LLMConfig
 from ice_sdk.agents import AgentNode, AgentNodeConfig  # runtime import
-from ice_sdk.skills.base import SkillBase
+from ice_sdk.tools.base import SkillBase
 
 # ------------------------------------------------------------------
 # Backwards-compatibility: *BaseTool* alias -------------------------
@@ -31,10 +31,10 @@ class AgentFactory:  # – internal utility
     """Factory for creating AgentNode instances from LLMOperatorConfig."""
 
     def __init__(
-        self, context_manager: "GraphContextManager", chain_skills: List["SkillBase"]
+        self, context_manager: "GraphContextManager", chain_tools: List["SkillBase"]
     ) -> None:
         self.context_manager = context_manager
-        self.chain_skills = chain_skills
+        self.chain_tools = chain_tools
 
     def make_agent(self, node: "LLMOperatorConfig") -> "AgentNode":
         """Convert an *LLMOperatorConfig* into a fully-initialised :class:`AgentNode`.
@@ -53,7 +53,7 @@ class AgentFactory:  # – internal utility
             tool_map[name] = tool
 
         # 2. Chain-level tools – override globals when name clashes ------
-        for t in self.chain_skills:
+        for t in self.chain_tools:
             tool_map[t.name] = t
 
         # 3. Node-specific tool refs override everything else -----------

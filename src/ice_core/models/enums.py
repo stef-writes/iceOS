@@ -17,3 +17,21 @@ class ModelProvider(str, Enum):
     GOOGLE = "google"
     DEEPSEEK = "deepseek"
     CUSTOM = "custom"
+
+
+# ---------------------------------------------------------------------------
+# NodeType enum (canonical runtime discriminator values) ---------------------
+# ---------------------------------------------------------------------------
+
+
+class NodeType(str, Enum):
+    """Canonical discriminator strings for *NodeConfig.type* field.
+
+    Only *canonical* names are exposed; all aliases have been removed.
+    """
+
+    TOOL = "tool"  # deterministic tool implementation (formerly "skill")
+    LLM = "llm"  # single-prompt LLM operator
+    CONDITION = "condition"
+    NESTED_CHAIN = "nested_chain"
+    AGENT = "agent"  # pre-built iterative agent

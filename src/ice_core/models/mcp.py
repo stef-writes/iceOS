@@ -23,18 +23,44 @@ class NodeSpec(BaseModel):
 
     id: str
     type: str
+    dependencies: List[str] = Field(default_factory=list)
 
     # Accept arbitrary extra fields so callers can embed the full NodeConfig.
     model_config = {"extra": "allow"}
 
 
+# ---------------------------------------------------------------------------
+# Blueprint model -----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
 class Blueprint(BaseModel):
-    """A design-time workflow blueprint."""
+    """A design-time workflow blueprint transferable over the wire."""
 
     blueprint_id: str = Field(default_factory=lambda: f"bp_{uuid.uuid4().hex[:8]}")
-    version: str = "1.0.0"
-    nodes: List[NodeSpec]
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    schema_version: str = Field(
+        "1.1.0",
+        description="Semver blueprint schema version",
+        json_schema_extra={"example": "1.1.0"}
+    )
+    nodes: List[NodeSpec] = Field(
+        ...,  # At least one node required (runtime validator asserts)
+        description="Nodes comprising the workflow"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arbitrary metadata for documentation"
+    )
+
+    @model_validator(mode='after')
+    def validate_dependencies(cls, values: Any) -> Any:
+        """Ensure no circular dependencies and valid node references"""
+        node_ids = {n.id for n in values.nodes}
+        for node in values.nodes:
+            for dep in node.dependencies:
+                if dep not in node_ids:
+                    raise ValueError(f"Node {node.id} references missing dependency {dep}")
+        return values
 
     # ------------------------------------------------------------------
     # Validation helpers -------------------------------------------------

@@ -7,18 +7,13 @@ from ice_sdk.context.session_state import SessionState
 
 from .async_manager import GraphContextManager  # async-first implementation
 from .async_manager import AsyncGraphContextManager
-from .memory import (  # re-export for convenience
-    BaseMemory,
-    NullMemory,
-    SQLiteVectorMemory,
-)
+from .memory import BaseMemory, NullMemory  # re-export for convenience
 
 __all__: list[str] = [
     "GraphContextManager",
     "SessionState",
     "ScopedContextStore",
     "BaseMemory",
-    "SQLiteVectorMemory",
     "NullMemory",
     "AsyncGraphContextManager",
 ]

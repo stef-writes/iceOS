@@ -4,7 +4,7 @@ from typing import Any, List, Literal, Optional, Type
 
 from pydantic import BaseModel, Field
 
-from ..skills.base import SkillBase  # Updated from BaseTool
+from ..tools.base import SkillBase
 
 
 class ModelSettings(BaseModel):

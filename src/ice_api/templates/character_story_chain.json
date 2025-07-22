@@ -4,7 +4,7 @@
     "nodes": [
         {
             "id": "character_generator",
-            "type": "ai",
+            "type": "llm",
             "model": "gpt-3.5-turbo",
             "prompt": "Generate 3 distinct characters for a story. For each character, provide their name, personality, and a brief background. Format as JSON with keys: characters (array of {name, personality, background})",
             "llm_config": {
@@ -17,7 +17,7 @@
         },
         {
             "id": "story_generator",
-            "type": "ai",
+            "type": "llm",
             "model": "gpt-3.5-turbo",
             "prompt": "Write a short story that brings together these characters: {characters}. Make sure to show how they interact with each other.",
             "llm_config": {
@@ -37,7 +37,7 @@
         },
         {
             "id": "character_analysis",
-            "type": "ai",
+            "type": "llm",
             "model": "gpt-3.5-turbo",
             "prompt": "Analyze the character relationships in this story: {text}. For each character, describe their interactions with others. Return a JSON object in this exact format: {\"relationships\": [{\"character\": \"Character Name\", \"interactions\": [{\"character\": \"Other Character\", \"description\": \"Description of interaction\"}]}]}. Do not use any function calls.",
             "llm_config": {
@@ -57,7 +57,7 @@
         },
         {
             "id": "story_summarizer",
-            "type": "ai",
+            "type": "llm",
             "model": "gpt-3.5-turbo",
             "prompt": "Based on this story and character analysis, provide a brief summary of the main plot and character dynamics: Story: {story} Character Relationships: {relationships}",
             "llm_config": {

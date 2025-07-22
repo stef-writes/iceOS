@@ -3,7 +3,8 @@
 PYTHON := $(shell which python)
 PIP := pip
 
-.PHONY: help install lint type test coverage mutation refresh-docs doctor clean docs deep-clean lock-check
+.PHONY: help install lint type test coverage mutation refresh-docs doctor clean docs deep-clean lock-check dev run-demo
+.PHONY: setup typecheck ci
 
 help:
 	@echo "Available targets:"
@@ -15,6 +16,8 @@ help:
 	@echo "  mutation       Run mutmut mutation testing"
 	@echo "  refresh-docs   Regenerate docs (catalog + overview + layout + CLI)"
 	@echo "  doctor         Run full healthcheck suite"
+	@echo "  setup          One-shot bootstrap: install deps, git hooks"
+	@echo "  ci             Lint, type-check, tests, security audit (what CI runs)"
 	@echo "  clean          Remove .pyc, build, and coverage artifacts"
 	@echo "  docs           Build documentation site (output to site/)"
 	@echo "  deep-clean     Remove build/test artifacts, caches, logs, compiled files and local data"
@@ -22,6 +25,13 @@ help:
 
 install:
 	poetry install --with dev --no-interaction
+
+# Idempotent first-time setup ------------------------------------------------
+
+setup: install
+	@echo "Installing pre-commit hooks …"
+	poetry run pre-commit install --install-hooks --overwrite
+	@echo "Setup complete ✔"
 
 # Linting
 lint:
@@ -50,15 +60,18 @@ refresh-docs:
 	$(PYTHON) scripts/gen_repo_layout.py
 	$(PYTHON) scripts/gen_cli_overview.py
 
-# Comprehensive quality gate (lint + type + test + optional perf)
+# Comprehensive quality gate (lint + type + test)
+# (Uses local venv; bootstrap via `make dev` first.)
 doctor:
-	poetry run ice doctor all
-	poetry run pre-commit run --all-files --show-diff-on-failure
-	"$(PYTHON)" scripts/check_layers.py
+	.venv/bin/ruff check .
+	.venv/bin/mypy --strict src/ice_api src/ice_core src/ice_orchestrator
+	.venv/bin/pytest -q
 
 # Architectural guard – run by CI and pre-commit
 structure:
 	"$(PYTHON)" scripts/check_layers.py
+	"$(PYTHON)" scripts/ci/check_aliases.py
+	"$(PYTHON)" scripts/ci/check_input_literals.py
 
 coverage:
 	poetry run pytest
@@ -98,3 +111,32 @@ audit:
 	python -m scripts.check_service_contracts
 	python -m scripts.validate_decision_records
 	pytest tests/unit/lint -v 
+
+dev: ## Bootstrap .venv if needed, start Redis & API (hot-reload)
+	@if [ ! -d .venv ]; then \
+		echo "[dev] creating local venv + installing deps"; \
+		python3 -m venv .venv; \
+		. .venv/bin/activate; \
+		python -m pip install -U pip setuptools wheel; \
+		pip install -e ".[dev]"; \
+	fi
+	@echo "Checking Redis availability..."; \
+	if ! lsof -i :6379 > /dev/null 2>&1; then \
+		echo "Starting Redis via Docker..."; \
+		docker compose up -d redis; \
+		until docker compose exec redis redis-cli ping | grep -q PONG; do sleep 1; done; \
+	else \
+		echo "Redis already running on port 6379"; \
+	fi
+	.venv/bin/uvicorn src.ice_api.main:app --reload --host 0.0.0.0 --port 8000
+
+run-demo: ## Execute CSV→Summary demo (requires dev server running)
+	.venv/bin/python examples/comprehensive_demo_example.py \
+		--csv examples/items.csv --base-url http://localhost:8000 
+
+# ---------------------------------------------------------------------------
+# Continuous-integration gate (mirrors GitHub Actions) -----------------------
+# ---------------------------------------------------------------------------
+
+ci: lint type test structure
+	poetry run pip-audit --summary 

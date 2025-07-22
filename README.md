@@ -16,54 +16,32 @@ The runtime is powered by a deterministic DAG engine (**Workflow**) and exposed 
 
 ---
 
-## Quick Start
+## 🚀 Zero to Demo in 60 Seconds
 
-### 1 · Prerequisites
-
-* Python 3.11+
-* Redis ≥6 (for blueprint + event persistence)
-* Poetry (`pip install poetry`)
-
-### 2 · Clone & install
+### First-time setup (⏱ ~30 s)
 
 ```bash
-poetry install --with dev
+# 1 · create & activate local venv
+python3 -m venv .venv && source .venv/bin/activate
+
+# 2 · install the project in editable-dev mode
+pip install -e ".[dev]"
+
+# 3 · optional – run tests to confirm all good
+pytest -q
 ```
 
-### 3 · Start the API
+### Daily workflow
 
 ```bash
-export REDIS_URL="redis://localhost:6379/0"  # adjust as needed
-poetry run uvicorn ice_api.main:app --reload
+# Terminal 1 – start services (hot-reload API + Redis)
+make dev
+
+# Terminal 2 – run the CSV→summary demo
+make run-demo
 ```
 
-### 4 · Run a workflow
-
-```bash
-# sum_blueprint.json
-{
-  "blueprint_id": "hello-sum",
-  "nodes": [
-    {"id": "sum1", "type": "tool", "tool_name": "sum", "tool_args": {"a": 2, "b": 3}}
-  ]
-}
-
-# Register blueprint
-curl -X POST http://localhost:8000/api/v1/mcp/blueprints \
-     -H "Content-Type: application/json" \
-     -d @sum_blueprint.json
-
-# Execute blueprint
-RUN_ID=$(curl -s -X POST http://localhost:8000/api/v1/mcp/runs \
-  -H "Content-Type: application/json" \
-  -d '{"blueprint_id":"hello-sum"}' | jq -r .run_id)
-
-# Stream node-level events (requires curl ≥7.72)
-curl --no-buffer http://localhost:8000/api/v1/mcp/runs/$RUN_ID/events
-
-# Fetch final result
-curl http://localhost:8000/api/v1/mcp/runs/$RUN_ID | jq
-```
+Poetry will now reuse the `.venv` you created (see `poetry.toml`).
 
 ---
 
@@ -88,7 +66,7 @@ More details in [docs/architecture/repo_layout.md](docs/architecture/repo_layout
 |----------------|-------------|
 | **Blueprint**  | Design-time JSON object defining nodes and edges |
 | **Workflow**   | In-memory runtime representation of a blueprint |
-| **Node**       | Atomic unit – either *tool*, *ai* (LLM operator) or *condition* |
+| **Node**       | Atomic unit – one of *tool*, *llm*, *agent*, *condition*, *nested_chain* |
 | **MCP**        | HTTP protocol for creating blueprints, starting runs and tailing events |
 | **Event Stream** | Redis Stream `stream:{run_id}` emitting `workflow.nodeStarted`, `workflow.nodeFinished`, `workflow.finished` |
 

@@ -1,0 +1,3 @@
+[virtualenvs]
+# Use Poetry’s default location (~/.cache/pypoetry/virtualenvs) for long-lived, stable venvs.
+in-project = false 
