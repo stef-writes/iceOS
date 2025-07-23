@@ -1,7 +1,9 @@
 from importlib import import_module
-from ice_core.models.node_models import NodeSpec, NodeType
 from ice_sdk.registry.tool import global_tool_registry
 from ice_sdk.registry.operator import global_operator_registry
+
+# Import tool modules to register them
+import ice_sdk.tools.system
 
 """Runtime node executors for the orchestrator layer.
 

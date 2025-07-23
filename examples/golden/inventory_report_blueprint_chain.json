@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.1.0",
+  "metadata": {
+    "name": "Inventory Report Demo (chain ref)",
+    "description": "Reads a CSV and delegates summarisation/insights/rendering to the inventory_summary chain. (Golden fixture copy)"
+  },
+  "nodes": [
+    {
+      "id": "read_csv",
+      "type": "tool",
+      "name": "Load CSV",
+      "tool_name": "csv_reader",
+      "tool_args": {
+        "file_path": "examples/items.csv",
+        "delimiter": ","
+      },
+      "input_schema": {"file_path": "str", "delimiter": "str"},
+      "output_schema": {"headers": "list[str]", "rows": "list[dict]", "rows_json": "str"}
+    },
+    {
+      "id": "report_chain",
+      "type": "nested_chain",
+      "name": "Inventory Summary Chain",
+      "dependencies": ["read_csv"],
+      "chain": "inventory_summary",
+      "input_schema": {"rows_json": "str"},
+      "output_schema": {"rendered": "str"},
+      "exposed_outputs": {"html": "rendered"}
+    }
+  ]
+} 

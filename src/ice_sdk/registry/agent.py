@@ -1,23 +1,16 @@
 from __future__ import annotations
 
-"""Agent registry – canonical home for reusable AgentNode classes.
+"""Agent registry – central catalogue for reusable, stand-alone agents.
 
-The registry enables short-name discovery of agents that can be reused across
-workflows (via ``agent`` nodes) instead of relying on a fully-qualified import
-path every time.
-
-Usage
------
->>> from ice_sdk.registry.agent import global_agent_registry
->>> global_agent_registry.register("smart_planner", SmartPlannerAgent)
->>> AgentCls = global_agent_registry.get("smart_planner")
+Parallels ``ice_sdk.registry.tool.ToolRegistry`` so that every executable entity
+in iceOS (tools, units, agents, chains) follows the **exact same discovery and
+lookup contract**.
 """
 
-from typing import Any, Dict, Generator, Mapping, Type, Tuple
+from typing import Any, Dict, Generator, Mapping, Tuple
+import warnings
 
 from pydantic import BaseModel, PrivateAttr
-
-from ice_sdk.agents.agent_node import AgentNode  # runtime base class
 
 __all__: list[str] = [
     "AgentRegistry",
@@ -30,14 +23,15 @@ class AgentRegistrationError(RuntimeError):
 
 
 class AgentRegistry(BaseModel):
-    """In-memory registry that resolves *AgentNode* classes by name.
+    """In-memory registry that resolves *Agent* implementations by name.
 
-    Mirrors *ToolRegistry* behaviour so orchestration can load agents by a
-    stable identifier instead of import strings.
+    The registry purposely stores **instances**, not classes, because Agents
+    are allowed to preserve state (e.g., memory buffers).  Implementations
+    SHOULD still be idempotent upon multiple instantiations to respect
+    Rule 13 (`validate()` + `execute()` MUST be side-effect safe).
     """
 
-    # Internal mapping – excluded from model schema
-    _agents: Dict[str, Type[AgentNode]] = PrivateAttr(default_factory=dict)
+    _agents: Dict[str, Any] = PrivateAttr(default_factory=dict)
 
     model_config = {
         "arbitrary_types_allowed": True,
@@ -45,52 +39,66 @@ class AgentRegistry(BaseModel):
     }
 
     # ------------------------------------------------------------------ API
-    def register(self, name: str, agent_cls: Type[AgentNode]) -> None:
-        """Register *agent_cls* under *name*.
+    def register(self, name: str, agent: Any) -> None:  # noqa: D401 – generic Any for now
+        """Add *agent* under *name*.
 
-        Parameters
-        ----------
-        name : str
-            Public identifier used by workflows.
-        agent_cls : Type[AgentNode]
-            Concrete :class:`~ice_sdk.agents.agent_node.AgentNode` subclass.
+        Validation is delegated to the agent's own ``validate()`` method when
+        present.  Duplicate names raise :class:`AgentRegistrationError` to
+        prevent accidental shadowing.
         """
 
         if name in self._agents:
             raise AgentRegistrationError(f"Agent '{name}' already registered")
 
-        # Optional: call class-level validate() if present ----------------
-        validate_fn = getattr(agent_cls, "validate", None)
+        # Best-effort validation hook
+        validate_fn = getattr(agent, "validate", None)
         if callable(validate_fn):
-            # Most AgentNode.validate() methods are instance-based; attempt safe call
-            try:
-                validate_fn(agent_cls)  # type: ignore[arg-type]
-            except TypeError:
-                # Fallback – instantiate with minimal args if signature requires self
-                try:
-                    instance = agent_cls.__new__(agent_cls)  # type: ignore[misc]
-                    validate_fn(instance)  # type: ignore[arg-type]
-                except Exception:  # pragma: no cover – do not block registration
-                    pass
+            validate_fn()
 
-        self._agents[name] = agent_cls
+        self._agents[name] = agent
 
-    def get(self, name: str) -> Type[AgentNode]:
-        """Return the registered AgentNode class for *name*."""
-
+    def get(self, name: str) -> Any:
         try:
             return self._agents[name]
         except KeyError as exc:
             raise AgentRegistrationError(f"Agent '{name}' not found") from exc
 
-    # Convenience helpers -------------------------------------------------
-    def __iter__(self) -> Generator[Tuple[str, Type[AgentNode]], None, None]:
+    async def execute(self, name: str, payload: Mapping[str, Any]) -> Any:
+        """Run ``agent.execute`` with *payload* and return result – async aware."""
+
+        agent = self.get(name)
+        exec_fn = getattr(agent, "execute")
+        if not callable(exec_fn):
+            raise TypeError(f"Agent '{name}' has no callable 'execute' method")
+
+        import asyncio
+        if asyncio.iscoroutinefunction(exec_fn):
+            return await exec_fn(payload)
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, exec_fn, payload)
+
+    # ------------------------------------------------------------------ helpers
+    def __iter__(self) -> Generator[Tuple[str, Any], None, None]:
         yield from self._agents.items()
 
-    def __len__(self) -> int:  # noqa: D401 – dunder helper
+    def __len__(self) -> int:  # pragma: no cover – convenience
         return len(self._agents)
 
 
 # Global default instance ----------------------------------------------------
 
-global_agent_registry: "AgentRegistry[Any]" = AgentRegistry()  # type: ignore[type-var] 
+global_agent_registry: "AgentRegistry[Any]" = AgentRegistry()  # type: ignore[type-var]
+
+# Legacy alias shim ----------------------------------------------------------
+import sys as _sys
+
+_sys.modules.setdefault(
+    "ice_sdk.registry.agents",  # plural form
+    _sys.modules[__name__],
+)
+
+warnings.warn(
+    "'global_agent_registry' has moved to 'ice_sdk.registry.agent'; update imports.",
+    DeprecationWarning,
+    stacklevel=2,
+) 

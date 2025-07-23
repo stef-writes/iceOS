@@ -12,7 +12,7 @@ from .agents.agent_node import AgentNode
 from .base_node import BaseNode
 from .context import GraphContextManager
 from .models.config import LLMConfig, MessageTemplate
-from .models.node_models import NodeConfig, NodeExecutionResult, NodeMetadata
+from ice_core.models.node_models import NodeConfig, NodeExecutionResult, NodeMetadata
 
 # from .models.network import NetworkSpec
 from .tools import SkillBase, ToolContext, function_tool  # re-export helpers

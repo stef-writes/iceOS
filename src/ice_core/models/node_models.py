@@ -25,6 +25,32 @@ from typing import (
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+# ---------------------------------------------------------------------------
+# Retry policy --------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class RetryPolicy(BaseModel):
+    """Declarative retry policy attached to any node.
+
+    Attributes
+    ----------
+    max_attempts : int
+        Maximum number of attempts (including the first one).  Value **must** be
+        ≥ 1.
+    backoff_strategy : Literal["fixed", "linear", "exponential"]
+        Algorithm used to calculate the wait time before the next retry.
+    backoff_seconds : float
+        Base seconds used by the strategy.  For *fixed* the wait time is
+        exactly *backoff_seconds*, for *linear* it is `backoff_seconds * n`, and
+        for *exponential* it is `backoff_seconds * 2**n` where *n* is the
+        current attempt index (starting at 0).
+    """
+
+    max_attempts: int = Field(3, ge=1)
+    backoff_strategy: Literal["fixed", "linear", "exponential"] = "exponential"
+    backoff_seconds: float = Field(1.0, ge=0.0)
+
 from ice_core.models.enums import ModelProvider
 
 # ruff: noqa: F811
@@ -170,6 +196,12 @@ class BaseNodeConfig(BaseModel):
         default=0.0,
         ge=0.0,
         description="Base backoff seconds for exponential retry backoff (0 disables)",
+    )
+
+    # New declarative retry policy (preferred over *retries* + *backoff_seconds*)
+    retry_policy: Optional[RetryPolicy] = Field(
+        default=None,
+        description="Structured retry policy (overrides 'retries' & 'backoff_seconds' when provided)",
     )
 
     # IO schemas – can be either a JSON-serialisable dict *or* a Pydantic model
@@ -345,8 +377,24 @@ class NestedChainConfig(BaseNodeConfig):
 
     type: Literal["nested_chain"] = "nested_chain"
 
-    chain: "ScriptChainLike | Callable[[], ScriptChainLike]"  # type: ignore[name-defined]
+    chain: "ScriptChainLike | Callable[[], ScriptChainLike] | str"  # type: ignore[name-defined]
     exposed_outputs: Dict[str, str] = Field(default_factory=dict)
+
+    # ------------------------------------------------------------------ validators
+    @model_validator(mode="after")
+    def _validate_chain_reference(self) -> "NestedChainConfig":
+        """Ensure *chain* reference is resolvable when provided as a string."""
+
+        from ice_sdk.registry.chain import global_chain_registry  # local import to avoid heavy dep
+
+        if isinstance(self.chain, str):
+            if self.chain not in [name for name, _ in global_chain_registry]:
+                import warnings
+                warnings.warn(
+                    f"NestedChainConfig.chain references unknown chain '{self.chain}' – continuing with placeholder.",
+                    RuntimeWarning,
+                )
+        return self
 
 
 class PrebuiltAgentConfig(BaseNodeConfig):

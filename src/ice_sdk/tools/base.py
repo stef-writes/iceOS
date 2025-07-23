@@ -29,10 +29,14 @@ class SkillMeta:
         node_subtype: Optional[str] = None,
         commercializable: bool = False,
         license: str = "Proprietary",
+        author: str | None = None,
+        cost_weight: float = 1.0,
     ):
         self.node_subtype = node_subtype
         self.commercializable = commercializable
         self.license = license
+        self.author = author or "Unknown"
+        self.cost_weight = cost_weight
 
 
 class _EmptyInputModel(BaseModel):
@@ -59,11 +63,11 @@ class SkillBase(BaseModel):
         "required": [],
     }
 
-    def __init__(self) -> None:
-        # CircuitBreaker is a **no-op** stub for now, but keeping the interface
-        # in place allows later drop-in of a real implementation without
-        # touching call-sites.
-        pass
+    def __init__(self, **data: Any) -> None:
+        """
+        Instantiate the skill and ensure Pydantic field initialisation.
+        """
+        super().__init__(**data)
 
     # ------------------------------------------------------------------
     # Structured representation for LLM function-calling ----------------
@@ -100,6 +104,8 @@ class SkillBase(BaseModel):
             node_subtype=getattr(meta_cls, "node_subtype", None),
             commercializable=getattr(meta_cls, "commercializable", False),
             license=getattr(meta_cls, "license", "Proprietary"),
+            author=getattr(meta_cls, "author", None),
+            cost_weight=getattr(meta_cls, "cost_weight", 1.0),
         )
 
     # ------------------------------------------------------------------
@@ -220,7 +226,28 @@ class SkillBase(BaseModel):
 
 # Provide a minimal *ToolContext* stub for tests that still expect it.
 class ToolContext:
-    """Context object passed into legacy *function_tool* wrappers."""
+    """Lightweight context passed to stateful tools.
+
+    The orchestrator builds a payload with keys ``agent_id``, ``session_id`` and
+    ``metadata``.  Older skills never inspected the attributes, so we accept
+    arbitrary keyword arguments to remain forward-compatible.
+    """
+
+    agent_id: str | None
+    session_id: str | None
+    metadata: Dict[str, Any]
+
+    # Accept **kwargs so callers can evolve payload without breaking tools.
+    def __init__(
+        self,
+        agent_id: str | None = None,
+        session_id: str | None = None,
+        metadata: Dict[str, Any] | None = None,
+        **_: Any,
+    ) -> None:  # noqa: D401 – simple container
+        self.agent_id = agent_id
+        self.session_id = session_id
+        self.metadata = metadata or {}
 
 
 def _build_function_tool(

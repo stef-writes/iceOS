@@ -117,8 +117,20 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
             execution_id=exec_id,
         )
 
-        max_retries: int = int(getattr(node, "retries", 0))
-        base_backoff: float = float(getattr(node, "backoff_seconds", 0.0))
+        # ------------------------------------------------------------------
+        # Retry policy extraction (v2) --------------------------------------
+        # ------------------------------------------------------------------
+
+        policy = getattr(node, "retry_policy", None)
+        if policy is not None:
+            # New structured policy overrides legacy scalar fields
+            max_retries = int(getattr(policy, "max_attempts", 1)) - 1  # attempts after first run
+            base_backoff = float(getattr(policy, "backoff_seconds", 0.0))
+            backoff_strategy = str(getattr(policy, "backoff_strategy", "exponential"))
+        else:
+            max_retries = int(getattr(node, "retries", 0))
+            base_backoff = float(getattr(node, "backoff_seconds", 0.0))
+            backoff_strategy = "exponential"
 
         attempt = 0
         last_error: Exception | None = None
@@ -337,7 +349,29 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                 if attempt >= max_retries:
                     break
 
-                wait_seconds = base_backoff * (2**attempt) if base_backoff > 0 else 0
+                # Emit retrying event so consumers can update UI/logs -------
+                if callable(emit):
+                    emit(
+                        "workflow.nodeRetrying",
+                        {
+                            "run_id": getattr(chain, "run_id", None),
+                            "node_id": node_id,
+                            "attempt": attempt + 1,
+                            "max_attempts": max_retries + 1,
+                            "error": str(exc),
+                        },
+                    )
+
+                if base_backoff <= 0:
+                    wait_seconds = 0
+                else:
+                    if backoff_strategy == "fixed":
+                        wait_seconds = base_backoff
+                    elif backoff_strategy == "linear":
+                        wait_seconds = base_backoff * (attempt + 1)
+                    else:  # exponential default
+                        wait_seconds = base_backoff * (2 ** attempt)
+
                 if wait_seconds > 0:
                     await asyncio.sleep(wait_seconds)
 

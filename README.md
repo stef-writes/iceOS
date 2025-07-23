@@ -1,6 +1,26 @@
-# iceOS
+# iceOS v1(A)
 
 > *“Give every distributed team a shared canvas where natural-language ideas become governance-ready AI workflows in seconds.”*
+
+---
+
+## Key Components
+
+| Layer           | Responsibility                          | Access Rules                |
+|-----------------|-----------------------------------------|-----------------------------|
+| ice_sdk         | Tools/Agents implementations            | No app/ice_api imports      |
+| ice_orchestrator| Workflow execution engine               | Via service contracts only  |
+| ice_api         | External interfaces (HTTP/Websocket)    | Never contains business logic|
+
+## Quickstart
+
+```bash
+# Run with development setup
+make dev-up
+
+# Execute sample workflow
+python examples/run_inventory_report_chain.py
+```
 
 ---
 

@@ -44,13 +44,21 @@ nav:
   - How-to Guides:
       - Build a Custom Tool: how_to/build_custom_tool.md
       - Build an Agent: how_to/build_agent.md
+      - Publishing Tools & Agents: guides/publishing_tools.md
+      - Retry & Backoff Policies: guides/retry_policy.md
+      - Node Selection Guide: guides/node_selection.md
   - Reference:
       - CLI Commands: reference/cli.md
       - REST API: reference/api.md
       - Architecture Internals: reference/architecture.md
       - Health-check Matrix: reference/healthchecks.md
+      - Blueprint Schema: reference/blueprint_schema.md
+      - Runtime Events: reference/events.md
   - Plans & Roadmaps:
       - Docker + Poetry Strategy: plans/docker_poetry_strategy.md
       - Chain Builder Roadmap: plans/next_steps_chain_wizard.md
   - Demos:
       - Frosty Personal Brand: demos/frosty_personal_brand_demo.md 
+  - Tool Development Guide: tool_development.md
+  - Contributing: contributing.md
+  - API Reference: reference/api.md 

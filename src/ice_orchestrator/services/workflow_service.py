@@ -16,6 +16,17 @@ from ice_core.services.contracts import IWorkflowService
 from ice_orchestrator.workflow import Workflow
 from ice_sdk.context import GraphContextManager
 
+# Import tools to register them
+from ice_sdk.tools.system.csv_reader_skill import CSVReaderSkill
+from ice_sdk.tools.system.rows_validator_skill import RowsValidatorSkill
+
+# Import csv_writer conditionally since it might not be available
+try:
+    from ice_sdk.tools.system.csv_writer_skill import CSVWriterSkill
+    CSV_WRITER_AVAILABLE = True
+except ImportError:
+    CSV_WRITER_AVAILABLE = False
+
 logger = structlog.get_logger(__name__)
 
 
@@ -30,6 +41,12 @@ class WorkflowService(IWorkflowService):
     def __init__(self):
         """Initialize the workflow service."""
         self._context_manager = GraphContextManager()
+        
+        # Register built-in tools
+        self._context_manager.register_tool(CSVReaderSkill())
+        if CSV_WRITER_AVAILABLE:
+            self._context_manager.register_tool(CSVWriterSkill())
+        self._context_manager.register_tool(RowsValidatorSkill())
 
     async def execute(
         self,

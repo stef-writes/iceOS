@@ -33,12 +33,103 @@ class ToolService:  # – thin orchestration facade
     """
 
     def __init__(self) -> None:
-        # Pre-populate registry with globally registered tools so they are
-        # immediately available without further imports.
+        # Eager-import built-in skill packages so their *register()* calls run
+        # before we snapshot the global registry.  This prevents the
+        # orchestrator from seeing an empty tool list when the API starts.
+
+        import importlib
+
+        for _pkg in (
+            "ice_sdk.tools.system",
+            "ice_sdk.tools.web",
+            "ice_sdk.tools.db",
+        ):
+            try:  # best-effort
+                importlib.import_module(_pkg)
+            except ModuleNotFoundError:
+                continue
+
+        from importlib.metadata import entry_points, PackageNotFoundError  # lazily import
         from ice_sdk.registry.tool import global_tool_registry
 
-        for _name, _skill in global_tool_registry._skills.items():  # type: ignore[attr-defined]
-            self._registry.setdefault(_name, _skill.__class__)  # type: ignore[arg-type]
+        # 1. Load any tools that were pre-registered via global registry
+        for _name, _tool in global_tool_registry._tools.items():  # type: ignore[attr-defined]
+            self._registry.setdefault(_name, _tool.__class__)  # type: ignore[arg-type]
+
+        # 2. Discover additional tools via Python entry points ----------------
+        try:
+            eps = entry_points(group="ice_sdk.tools")  # type: ignore[arg-type]
+            for ep in eps:
+                try:
+                    tool_cls = ep.load()
+                    name = getattr(tool_cls, "name", ep.name)
+                    self._registry.setdefault(name, tool_cls)
+                except Exception:  # pragma: no cover – best-effort discovery
+                    continue
+        except PackageNotFoundError:  # pragma: no cover – no installed packages
+            pass
+
+        # 3. As final fallback, introspect built-in tool packages to harvest
+        #    *SkillBase* subclasses when the on-import registration pattern
+        #    failed (e.g. due to a single failing import wrapped in a broad
+        #    try/except block).  This guarantees that development environments
+        #    running from source still expose the full tool catalog without
+        #    requiring a Poetry install step.
+
+        from inspect import isclass
+        from ice_sdk.tools.base import SkillBase
+
+        import pkgutil
+
+        def _harvest_from_module(module):
+            for attr_name in dir(module):
+                obj = getattr(module, attr_name)
+                if not (isclass(obj) and issubclass(obj, SkillBase)):
+                    continue
+
+                # Pydantic models transform simple str attributes into
+                # *FieldInfo* objects which raise ``AttributeError`` on
+                # direct access.  Fallback to the raw ``__dict__`` and
+                # model_fields for compatibility across versions.
+
+                obj_name = None
+                try:
+                    obj_name = getattr(obj, "name")  # type: ignore[attr-defined]
+                except AttributeError:
+                    # Look into raw dict first ----------------------------------
+                    obj_name = obj.__dict__.get("name")
+
+                    # Then Pydantic v2 – default in model_fields if defined -----
+                    if obj_name is None and hasattr(obj, "model_fields"):
+                        _mf = obj.model_fields  # type: ignore[attr-defined]
+                        if "name" in _mf:
+                            obj_name = _mf["name"].default
+
+                # End attribute resolution --------------------------------------
+
+                if obj_name:
+                    self._registry.setdefault(obj_name, obj)
+
+        for _pkg in (
+            "ice_sdk.tools.system",
+            "ice_sdk.tools.web",
+            "ice_sdk.tools.db",
+        ):
+            try:
+                root_mod = importlib.import_module(_pkg)
+            except ModuleNotFoundError:
+                continue
+
+            _harvest_from_module(root_mod)
+
+            if hasattr(root_mod, "__path__"):
+                for finder, name, ispkg in pkgutil.walk_packages(root_mod.__path__, prefix=f"{_pkg}."):
+                    try:
+                        sub_mod = importlib.import_module(name)
+                        _harvest_from_module(sub_mod)
+                    except Exception:
+                        # Defensive – bad import in one tool shouldn't break entire registry
+                        continue
 
     _registry: Dict[str, type] = {}
 

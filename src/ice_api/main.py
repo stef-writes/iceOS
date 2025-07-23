@@ -5,7 +5,22 @@ FastAPI application entry point
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncIterator, List
+from typing import AsyncIterator, List, Dict, Any
+
+# ---------------------------------------------------------------------------
+# Ensure built-in chain templates register **before** FastAPI app is created
+# ---------------------------------------------------------------------------
+
+import importlib
+
+try:
+    # Import package (triggers __init__) and explicit module as fallback
+    importlib.import_module("ice_sdk.chains")
+    importlib.import_module("ice_sdk.chains.inventory_summary_chain")
+except Exception:  # pragma: no cover – soft failure in dev envs
+    pass
+
+from pydantic import BaseModel
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, FastAPI, Request
@@ -36,8 +51,23 @@ from ice_sdk.services import ChainService  # Proper service boundary
 from ice_sdk.services import ServiceLocator
 from ice_sdk.utils.errors import add_exception_handlers
 
+from importlib import import_module
+
+from ice_sdk.registry.chain import discover_builtin_chains
+
+# Immediately discover chains at import time (tests, CLI usage)
+discover_builtin_chains()
+
 # Setup logging
 logger = setup_logger()
+
+
+class _ExecPayload(BaseModel):
+    inputs: Dict[str, Any] = {}
+
+
+class _ChainRunPayload(BaseModel):
+    context: Dict[str, Any] = {}
 
 
 @asynccontextmanager
@@ -83,6 +113,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger.info("Tool '%s' registered with context manager", tool_name)
         except Exception as exc:  # pragma: no cover – missing deps etc.
             logger.warning("Tool '%s' could not be registered: %s", tool_name, exc)
+
+    # ------------------------------------------------------------------
+    # Ensure built-in chains are imported so their registration side-effects
+    # run before blueprints are validated.
+    # ------------------------------------------------------------------
+
+    try:
+        import importlib
+        importlib.import_module("ice_sdk.chains")
+        # Explicitly import known built-in chain module in case package __init__ was skipped
+        importlib.import_module("ice_sdk.chains.inventory_summary_chain")
+    except Exception as exc:  # pragma: no cover – soft failure
+        logger.warning("Chain auto-import failed: %s", exc)
 
     # Auto-discover additional `*.tool.py` modules in the repository ---------
     try:
@@ -186,6 +229,37 @@ async def list_tools_v1(request: Request) -> List[str]:
     tool_service = request.app.state.tool_service  # type: ignore[attr-defined]
     return sorted(tool_service.available_tools())
 
+# ---------------------------------------------------------------------------
+# New discovery endpoints ----------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+from ice_sdk.services.agent_service import AgentService  # placed here to avoid circular import
+from ice_sdk.services.unit_service import UnitService
+from ice_sdk.services.chain_service import ChainService as _ChainSvc
+
+
+_agent_service = AgentService()
+_unit_service = UnitService()
+
+
+@app.get("/v1/agents", response_model=List[str], tags=["utils"])
+async def list_agents_v1() -> List[str]:
+    """Return all registered agent names."""
+    return _agent_service.available_agents()
+
+
+@app.get("/v1/units", response_model=List[str], tags=["utils"])
+async def list_units_v1() -> List[str]:
+    """Return all registered unit names."""
+    return _unit_service.available_units()
+
+
+@app.get("/v1/chains", response_model=List[str], tags=["utils"])
+async def list_chains_v1() -> List[str]:
+    """Return all registered reusable chain templates."""
+    return _ChainSvc().available_chains()
+
 
 # ---------------------------------------------------------------------------
 # Capability catalog endpoint ------------------------------------------------
@@ -200,3 +274,70 @@ async def run_chain(chain_id: str, input_data: dict):
     """Generic endpoint that could execute any registered chain"""
     result = await ChainService.execute(chain_id, input_data)
     return {"result": result}
+
+
+@app.post("/v1/agents/{agent_name}", tags=["execute"])
+async def execute_agent_v1(agent_name: str, body: _ExecPayload) -> Any:  # noqa: ANN401 – passthrough
+    """Execute *agent* identified by ``agent_name`` with JSON *inputs*."""
+
+    from ice_sdk.services.agent_service import AgentRequest
+
+    result = await _agent_service.execute(
+        AgentRequest(agent_name=agent_name, inputs=body.inputs, context={}),
+    )
+    return {"data": result}
+
+
+@app.post("/v1/units/{unit_name}", tags=["execute"])
+async def execute_unit_v1(unit_name: str, body: _ExecPayload) -> Any:  # noqa: ANN401
+    """Execute a *unit* (LLM+Tool composite) by name."""
+
+    from ice_sdk.services.unit_service import UnitRequest
+
+    result = await _unit_service.execute(UnitRequest(unit_name=unit_name, inputs=body.inputs))
+    return {"data": result}
+
+
+@app.post("/v1/chains/{chain_name}", tags=["execute"])
+async def run_chain_v1(chain_name: str, body: _ChainRunPayload) -> Any:  # noqa: ANN401
+    """Run a reusable chain template registered under *chain_name*."""
+
+    from ice_sdk.services.chain_service import ChainRequest
+
+    chain_svc = _ChainSvc()
+    result = await chain_svc.run(ChainRequest(chain_name=chain_name, context=body.context))
+    return {"data": result}
+
+
+# ---------------------------------------------------------------------------
+# FastAPI startup hook to load chain templates (workflows)
+# ---------------------------------------------------------------------------
+
+
+@app.on_event("startup")
+async def _load_builtin_workflows() -> None:  # noqa: D401
+    """Import built-in workflow/chain modules so they self-register."""
+
+    discover_builtin_chains()
+
+
+# ---------------------------------------------------------------------------
+# Workflow (chain) discovery / execution endpoints – alias for /v1/chains
+# ---------------------------------------------------------------------------
+
+
+@app.get("/v1/workflows", response_model=List[str], tags=["utils"])
+async def list_workflows_v1() -> List[str]:
+    """Return registered reusable workflow templates (same as /v1/chains)."""
+    return _ChainSvc().available_chains()
+
+
+@app.post("/v1/workflows/{workflow_name}", tags=["execute"])
+async def run_workflow_v1(workflow_name: str, body: _ChainRunPayload) -> Any:  # noqa: ANN401
+    """Run a reusable workflow template by name (alias for /v1/chains/{name})."""
+
+    from ice_sdk.services.chain_service import ChainRequest
+
+    chain_svc = _ChainSvc()
+    result = await chain_svc.run(ChainRequest(chain_name=workflow_name, context=body.context))
+    return {"data": result}
