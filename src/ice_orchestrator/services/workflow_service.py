@@ -39,7 +39,11 @@ class WorkflowService(IWorkflowService):
 
     def __init__(self):
         """Initialize the workflow service."""
-        self._context_manager = GraphContextManager()
+        # Use context manager from ServiceLocator if available, otherwise create new one
+        from ice_sdk.services.locator import ServiceLocator
+        self._context_manager = ServiceLocator.get("context_manager")
+        if self._context_manager is None:
+            self._context_manager = GraphContextManager()
         
         # Register built-in tools
         self._context_manager.register_tool(CSVReaderTool())

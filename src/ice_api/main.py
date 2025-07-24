@@ -33,6 +33,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     
     Sets up services and cleans up resources on shutdown.
     """
+    # Import executor modules first to register them
+    import ice_orchestrator.execution.executors.unified  # noqa: F401
+    import ice_orchestrator.execution.executors  # noqa: F401
+    
     # Initialize orchestrator services through SDK initialization
     from ice_sdk.services.initialization import initialize_services
     initialize_services()
