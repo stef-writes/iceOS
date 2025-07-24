@@ -4,7 +4,6 @@ from pydantic import BaseModel, ValidationError
 
 __all__ = ["coerce_value", "coerce_types"]
 
-
 def coerce_value(value: Any, target_type: Type[Any]) -> Any:
     try:
         if target_type is int:
@@ -42,7 +41,6 @@ def coerce_value(value: Any, target_type: Type[Any]) -> Any:
             return value
     except Exception:
         raise ValueError(f"Could not coerce value '{value}' to {target_type.__name__}")
-
 
 def coerce_types(output: Dict[str, Any], schema: Any) -> Dict[str, Any]:
     if isinstance(schema, type) and issubclass(schema, BaseModel):

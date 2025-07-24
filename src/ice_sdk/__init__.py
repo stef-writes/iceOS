@@ -1,50 +1,36 @@
-"""iceOS SDK."""
+"""iceOS SDK - Developer-facing APIs and tools."""
 
-# ---------------------------------------------------------------------------
-# Public agent-facing exports (moved from deprecated ``ice_sdk.agents`` package)
-# ---------------------------------------------------------------------------
-
-
-# Keep AgentConfig & ModelSettings re-export unchanged (order after AgentNode)
-
-# Re-export AgentNode for orchestrator compatibility
+# Core imports
 from .agents.agent_node import AgentNode
-from .base_node import BaseNode
+from ice_core.models import BaseNode
 from .context import GraphContextManager
-from .models.config import LLMConfig, MessageTemplate
+from ice_core.models import LLMConfig, MessageTemplate
 from ice_core.models.node_models import NodeConfig, NodeExecutionResult, NodeMetadata
-
-# from .models.network import NetworkSpec
-from .tools import SkillBase, ToolContext, function_tool  # re-export helpers
+from .tools import ToolBase
 from .tools.service import ToolService
-
-# NOTE: Lazy import of IceCopilot to avoid circular dependencies with ice_orchestrator.
+from .services.locator import ServiceLocator
+from .services.workflow_service import WorkflowExecutionService
+from .builders.workflow import WorkflowBuilder
 
 __all__ = [
     # Core abstractions
     "BaseNode",
-    "SkillBase",
-    "ToolContext",
-    "function_tool",
+    "ToolBase",
     "AgentNode",
     # Data models
     "NodeConfig",
     "NodeExecutionResult",
     "NodeMetadata",
-    # "NetworkSpec",  # not yet stable
     "LLMConfig",
     "MessageTemplate",
     # Context
     "GraphContextManager",
-    # (RuntimeConfig & BudgetEnforcer intentionally NOT part of stable API)
+    # Services
+    "ServiceLocator",
+    "ToolService",
+    "WorkflowExecutionService",
+    # Builders
+    "WorkflowBuilder",
 ]
-
-# Removed IceCopilot – Copilot package deprecated
-
-# NOTE: The previous dynamic __getattr__ hook was removed to make dependencies
-# explicit and avoid hidden import side-effects. Downstream code must now import
-# `IceCopilot` explicitly or receive it via dependency injection.
-
-__all__.extend(["ServiceLocator"])
 
 # Nested chain features intentionally not part of stable public surface yet

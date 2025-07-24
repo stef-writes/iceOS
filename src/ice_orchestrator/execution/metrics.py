@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field
 if TYPE_CHECKING:
     from ice_core.models.node_models import NodeExecutionResult
 
-
 class ChainMetrics(BaseModel):
     """Metrics for ScriptChain execution (tokens, cost, per-node usage)."""
 
@@ -53,7 +52,6 @@ class ChainMetrics(BaseModel):
             "node_metrics": self.node_metrics,
             "subdag_execution_time": self.subdag_execution_time,
         }
-
 
 # Global metric for SubDAG execution time
 class SubDAGMetrics:

@@ -24,7 +24,7 @@ from typing import Dict, Type
 
 from pydantic import BaseModel  # type: ignore
 
-from ice_core.models import LLMOperatorConfig, SkillNodeConfig, ToolConfig
+from ice_core.models import LLMOperatorConfig, ToolNodeConfig, ToolConfig
 from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
 
 # ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ MODELS: Dict[str, Type[BaseModel]] = {
     "AppConfig": AppConfig,
     # Node related (export concrete models only!)
     "LLMOperatorConfig": LLMOperatorConfig,
-    "SkillNodeConfig": SkillNodeConfig,
+    "ToolNodeConfig": ToolNodeConfig,
     "ToolConfig": ToolConfig,
 }
 

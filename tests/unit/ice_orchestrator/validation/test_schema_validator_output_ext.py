@@ -1,13 +1,13 @@
 import pytest
 
 from ice_orchestrator.validation.schema_validator import SchemaValidator
-from ice_core.models.node_models import SkillNodeConfig
+from ice_core.models.node_models import ToolNodeConfig
 
 pytestmark = [pytest.mark.unit]
 
 
 def test_schema_validator_output_match():
-    node = SkillNodeConfig(
+    node = ToolNodeConfig(
         id="n1",
         type="tool",
         tool_name="noop",
@@ -20,7 +20,7 @@ def test_schema_validator_output_match():
 
 
 def test_schema_validator_output_mismatch():
-    node = SkillNodeConfig(
+    node = ToolNodeConfig(
         id="n2",
         type="tool",
         tool_name="noop",

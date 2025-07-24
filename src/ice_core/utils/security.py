@@ -8,7 +8,6 @@ from ice_core.exceptions import SecurityViolationError
 
 __all__ = ["sanitize_path"]
 
-
 def sanitize_path(user_path: str | Path, *, root: Path | None = None) -> Path:
     root_dir = (root or Path.cwd()).resolve()
     resolved = Path(user_path).expanduser().resolve()

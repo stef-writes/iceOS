@@ -13,7 +13,6 @@ if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models.node_models import NodeConfig
     from ice_core.models.mcp import Blueprint  # noqa: WPS433  – runtime import
 
-
 class SchemaValidator:  # – internal utility
     """Validates node outputs against declared schemas."""
 
@@ -118,7 +117,6 @@ class SchemaValidator:  # – internal utility
         # Unknown schema format – consider valid to avoid false negatives
         return True
 
-
 # ---------------------------------------------------------------------------
 # Custom exceptions ----------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -126,10 +124,8 @@ class SchemaValidator:  # – internal utility
 class CircularDependencyError(ValueError):
     """Raised when a blueprint contains circular dependencies."""
 
-
 class InvalidSchemaVersionError(ValueError):
     """Raised when a blueprint's declared schema version is unsupported."""
-
 
 # ---------------------------------------------------------------------------
 # Blueprint-level validation --------------------------------------------------

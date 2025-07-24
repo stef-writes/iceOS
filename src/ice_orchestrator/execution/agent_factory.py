@@ -1,7 +1,7 @@
 """Agent factory for ScriptChain execution.
 
 Builds :class:`AgentNode` instances from **LLMOperatorConfig** nodes while
-respecting chain-level and global skill precedence.
+respecting chain-level and global tool precedence.
 """
 
 from __future__ import annotations
@@ -11,12 +11,11 @@ from typing import TYPE_CHECKING, Dict, List
 
 from ice_core.models.llm import LLMConfig
 from ice_sdk.agents import AgentNode, AgentNodeConfig  # runtime import
-from ice_sdk.tools.base import SkillBase
+from ice_sdk.tools.base import ToolBase
 
 # ------------------------------------------------------------------
 # Backwards-compatibility: *BaseTool* alias -------------------------
 # ------------------------------------------------------------------
-
 
 if TYPE_CHECKING:  # pragma: no cover
     # Type-checking imports using SDK alias to avoid cross-layer dependency
@@ -26,12 +25,11 @@ if TYPE_CHECKING:  # pragma: no cover
     from ice_sdk.agents.agent_node import AgentNodeConfig
     from ice_sdk.context import GraphContextManager
 
-
 class AgentFactory:  # – internal utility
     """Factory for creating AgentNode instances from LLMOperatorConfig."""
 
     def __init__(
-        self, context_manager: "GraphContextManager", chain_tools: List["SkillBase"]
+        self, context_manager: "GraphContextManager", chain_tools: List["ToolBase"]
     ) -> None:
         self.context_manager = context_manager
         self.chain_tools = chain_tools
@@ -46,7 +44,7 @@ class AgentFactory:  # – internal utility
         """
 
         # Build tool map so later inserts override earlier ones (priority)
-        tool_map: Dict[str, "SkillBase"] = {}
+        tool_map: Dict[str, "ToolBase"] = {}
 
         # 1. Globally registered tools (lowest precedence) --------------
         for name, tool in self.context_manager.get_all_tools().items():
@@ -62,7 +60,7 @@ class AgentFactory:  # – internal utility
             if t_obj is not None:
                 tool_map[t_obj.name] = t_obj
 
-        tools: List["SkillBase"] = list(tool_map.values())
+        tools: List["ToolBase"] = list(tool_map.values())
 
         # Build AgentConfig ----------------------------------------------
         llm_cfg = LLMConfig(provider=node.provider)  # minimal mapping

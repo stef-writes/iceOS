@@ -10,14 +10,13 @@ from typing import Any, Optional
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
 
-from ice_sdk.models.config import LLMConfig
+from ice_core.models import LLMConfig
 
 from .base_handler import BaseLLMHandler
 
 logger = logging.getLogger(__name__)
 
 __all__: list[str] = ["GoogleGeminiHandler"]
-
 
 class GoogleGeminiHandler(BaseLLMHandler):
     """Handler for Google Gemini models via google-generativeai SDK."""

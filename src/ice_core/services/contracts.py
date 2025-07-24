@@ -11,14 +11,12 @@ from typing import Any, List, Optional, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
-
 class ServiceContract(BaseModel):
     """Contract definition for a microservice."""
 
     version: str
     name: str
     endpoints: List[str] = []
-
 
 def load_current(service_name: str) -> ServiceContract:
     """Return the *current* contract for *service_name*.
@@ -47,7 +45,6 @@ def load_current(service_name: str) -> ServiceContract:
     _ = service_name  # Placeholder – keep the signature stable
     return ServiceContract(version="0.1.0", name=service_name)
 
-
 @runtime_checkable
 class MicroserviceContract(Protocol):
     """Base protocol for microservice implementations."""
@@ -55,7 +52,6 @@ class MicroserviceContract(Protocol):
     def validate_api_surface(self) -> bool:
         """Ensures backward compatibility"""
         ...
-
 
 class NodeService(MicroserviceContract):
     def __init__(self, service_name: str = "ice_core"):
@@ -80,7 +76,6 @@ class NodeService(MicroserviceContract):
         if not self._contract.version:
             raise ValueError("ServiceContract.version must be a non-empty string")
 
-
 @runtime_checkable
 class IWorkflowService(Protocol):
     """Protocol for executing workflows without leaking orchestrator types."""
@@ -96,36 +91,34 @@ class IWorkflowService(Protocol):
         event_emitter: Any | None = None,
     ) -> Any: ...
 
-
 @runtime_checkable
 class IBuilderService(Protocol):
-    """Protocol for chain builder services (implemented in SDK layer)."""
+    """Protocol for workflow builder services (implemented in SDK layer)."""
 
     @abstractmethod
-    def start(self, total_nodes: int, chain_name: str | None = None) -> Any:
-        """Initialize a new chain draft"""
+    def create_workflow(self, name: str) -> Any:
+        """Create a new workflow builder instance"""
         ...
 
     @abstractmethod
-    def next_question(self, draft: Any) -> Any | None:
-        """Get next configuration question"""
+    def add_node(self, builder: Any, node_type: str, node_id: str, **config: Any) -> Any:
+        """Add a node to the workflow"""
         ...
 
     @abstractmethod
-    def submit_answer(self, draft: Any, key: str, answer: str) -> None:
-        """Process user answer"""
+    def connect(self, builder: Any, from_node: str, to_node: str) -> Any:
+        """Connect two nodes in the workflow"""
         ...
 
     @abstractmethod
-    def render_chain(self, draft: Any) -> str:
-        """Generate chain visualization"""
+    def build(self, builder: Any) -> Any:
+        """Build the final workflow from the builder"""
         ...
 
     @abstractmethod
-    def render_mermaid(self, draft: Any) -> str:
-        """Generate MermaidJS diagram"""
+    def to_dict(self, builder: Any) -> dict[str, Any]:
+        """Export workflow as dictionary"""
         ...
-
 
 class NetworkStorage(ABC):
     @abstractmethod

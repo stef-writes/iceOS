@@ -4,7 +4,7 @@ import json
 import pytest
 
 from ice_sdk.llm.operators.insights import InsightsOperator
-from ice_sdk.models.config import LLMConfig
+from ice_core.models import LLMConfig
 
 
 class _StubLLMService:  # pylint: disable=too-few-public-methods

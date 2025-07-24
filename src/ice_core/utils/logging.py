@@ -6,7 +6,6 @@ import sys
 
 __all__ = ["setup_logger", "logger"]
 
-
 def setup_logger() -> logging.Logger:
     """Configure root logger with a sane default format only once."""
     logger = logging.getLogger()
@@ -71,6 +70,5 @@ def setup_logger() -> logging.Logger:
         logger.addHandler(json_handler)
 
     return logger
-
 
 logger = setup_logger()

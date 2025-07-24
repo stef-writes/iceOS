@@ -1,18 +1,27 @@
-"""Shim re-exporting ScriptChain errors from legacy path.
+"""Chain-related error classes for the orchestrator."""
 
-This guarantees that importing via ``ice_orchestrator.errors.chain_errors`` or
-``ice_orchestrator.chain_errors`` returns *identical* class objects.
-"""
+from ice_core.exceptions import IceCoreError
 
-# NOTE: Import from ice_sdk.exceptions to respect layer boundaries
-from ice_sdk.exceptions import CoreError as ScriptChainError
-from ice_sdk.exceptions import CycleDetectionError as CircularDependencyError
 
-# Alias for backward compatibility
-ChainError = ScriptChainError
+class ChainError(IceCoreError):
+    """Base class for chain execution errors."""
+    pass
 
-__all__ = [
-    "ScriptChainError",
-    "CircularDependencyError",
-    "ChainError",
-]
+
+class ChainValidationError(ChainError):
+    """Error raised when chain validation fails."""
+    pass
+
+
+class ChainExecutionError(ChainError):
+    """Error raised during chain execution."""
+    pass
+
+
+class NodeExecutionError(ChainError):
+    """Error raised during node execution within a chain."""
+    
+    def __init__(self, message: str, node_id: str, node_type: str = "unknown"):
+        super().__init__(message)
+        self.node_id = node_id
+        self.node_type = node_type 

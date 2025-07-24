@@ -15,7 +15,6 @@ __all__: list[str] = [
     "ScopedContextStore",
 ]
 
-
 class ScopedContextStore(ContextStore):
     """ContextStore that namespaces keys inside a user-defined *scope*.
 

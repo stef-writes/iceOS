@@ -1,8 +1,8 @@
-"""Core workflow execution engine (formerly *ScriptChain*).
+"""Core iceEngine execution engine (formerly *Workflow/ScriptChain*).
 
 Provides a level-based DAG executor with robust error-handling, context
-propagation and agent integration.  `Workflow` is the new preferred name;
-`ScriptChain` remains available as a deprecated shim for existing code.
+propagation and agent integration. iceEngine is the powerful execution
+engine that drives all iceOS workflows and spatial computing.
 """
 
 from __future__ import annotations
@@ -26,10 +26,16 @@ from ice_core.models import (
 from ice_core.models.node_models import NodeMetadata
 from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy
-from ice_orchestrator.core import ChainFactory
+# ChainFactory removed - use WorkflowBuilder instead
 from ice_orchestrator.execution.agent_factory import AgentFactory
 from ice_orchestrator.execution.executor import NodeExecutor
 from ice_orchestrator.execution.metrics import ChainMetrics
+from ice_orchestrator.execution.workflow_state import WorkflowExecutionState, ExecutionPhase
+from ice_orchestrator.execution.workflow_events import (
+    WorkflowEventHandler, WorkflowStarted, WorkflowCompleted,
+    NodeStarted, NodeCompleted, NodeFailed, EventType
+)
+from ice_orchestrator.execution.cost_estimator import WorkflowCostEstimator
 from ice_orchestrator.graph.dependency_graph import DependencyGraph
 from ice_orchestrator.graph.level_resolver import BranchGatingResolver
 from ice_orchestrator.utils.context_builder import ContextBuilder
@@ -41,7 +47,7 @@ from ice_sdk.agents import AgentNode
 from ice_sdk.config import runtime_config
 from ice_sdk.context import GraphContextManager
 from ice_sdk.services.locator import get_workflow_proto
-from ice_sdk.tools.base import SkillBase
+from ice_sdk.tools.base import ToolBase
 
 # ---------------------------------------------------------------------------
 # Tracing & logging setup ----------------------------------------------------
@@ -49,19 +55,21 @@ from ice_sdk.tools.base import SkillBase
 tracer = trace.get_tracer(__name__)
 logger = structlog.get_logger(__name__)
 
-
-class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseScriptChain across namespace package boundary
+class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseScriptChain across namespace package boundary
     """Execute a directed acyclic workflow using level-based parallelism.
 
-    Processors at the same topological level (i.e. depth in the dependency DAG)
-    are executed concurrently up to the configured max_parallel limit.
+    The iceEngine is the powerful execution engine that drives all iceOS workflows,
+    from simple task chains to complex spatial computing orchestrations.
 
     Features:
-    - Level-based parallel execution
+    - Level-based parallel execution with intelligent scheduling
+    - Graph analysis and spatial reasoning capabilities  
     - Robust error handling with configurable policies
-    - Context & state management
+    - Real-time event streaming and monitoring
+    - Context & state management with dependency tracking
     - Performance features (caching, large output handling)
-    - Observability (metrics, tracing, callbacks)
+    - Advanced observability (metrics, tracing, callbacks)
+    - Canvas-ready spatial layout intelligence
     """
 
     def __init__(
@@ -74,7 +82,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         callbacks: Optional[List[Any]] = None,
         max_parallel: int = 5,
         persist_intermediate_outputs: bool = True,
-        tools: Optional[List[SkillBase]] = None,
+        tools: Optional[List[ToolBase]] = None,
         initial_context: Optional[Dict[str, Any]] = None,
         workflow_context: Optional[WorkflowExecutionContext] = None,
         chain_id: Optional[str] = None,
@@ -87,12 +95,12 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         session_id: Optional[str] = None,
         use_cache: bool = True,
     ) -> None:
-        """Initialize script chain.
+        """Initialize iceEngine.
 
         Args:
             nodes: List of node configurations
-            name: Chain name
-            version: Chain version
+            name: Engine instance name
+            version: Engine version
             context_manager: Context manager
             callbacks: List of callbacks
             max_parallel: Maximum parallel executions
@@ -100,17 +108,17 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             tools: List of tools available to nodes
             initial_context: Initial execution context
             workflow_context: Workflow execution context
-            chain_id: Unique chain identifier
+            chain_id: Unique engine identifier
             failure_policy: Failure handling policy
             validate_outputs: Whether to validate node outputs
-            token_ceiling: Token ceiling for chain execution
-            depth_ceiling: Depth ceiling for chain execution
-            token_guard: Token guard for chain execution
-            depth_guard: Depth guard for chain execution
+            token_ceiling: Token ceiling for execution
+            depth_ceiling: Depth ceiling for execution
+            token_guard: Token guard for execution
+            depth_guard: Depth guard for execution
             session_id: Session identifier
-            use_cache: Chain-level cache toggle
+            use_cache: Engine-level cache toggle
         """
-        self.chain_id = chain_id or f"chain_{datetime.utcnow().isoformat()}"
+        self.engine_id = engine_id or f"ice_{uuid.uuid4().hex[:8]}"
         # Semantic version for migration tracking -----------------------
         self.version: str = version
 
@@ -174,28 +182,37 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         # Service locator for workflow protocol
         self.workflow_cls = get_workflow_proto()
 
-        # Use the up-to-date component name in log output (rename: ScriptChain → Workflow)
+        # Use the up-to-date component name in log output
         logger.info(
-            "Initialized Workflow with %d nodes across %d levels",
+            "Initialized iceEngine with %d nodes across %d levels",
             len(nodes),
             len(self.levels),
         )
+        
+        # New components for enhanced functionality
+        self._event_handler = WorkflowEventHandler()
+        self._cost_estimator = WorkflowCostEstimator()
+        self._execution_state: Optional[WorkflowExecutionState] = None
+        
+        # Graph intelligence analyzer
+        from ice_sdk.context.graph_analyzer import GraphAnalyzer
+        self._graph_analyzer = GraphAnalyzer(self.graph.graph)  # Use the NetworkX graph from DependencyGraph
 
     async def execute(self) -> NodeExecutionResult:
-        """Execute the workflow and return a ChainExecutionResult."""
+        """Execute the iceEngine and return a ChainExecutionResult."""
         start_time = datetime.utcnow()
         results: Dict[str, NodeExecutionResult] = {}
         errors: List[str] = []
 
         logger.info(
-            "Starting execution of chain '%s' (ID: %s)", self.name, self.chain_id
+            "Starting execution of iceEngine '%s' (ID: %s)", self.name, self.engine_id
         )
 
         with tracer.start_as_current_span(
-            "chain.execute",
+            "iceEngine.execute",
             attributes={
-                "chain_id": self.chain_id,
-                "chain_name": self.name,
+                "engine_id": self.engine_id,
+                "engine_name": self.name,
                 "node_count": len(self.nodes),
             },
         ) as chain_span:
@@ -244,7 +261,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                                 and self.metrics.total_tokens > self.token_ceiling
                             ):
                                 logger.warning(
-                                    "Token ceiling exceeded (%s); aborting chain.",
+                                    "Token ceiling exceeded (%s); aborting engine.",
                                     self.token_ceiling,
                                 )
                                 errors.append("Token ceiling exceeded")
@@ -277,9 +294,9 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             end_time = datetime.utcnow()
             duration = (end_time - start_time).total_seconds()
             logger.info(
-                "Completed chain execution",
-                chain=self.name,
-                chain_id=self.chain_id,
+                "Completed iceEngine execution",
+                engine=self.name,
+                engine_id=self.engine_id,
                 duration=duration,
             )
 
@@ -297,7 +314,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             error="\n".join(errors) if errors else None,
             metadata=NodeMetadata(
                 node_id=final_node_id,
-                node_type="workflow",
+                node_type="iceEngine",
                 name=self.name,
                 version="1.0.0",
                 start_time=start_time,
@@ -480,13 +497,555 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
     def get_metrics(self) -> Dict[str, Any]:
         """Get execution metrics."""
         return self.metrics.as_dict()
+    
+    # ---------------------------------------------------------------------
+    # Enhanced execution methods for canvas/streaming -----------------------
+    # ---------------------------------------------------------------------
+    
+    async def execute_with_events(
+        self,
+        event_callback: Optional[Any] = None,
+        checkpoint_interval: Optional[int] = None
+    ) -> NodeExecutionResult:
+        """Execute iceEngine with event streaming for real-time monitoring.
+        
+        Args:
+            event_callback: Async function to receive events
+            checkpoint_interval: Save state every N nodes (for recovery)
+            
+        Returns:
+            Standard execution result
+        """
+        # Initialize execution state
+        self._execution_state = WorkflowExecutionState(
+            workflow_id=self.engine_id,
+            workflow_name=self.name or "unnamed",
+            checkpoint_enabled=checkpoint_interval is not None
+        )
+        
+        # Subscribe callback if provided
+        if event_callback:
+            self._event_handler.subscribe_all(event_callback)
+            
+        # Emit workflow started event
+        await self._event_handler.emit(WorkflowStarted(
+            workflow_id=self.engine_id,
+            workflow_name=self.name or "unnamed",
+            total_nodes=len(self.nodes),
+            total_levels=len(self.levels),
+            estimated_cost=self.estimate_cost().total_avg_cost,
+            estimated_duration_seconds=self.estimate_cost().duration_estimate_seconds
+        ))
+        
+        try:
+            # Use regular execute but with state tracking
+            self._execution_state.phase = ExecutionPhase.EXECUTING
+            result = await self.execute()
+            
+            # Emit completion event
+            self._execution_state.phase = ExecutionPhase.COMPLETED
+            self._execution_state.end_time = datetime.utcnow()
+            
+            await self._event_handler.emit(WorkflowCompleted(
+                workflow_id=self.engine_id,
+                duration_seconds=(self._execution_state.end_time - self._execution_state.start_time).total_seconds(),
+                total_tokens=self._execution_state.total_tokens,
+                total_cost=self._execution_state.total_cost,
+                nodes_executed=len(self._execution_state.completed_nodes),
+                nodes_skipped=len(self._execution_state.skipped_nodes)
+            ))
+            
+            return result
+        except Exception as e:
+            # Emit failure event
+            self._execution_state.phase = ExecutionPhase.FAILED
+            self._execution_state.end_time = datetime.utcnow()
+            
+            await self._event_handler.emit(WorkflowCompleted(
+                workflow_id=self.engine_id,
+                duration_seconds=(self._execution_state.end_time - self._execution_state.start_time).total_seconds(),
+                total_tokens=self._execution_state.total_tokens,
+                total_cost=self._execution_state.total_cost,
+                nodes_executed=len(self._execution_state.completed_nodes),
+                nodes_skipped=len(self._execution_state.skipped_nodes),
+                error=str(e)
+            ))
+            raise
+    
+    def get_debug_info(self, node_id: Optional[str] = None) -> Dict[str, Any]:
+        """Get comprehensive debug information for troubleshooting.
+        
+        Args:
+            node_id: Specific node to debug, or None for workflow-level info
+            
+        Returns:
+            Debug information including dependencies, context, and execution history
+        """
+        if node_id:
+            return self._get_node_debug_info(node_id)
+        else:
+            return self._get_workflow_debug_info()
+            
+    def _get_node_debug_info(self, node_id: str) -> Dict[str, Any]:
+        """Get debug info for a specific node."""
+        node = self.nodes.get(node_id)
+        if not node:
+            return {"error": f"Node {node_id} not found"}
+            
+        debug_info = {
+            "node_id": node_id,
+            "node_type": node.type,
+            "config": node.model_dump(),
+            "dependencies": {
+                "upstream": node.dependencies,
+                "downstream": self.graph.get_node_dependents(node_id)
+            },
+            "level": self.graph.get_node_level(node_id),
+            "validation": {
+                "input_schema": getattr(node, 'input_schema', None),
+                "output_schema": getattr(node, 'output_schema', None),
+                "required_tools": getattr(node, 'tools', [])
+            }
+        }
+        
+        # Add execution info if available
+        if self._execution_state:
+            result = self._execution_state.node_results.get(node_id)
+            if result:
+                debug_info["execution"] = {
+                    "executed": node_id in self._execution_state.completed_nodes,
+                    "success": result.success,
+                    "error": result.error,
+                    "duration": result.execution_time,
+                    "output_preview": self._safe_preview(result.output),
+                    "context_used": self._safe_preview(result.context_used)
+                }
+                
+        # Add suggestions for common issues
+        debug_info["diagnostics"] = self._diagnose_node_issues(node)
+        
+        return debug_info
+        
+    def _get_workflow_debug_info(self) -> Dict[str, Any]:
+        """Get debug info for entire workflow."""
+        debug_info = {
+            "engine_id": self.engine_id,
+            "engine_name": self.name,
+            "total_nodes": len(self.nodes),
+            "total_levels": len(self.levels),
+            "node_breakdown": {},
+            "execution_order": [],
+            "validation_issues": self.validate_chain()
+        }
+        
+        # Node type breakdown
+        for node in self.nodes.values():
+            node_type = node.type
+            if node_type not in debug_info["node_breakdown"]:
+                debug_info["node_breakdown"][node_type] = 0
+            debug_info["node_breakdown"][node_type] += 1
+            
+        # Execution order
+        for level_num in sorted(self.levels.keys()):
+            for node_id in self.levels[level_num]:
+                debug_info["execution_order"].append({
+                    "level": level_num,
+                    "node_id": node_id,
+                    "type": self.nodes[node_id].type
+                })
+                
+        # Add execution summary if available
+        if self._execution_state:
+            debug_info["execution_summary"] = self._execution_state.get_execution_summary()
+            
+        return debug_info
+        
+    def _safe_preview(self, data: Any, max_length: int = 200) -> Any:
+        """Create a safe preview of data for debugging."""
+        if data is None:
+            return None
+        
+        data_str = str(data)
+        if len(data_str) > max_length:
+            return data_str[:max_length] + "..."
+        return data
+        
+    def _diagnose_node_issues(self, node: NodeConfig) -> List[str]:
+        """Diagnose common node configuration issues."""
+        issues = []
+        
+        # Check for missing dependencies
+        for dep_id in node.dependencies:
+            if dep_id not in self.nodes:
+                issues.append(f"Missing dependency: {dep_id}")
+                
+        # Check schema compatibility
+        if hasattr(node, 'input_schema') and node.input_schema:
+            for dep_id in node.dependencies:
+                dep_node = self.nodes.get(dep_id)
+                if dep_node and hasattr(dep_node, 'output_schema'):
+                    # Basic compatibility check
+                    if not self._schemas_compatible(dep_node.output_schema, node.input_schema):
+                        issues.append(f"Schema mismatch with dependency {dep_id}")
+                        
+        # Type-specific checks
+        if node.type == "llm" and hasattr(node, 'model'):
+            if "gpt-4" in node.model and hasattr(node, 'max_tokens'):
+                if node.max_tokens > 8000:
+                    issues.append("max_tokens exceeds GPT-4 limit")
+                    
+        return issues
+        
+    def _schemas_compatible(self, output_schema: Any, input_schema: Any) -> bool:
+        """Basic schema compatibility check."""
+        # This is simplified - real implementation would be more thorough
+        if isinstance(output_schema, dict) and isinstance(input_schema, dict):
+            # Check if output keys satisfy input requirements
+            output_keys = set(output_schema.keys())
+            input_keys = set(input_schema.keys())
+            return input_keys.issubset(output_keys)
+        return True
+            
+    async def execute_incremental(
+        self,
+        up_to_node_id: Optional[str] = None,
+        from_checkpoint: Optional[Dict[str, Any]] = None
+    ) -> NodeExecutionResult:
+        """Execute iceEngine incrementally for debugging or preview.
+        
+        Args:
+            up_to_node_id: Stop after this node completes
+            from_checkpoint: Resume from saved state
+            
+        Returns:
+            Partial execution result
+        """
+        if from_checkpoint:
+            self._execution_state = WorkflowExecutionState.from_checkpoint(from_checkpoint)
+        else:
+            self._execution_state = WorkflowExecutionState(
+                workflow_id=self.engine_id,
+                workflow_name=self.name or "unnamed"
+            )
+            
+        # TODO: Implement incremental execution logic
+        # For now, delegate to regular execute
+        return await self.execute()
+        
+    def estimate_cost(self, context_size: int = 1000) -> Any:
+        """Estimate execution cost before running.
+        
+        Args:
+            context_size: Estimated context size in tokens
+            
+        Returns:
+            WorkflowCostEstimate with breakdown by node
+        """
+        return self._cost_estimator.estimate_workflow_cost(
+            list(self.nodes.values()),
+            context_size
+        )
+        
+    def suggest_next_nodes(self, after_node_id: str) -> List[Dict[str, Any]]:
+        """Get AI suggestions for nodes that could follow the given node.
+        
+        This helps Frosty suggest next steps during canvas construction.
+        Enhanced with graph intelligence for better suggestions.
+        
+        Args:
+            after_node_id: Node to get suggestions after
+            
+        Returns:
+            List of suggestions with reasoning
+        """
+        node = self.nodes.get(after_node_id)
+        if not node:
+            return []
+            
+        suggestions = []
+        
+        # Get graph-based insights
+        impact_analysis = self.analyze_node_impact(after_node_id)
+        graph_metrics = self.get_graph_metrics()
+        
+        # Analyze current node's position in graph
+        current_level = self.get_node_level(after_node_id)
+        out_degree = len(impact_analysis["direct_dependents"])
+        
+        # Enhanced suggestions based on graph analysis
+        if hasattr(node, 'output_schema') and node.output_schema:
+            if 'data' in node.output_schema or 'array' in str(node.output_schema):
+                # Consider parallelization if we're not already branching heavily
+                if out_degree < 2 and graph_metrics["parallel_opportunities"] < graph_metrics["total_nodes"] * 0.4:
+                    suggestions.append({
+                        "type": "parallel",
+                        "reason": "Parallel processing opportunity - could split data processing",
+                        "priority": "high",
+                        "suggested_config": {
+                            "type": "parallel",
+                            "branches": [
+                                {"type": "llm", "model": "gpt-3.5-turbo", "prompt": "Analyze: {data}"},
+                                {"type": "tool", "tool_name": "data_validator", "validate": "{data}"}
+                            ]
+                        }
+                    })
+                else:
+                    suggestions.append({
+                        "type": "llm",
+                        "reason": "Process or analyze the data output",
+                        "priority": "medium",
+                        "suggested_config": {
+                            "type": "llm",
+                            "model": "gpt-3.5-turbo",
+                            "prompt": "Analyze the following data: {data}"
+                        }
+                    })
+                    
+            if 'text' in node.output_schema or 'string' in str(node.output_schema):
+                suggestions.append({
+                    "type": "tool",
+                    "reason": "Take action based on the text output",
+                    "priority": "medium",
+                    "suggested_tools": ["email_sender", "slack_notifier", "file_writer"]
+                })
+                
+        # Type-specific suggestions enhanced with graph context
+        if node.type == "llm":
+            # Check if we're creating a bottleneck
+            if after_node_id in graph_metrics["bottleneck_nodes"]:
+                suggestions.append({
+                    "type": "condition",
+                    "reason": "Add branching to reduce bottleneck at this LLM node",
+                    "priority": "high",
+                    "suggested_config": {
+                        "type": "condition",
+                        "condition": "result.confidence > 0.8"
+                    }
+                })
+            else:
+                suggestions.extend([
+                    {
+                        "type": "condition",
+                        "reason": "Make decision based on LLM output",
+                        "priority": "medium",
+                        "suggested_config": {
+                            "type": "condition",
+                            "condition": "result.confidence > 0.8"
+                        }
+                    },
+                    {
+                        "type": "tool",
+                        "reason": "Execute action based on analysis",
+                        "priority": "medium",
+                        "suggested_tools": ["database_writer", "api_caller"]
+                    }
+                ])
+                
+        elif node.type == "tool":
+            # Check critical path position
+            path_analysis = self.get_execution_path_analysis()
+            if after_node_id in path_analysis.get("branch_points", []):
+                suggestions.append({
+                    "type": "parallel",
+                    "reason": "Leverage branching opportunity from this tool output",
+                    "priority": "high"
+                })
+            else:
+                suggestions.append({
+                    "type": "llm",
+                    "reason": "Process tool output with AI",
+                    "priority": "medium",
+                    "suggested_config": {
+                        "type": "llm",
+                        "model": "gpt-3.5-turbo",
+                        "prompt": "Summarize this result: {output}"
+                    }
+                })
+                
+        # Add complexity-based suggestions
+        if graph_metrics["complexity_score"] > 8.0:
+            suggestions.append({
+                "type": "workflow",
+                "reason": "Consider breaking complex logic into sub-workflow",
+                "priority": "low",
+                "suggested_config": {
+                    "type": "nested_chain",
+                    "chain_reference": "sub_workflow_template"
+                }
+            })
+            
+        # Add optimization suggestions based on graph analysis
+        optimization_suggestions = self.get_optimization_suggestions()
+        for opt in optimization_suggestions:
+            if after_node_id in opt.get("affected_nodes", []):
+                suggestions.append({
+                    "type": "optimization",
+                    "reason": opt["description"],
+                    "priority": opt["priority"],
+                    "optimization_type": opt["type"]
+                })
+                
+        return suggestions
+        
+    def get_execution_state(self) -> Optional[Dict[str, Any]]:
+        """Get current execution state for debugging/monitoring."""
+        if not self._execution_state:
+            return None
+        return self._execution_state.get_execution_summary()
+        
+    def get_visual_layout_hints(self) -> Dict[str, Dict[str, Any]]:
+        """Provide layout hints for canvas visualization.
+        
+        Returns positioning and grouping suggestions for nodes.
+        """
+        # Use enhanced graph analyzer instead of simple layout
+        return self._graph_analyzer.get_spatial_layout_hints()
+        
+    def get_graph_metrics(self) -> Dict[str, Any]:
+        """Get comprehensive graph analysis metrics."""
+        metrics = self._graph_analyzer.get_metrics()
+        return {
+            "total_nodes": metrics.total_nodes,
+            "total_edges": metrics.total_edges,
+            "max_depth": metrics.max_depth,
+            "parallel_opportunities": metrics.parallel_opportunities,
+            "critical_path_length": metrics.critical_path_length,
+            "complexity_score": metrics.complexity_score,
+            "bottleneck_nodes": metrics.bottleneck_nodes,
+            "leaf_nodes": metrics.leaf_nodes,
+            "root_nodes": metrics.root_nodes
+        }
+        
+    def analyze_node_impact(self, node_id: str) -> Dict[str, Any]:
+        """Analyze the impact of changes to a specific node."""
+        impact = self._graph_analyzer.analyze_dependency_impact(node_id)
+        return {
+            "node_id": impact.node_id,
+            "direct_dependents": impact.direct_dependents,
+            "transitive_dependents": impact.transitive_dependents,
+            "affected_levels": impact.affected_levels,
+            "estimated_impact_score": impact.estimated_impact_score
+        }
+        
+    def get_optimization_suggestions(self) -> List[Dict[str, Any]]:
+        """Get AI-powered optimization suggestions based on graph analysis."""
+        return self._graph_analyzer.suggest_optimizations()
+        
+    def get_execution_path_analysis(self) -> Dict[str, Any]:
+        """Get detailed analysis of possible execution paths."""
+        return self._graph_analyzer.get_execution_path_analysis()
+        
+    def find_workflow_patterns(self, pattern_nodes: List[str]) -> List[List[str]]:
+        """Find similar patterns in the workflow for refactoring opportunities."""
+        return self._graph_analyzer.find_similar_patterns(pattern_nodes)
+        
+    def _get_node_visual_style(self, node: NodeConfig) -> Dict[str, Any]:
+        """Get visual styling for a node based on its type."""
+        styles = {
+            "llm": {
+                "shape": "rounded-rectangle",
+                "color": "#4A90E2",
+                "icon": "brain",
+                "size": "medium"
+            },
+            "tool": {
+                "shape": "rectangle", 
+                "color": "#7ED321",
+                "icon": "wrench",
+                "size": "small"
+            },
+            "agent": {
+                "shape": "hexagon",
+                "color": "#BD10E0", 
+                "icon": "robot",
+                "size": "large"
+            },
+            "condition": {
+                "shape": "diamond",
+                "color": "#F5A623",
+                "icon": "branch",
+                "size": "small"
+            },
+            "nested_chain": {
+                "shape": "double-rounded-rectangle",
+                "color": "#50E3C2",
+                "icon": "folder",
+                "size": "large"
+            }
+        }
+        
+        return styles.get(node.type, {
+            "shape": "rectangle",
+            "color": "#9B9B9B",
+            "icon": "cube",
+            "size": "medium"
+        })
+        
+    def _get_node_execution_stats(self, node_id: str) -> Optional[Dict[str, Any]]:
+        """Get execution statistics for a node if available."""
+        if not self._execution_state:
+            return None
+            
+        result = self._execution_state.node_results.get(node_id)
+        if not result:
+            return None
+            
+        stats = {
+            "executed": node_id in self._execution_state.completed_nodes,
+            "success": result.success,
+            "duration": result.execution_time,
+            "cached": getattr(result, 'cache_hit', False)
+        }
+        
+        if result.usage:
+            stats["tokens"] = result.usage.total_tokens
+            
+        return stats
 
     async def execute_node(
         self, node_id: str, input_data: Dict[str, Any]
     ) -> NodeExecutionResult:
         """Execute a single processor – now delegated to *NodeExecutor* utility."""
+        
+        # Track state if available
+        if self._execution_state:
+            self._execution_state.record_node_start(node_id)
+            
+        # Emit node started event
+        node = self.nodes.get(node_id)
+        if node:
+            await self._event_handler.emit(NodeStarted(
+                workflow_id=self.engine_id,
+                node_id=node_id,
+                node_type=node.type,
+                node_name=getattr(node, 'name', None),
+                level=self.graph.get_node_level(node_id),
+                dependencies=node.dependencies
+            ))
 
         result = await self._executor.execute_node(node_id, input_data)
+        
+        # Track completion
+        if self._execution_state:
+            self._execution_state.record_node_complete(node_id, result)
+            
+        # Emit appropriate event
+        if result.success:
+            await self._event_handler.emit(NodeCompleted(
+                workflow_id=self.engine_id,
+                node_id=node_id,
+                duration_seconds=result.execution_time or 0,
+                tokens_used=result.usage.total_tokens if result.usage else None,
+                cost=None,  # TODO: Calculate from usage
+                cache_hit=getattr(result, 'cache_hit', False)
+            ))
+        else:
+            await self._event_handler.emit(NodeFailed(
+                workflow_id=self.engine_id,
+                node_id=node_id,
+                error_type=type(result.error).__name__ if result.error else "Unknown",
+                error_message=str(result.error) if result.error else "Unknown error"
+            ))
 
         # Handle SubDAG results
         if hasattr(result, "output") and result.output is not None:
@@ -563,13 +1122,24 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         *,
         target_version: str = "1.0.0",
         **kwargs: Any,
-    ) -> "Workflow":
-        """Delegate to :class:`ChainFactory`."""
-
-        chain_obj = await ChainFactory.from_dict(
-            payload, target_version=target_version, **kwargs
+    ) -> "iceEngine":
+        """Create iceEngine from dictionary.
+        
+        Use WorkflowBuilder for new code instead of this method.
+        """
+        nodes = payload.get("nodes", [])
+        name = payload.get("name", "unnamed")
+        
+        # Convert node dicts to proper configs
+        from ice_core.utils.node_conversion import convert_node_specs
+        node_configs = convert_node_specs(nodes)
+        
+        return cls(
+            nodes=node_configs,
+            name=name,
+            version=payload.get("version", target_version),
+            **kwargs
         )
-        return chain_obj
 
     # -------------------------------------------------------------------
     # Composition helper -------------------------------------------------
@@ -584,12 +1154,12 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         exposed_outputs: Dict[str, str] | None = None,
     ) -> "NestedChainConfig":
         """Return a :class:`NestedChainConfig` wrapping *self* so it can be
-        embedded inside another *ScriptChain*.
+        embedded inside another *iceEngine*.
 
         Example
         -------
-        >>> sub_chain = build_checkout_chain()
-        >>> parent_node = sub_chain.as_nested_node(
+        >>> sub_engine = build_checkout_engine()
+        >>> parent_node = sub_engine.as_nested_node(
         ...     id="checkout",
         ...     input_mappings={"amount": InputMapping(...)}
         ... )
@@ -599,7 +1169,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         from ice_core.models.node_models import NestedChainConfig  # type: ignore
 
         return NestedChainConfig(
-            id=id or self.chain_id,
+            id=id or self.engine_id,
             name=name or self.name,
             chain=self,
             input_mappings=input_mappings or {},
@@ -635,7 +1205,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             "nodes": [n.dict() for n in self.nodes],
             "name": self.name,
             "version": self.version,
-            "chain_id": self.chain_id,
+            "engine_id": self.engine_id,
             "max_parallel": self.max_parallel,
             "failure_policy": (
                 self.failure_policy.value
@@ -643,3 +1213,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 else str(self.failure_policy)
             ),
         }
+
+
+# Backward compatibility alias
+Workflow = iceEngine 

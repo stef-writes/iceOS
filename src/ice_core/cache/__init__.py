@@ -16,7 +16,6 @@ from typing import Any, Optional
 
 __all__: list[str] = ["LRUCache", "global_cache"]
 
-
 class LRUCache:  # – simple helper
     """Thread-safe LRU cache suitable for unit tests and single-process runs."""
 
@@ -47,11 +46,9 @@ class LRUCache:  # – simple helper
         with self._lock:
             self._store.clear()
 
-
 # Singleton instance ---------------------------------------------------------
 
 _global_cache: Optional[LRUCache] = None
-
 
 def global_cache() -> LRUCache:
     """Return process-wide shared LRU cache instance."""

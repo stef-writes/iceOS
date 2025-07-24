@@ -2,7 +2,6 @@ from typing import Any, Dict, Mapping
 
 from ice_sdk.utils.coercion import schema_match  # From untracked files
 
-
 class ContextTypeManager:
     def __init__(self):
         self._registry: Dict[str, Mapping[str, Any]] = {}
@@ -32,7 +31,6 @@ class ContextTypeManager:
             for key, schema in self._registry.items()
             if schema_match(schema, target_schema)  # From coercion utils
         ]
-
 
 # Singleton instance
 context_type_manager = ContextTypeManager()

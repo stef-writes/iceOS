@@ -7,10 +7,13 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-
 class IceCoreError(Exception):
     """Base-class for all core-layer exceptions."""
 
+
+class RegistryError(IceCoreError):
+    """Error raised during registry operations."""
+    pass
 
 class DeprecatedError(ImportError, IceCoreError):
     """Raised when a deprecated shim or symbol is accessed in *strict* mode.
@@ -23,11 +26,9 @@ class DeprecatedError(ImportError, IceCoreError):
     def __init__(self, message: str) -> None:  # – imperative mood
         super().__init__(message)
 
-
 # ---------------------------------------------------------------------------
 #  Path security ----------------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 class SecurityViolationError(IceCoreError):
     """Raised when a provided path escapes allowed root directory."""
@@ -35,15 +36,12 @@ class SecurityViolationError(IceCoreError):
     def __init__(self, path: str):  # – param path only
         super().__init__(f"Illegal path traversal attempt detected: {path}")
 
-
 # ---------------------------------------------------------------------------
 #  Workflow and SubDAG errors --------------------------------------------------
 # ---------------------------------------------------------------------------
 
-
 class WorkflowError(IceCoreError):
     """Base class for workflow-related errors."""
-
 
 class SubDAGError(WorkflowError):
     """Raised when subDAG validation or execution fails.
@@ -59,10 +57,8 @@ class SubDAGError(WorkflowError):
         super().__init__(message)
         self.workflow_data = workflow_data
 
-
 class SpecConflictError(IceCoreError):
     """Raised when trying to create a spec that already exists."""
-
 
 class NetworkValidationError(IceCoreError):
     """Raised when a network spec fails validation."""

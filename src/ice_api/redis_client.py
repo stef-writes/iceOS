@@ -102,7 +102,6 @@ __all__: list[str] = ["get_redis"]
 
 _redis_client: Optional[Redis] = None
 
-
 def get_redis() -> Redis:  # – singleton, *sync* accessor
     """Return the shared :class:`redis.asyncio.Redis` client.
 

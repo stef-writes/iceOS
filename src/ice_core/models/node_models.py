@@ -29,7 +29,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 # Retry policy --------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-
 class RetryPolicy(BaseModel):
     """Declarative retry policy attached to any node.
 
@@ -51,17 +50,19 @@ class RetryPolicy(BaseModel):
     backoff_strategy: Literal["fixed", "linear", "exponential"] = "exponential"
     backoff_seconds: float = Field(1.0, ge=0.0)
 
+# ---------------------------------------------------------------------------
+# Imports
+# ---------------------------------------------------------------------------
 from ice_core.models.enums import ModelProvider
 
 # ruff: noqa: F811
-
 
 # ---------------------------------------------------------------------------
 # Forward-decl imports to avoid heavyweight runtime deps in typing-only mode
 # ---------------------------------------------------------------------------
 
 if TYPE_CHECKING:  # pragma: no cover – import only for type checkers
-    from ice_sdk.interfaces.chain import ScriptChainLike as _ScriptChainLike
+    from ice_core.protocols.workflow import ScriptChainLike as _ScriptChainLike
 else:
     _ScriptChainLike = Any  # type: ignore[misc]
 
@@ -70,7 +71,6 @@ ScriptChainLike: TypeAlias = _ScriptChainLike  # public alias
 # ---------------------------------------------------------------------------
 # Tool configuration --------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 class ToolConfig(BaseModel):
     """Declarative description of a tool made available to an LLM agent."""
@@ -82,11 +82,9 @@ class ToolConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-
 # ---------------------------------------------------------------------------
 # Context handling ---------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 class ContextFormat(str, Enum):
     TEXT = "text"
@@ -94,7 +92,6 @@ class ContextFormat(str, Enum):
     MARKDOWN = "markdown"
     CODE = "code"
     CUSTOM = "custom"
-
 
 class InputMapping(BaseModel):
     """Mapping configuration for node inputs."""
@@ -110,7 +107,6 @@ class InputMapping(BaseModel):
         default_factory=dict,
         description="Optional transformation rules (e.g. 'truncate', 'format')",
     )
-
 
 class ContextRule(BaseModel):
     """Rule for handling context in a node."""
@@ -129,11 +125,9 @@ class ContextRule(BaseModel):
         default=True, description="Whether to truncate if context exceeds max_tokens"
     )
 
-
 # ---------------------------------------------------------------------------
 # LLM configuration --------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 class LLMConfig(BaseModel):
     """Provider-specific LLM configuration."""
@@ -150,11 +144,9 @@ class LLMConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-
 # ---------------------------------------------------------------------------
 # Base node configuration --------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 class NodeMetadata(BaseModel):
     """Metadata for a node execution."""
@@ -166,7 +158,6 @@ class NodeMetadata(BaseModel):
     end_time: Optional[datetime] = None
     version: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
-
 
 class BaseNodeConfig(BaseModel):
     """Common fields shared by all node configurations."""
@@ -310,11 +301,9 @@ class BaseNodeConfig(BaseModel):
         """Check if schema is a Pydantic model."""
         return isinstance(schema, type) and issubclass(schema, BaseModel)
 
-
 # ---------------------------------------------------------------------------
 # Specific node configurations ----------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 class LLMOperatorConfig(BaseNodeConfig):
     """Configuration for an LLM-powered node.
@@ -350,15 +339,13 @@ class LLMOperatorConfig(BaseNodeConfig):
         None, description="JSON schema for output"
     )
 
-
-class SkillNodeConfig(BaseNodeConfig):
+class ToolNodeConfig(BaseNodeConfig):
     """Configuration for an idempotent tool execution."""
 
     type: Literal["tool"] = "tool"
 
     tool_name: str = Field(..., description="Registered name of the tool to invoke")
     tool_args: Dict[str, Any] = Field(default_factory=dict)
-
 
 class ConditionNodeConfig(BaseNodeConfig):
     """Branching node that decides execution path based on *expression*."""
@@ -370,7 +357,6 @@ class ConditionNodeConfig(BaseNodeConfig):
     )
     true_branch: List[str] = Field(default_factory=list)
     false_branch: Optional[List[str]] = Field(default=None)
-
 
 class NestedChainConfig(BaseNodeConfig):
     """Configuration for a *nested* ScriptChain."""
@@ -385,19 +371,21 @@ class NestedChainConfig(BaseNodeConfig):
     def _validate_chain_reference(self) -> "NestedChainConfig":
         """Ensure *chain* reference is resolvable when provided as a string."""
 
-        from ice_sdk.registry.chain import global_chain_registry  # local import to avoid heavy dep
-
         if isinstance(self.chain, str):
-            if self.chain not in [name for name, _ in global_chain_registry]:
-                import warnings
-                warnings.warn(
-                    f"NestedChainConfig.chain references unknown chain '{self.chain}' – continuing with placeholder.",
-                    RuntimeWarning,
-                )
+            try:
+                from ice_sdk.unified_registry import global_chain_registry
+                if self.chain not in [name for name, _ in global_chain_registry]:
+                    import warnings
+                    warnings.warn(
+                        f"NestedChainConfig.chain references unknown chain '{self.chain}' – continuing with placeholder.",
+                        RuntimeWarning,
+                    )
+            except ImportError:
+                # Registry not available, skip validation
+                pass
         return self
 
-
-class PrebuiltAgentConfig(BaseNodeConfig):
+class AgentNodeConfig(BaseNodeConfig):
     """Configuration for using a pre-built multi-tool agent.
 
     Similar to :class:`LLMOperatorConfig` but encapsulates memory, multiple
@@ -420,7 +408,7 @@ class PrebuiltAgentConfig(BaseNodeConfig):
     memory: Optional[Dict[str, Any]] = Field(default=None)
 
     @model_validator(mode="after")
-    def _validate_attr(self) -> "PrebuiltAgentConfig":
+    def _validate_attr(self) -> "AgentNodeConfig":
         """Validate agent attribute configuration."""
         if not self.agent_attr:
             # Try to infer from package name
@@ -429,7 +417,6 @@ class PrebuiltAgentConfig(BaseNodeConfig):
                 self.agent_attr = package_parts[-1]
         return self
 
-
 # ---------------------------------------------------------------------------
 # Discriminated union & helpers
 # ---------------------------------------------------------------------------
@@ -437,19 +424,17 @@ class PrebuiltAgentConfig(BaseNodeConfig):
 NodeConfig = Annotated[
     Union[
         LLMOperatorConfig,
-        SkillNodeConfig,
+        ToolNodeConfig,
         ConditionNodeConfig,
         NestedChainConfig,
-        PrebuiltAgentConfig,
+        AgentNodeConfig,
     ],
     Field(discriminator="type"),
 ]
 
-
 # ---------------------------------------------------------------------------
 # Execution results -------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 class NodeExecutionRecord(BaseModel):
     """Record of node execution statistics."""
@@ -463,13 +448,11 @@ class NodeExecutionRecord(BaseModel):
     token_usage: Dict[str, int] = Field(default_factory=dict)
     provider_usage: Dict[str, Dict[str, int]] = Field(default_factory=dict)
 
-
 class NodeIO(BaseModel):
     """Input/output schema for a node."""
 
     data_schema: Dict[str, Any] = Field(default_factory=dict)
     required: List[str] = Field(default_factory=list)
-
 
 class UsageMetadata(BaseModel):
     """Token usage and cost metadata."""
@@ -492,7 +475,6 @@ class UsageMetadata(BaseModel):
             self.total_tokens = self.prompt_tokens + self.completion_tokens
         return self
 
-
 class NodeExecutionResult(BaseModel):
     """Result of a node execution."""
 
@@ -508,7 +490,6 @@ class NodeExecutionResult(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-
 class ChainExecutionResult(BaseModel):
     """Result of a chain execution."""
 
@@ -519,7 +500,6 @@ class ChainExecutionResult(BaseModel):
     chain_metadata: Optional["ChainMetadata"] = None
     execution_time: Optional[float] = None
     token_stats: Optional[Dict[str, Any]] = None
-
 
 class ChainMetadata(BaseModel):
     """Metadata for a chain execution."""
@@ -535,17 +515,14 @@ class ChainMetadata(BaseModel):
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-
 try:
     ChainExecutionResult.model_rebuild()
 except NameError:
     pass
 
-
 # ---------------------------------------------------------------------------
 # Serializable ChainSpec (v1)
 # ---------------------------------------------------------------------------
-
 
 class ChainSpec(BaseModel):
     """Serializable chain specification."""

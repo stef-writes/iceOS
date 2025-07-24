@@ -43,11 +43,9 @@ _VALID_TARGETS: dict[str, List[str]] = {
     "all": ["lint", "type", "test"],
 }
 
-
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def cli() -> None:  # – entrypoint
     """iceOS CLI utilities (run ``ice --help`` for details)."""
-
 
 @cli.command()
 @click.argument(
@@ -73,7 +71,6 @@ def doctor(category: str) -> None:  # – imperative mood
             sys.exit(completed.returncode)
 
     click.echo("[doctor] All checks passed ✔")
-
 
 # Allow ``python -m ice_cli.cli doctor`` invocation --------------------------
 if __name__ == "__main__":  # pragma: no cover

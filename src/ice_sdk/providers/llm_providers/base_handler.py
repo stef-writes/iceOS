@@ -12,13 +12,12 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from ice_sdk.models.config import LLMConfig
+from ice_core.models import LLMConfig
 
 __all__: list[str] = ["BaseLLMHandler"]
 
 # Shared logger so subclasses can inherit it easily --------------------------
 _logger = logging.getLogger(__name__)
-
 
 class BaseLLMHandler(ABC):
     """Abstract base class for concrete provider handlers."""

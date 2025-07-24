@@ -11,10 +11,8 @@ import asyncio
 import time
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
-
 class _BulkSaveProtocol(Protocol):  # pragma: no cover – duck-typing helper
     async def bulk_save(self, data: List[Tuple[str, Dict[str, Any]]]) -> None: ...
-
 
 class WorkflowExecutionContext:
     """Workflow-scoped execution preferences and safety flags."""

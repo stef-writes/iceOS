@@ -1,4 +1,0 @@
-# Golden output for examples/inventory_report_blueprint.json executed via WorkflowTester
-success: true
-output:
-  example_key: stubbed 

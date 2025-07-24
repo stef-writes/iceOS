@@ -13,22 +13,21 @@ import structlog
 
 from ice_core.models import NodeConfig
 from ice_core.services.contracts import IWorkflowService
-from ice_orchestrator.workflow import Workflow
+from ice_orchestrator.workflow import iceEngine, Workflow
 from ice_sdk.context import GraphContextManager
 
 # Import tools to register them
-from ice_sdk.tools.system.csv_reader_skill import CSVReaderSkill
-from ice_sdk.tools.system.rows_validator_skill import RowsValidatorSkill
+from ice_sdk.tools.system.csv_reader_tool import CSVReaderTool
+from ice_sdk.tools.system.rows_validator_tool import RowsValidatorTool
 
 # Import csv_writer conditionally since it might not be available
 try:
-    from ice_sdk.tools.system.csv_writer_skill import CSVWriterSkill
+    from ice_sdk.tools.system.csv_writer_tool import CSVWriterTool
     CSV_WRITER_AVAILABLE = True
 except ImportError:
     CSV_WRITER_AVAILABLE = False
 
 logger = structlog.get_logger(__name__)
-
 
 class WorkflowService(IWorkflowService):
     """Real workflow service implementation.
@@ -43,10 +42,21 @@ class WorkflowService(IWorkflowService):
         self._context_manager = GraphContextManager()
         
         # Register built-in tools
-        self._context_manager.register_tool(CSVReaderSkill())
+        self._context_manager.register_tool(CSVReaderTool())
         if CSV_WRITER_AVAILABLE:
-            self._context_manager.register_tool(CSVWriterSkill())
-        self._context_manager.register_tool(RowsValidatorSkill())
+            self._context_manager.register_tool(CSVWriterTool())
+        self._context_manager.register_tool(RowsValidatorTool())
+        
+        # Register marketplace tools
+        from ice_sdk.tools.marketplace.inventory_analyzer_tool import InventoryAnalyzerTool
+        from ice_sdk.tools.marketplace.listing_generator_tool import ListingGeneratorTool
+        from ice_sdk.tools.marketplace.inquiry_responder_tool import InquiryResponderTool
+        from ice_sdk.tools.marketplace.marketplace_publisher_tool import MarketplacePublisherTool
+        
+        self._context_manager.register_tool(InventoryAnalyzerTool())
+        self._context_manager.register_tool(ListingGeneratorTool())
+        self._context_manager.register_tool(InquiryResponderTool())
+        self._context_manager.register_tool(MarketplacePublisherTool())
 
     async def execute(
         self,
@@ -88,10 +98,10 @@ class WorkflowService(IWorkflowService):
                 if event_emitter:
                     event_emitter(event_name, payload)
 
-            workflow = Workflow(
+            workflow = iceEngine(
                 nodes=node_configs,
                 name=name,
-                chain_id=run_id,
+                engine_id=run_id,
                 context_manager=self._context_manager,
             )
 
@@ -146,3 +156,11 @@ class WorkflowService(IWorkflowService):
                 error_dict["run_id"] = run_id
 
             return error_dict
+
+    async def create_partial_blueprint(self) -> str:
+        """Create a new partial blueprint for incremental building."""
+        import uuid
+        blueprint_id = f"blueprint_{uuid.uuid4().hex[:8]}"
+        # In a real implementation, this would store the blueprint
+        # For now, just return the ID
+        return blueprint_id

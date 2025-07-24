@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from ice_orchestrator.errors.chain_errors import ChainError
+from ice_orchestrator.errors import ChainError
 from ice_sdk.exceptions import ErrorCode
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models import NodeConfig, NodeExecutionResult
-
 
 class ContextBuilder:  # – utility helper
     """Helper responsible for constructing per-node execution contexts.

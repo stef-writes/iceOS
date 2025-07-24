@@ -5,8 +5,7 @@ from typing import Any, Dict, List
 from pydantic import BaseModel, Field
 
 from ice_core.models.llm import LLMConfig
-from ice_sdk.base_node import BaseNode
-
+from ice_core.models import BaseNode
 
 class AgentNodeConfig(BaseModel):
     """Configuration for an AI agent node."""
@@ -15,7 +14,6 @@ class AgentNodeConfig(BaseModel):
     system_prompt: str = Field(..., min_length=10, description="Base system prompt")
     max_retries: int = Field(3, ge=0, description="Max automatic retry attempts")
     tools: list[str] = Field(default_factory=list, description="Allowed tool names")
-
 
 class AgentNode(BaseNode):
     """Orchestratable agent node combining LLM reasoning with tool usage."""

@@ -11,14 +11,13 @@ from typing import Any, Optional
 from openai import AsyncOpenAI
 
 from ice_core.models.model_registry import get_default_model_id
-from ice_sdk.models.config import LLMConfig
+from ice_core.models import LLMConfig
 
 from .base_handler import BaseLLMHandler
 
 logger = logging.getLogger(__name__)
 
 __all__: list[str] = ["OpenAIHandler"]
-
 
 class OpenAIHandler(BaseLLMHandler):
     """Handler for OpenAI Chat Completions API."""

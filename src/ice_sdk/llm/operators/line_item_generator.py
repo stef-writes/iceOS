@@ -11,12 +11,10 @@ from pydantic import BaseModel, Field, field_validator
 
 from ice_sdk.llm.operators.base import LLMOperator, LLMOperatorConfig
 from ice_sdk.providers.llm_service import LLMService
-from ice_core.utils.deprecation import deprecated
 
 __all__: list[str] = [
     "LineItemGeneratorOperator",
 ]
-
 
 class _Input(BaseModel):
     """Validated input schema.
@@ -44,13 +42,11 @@ class _Input(BaseModel):
                 return [h.strip() for h in v.strip("[]").split(",") if h]
         return v
 
-
 class _Output(BaseModel):
     """Structured operator output."""
 
     row: Dict[str, Any]
     action: Literal["append", "update", "delete"]
-
 
 class LineItemGeneratorOperator(LLMOperator):
     """LLM-backed operator that emits a CSV row spec + action.
@@ -69,8 +65,8 @@ class LineItemGeneratorOperator(LLMOperator):
     )
 
     # Explicit schemas (used by downstream validation) --------------------
-    InputModel = _Input  # type: ignore[assignment]
-    OutputModel = _Output  # type: ignore[assignment]
+    InputModel: type[_Input] = _Input
+    OutputModel: type[_Output] = _Output
 
     # Default configuration (can be overridden at instantiation) ----------
     def __init__(
@@ -79,7 +75,7 @@ class LineItemGeneratorOperator(LLMOperator):
         config: LLMOperatorConfig | None = None,
         llm_service: LLMService | None = None,
     ) -> None:
-        self.config: LLMOperatorConfig = config or LLMOperatorConfig()
+        super().__init__(config=config or LLMOperatorConfig())
         self.llm_service: LLMService = llm_service or LLMService()
 
     # ------------------------------------------------------------------
@@ -126,16 +122,4 @@ class LineItemGeneratorOperator(LLMOperator):
         self.OutputModel(**output)
         return output
 
-
-# ---------------------------------------------------------------------------
-# Deprecation shim – old skill still importable but warns at call-time --------
-# ---------------------------------------------------------------------------
-
-@deprecated("0.5.0", replacement="ice_sdk.llm.operators.LineItemGeneratorOperator")
-class LineItemGeneratorSkillShim:  # pylint: disable=too-few-public-methods
-    """Import shim preserving the old *skill* path."""
-
-    def __getattr__(self, item: str) -> Any:  # noqa: D401
-        raise AttributeError(
-            "LineItemGeneratorSkill is deprecated.  Use LineItemGeneratorOperator instead."
-        ) 
+ 

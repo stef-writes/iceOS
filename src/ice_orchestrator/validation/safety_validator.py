@@ -15,7 +15,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = structlog.get_logger(__name__)
 
-
 class SafetyValidator:  # – internal utility
     """Safety validation helpers for ScriptChain."""
 

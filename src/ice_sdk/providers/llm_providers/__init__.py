@@ -14,19 +14,16 @@ __all__: list[str] = [
     "DeepSeekHandler",
 ]
 
-
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 # Core providers – required deps (fail loud) --------------------------------
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 
 OpenAIHandler = cast(Any, import_module("ice_sdk.providers.llm_providers.openai_handler").OpenAIHandler)
 
-
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 # Optional providers – swallow *ImportError* so missing extras don't break   
 # the whole application. Clients must check for ``None`` before usage.       
-# ---------------------------------------------------------------------------
-
+# ----------------------------------------
 
 def _safe_import(module_path: str, class_name: str) -> Any | None:  # pragma: no cover
     """Return class from *module_path* or *None* if import fails.
@@ -45,7 +42,6 @@ def _safe_import(module_path: str, class_name: str) -> Any | None:  # pragma: no
         # Return *None* so that caller can decide whether to surface a        
         # validation error or fallback gracefully.
         return None
-
 
 AnthropicHandler = _safe_import("ice_sdk.providers.llm_providers.anthropic_handler", "AnthropicHandler")
 GoogleGeminiHandler = _safe_import(

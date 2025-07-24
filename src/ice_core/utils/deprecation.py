@@ -4,9 +4,7 @@ Designed to be imported from any layer without dragging heavy deps.
 
 Usage
 -----
->>> from ice_core.utils.deprecation import deprecated
->>> @deprecated('0.9', replacement='ice_core.models.User')
-... class OldUser: ...
+>>> >>> ... class OldUser: ...
 """
 
 from __future__ import annotations
@@ -21,16 +19,13 @@ from ice_core.exceptions import DeprecatedError
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-
 DEFAULT_STACKLEVEL = 3  # Show the *caller* of the deprecated symbol
-
 
 def _build_message(obj_name: str, version: str, replacement: str | None) -> str:
     msg = f"{obj_name} is deprecated and will be removed in a future release; introduced in {version}."
     if replacement:
         msg += f"  Use {replacement} instead."
     return msg
-
 
 def _warn_or_error(message: str) -> None:  # – imperative mood
     """Emit a :class:`DeprecationWarning` or raise :class:`DeprecatedError`.
@@ -43,7 +38,6 @@ def _warn_or_error(message: str) -> None:  # – imperative mood
     if os.getenv("ICE_STRICT_SHIMS") == "1":
         raise DeprecatedError(message)
     warnings.warn(message, DeprecationWarning, stacklevel=DEFAULT_STACKLEVEL)
-
 
 def deprecated(version: str, replacement: str | None = None) -> Callable[[F], F]:
     """Decorator to mark callables/classes as deprecated.
@@ -70,7 +64,6 @@ def deprecated(version: str, replacement: str | None = None) -> Callable[[F], F]
         return wrapped  # type: ignore[return-value]
 
     return decorator
-
 
 def deprecate_module(version: str, replacement: str | None = None) -> None:
     """Mark the *calling* module as deprecated.

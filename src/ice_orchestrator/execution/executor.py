@@ -26,12 +26,9 @@ from ice_core.models.node_models import NodeMetadata
 # Merely importing these modules triggers the @register_node decorators.
 # ---------------------------------------------------------------------------
 # ruff: noqa: F401 – imported for side-effects only
-from ice_orchestrator.execution.executors import (
-    builtin as _exec_builtin,  # type: ignore
-)
-from ice_orchestrator.execution.executors import condition as _exec_cond  # type: ignore
+import ice_orchestrator.execution.executors  # Import for side effects
 from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
-from ice_sdk.registry.node import get_executor
+from ice_sdk.unified_registry import get_executor
 
 # Local alias to avoid circular import; resolved at runtime
 ScriptChain = _Any  # type: ignore[assignment]
@@ -41,7 +38,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 tracer = trace.get_tracer(__name__)
 logger = structlog.get_logger(__name__)
-
 
 class NodeExecutor:  # – internal utility extracted from ScriptChain
     """Execute individual nodes with retry, caching & tracing.

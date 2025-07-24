@@ -13,17 +13,17 @@ import time
 from decimal import Decimal
 from typing import Dict, Optional, Tuple
 
-from ice_sdk.models.config import ModelProvider
+from ice_core.models import ModelProvider
 
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 # Per-token pricing tables ---------------------------------------------------
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 # Format:  {model_name: (prompt_price, completion_price)}  – prices in USD
 # *prompt_price* applies to input / prompt tokens
 # *completion_price* applies to output / completion tokens
 #
 # NOTE:  Use ``Decimal`` for currency math to avoid FP rounding errors.
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 
 _OPENAI_PRICES: Dict[str, Tuple[Decimal, Decimal]] = {
     #  ✅ Numbers copied from https://openai.com/pricing (2025-05-12)
@@ -41,10 +41,9 @@ _PRICING_TABLE: Dict[ModelProvider, Dict[str, Tuple[Decimal, Decimal]]] = {
     # Future providers can be added here, e.g. ModelProvider.ANTHROPIC: {...}
 }
 
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 # Public helpers -------------------------------------------------------------
-# ---------------------------------------------------------------------------
-
+# ----------------------------------------
 
 def get_price_per_token(provider: ModelProvider, model: str) -> Tuple[Decimal, Decimal]:
     """Return *(prompt_price, completion_price)* per token for *model*.
@@ -59,7 +58,6 @@ def get_price_per_token(provider: ModelProvider, model: str) -> Tuple[Decimal, D
         # Unknown model – treat as zero-cost (prevents downstream crashes)
         return Decimal("0"), Decimal("0")
 
-
 def calculate_cost(
     provider: ModelProvider,
     model: str,
@@ -70,6 +68,62 @@ def calculate_cost(
 
     p_price, c_price = get_price_per_token(provider, model)
     return (p_price * prompt_tokens) + (c_price * completion_tokens)
+
+class TokenCostCalculator:
+    """Calculator for token-based costs across different providers."""
+    
+    def __init__(self):
+        pass
+    
+    def calculate_cost(
+        self,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        provider: str = "openai"
+    ) -> float:
+        """Calculate cost for given token usage.
+        
+        Args:
+            model: Model name (e.g., "gpt-4")
+            input_tokens: Number of input/prompt tokens
+            output_tokens: Number of output/completion tokens
+            provider: Provider name (e.g., "openai")
+            
+        Returns:
+            Cost in USD as a float
+        """
+        try:
+            # Map string provider to enum
+            if isinstance(provider, str):
+                provider_enum = ModelProvider(provider.lower())
+            else:
+                provider_enum = provider
+                
+            cost_decimal = calculate_cost(
+                provider_enum, model, input_tokens, output_tokens
+            )
+            return float(cost_decimal)
+        except (ValueError, KeyError):
+            # Unknown provider/model - return zero cost
+            return 0.0
+    
+    def get_model_pricing(self, provider: str, model: str) -> Tuple[float, float]:
+        """Get per-token pricing for a model.
+        
+        Args:
+            provider: Provider name  
+            model: Model name
+            
+        Returns:
+            Tuple of (prompt_price, completion_price) per token
+        """
+        try:
+            provider_enum = ModelProvider(provider.lower())
+            p_price, c_price = get_price_per_token(provider_enum, model)
+            return float(p_price), float(c_price)
+        except (ValueError, KeyError):
+            return 0.0, 0.0
 
 
 class CostTracker:
@@ -123,7 +177,7 @@ class CostTracker:
         return self._execution_time
 
     # ------------------------------------------------------------------
-    # No-op *span* helpers used by SkillBase for cheap instrumentation.
+    # No-op *span* helpers used by ToolBase for cheap instrumentation.
     # ------------------------------------------------------------------
 
     @classmethod
@@ -133,3 +187,11 @@ class CostTracker:
     @classmethod
     def end_span(cls, *, success: bool, error: str | None = None) -> None:
         """Finish a cost span – collects nothing for now."""
+
+
+__all__ = [
+    "get_price_per_token",
+    "calculate_cost", 
+    "CostTracker",
+    "TokenCostCalculator",
+]

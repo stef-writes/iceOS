@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-
 class BaseContextStore(ABC):
     """Abstract base class for context storage backends."""
 

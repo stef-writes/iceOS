@@ -1,15 +1,5 @@
-# ruff: noqa: E402
+"""High-level LLM service for managing provider interactions."""
 from __future__ import annotations
-
-"""High-level LLM helper migrated from `ice_tools.llm_service`.
-
-Only importable via::
-
-    from ice_sdk.providers import LLMService
-
-The original module under *ice_tools* re-exports this class for
-backwards-compatibility.
-"""
 
 import asyncio
 import logging
@@ -17,7 +7,7 @@ from typing import Any, Optional, Tuple
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ice_sdk.models.config import LLMConfig, ModelProvider
+from ice_core.models import LLMConfig, ModelProvider
 from ice_sdk.providers.llm_providers import (
     AnthropicHandler,
     DeepSeekHandler,
@@ -40,7 +30,6 @@ except Exception:  # pragma: no cover
     openai_error = _OpenAIErrorModule()  # type: ignore[var-annotated]
 
 logger = logging.getLogger(__name__)
-
 
 class LLMService:
     """High-level helper for synchronous/asynchronous LLM calls.

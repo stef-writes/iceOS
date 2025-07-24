@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, Tuple
 import pytest
 
 from ice_sdk.llm.operators.summarizer import SummarizerOperator
-from ice_sdk.models.config import LLMConfig
+from ice_core.models import LLMConfig
 
 
 class _StubLLMService:  # pylint: disable=too-few-public-methods

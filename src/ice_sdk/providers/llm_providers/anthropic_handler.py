@@ -7,10 +7,10 @@ import logging
 import os
 from typing import Any, Optional, cast
 
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 # Optional SDK import – fallback to *None* when missing so that higher layers
 # can still import this module without the extra dependency being present.
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 
 try:
     from anthropic import AsyncAnthropic as _AsyncAnthropic  # type: ignore
@@ -20,14 +20,13 @@ except ModuleNotFoundError:  # pragma: no cover – optional dep
 # Re-export under stable name – ``Optional[Any]`` avoids strict type errors
 AsyncAnthropic = cast("Optional[Any]", _AsyncAnthropic)
 
-from ice_sdk.models.config import LLMConfig
+from ice_core.models import LLMConfig
 
 from .base_handler import BaseLLMHandler
 
 logger = logging.getLogger(__name__)
 
 __all__: list[str] = ["AnthropicHandler"]
-
 
 class AnthropicHandler(BaseLLMHandler):
     """Handler for Anthropic Claude models."""

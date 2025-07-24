@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 NodeConfig = Any  # Alias for cross-layer type without import
 
-
 @runtime_checkable
 class WorkflowProto(Protocol):
     """Cross-layer interface for dynamic workflow construction.
@@ -48,7 +47,6 @@ class WorkflowProto(Protocol):
             SubDAGError: If validation fails
         """
         ...
-
 
 class SubDAGResult(BaseModel):
     """Container for agent-generated subworkflows.

@@ -1,6 +1,6 @@
 import pytest
 
-from ice_core.models.node_models import SkillNodeConfig
+from ice_core.models.node_models import ToolNodeConfig
 from ice_orchestrator.utils.context_builder import ContextBuilder
 from ice_core.models.node_models import NodeExecutionResult, NodeMetadata
 from ice_orchestrator.errors.chain_errors import ChainError
@@ -25,7 +25,7 @@ async def test_context_builder_success():
     )
 
     # Node with mapping ---------------------------------------------------
-    node = SkillNodeConfig(
+    node = ToolNodeConfig(
         id="n2",
         type="tool",
         tool_name="noop",
@@ -43,7 +43,7 @@ async def test_context_builder_success():
 
 @pytest.mark.asyncio
 async def test_context_builder_missing_dep_raises():
-    node = SkillNodeConfig(
+    node = ToolNodeConfig(
         id="n3",
         type="tool",
         tool_name="noop",

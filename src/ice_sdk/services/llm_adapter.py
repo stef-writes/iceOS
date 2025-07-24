@@ -13,18 +13,16 @@ except Exception:
 
 from pydantic import BaseModel, Field
 
-from ice_sdk.models.config import LLMConfig, ModelProvider
+from ice_core.models import LLMConfig, ModelProvider
 from ice_sdk.providers.llm_service import LLMService
 from ice_sdk.services.locator import ServiceLocator
 
 __all__: list[str] = ["LLMServiceAdapter"]
 
-
 class CompletionRequest(BaseModel):
     prompt: str
     model: str = Field(default="gpt-4o")
     max_tokens: int = Field(default=2000, ge=1, le=4096)
-
 
 class LLMServiceAdapter:
     """Simple wrapper around `LLMService` with sync helper."""
@@ -53,6 +51,5 @@ class LLMServiceAdapter:
         return asyncio.run(
             self.generate_async(prompt, model=model, max_tokens=max_tokens)
         )
-
 
 ServiceLocator.register("llm_service", LLMServiceAdapter())

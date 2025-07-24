@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping, MutableMapping, Type, TypeVar
 
-from ice_sdk.models.node_models import NodeConfig
+from ice_core.models.node_models import NodeConfig
 
 T = TypeVar("T")
 
-
 class TypeCoercionError(ValueError):
     """Raised when automatic type coercion fails."""
-
 
 class TypeEnforcer:
     @classmethod

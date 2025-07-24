@@ -9,7 +9,6 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
 class RuntimeConfig(BaseModel):
     """Runtime configuration loaded from environment variables."""
 
@@ -80,7 +79,6 @@ class RuntimeConfig(BaseModel):
             runtime_mode=runtime_mode,
             budget_fail_open=budget_fail_open,
         )
-
 
 # Global configuration instance
 runtime_config = RuntimeConfig.from_env()

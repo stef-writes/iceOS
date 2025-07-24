@@ -26,12 +26,10 @@ except ModuleNotFoundError:  # pragma: no cover – Windows compatibility
 
     fcntl = _FcntlStub()  # type: ignore
 
-
 class ContextStoreError(Exception):
     """Custom exception for context store errors."""
 
     pass
-
 
 class ContextStore(BaseContextStore):
     """Handles persistent and in-memory storage of node context data, with hooks and optional schema validation."""

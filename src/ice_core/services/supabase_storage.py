@@ -7,7 +7,6 @@ from ice_core.services.contracts import NetworkStorage
 if TYPE_CHECKING:  # pragma: no cover – optional dependency
     import supabase
 
-
 class SupabaseNetworkStorage(NetworkStorage):
     """Supabase-backed implementation of the *NetworkStorage* port.
 

@@ -1,7 +1,7 @@
 """Tool service for executing skills by name.
 
 This module provides the ToolService class that acts as a registry and executor
-for skills. It maintains a registry of skill classes and can instantiate and
+for skills. It maintains a registry of tool classes and can instantiate and
 execute them on demand.
 """
 
@@ -14,7 +14,6 @@ from typing import Any, Dict, List
 
 from pydantic import BaseModel
 
-
 class ToolRequest(BaseModel):  # pylint: disable=too-few-public-methods
     """Request payload consumed by :pymeth:`ToolService.execute`."""
 
@@ -22,18 +21,17 @@ class ToolRequest(BaseModel):  # pylint: disable=too-few-public-methods
     inputs: Dict[str, Any]
     context: Dict[str, Any]
 
-
 class ToolService:  # – thin orchestration facade
-    """Unified adapter that runs *Skill* implementations by name.
+    """Unified adapter that runs *Tool* implementations by name.
 
     The service acts as a lightweight compatibility layer between the
-    orchestrator (which issues :class:`ToolRequest`s) and concrete *Skill*
+    orchestrator (which issues :class:`ToolRequest`s) and concrete *Tool*
     classes registered at runtime.  It purposefully remains **stateless** –
-    each call to :pymeth:`execute` instantiates a new *Skill* object.
+    each call to :pymeth:`execute` instantiates a new *Tool* object.
     """
 
     def __init__(self) -> None:
-        # Eager-import built-in skill packages so their *register()* calls run
+        # Eager-import built-in tool packages so their *register()* calls run
         # before we snapshot the global registry.  This prevents the
         # orchestrator from seeing an empty tool list when the API starts.
 
@@ -50,11 +48,14 @@ class ToolService:  # – thin orchestration facade
                 continue
 
         from importlib.metadata import entry_points, PackageNotFoundError  # lazily import
-        from ice_sdk.registry.tool import global_tool_registry
+        from ice_sdk.unified_registry import registry
+        from ice_core.models import NodeType
 
-        # 1. Load any tools that were pre-registered via global registry
-        for _name, _tool in global_tool_registry._tools.items():  # type: ignore[attr-defined]
-            self._registry.setdefault(_name, _tool.__class__)  # type: ignore[arg-type]
+        # 1. Load any tools that were pre-registered via unified registry
+        for key, tool_instance in registry._instances.items():
+            if key.startswith(f"{NodeType.TOOL.value}:"):
+                tool_name = key.split(":", 1)[1]
+                self._registry.setdefault(tool_name, tool_instance.__class__)
 
         # 2. Discover additional tools via Python entry points ----------------
         try:
@@ -70,21 +71,21 @@ class ToolService:  # – thin orchestration facade
             pass
 
         # 3. As final fallback, introspect built-in tool packages to harvest
-        #    *SkillBase* subclasses when the on-import registration pattern
+        #    *ToolBase* subclasses when the on-import registration pattern
         #    failed (e.g. due to a single failing import wrapped in a broad
         #    try/except block).  This guarantees that development environments
         #    running from source still expose the full tool catalog without
         #    requiring a Poetry install step.
 
         from inspect import isclass
-        from ice_sdk.tools.base import SkillBase
+        from ice_sdk.tools.base import ToolBase
 
         import pkgutil
 
         def _harvest_from_module(module):
             for attr_name in dir(module):
                 obj = getattr(module, attr_name)
-                if not (isclass(obj) and issubclass(obj, SkillBase)):
+                if not (isclass(obj) and issubclass(obj, ToolBase)):
                     continue
 
                 # Pydantic models transform simple str attributes into
@@ -133,20 +134,6 @@ class ToolService:  # – thin orchestration facade
 
     _registry: Dict[str, type] = {}
 
-    # ------------------------------------------------------------------ legacy discovery
-    def discover_and_register(self, path: "Path") -> None:  # noqa: D401
-        """Legacy no-op stub.
-
-        Older GraphContextManager versions called this method to auto-register
-        skills discovered in the workspace.  The actual discovery logic was
-        removed during the v0.10 refactor.  We keep a harmless placeholder so
-        that dependent code can still run without attribute errors while the
-        new plugin system matures.
-        """
-
-        # TODO: Re-implement proper plugin discovery in a dedicated registry.
-        _ = path  # Quell unused variable warning
-
     # ------------------------------------------------------------------ API
     def register(self, tool_cls: type) -> None:  # – simple wrapper
         """Register *tool_cls* so it can be executed by name."""
@@ -164,24 +151,13 @@ class ToolService:  # – thin orchestration facade
         return sorted(self._registry.keys())
 
     # ------------------------------------------------------------------ metadata helpers
-    def cards(self) -> List[Any]:
-        """Return :class:`CapabilityCard` instances for each registered tool."""
-
-        try:
-            from ice_sdk.capabilities.card import (
-                CapabilityCard,  # local import to avoid cycles
-            )
-
-            return [CapabilityCard.from_tool_cls(cls) for cls in self._registry.values()]  # type: ignore[arg-type]
-        except Exception:  # pragma: no cover – soft dependency
-            # Fallback when *capabilities* package is unavailable in minimal builds
-            return []
+    # cards() method removed - capabilities system was over-engineered
 
     # ------------------------------------------------------------------ core
     async def execute(self, request: ToolRequest) -> Dict[str, Any]:
-        """Instantiate the requested *Skill* and delegate execution.
+        """Instantiate the requested *Tool* and delegate execution.
 
-        The method automatically detects whether :pymeth:`SkillBase.execute`
+        The method automatically detects whether :pymeth:`ToolBase.execute`
         is async or sync and routes accordingly so callers don't need to
         differentiate.
         """
@@ -199,14 +175,19 @@ class ToolService:  # – thin orchestration facade
             tool_cls = self._registry.get(request.tool_name)
 
         if tool_cls is None:
-            # Attempt fallback via global_skill_registry --------------------
+            # Attempt fallback via unified registry --------------------
             try:
-                from ice_sdk.registry.tool import global_tool_registry  # local import
+                from ice_sdk.unified_registry import registry  # local import
+                from ice_core.models import NodeType
 
-                tool_instance_fallback = global_tool_registry.get(request.tool_name)
-                tool_cls = tool_instance_fallback.__class__
-                # Cache for future lookups
-                self._registry[request.tool_name] = tool_cls
+                key = f"{NodeType.TOOL.value}:{request.tool_name}"
+                tool_instance_fallback = registry._instances.get(key)
+                if tool_instance_fallback:
+                    tool_cls = tool_instance_fallback.__class__
+                    # Cache for future lookups
+                    self._registry[request.tool_name] = tool_cls
+                else:
+                    raise ValueError(f"Tool '{request.tool_name}' not registered")
             except Exception as exc:  # pragma: no cover – final fallback
                 raise ValueError(f"Tool '{request.tool_name}' not registered") from exc
 

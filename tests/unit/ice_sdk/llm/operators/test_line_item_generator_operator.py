@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Tuple
 import pytest
 
 from ice_sdk.llm.operators.line_item_generator import LineItemGeneratorOperator
-from ice_sdk.models.config import LLMConfig
+from ice_core.models import LLMConfig
 
 
 class _DummyLLMService:  # pylint: disable=too-few-public-methods

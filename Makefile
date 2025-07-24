@@ -35,7 +35,7 @@ setup: install
 
 # Linting
 lint:
-	poetry run ruff check --diff .
+	poetry run ruff check --config config/linting/ruff.toml --diff .
 	poetry run isort --check-only src scripts tests
 
 format:
@@ -45,14 +45,14 @@ format:
 # Type checking
 type:
 	# Strict type checking for modernised layers (app + core)
-	poetry run mypy --strict --config-file mypy.ini src/ice_api src/ice_core src/ice_sdk/utils src/ice_sdk/context src/ice_sdk/extensions src/ice_sdk/dsl src/ice_sdk/agents src/ice_sdk/providers
-	poetry run mypy --strict --config-file mypy.ini src/ice_orchestrator
+	poetry run mypy --strict --config-file config/typing/mypy.ini src/ice_api src/ice_core src/ice_sdk/utils src/ice_sdk/context src/ice_sdk/extensions src/ice_sdk/dsl src/ice_sdk/agents src/ice_sdk/providers
+	poetry run mypy --strict --config-file config/typing/mypy.ini src/ice_orchestrator
 
 typecheck: type  # alias for docs compatibility
 
 # Testing
 test:
-	poetry run pytest
+	poetry run pytest -c config/testing/pytest.ini
 
 refresh-docs:
 	$(PYTHON) scripts/gen_catalog.py
@@ -63,9 +63,9 @@ refresh-docs:
 # Comprehensive quality gate (lint + type + test)
 # (Uses local venv; bootstrap via `make dev` first.)
 doctor:
-	.venv/bin/ruff check .
-	.venv/bin/mypy --strict src/ice_api src/ice_core src/ice_orchestrator
-	.venv/bin/pytest -q
+	.venv/bin/ruff check --config config/linting/ruff.toml .
+	.venv/bin/mypy --strict --config-file config/typing/mypy.ini src/ice_api src/ice_core src/ice_orchestrator
+	.venv/bin/pytest -c config/testing/pytest.ini -q
 
 # Architectural guard – run by CI and pre-commit
 structure:
@@ -74,7 +74,7 @@ structure:
 	"$(PYTHON)" scripts/ci/check_input_literals.py
 
 coverage:
-	poetry run pytest
+	poetry run pytest -c config/testing/pytest.ini
 
 mutation:
 	poetry run mutmut run --paths-to-mutate src --tests-dir tests
@@ -100,9 +100,9 @@ lock-check:
 
 # Robust production gate (lint, deps, tests, security)
 production-check:
-	poetry run ruff check --diff .
+	poetry run ruff check --config config/linting/ruff.toml --diff .
 	poetry run lint-imports --config config/.importlinter
-	poetry run pytest --cov --cov-fail-under=60
+	poetry run pytest -c config/testing/pytest.ini --cov --cov-fail-under=60
 	poetry run pip-audit
 	git-secrets --scan 
 
@@ -110,16 +110,9 @@ audit:
 	python -m scripts.check_layer_violations
 	python -m scripts.check_service_contracts
 	python -m scripts.validate_decision_records
-	pytest tests/unit/lint -v 
+	pytest -c config/testing/pytest.ini tests/unit/lint -v 
 
-dev: ## Bootstrap .venv if needed, start Redis & API (hot-reload)
-	@if [ ! -d .venv ]; then \
-		echo "[dev] creating local venv + installing deps"; \
-		python3 -m venv .venv; \
-		. .venv/bin/activate; \
-		python -m pip install -U pip setuptools wheel; \
-		pip install -e ".[dev]"; \
-	fi
+dev: ## Start Redis & API server with hot-reload (using Poetry)
 	@echo "Checking Redis availability..."; \
 	if ! lsof -i :6379 > /dev/null 2>&1; then \
 		echo "Starting Redis via Docker..."; \
@@ -128,7 +121,8 @@ dev: ## Bootstrap .venv if needed, start Redis & API (hot-reload)
 	else \
 		echo "Redis already running on port 6379"; \
 	fi
-	.venv/bin/uvicorn src.ice_api.main:app --reload --host 0.0.0.0 --port 8000
+	@echo "Starting API server with Poetry..."
+	poetry run uvicorn ice_api.main:app --reload --host 0.0.0.0 --port 8000
 
 run-demo: ## Execute CSV→Summary demo (requires dev server running)
 	.venv/bin/python examples/comprehensive_demo_example.py \

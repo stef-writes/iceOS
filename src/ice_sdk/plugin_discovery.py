@@ -13,10 +13,9 @@ from pathlib import Path
 from types import ModuleType
 from typing import List, Type
 
-from ice_sdk.tools import SkillBase
+from ice_sdk.tools import ToolBase
 
 __all__: list[str] = ["discover_tools", "load_module_from_path"]
-
 
 def load_module_from_path(path: Path) -> ModuleType:
     """Dynamically import Python module from *path* and return it.
@@ -57,34 +56,19 @@ def load_module_from_path(path: Path) -> ModuleType:
         # If we reach here, loading failed
         raise
 
-
-def _load_module_from_path(path: Path) -> ModuleType:
-    """Dynamically import the Python file at *path* as a module.
-
-    Legacy function for backward compatibility with existing tool discovery.
-    """
-    spec = _importlib_util.spec_from_file_location(path.stem, path)
-    if spec is None or spec.loader is None:  # pragma: no cover – safety net
-        raise ImportError(f"Cannot import {path}")
-
-    module = _importlib_util.module_from_spec(spec)
-    spec.loader.exec_module(module)  # type: ignore[arg-type]
-    return module
-
-
-def discover_tools(root: Path | str) -> List[Type[SkillBase]]:
-    """Return a list of *SkillBase* subclasses found under *root* directory."""
+def discover_tools(root: Path | str) -> List[Type[ToolBase]]:
+    """Return a list of *ToolBase* subclasses found under *root* directory."""
     root_path = Path(root)
-    tool_classes: list[Type[SkillBase]] = []
+    tool_classes: list[Type[ToolBase]] = []
 
     for path in root_path.rglob("*.tool.py"):
         try:
-            mod = _load_module_from_path(path)
+            mod = load_module_from_path(path)
         except Exception:  # – skip faulty modules
             continue
 
         for _, obj in inspect.getmembers(mod, inspect.isclass):
-            if issubclass(obj, SkillBase) and obj is not SkillBase:
+            if issubclass(obj, ToolBase) and obj is not ToolBase:
                 tool_classes.append(obj)
 
     return tool_classes

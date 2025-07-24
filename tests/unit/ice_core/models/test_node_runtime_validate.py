@@ -1,6 +1,6 @@
 import pytest
 
-from ice_core.models.node_models import LLMOperatorConfig, SkillNodeConfig, LLMConfig
+from ice_core.models.node_models import LLMOperatorConfig, ToolNodeConfig, LLMConfig
 from ice_core.models.enums import ModelProvider
 
 pytestmark = [pytest.mark.unit]
@@ -20,7 +20,7 @@ def test_llm_node_auto_output_schema():
 
 
 def test_tool_node_missing_schema_raises():
-    cfg = SkillNodeConfig(
+    cfg = ToolNodeConfig(
         id="t1",
         type="tool",
         tool_name="noop",

@@ -13,7 +13,6 @@ __all__: list[str] = [
     "NodeMetadata",
 ]
 
-
 class NodeMetadata(BaseModel):
     """Metadata model for node versioning and ownership.
 

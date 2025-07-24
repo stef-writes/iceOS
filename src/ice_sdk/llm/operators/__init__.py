@@ -29,14 +29,13 @@ from .line_item_generator import LineItemGeneratorOperator  # noqa: E402 F401
 from .summarizer import SummarizerOperator  # noqa: E402 F401
 from .insights import InsightsOperator  # noqa: E402 F401
 
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 # Register all operators with the global ProcessorRegistry so that they are
 # discoverable by orchestrators that rely on `registry.processor` look-ups.
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 
-from ice_sdk.registry.operator import (  # noqa: E402  — late import to avoid cycles
-    global_operator_registry,
-)
+from ice_sdk.unified_registry import registry
+from ice_core.models import NodeType
 
 for _op in (
     LineItemGeneratorOperator,
@@ -44,6 +43,6 @@ for _op in (
     InsightsOperator,
 ):
     try:
-        global_operator_registry.register(_op)  # type: ignore[arg-type]
+        registry.register_class(NodeType.LLM, _op.name, _op)  # type: ignore[arg-type]
     except Exception:  # pragma: no cover – duplicate or validation failure
         pass 

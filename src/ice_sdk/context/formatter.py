@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional, cast
 
-from ice_sdk.models.config import ModelProvider
-from ice_sdk.models.node_models import ContextFormat, ContextRule
-
+from ice_core.models import ModelProvider
+from ice_core.models.node_models import ContextFormat, ContextRule
 
 class BaseContextFormatter:
     """Abstract base class for context formatters."""
@@ -16,7 +15,6 @@ class BaseContextFormatter:
         format_specs: Optional[Dict[str, Any]] = None,
     ) -> str:
         raise NotImplementedError
-
 
 class ContextFormatter(BaseContextFormatter):
     """Handles formatting of context data for nodes, with hooks and optional schema validation."""
@@ -102,7 +100,7 @@ class ContextFormatter(BaseContextFormatter):
                 approx_chars = max_tokens * 4 if max_tokens is not None else None
                 if approx_chars and len(formatted) > approx_chars:
                     formatted = formatted[:approx_chars]
-        # ---------------------------------------------------------------------------
+        # ----------------------------------------
 
         return formatted
 

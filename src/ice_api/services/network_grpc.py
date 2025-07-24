@@ -21,9 +21,7 @@ else:  # Fallback so mypy/tests succeed without generated stubs
     network_pb2_grpc.NetworkServiceServicer = object  # type: ignore[assignment]
     network_pb2_grpc.add_NetworkServiceServicer_to_server = lambda servicer, server: None  # type: ignore[assignment]
 
-
 BaseServicer = getattr(network_pb2_grpc, "NetworkServiceServicer", object)
-
 
 class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
     """gRPC adapter that forwards requests to :class:`NetworkService`."""

@@ -5,7 +5,7 @@ import pytest
 
 from ice_core.models.node_models import (
     LLMOperatorConfig,
-    SkillNodeConfig,
+    ToolNodeConfig,
     ConditionNodeConfig,
     LLMConfig,
 )
@@ -64,7 +64,7 @@ async def test_llm_executor_stubbed(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_tool_executor_placeholder(monkeypatch):
-    cfg = SkillNodeConfig(
+    cfg = ToolNodeConfig(
         id="tool1",
         type="tool",
         tool_name="echo_tool",

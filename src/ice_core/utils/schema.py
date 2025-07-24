@@ -44,7 +44,6 @@ __all__ = [
     "is_valid_schema_dict",
 ]
 
-
 def parse_type_literal(literal: str) -> Type[Any] | None:
     """Return concrete Python *type* for *literal* or *None* when unsupported."""
 
@@ -62,7 +61,6 @@ def parse_type_literal(literal: str) -> Type[Any] | None:
             return list
 
     return None
-
 
 def _validate_schema_value(value: Any) -> bool:
     """Validate a single schema value entry."""
@@ -87,7 +85,6 @@ def _validate_schema_value(value: Any) -> bool:
         return parsed_type is not None
         
     return False
-
 
 def is_valid_schema_dict(schema: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """Validate *schema* dict; returns (is_valid, list_of_errors)."""

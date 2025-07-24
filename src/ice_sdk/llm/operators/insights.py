@@ -11,26 +11,22 @@ from pydantic import BaseModel, Field
 from ice_core.models.llm import ModelProvider
 from ice_sdk.llm.operators.base import LLMOperator, LLMOperatorConfig
 from ice_sdk.providers.llm_service import LLMService
-from ice_core.utils.deprecation import deprecated
 
 __all__: list[str] = ["InsightsOperator"]
-
 
 class _Input(BaseModel):
     summary: str = Field(..., min_length=20)
     max_tokens: int = Field(256, ge=64, le=512)
 
-
 class _Output(BaseModel):
     insights: List[str]
-
 
 class InsightsOperator(LLMOperator):
     name: str = "insights"
     description: str = "Generate step-by-step actionable insights from a dataset summary."
 
-    InputModel = _Input  # type: ignore[assignment]
-    OutputModel = _Output  # type: ignore[assignment]
+    InputModel: type[_Input] = _Input
+    OutputModel: type[_Output] = _Output
 
     def __init__(
         self,
@@ -45,7 +41,7 @@ class InsightsOperator(LLMOperator):
                 provider = ModelProvider.ANTHROPIC
                 model = "claude-3-sonnet-20240229"
             config = LLMOperatorConfig(provider=provider, model=model, max_tokens=256, temperature=0.3)
-        self.config = config
+        super().__init__(config=config)
         self.llm_service = llm_service or LLMService()
 
     async def process(self, data: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[override]
@@ -76,8 +72,4 @@ class InsightsOperator(LLMOperator):
         items = [ln.strip("- •\u2022 ") for ln in text.splitlines() if ln.strip()]
         return {"insights": items[:5]}
 
-
-@deprecated("0.5.0", replacement="ice_sdk.llm.operators.InsightsOperator")
-class InsightsSkillShim:  # pylint: disable=too-few-public-methods
-    def __getattr__(self, item: str) -> Any:  # noqa: D401
-        raise AttributeError("InsightsSkill is deprecated. Use InsightsOperator instead.") 
+ 

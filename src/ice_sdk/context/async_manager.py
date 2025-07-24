@@ -10,7 +10,6 @@ from pydantic import Field
 from .manager import GraphContext
 from .manager import GraphContextManager as _SyncGraphContextManager
 
-
 class BranchContext(GraphContext):
     """Context object scoped to a *single* branch inside a session.
 
@@ -23,11 +22,9 @@ class BranchContext(GraphContext):
     # Optional mutable store that can diverge from the parent session context
     branch_data: Dict[str, Any] = Field(default_factory=dict)
 
-
 # ---------------------------------------------------------------------
 # Async-first implementation ------------------------------------------
 # ---------------------------------------------------------------------
-
 
 class GraphContextManager(_SyncGraphContextManager):
     """Async-aware variant of :class:`GraphContextManager`.
@@ -103,7 +100,6 @@ class GraphContextManager(_SyncGraphContextManager):
 
     # Convenience alias so callers don't need to remember *async_* prefix
     execute_tool_async = async_execute_tool
-
 
 # Backwards-compat: keep the old symbol around so external plugins don't break
 AsyncGraphContextManager = GraphContextManager

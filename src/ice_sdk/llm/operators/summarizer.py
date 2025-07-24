@@ -14,10 +14,8 @@ from pydantic import BaseModel, Field, field_validator
 from ice_core.models.llm import LLMConfig as CoreLLMConfig, ModelProvider
 from ice_sdk.llm.operators.base import LLMOperator, LLMOperatorConfig
 from ice_sdk.providers.llm_service import LLMService
-from ice_core.utils.deprecation import deprecated
 
 __all__: list[str] = ["SummarizerOperator"]
-
 
 class _Input(BaseModel):
     rows: List[Dict[str, Any]] | str = Field(..., description="Rows as list or JSON")
@@ -30,17 +28,15 @@ class _Input(BaseModel):
             return json.loads(v)
         return v
 
-
 class _Output(BaseModel):
     summary: str
-
 
 class SummarizerOperator(LLMOperator):
     name: str = "summarizer"
     description: str = "Summarize structured tabular data into natural language."
 
-    InputModel = _Input  # type: ignore[assignment]
-    OutputModel = _Output  # type: ignore[assignment]
+    InputModel: type[_Input] = _Input
+    OutputModel: type[_Output] = _Output
 
     def __init__(
         self,
@@ -62,7 +58,7 @@ class SummarizerOperator(LLMOperator):
 
             config = LLMOperatorConfig(provider=provider, model=model, max_tokens=256, temperature=0.3)
 
-        self.config = config
+        super().__init__(config=config)
         self.llm_service = llm_service or LLMService()
 
     # ------------------------------------------------------------------
@@ -90,12 +86,4 @@ class SummarizerOperator(LLMOperator):
         text = await self.generate(prompt)
         return {"summary": text.strip()}
 
-
-# ---------------------------------------------------------------------------
-# Deprecation shim -----------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-@deprecated("0.5.0", replacement="ice_sdk.llm.operators.SummarizerOperator")
-class SummarizerSkillShim:  # pylint: disable=too-few-public-methods
-    def __getattr__(self, item: str) -> Any:  # noqa: D401
-        raise AttributeError("SummarizerSkill is deprecated. Use SummarizerOperator instead.") 
+ 

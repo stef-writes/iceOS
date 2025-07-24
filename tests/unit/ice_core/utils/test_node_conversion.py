@@ -45,7 +45,7 @@ def test_convert_node_spec_accepts_canonical_types(node_type: str, extra: dict) 
     "node_type",
     [
         "ai",
-        "skill",
+        "tool",
         "prebuilt",
         "subdag",
     ],

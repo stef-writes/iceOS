@@ -28,9 +28,17 @@ include = [
 # Ensure demo/sample code isn't shipped in the production wheel. Only the
 # packages explicitly listed under *packages* are included, but this makes the
 # intent crystal-clear.
-exclude = [
-  "samples/**"
-]
+exclude = ["examples", "tests", "scripts"]
+
+# ---------------------------------------------------------------------------
+# NOTE: Configuration files have been organized into config/ directory:
+# - config/linting/ruff.toml - Ruff linter configuration
+# - config/typing/mypy.ini - MyPy type checking configuration  
+# - config/testing/pytest.ini - Pytest configuration
+# Use: ruff check --config config/linting/ruff.toml
+#      mypy --config-file config/typing/mypy.ini
+#      pytest -c config/testing/pytest.ini
+# ---------------------------------------------------------------------------
 
 [tool.poetry.plugins."proto"]
 "orchestrator/v1alpha/network.proto" = "ice_sdk.protocols.mcp.models:NetworkSpec"
@@ -269,17 +277,17 @@ exclude = [
 "scripts/**/*" = ["E402"]  # noqa: imports-after-code in top-level scripts
 
 [project.entry-points."ice_sdk.tools"]
-csv_reader = "ice_sdk.tools.system.csv_reader_skill:CSVReaderSkill"
-jinja_render = "ice_sdk.tools.system.jinja_render_skill:JinjaRenderSkill"
-summarizer = "ice_sdk.tools.system.summarizer_skill:SummarizerSkill"
-insights = "ice_sdk.tools.system.insights_skill:InsightsSkill"
-json_merge = "ice_sdk.tools.system.json_merge_skill:JSONMergeSkill"
-markdown_to_html = "ice_sdk.tools.system.markdown_to_html_skill:MarkdownToHTMLSkill"
-rows_validator = "ice_sdk.tools.system.rows_validator_skill:RowsValidatorSkill"
-line_item_generator = "ice_sdk.tools.system.line_item_generator_skill:LineItemGeneratorSkill"
-sleep = "ice_sdk.tools.system.sleep_skill:SleepSkill"
-computer = "ice_sdk.tools.system.computer_skill:ComputerSkill"
-csv_writer = "ice_sdk.tools.system.csv_writer_skill:CSVWriterSkill"
+csv_reader = "ice_sdk.tools.system.csv_reader_tool:CSVReaderTool"
+jinja_render = "ice_sdk.tools.system.jinja_render_tool:JinjaRenderTool"
+summarizer = "ice_sdk.tools.system.summarizer_tool:SummarizerTool"
+insights = "ice_sdk.tools.system.insights_tool:InsightsTool"
+json_merge = "ice_sdk.tools.system.json_merge_tool:JSONMergeTool"
+markdown_to_html = "ice_sdk.tools.system.markdown_to_html_tool:MarkdownToHTMLTool"
+rows_validator = "ice_sdk.tools.system.rows_validator_tool:RowsValidatorTool"
+line_item_generator = "ice_sdk.tools.system.line_item_generator_tool:LineItemGeneratorTool"
+sleep = "ice_sdk.tools.system.sleep_tool:SleepTool"
+computer = "ice_sdk.tools.system.computer_tool:ComputerTool"
+csv_writer = "ice_sdk.tools.system.csv_writer_tool:CSVWriterTool"
 
 [project.entry-points."ice_sdk.agents"]
 # third-party packages register: foo_agent = "mypkg.foo:MyAgent"

@@ -26,7 +26,6 @@ __all__ = [
     "get_default_model_id",
 ]
 
-
 class LLMModelInfo(BaseModel):
     """Metadata for a single Large-Language Model."""
 
@@ -43,11 +42,9 @@ class LLMModelInfo(BaseModel):
         "extra": "forbid",
     }
 
-
 # ---------------------------------------------------------------------------
 # Registry definition -------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 _ALLOWED_MODELS: Dict[str, LLMModelInfo] = {
     # OpenAI --------------------------------------------------------------
@@ -122,26 +119,21 @@ BANNED_MODELS: set[str] = {
 # Default recommended model -------------------------------------------------
 DEFAULT_MODEL_ID: str = "gpt-4-turbo-2024-04-09"
 
-
 # ---------------------------------------------------------------------------
 # Public helper APIs --------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 def list_models() -> List[LLMModelInfo]:  # – helper
     """Return list of allowed models sorted by provider/name."""
     return sorted(_ALLOWED_MODELS.values(), key=lambda m: (m.provider.value, m.id))
 
-
 def get_model_info(model_id: str) -> LLMModelInfo | None:
     """Return :class:`LLMModelInfo` for *model_id* or ``None`` if unknown."""
     return _ALLOWED_MODELS.get(model_id)
 
-
 def is_allowed_model(model_id: str) -> bool:  # – helper
     """Return ``True`` when *model_id* is listed and *not* banned."""
     return model_id in _ALLOWED_MODELS and model_id not in BANNED_MODELS
-
 
 def get_default_model_id() -> str:  # – helper
     """Return the project-wide default LLM model identifier."""

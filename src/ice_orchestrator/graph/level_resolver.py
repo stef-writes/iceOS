@@ -10,7 +10,6 @@ from typing import Any, Dict, Mapping
 
 from ice_core.models.node_models import ConditionNodeConfig  # avoid heavy import cycles
 
-
 class BranchGatingResolver:
     def __init__(self, nodes: Mapping[str, Any], graph: Any) -> None:
         # We keep references to the chain's *nodes* mapping and *DependencyGraph*

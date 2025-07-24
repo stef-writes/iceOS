@@ -24,11 +24,9 @@ __all__: list[str] = [
 
 _logger = logging.getLogger(__name__)
 
-
 # ---------------------------------------------------------------------------
 # Helper – convert provider/model → semantic version
 # ---------------------------------------------------------------------------
-
 
 def parse_model_version(
     model_name: str, provider: ModelProvider = ModelProvider.OPENAI
@@ -92,11 +90,9 @@ def parse_model_version(
 
     raise ValueError(f"Unsupported provider: {provider}")
 
-
 # ---------------------------------------------------------------------------
 # Message template ----------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 class MessageTemplate(BaseModel):
     """Prompt / message template with version gating."""
@@ -170,11 +166,9 @@ class MessageTemplate(BaseModel):
         except ValueError:
             return False
 
-
 # ---------------------------------------------------------------------------
 # LLM configuration ---------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 class LLMConfig(BaseModel):
     """Provider-specific configuration for LLM calls."""

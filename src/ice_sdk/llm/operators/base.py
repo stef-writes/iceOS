@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ParamSpec, TypeVar
+from typing import Any, Callable, ParamSpec, TypeVar, Dict
 
 from pydantic import BaseModel
 
-from ice_sdk.processors.base import Processor
-from ice_sdk.models.config import LLMConfig, ModelProvider  # NEW – align with LLMService expectations
+from ice_core.models import LLMConfig, ModelProvider
 
 from functools import wraps
 
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 # Optional cost-tracking decorator – gracefully degrade when unavailable ----
 
 P = ParamSpec("P")
 R = TypeVar("R")
-
 
 # Robust no-op decorator that supports optional keyword/positional arguments
 def _noop_decorator(*d_args: Any, **d_kwargs: Any):  # noqa: D401 – flexible shim
@@ -41,52 +39,96 @@ def _noop_decorator(*d_args: Any, **d_kwargs: Any):  # noqa: D401 – flexible s
 
     return _inner
 
-
+# Try importing the real cost decorator; fall back to no-op shim ------------
 try:
-    from ice_sdk.utils.cost import track_cost  # type: ignore  # pragma: no cover
-except Exception:  # pragma: no cover – util may not exist yet
-    track_cost = _noop_decorator  # type: ignore[assignment]
+    from ice_sdk.providers.costs import cost_checkpoint  # type: ignore[import]
+except ImportError:
+    cost_checkpoint = _noop_decorator
 
+# ----------------------------------------
+# LLM operator helpers -------------------------------------------------------
+# ----------------------------------------
 
-def operator(func: Callable[P, R]) -> Callable[P, R]:
+@cost_checkpoint  # type: ignore[misc]
+def llm_operator(func: Callable[..., Any]) -> Callable[..., Any]:
     """Marker decorator for LLM operator functions (currently a no-op)."""
     return func
 
 
 class LLMOperatorConfig(BaseModel):
-    provider: ModelProvider = ModelProvider.OPENAI  # NEW – provider field with default
-    model: str = "gpt-4o"
-    max_tokens: int = 2000
+    """Configuration for LLM operators."""
+
+    provider: ModelProvider = ModelProvider.OPENAI
+    model: str = "gpt-4-turbo"
     temperature: float = 0.7
+    max_tokens: int = 1024
+    prompt: str = ""
+
+    # Allow BaseOperatorConfig to pass extra fields
+    class Config:  # type: ignore[misc]
+        extra = "allow"
 
 
-class LLMOperator(Processor[LLMOperatorConfig]):  # Inherits validation
-    """Base LLM interaction unit"""
+class LLMOperator(BaseModel):
+    """Base class for LLM operators with chain execution capabilities."""
 
-    config: LLMOperatorConfig  # explicit for static checkers
+    config: LLMOperatorConfig
+    llm_service: Any = None  # Will be initialized in subclasses
 
-    # Most LLM operators don't use explicit JSONSchema for IO at this layer; they
-    # validate through their Pydantic Input/Output models instead.  Override the
-    # *Processor.validate* hook so registration doesn't fail on missing schemas.
+    async def process(self, input_data: str) -> str:
+        """Process input data through the LLM.
 
-    def validate(self) -> bool:  # noqa: D401 – override
-        return True
+        Args:
+            input_data: Input string to process
 
-    @track_cost(category="llm_operator")
-    async def generate(self, prompt: str) -> str:
-        llm_svc: Any = getattr(self, "llm_service", None)
-        if llm_svc is None:
-            raise RuntimeError("llm_service not configured on LLMOperator instance")
+        Returns:
+            Processed output string
+        """
+        # Import here to avoid circular dependencies
+        from ice_sdk.providers.llm_service import LLMService
 
-        # Build LLMConfig dynamically from self.config -----------------------
-        llm_cfg = LLMConfig(  # type: ignore[call-arg]
-            provider=self.config.provider.value if hasattr(self.config.provider, "value") else self.config.provider,
+        llm_config = LLMConfig(
+            provider=self.config.provider,
             model=self.config.model,
-            max_tokens=self.config.max_tokens,
             temperature=self.config.temperature,
+            max_tokens=self.config.max_tokens,
         )
 
-        text, _usage, err = await llm_svc.generate(llm_cfg, prompt)
-        if err:
-            raise RuntimeError(err)
-        return text
+        llm_service = LLMService()
+        response = await llm_service.generate(
+            prompt=self.config.prompt.format(input=input_data), config=llm_config
+        )
+
+        return response["content"]
+
+    async def generate(self, prompt: str) -> str:
+        """Generate text using the LLM service.
+        
+        Args:
+            prompt: The prompt to send to the LLM
+            
+        Returns:
+            Generated text response
+        """
+        llm_config = LLMConfig(
+            provider=self.config.provider,
+            model=self.config.model,
+            temperature=self.config.temperature,
+            max_tokens=self.config.max_tokens,
+        )
+        
+        response = await self.llm_service.generate(prompt=prompt, config=llm_config)
+        return response["content"]
+
+    async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute the operator with given inputs.
+
+        Args:
+            inputs: Input dictionary
+
+        Returns:
+            Output dictionary with processed results
+        """
+        input_data = inputs.get("input", "")
+        result = await self.process(input_data)
+        return {"output": result}

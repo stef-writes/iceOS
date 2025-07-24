@@ -1,14 +1,14 @@
 import pytest
 
 from ice_orchestrator.validation.schema_validator import SchemaValidator
-from ice_core.models.node_models import SkillNodeConfig, LLMOperatorConfig, LLMConfig
+from ice_core.models.node_models import ToolNodeConfig, LLMOperatorConfig, LLMConfig
 from ice_core.models.enums import ModelProvider
 
 pytestmark = [pytest.mark.unit]
 
 
 def test_validator_raises_for_tool_without_schema() -> None:
-    node = SkillNodeConfig(
+    node = ToolNodeConfig(
         id="n1",
         type="tool",
         tool_name="dummy",

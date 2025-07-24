@@ -1,12 +1,13 @@
-from .explain_plan_skill import ExplainPlanSkill
-from .index_advisor_skill import IndexAdvisorSkill
-from .schema_validator_skill import SchemaValidatorSkill
+from .explain_plan_tool import ExplainPlanTool
+from ice_core.models import NodeType
+from .index_advisor_tool import IndexAdvisorTool
+from .schema_validator_tool import SchemaValidatorTool
 
 try:
-    from ice_sdk.registry.tool import global_tool_registry
+    from ice_sdk.unified_registry import registry
 
-    global_tool_registry.register("index_advisor", IndexAdvisorSkill())
-    global_tool_registry.register("explain_plan", ExplainPlanSkill())
-    global_tool_registry.register("schema_validator", SchemaValidatorSkill())
+    registry.register_instance(NodeType.TOOL, "index_advisor", IndexAdvisorTool())
+    registry.register_instance(NodeType.TOOL, "explain_plan", ExplainPlanTool())
+    registry.register_instance(NodeType.TOOL, "schema_validator", SchemaValidatorTool())
 except Exception:  # pragma: no cover
     pass

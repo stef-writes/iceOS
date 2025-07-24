@@ -7,7 +7,6 @@ from ice_sdk.config import runtime_config
 
 logger = logging.getLogger(__name__)
 
-
 class BudgetEnforcer:  # – runtime helper
     """Configurable budget enforcement for LLM calls and tool executions."""
 

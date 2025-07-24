@@ -4,7 +4,7 @@ from typing import Dict, Any
 
 import pytest
 
-from ice_core.models.node_models import PrebuiltAgentConfig
+from ice_core.models.node_models import AgentNodeConfig
 from ice_sdk.registry.node import get_executor
 
 # Mark as unit so we can filter via -m "unit"
@@ -45,7 +45,7 @@ _install_dummy_module("dummy_agents.bad", _BadAgent)
 
 @pytest.mark.asyncio
 async def test_agent_executor_success() -> None:
-    cfg = PrebuiltAgentConfig(
+    cfg = AgentNodeConfig(
         id="good",
         package="dummy_agents.good",
         agent_attr="_GoodAgent",
@@ -59,7 +59,7 @@ async def test_agent_executor_success() -> None:
 
 @pytest.mark.asyncio
 async def test_agent_executor_failure_missing_execute() -> None:
-    cfg = PrebuiltAgentConfig(
+    cfg = AgentNodeConfig(
         id="bad",
         package="dummy_agents.bad",
         agent_attr="_BadAgent",

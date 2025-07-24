@@ -3,7 +3,7 @@ repos:
     rev: v0.4.0
     hooks:
       - id: ruff
-        args: ["check"]
+        args: ["check", "--config", "config/linting/ruff.toml"]
   - repo: https://github.com/psf/black
     rev: 24.4.2
     hooks:
@@ -17,7 +17,7 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        args: ["--strict", "--config-file", "mypy.ini", "src"]
+        args: ["--strict", "--config-file", "config/typing/mypy.ini", "src"]
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.9.0
     hooks:
@@ -26,6 +26,6 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: poetry run pytest -q
+        entry: poetry run pytest -c config/testing/pytest.ini -q
         language: system
         pass_filenames: false 

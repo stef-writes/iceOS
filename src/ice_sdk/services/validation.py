@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-
 def validate_config(config: Dict[str, Any]) -> bool:
     """Validate a configuration dictionary.
 
@@ -21,7 +20,6 @@ def validate_config(config: Dict[str, Any]) -> bool:
     # Basic validation - check required fields exist
     required_fields = ["name", "type"]
     return all(field in config for field in required_fields)
-
 
 class ChainValidationService:
     """Service for validating chain configurations."""

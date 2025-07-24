@@ -1,7 +1,7 @@
 import pytest
 
 from ice_core.models.node_models import (
-    SkillNodeConfig,
+    ToolNodeConfig,
     LLMOperatorConfig,
     LLMConfig,
 )
@@ -11,7 +11,7 @@ pytestmark = [pytest.mark.unit]
 
 
 def test_tool_without_schema_raises() -> None:
-    cfg = SkillNodeConfig(
+    cfg = ToolNodeConfig(
         id="t1",
         type="tool",
         tool_name="dummy",

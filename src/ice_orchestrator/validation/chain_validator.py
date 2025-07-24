@@ -19,7 +19,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = get_logger(__name__)
 
-
 class ChainValidator:  # – internal utility
     def __init__(
         self,
@@ -151,7 +150,7 @@ class ChainValidator:  # – internal utility
 
     # Legacy (advanced) validator kept under new name to avoid symbol clash ----
     def validate_chain_advanced(self, chain: "ChainSpec") -> "ValidationResult":  # type: ignore[name-defined]
-        """Enhanced validation using context registry and skill schemas.
+        """Enhanced validation using context registry and tool schemas.
 
         Retained for backward-compat; prefer :meth:`validate_chain`.
         """
@@ -160,8 +159,8 @@ class ChainValidator:  # – internal utility
         context_keys = set()
 
         for node in chain.nodes:  # type: ignore[attr-defined]
-            # Get skill metadata lazily to avoid heavy imports when unused
-            from ice_core.models.skill import get_skill_class  # local import
+            # Get tool metadata lazily to avoid heavy imports when unused
+            from ice_core.models.tool import get_skill_class  # local import
 
             skill_cls = get_skill_class(node.type)
             input_schema = skill_cls.get_input_schema()
@@ -181,7 +180,7 @@ class ChainValidator:  # – internal utility
 
             # Check 3: Side-effect validation
             if skill_cls.is_pure() and getattr(node, "side_effects", None):
-                errors.append(f"Pure skill {node.type} cannot have side-effects")
+                errors.append(f"Pure tool {node.type} cannot have side-effects")
 
         # Use ValidationResult dataclass from legacy namespace when available
         try:

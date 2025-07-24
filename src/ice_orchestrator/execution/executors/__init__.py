@@ -1,6 +1,7 @@
 from importlib import import_module
-from ice_sdk.registry.tool import global_tool_registry
-from ice_sdk.registry.operator import global_operator_registry
+from ice_sdk.unified_registry import registry
+from ice_sdk.unified_registry import registry
+from ice_core.models import NodeType
 
 # Import tool modules to register them
 import ice_sdk.tools.system
@@ -13,22 +14,20 @@ with the global :pymod:`ice_sdk.registry.node` mapping.
 """
 
 # Register built-in executor modules ----------------------------------------
-_builtin = import_module(__name__ + ".builtin")
+# Builtin module removed - using unified executors instead
+
+# Import unified executors for new node system
+_unified = import_module(__name__ + ".unified")
 
 # Re-export canonical & deprecated executor callables -----------------------
-llm_executor = getattr(_builtin, "llm_executor")  # type: ignore[attr-defined]
-tool_executor = getattr(_builtin, "tool_executor")  # type: ignore[attr-defined]
-import_module(__name__ + ".condition")
+# Import from unified instead of builtin
+from .unified import llm_executor, tool_executor, condition_executor
 
 # Optional evaluator stub may be removed later
-try:
-    import_module(__name__ + ".evaluator")
-except ModuleNotFoundError:  # pragma: no cover – optional stub
-    pass
+evaluator_executor = None  # type: ignore
 
 __all__ = [
     "llm_executor",  # canonical
     "tool_executor",
     "condition_executor",
-    "evaluator_executor",
 ]

@@ -1,6 +1,5 @@
 from typing import Type
 
-
 def build_robust_prompt(base_prompt: str, output_format: Type) -> str:
     format_instructions = {
         int: "Respond with ONLY the numeric result, no explanation or formatting.",

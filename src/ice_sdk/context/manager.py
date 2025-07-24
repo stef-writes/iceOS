@@ -9,7 +9,8 @@ import networkx as nx
 from pydantic import BaseModel, Field
 
 from ice_sdk.services import ServiceLocator  # new
-from ice_sdk.tools import SkillBase, ToolContext
+from ice_sdk.tools import ToolBase
+from ice_sdk.context.types import ToolContext
 
 # Unified tool execution via ToolService -------------------------------
 from ice_sdk.tools.service import ToolRequest, ToolService
@@ -24,7 +25,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
-
 class GraphContext(BaseModel):
     """Context for graph execution."""
 
@@ -33,7 +33,6 @@ class GraphContext(BaseModel):
     metadata: Dict[str, Any] = {}
     execution_id: Optional[str] = None
     start_time: datetime = Field(default_factory=datetime.utcnow)
-
 
 class GraphContextManager:
     """
@@ -51,6 +50,7 @@ class GraphContextManager:
         formatter: Optional[ContextFormatter] = None,
         memory: Optional[BaseMemory] = None,
         tool_service: Optional[ToolService] = None,
+        project_root: Optional[Path] = None,
     ):
         """Create a ``GraphContextManager``.
 
@@ -59,6 +59,14 @@ class GraphContextManager:
             max_sessions: Number of distinct *session_id*s to keep in memory
                 before evicting the least-recently-used.  Old sessions can still
                 be re-created on demand but any cached context is dropped.
+            graph: Pre-existing execution graph to use.  Creates a new empty
+                graph by default.
+            store: Backing store for context persistence.  Creates an in-memory
+                store by default.
+            formatter: Custom formatter for rendering context as text.
+            memory: Long-term memory implementation.
+            tool_service: Optional ToolService instance to use.
+            project_root: Root directory for the project (defaults to current working directory).
         """
         from collections import OrderedDict
 
@@ -70,20 +78,20 @@ class GraphContextManager:
         # Memory adapter ---------------------------------------------------
         self.memory: BaseMemory = memory or NullMemory()
         self._agents: Dict[str, "AgentNode"] = {}
-        self._tools: Dict[str, SkillBase] = {}
+        self._tools: Dict[str, ToolBase] = {}
         # Map of session_id -> GraphContext (acts as LRU cache) --------------
         self._contexts: "OrderedDict[str, GraphContext]" = OrderedDict()
         self._context: Optional[GraphContext] = None
 
         # Unified ToolService instance ----------------------------------
         if tool_service is None:
-            try:
-                tool_service = ServiceLocator.get("tool_service")
-            except KeyError:
+            tool_service = ServiceLocator.get("tool_service")
+            if tool_service is None:
                 tool_service = ToolService()
                 ServiceLocator.register("tool_service", tool_service)
 
         self.tool_service: ToolService = cast(ToolService, tool_service)
+        self._project_root = project_root or Path.cwd()
 
         # ------------------------------------------------------------------
         # Auto-discover project-local `*.tool.py` modules so ScriptChains
@@ -91,8 +99,8 @@ class GraphContextManager:
         # registration calls in the chain constructor (#workflow-automation).
         # ------------------------------------------------------------------
         try:
-            # Scan from CWD – assumes chains/nodes/tools live under workspace.
-            self.tool_service.discover_and_register(Path.cwd())
+            # Scan from project root – assumes chains/nodes/tools live under workspace.
+            self.tool_service.discover_and_register(self._project_root)
         except Exception:  # – best-effort, never hard-fail
             # Any import error is logged inside ToolService; we silently
             # continue so orchestrator startup is resilient.
@@ -104,7 +112,7 @@ class GraphContextManager:
             raise ValueError(f"Agent '{agent.config.name}' already registered")
         self._agents[agent.config.name] = agent
 
-    def register_tool(self, tool: SkillBase) -> None:
+    def register_tool(self, tool: ToolBase) -> None:
         """Register a tool for use by agents.
 
         Args:
@@ -125,7 +133,7 @@ class GraphContextManager:
         """Look up an agent by name."""
         return self._agents.get(name)
 
-    def get_tool(self, name: str) -> Optional[SkillBase]:
+    def get_tool(self, name: str) -> Optional[ToolBase]:
         """Get registered tool by name."""
         return self._tools.get(name)
 
@@ -133,7 +141,7 @@ class GraphContextManager:
         """Get all registered agents."""
         return dict(self._agents)
 
-    def get_all_tools(self) -> Dict[str, SkillBase]:
+    def get_all_tools(self) -> Dict[str, ToolBase]:
         """Get all registered tools."""
         return dict(self._tools)
 
@@ -237,7 +245,7 @@ class GraphContextManager:
             # still meaningful.
             import json
 
-            from ice_sdk.models.config import ModelProvider
+            from ice_core.models import ModelProvider
             from ice_sdk.utils.token_counter import TokenCounter
 
             if isinstance(content, str):
@@ -371,7 +379,7 @@ class GraphContextManager:
         effective_max_tokens = max_tokens or self.max_tokens
 
         # Import token counter lazily to avoid heavy startup costs
-        from ice_sdk.models.config import ModelProvider
+        from ice_core.models import ModelProvider
         from ice_sdk.utils.token_counter import TokenCounter
 
         def _estimate_tokens(text: str) -> int:

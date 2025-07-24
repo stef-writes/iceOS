@@ -23,7 +23,6 @@ __all__ = [
     "LayerViolationError",
 ]
 
-
 class ErrorCode(IntEnum):
     """Stable error codes for high-level failure classes."""
 
@@ -43,7 +42,6 @@ class ErrorCode(IntEnum):
             ErrorCode.UNKNOWN: "Unknown or uncategorised error",
         }
         return mapping.get(self, mapping[ErrorCode.UNKNOWN])
-
 
 class CoreError(RuntimeError):
     """Base class for all custom iceOS errors.
@@ -65,7 +63,6 @@ class CoreError(RuntimeError):
         self.payload = payload
         super().__init__(message or code.describe())
 
-
 class CycleDetectionError(CoreError):
     """Raised when an agent–tool cycle is detected at runtime."""
 
@@ -76,11 +73,9 @@ class CycleDetectionError(CoreError):
             payload={"cycle": cycle_path},
         )
 
-
-# ---------------------------------------------------------------------------
+# ----------------------------------------
 #  Layer boundary violation --------------------------------------------------
-# ---------------------------------------------------------------------------
-
+# ----------------------------------------
 
 class LayerViolationError(CoreError):
     """Raised when lower-layer code imports or uses forbidden higher-layer modules."""
@@ -88,11 +83,9 @@ class LayerViolationError(CoreError):
     def __init__(self, message: str):  # – thin wrapper
         super().__init__(ErrorCode.LAYER_VIOLATION, message)
 
-
 # Backwards-compatibility alias ------------------------------------------------
 SecurityViolationError = _CoreSecurityViolationError  # type: ignore[assignment]
 __all__.append("SecurityViolationError")
-
 
 class ScaffoldValidationError(CoreError):
     """Raised when generated scaffold fails JSON schema validation."""

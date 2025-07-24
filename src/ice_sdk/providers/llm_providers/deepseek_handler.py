@@ -10,7 +10,7 @@ from typing import Any, Optional
 
 from openai import AsyncOpenAI
 
-from ice_sdk.models.config import LLMConfig
+from ice_core.models import LLMConfig
 
 from .base_handler import BaseLLMHandler
 
@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 __all__: list[str] = ["DeepSeekHandler"]
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
-
 
 class DeepSeekHandler(BaseLLMHandler):
     async def generate_text(

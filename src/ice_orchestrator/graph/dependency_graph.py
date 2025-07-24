@@ -1,9 +1,8 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set, Tuple
 
 import networkx as nx
 
-from ice_orchestrator.errors.chain_errors import CircularDependencyError
-
+from ice_sdk.exceptions import CycleDetectionError as CircularDependencyError
 
 class DependencyGraph:
     """

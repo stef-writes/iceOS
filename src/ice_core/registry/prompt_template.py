@@ -25,7 +25,6 @@ __all__: list[str] = [
     "register_prompt_template",
 ]
 
-
 class PromptTemplateRegistry:
     """Runtime registry mapping *name* → :class:`MessageTemplate`."""
 
@@ -61,11 +60,9 @@ class PromptTemplateRegistry:
     def __len__(self) -> int:  # noqa: D401
         return len(self._templates)
 
-
 # Global singleton ----------------------------------------------------------
 
 global_prompt_template_registry: PromptTemplateRegistry = PromptTemplateRegistry()
-
 
 # Decorator helper -----------------------------------------------------------
 
@@ -80,6 +77,5 @@ def register_prompt_template(name: str) -> Callable[[Callable[[], MessageTemplat
         return fn  # type: ignore[return-value]
 
     return decorator
-
 
 # PromptTemplateStore removed in v1.1 – use *global_prompt_template_registry* instead. 

@@ -1,9 +1,13 @@
-# Errors package for ice_orchestrator
+"""Orchestrator errors package.
 
-from .chain_errors import ChainError, CircularDependencyError, ScriptChainError
+Provides error types specific to the orchestration layer.
+"""
 
-__all__ = [
-    "ScriptChainError",
-    "CircularDependencyError",
-    "ChainError",
-]
+# Import directly from SDK to avoid layer violations
+from ice_sdk.exceptions import (
+    CoreError as ChainError,
+    CycleDetectionError as CircularDependencyError,
+    CoreError as ScriptChainError,
+)
+
+__all__ = ["ChainError", "CircularDependencyError", "ScriptChainError"]

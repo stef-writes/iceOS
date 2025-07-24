@@ -13,8 +13,8 @@ from ice_core.models import (
     ConditionNodeConfig,
     LLMOperatorConfig,
     NodeConfig,
-    SkillNodeConfig,
-    PrebuiltAgentConfig,
+    ToolNodeConfig,
+    AgentNodeConfig,
     NestedChainConfig,
 )
 from ice_core.models.mcp import NodeSpec
@@ -29,25 +29,23 @@ __all__: list[str] = [
 # ---------------------------------------------------------------------------
 
 _NODE_TYPE_MAP: Dict[str, Type[NodeConfig]] = {
-    # Deterministic skill/tool ---------------------------------------------
-    "tool": SkillNodeConfig,
+    # Deterministic tool ---------------------------------------------
+    "tool": ToolNodeConfig,
 
     # LLM operator ----------------------------------------------------------
     "llm": LLMOperatorConfig,
 
     # Agent -----------------------------------------------------------------
-    "agent": PrebuiltAgentConfig,
+    "agent": AgentNodeConfig,
 
     # Control-flow ----------------------------------------------------------
     "condition": ConditionNodeConfig,
     "nested_chain": NestedChainConfig,
 }
 
-
 # ---------------------------------------------------------------------------
 # Public API -----------------------------------------------------------------
 # ---------------------------------------------------------------------------
-
 
 def convert_node_spec(spec: NodeSpec) -> NodeConfig:
     """Convert a single *NodeSpec* into its concrete :class:`NodeConfig`.
@@ -80,7 +78,6 @@ def convert_node_spec(spec: NodeSpec) -> NodeConfig:
         raise ValueError(f"Unknown node type '{node_type}'")
 
     return cfg_cls.model_validate(payload)
-
 
 def convert_node_specs(specs: List[NodeSpec]) -> List[NodeConfig]:
     """Bulk convert a list of NodeSpec objects."""

@@ -20,8 +20,7 @@ from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 from ice_sdk.context import GraphContextManager
 from ice_sdk.context.manager import GraphContext
 from ice_sdk.services import ServiceLocator
-from ice_sdk.tools.base import SkillBase
-
+from ice_sdk.tools.base import ToolBase
 
 class FailurePolicy(str, Enum):
     """Strategies controlling how the chain proceeds after node failures."""
@@ -29,7 +28,6 @@ class FailurePolicy(str, Enum):
     HALT = "halt_on_first_error"
     CONTINUE_POSSIBLE = "continue_if_possible"
     ALWAYS = "always_continue"
-
 
 class BaseWorkflow(ABC):
     """Abstract base class for all Workflow (formerly ScriptChain) types."""
@@ -42,7 +40,7 @@ class BaseWorkflow(ABC):
         callbacks: Optional[List[Any]] = None,
         max_parallel: int = 5,
         persist_intermediate_outputs: bool = True,
-        tools: Optional[List[SkillBase]] = None,
+        tools: Optional[List[ToolBase]] = None,
         initial_context: Optional[Dict[str, Any]] = None,
         workflow_context: Optional[WorkflowExecutionContext] = None,
         failure_policy: FailurePolicy = FailurePolicy.CONTINUE_POSSIBLE,

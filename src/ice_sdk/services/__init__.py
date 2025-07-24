@@ -1,6 +1,5 @@
-from .locator import ChainService, ServiceLocator
+from .locator import ServiceLocator
 
 __all__ = [
     "ServiceLocator",
-    "ChainService",
 ]

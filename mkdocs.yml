@@ -55,10 +55,9 @@ nav:
       - Blueprint Schema: reference/blueprint_schema.md
       - Runtime Events: reference/events.md
   - Plans & Roadmaps:
-      - Docker + Poetry Strategy: plans/docker_poetry_strategy.md
-      - Chain Builder Roadmap: plans/next_steps_chain_wizard.md
-  - Demos:
-      - Frosty Personal Brand: demos/frosty_personal_brand_demo.md 
+      - Platform Vision: iceos-vision.md
+      - Architecture Overview: docs/ARCHITECTURE.md
+      - Final Cleanup Plan: docs/plans/FINAL_CLEANUP_BEFORE_FROSTY.md 
   - Tool Development Guide: tool_development.md
   - Contributing: contributing.md
   - API Reference: reference/api.md 

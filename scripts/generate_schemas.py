@@ -18,7 +18,7 @@ from ice_core.models import (
     LLMOperatorConfig,
     NodeExecutionResult,
     NodeMetadata,
-    SkillNodeConfig,
+    ToolNodeConfig,
 )
 from ice_sdk.models.config import AppConfig, LLMConfig, MessageTemplate
 
@@ -28,7 +28,7 @@ TARGET_DIR.mkdir(parents=True, exist_ok=True)
 # Map descriptive filename → Pydantic model -----------------------------------
 MODELS = {
     "LLMOperatorConfig.json": LLMOperatorConfig,
-    "SkillNodeConfig.json": SkillNodeConfig,
+    "ToolNodeConfig.json": ToolNodeConfig,
     "NodeMetadata.json": NodeMetadata,
     "NodeExecutionResult.json": NodeExecutionResult,
     "ChainExecutionResult.json": ChainExecutionResult,

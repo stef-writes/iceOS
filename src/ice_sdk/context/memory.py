@@ -12,7 +12,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, List
 
-
 class BaseMemory(ABC):
     """Abstract interface for chat / tool memory adapters."""
 
@@ -39,7 +38,6 @@ class BaseMemory(ABC):
         """Return up-to-*top_k* keys similar to *vector* (no-op default)."""
         return []
 
-
 class NullMemory(BaseMemory):
     """A no-operation memory adapter.
 
@@ -52,7 +50,6 @@ class NullMemory(BaseMemory):
 
     async def retrieve(self, query: str, k: int = 5) -> List[str]:  # noqa: D401 – simple doc
         return []
-
 
 __all__: list[str] = [
     "BaseMemory",

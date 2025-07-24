@@ -8,6 +8,14 @@ higher-level packages such as *ice_sdk* or *ice_orchestrator*.
 from __future__ import annotations
 
 __all__: list[str] = [
+    # Protocol
+    "INode",
+    "NodeExecutionResult",
+    # Types
+    "NodeType", 
+    "BaseNodeConfig",
+    "RetryPolicy",
+    # Existing exports
     "NodeMetadata",
     "ModelProvider",
     "LLMConfig",
@@ -15,12 +23,11 @@ __all__: list[str] = [
     "AppConfig",
     "NodeConfig",
     "LLMOperatorConfig",
-    "SkillNodeConfig",
+    "ToolNodeConfig",
     "ConditionNodeConfig",
     "NestedChainConfig",
-    "PrebuiltAgentConfig",
+    "AgentNodeConfig",
     "ChainExecutionResult",
-    "NodeExecutionResult",
     "ChainMetadata",
     "ContextFormat",
     "ContextRule",
@@ -30,12 +37,39 @@ __all__: list[str] = [
     "NodeIO",
     "UsageMetadata",
     "ChainSpec",
+    # New node configs
+    "LLMNodeConfig",
+    "UnitNodeConfig",
+    "WorkflowNodeConfig",
+    "LoopNodeConfig",
+    "ParallelNodeConfig",
+    "CodeNodeConfig",
+    # Protocols
+    "ITool",
+    "IRegistry",
+    "IVectorIndex",
+    "IEmbedder",
+    "IWorkflow",
+    # Base implementations
+    "BaseNode",
+    "ToolBase",
 ]
 
 from .app_config import AppConfig
-from .enums import ModelProvider
+from .enums import ModelProvider, NodeType
 from .llm import LLMConfig, MessageTemplate
 from .node_metadata import NodeMetadata
+from ..protocols.node import INode
+from .node_types import (
+    BaseNodeConfig,
+    RetryPolicy,
+    LLMNodeConfig,
+    UnitNodeConfig,
+    WorkflowNodeConfig,
+    LoopNodeConfig,
+    ParallelNodeConfig,
+    CodeNodeConfig,
+)
 from .node_models import (
     ChainExecutionResult,
     ChainMetadata,
@@ -50,8 +84,22 @@ from .node_models import (
     NodeExecutionRecord,
     NodeExecutionResult,
     NodeIO,
-    PrebuiltAgentConfig,
-    SkillNodeConfig,
+    AgentNodeConfig,
     ToolConfig,
     UsageMetadata,
+    ToolNodeConfig,
 )
+
+# Import protocols from new location
+from ..protocols import (
+    INode as INodeProtocol,  # Alias to avoid conflict
+    ITool,
+    IRegistry,
+    IVectorIndex,
+    IEmbedder,
+    IWorkflow,
+)
+
+# Import base implementations
+from ..base_node import BaseNode
+from ..base_tool import ToolBase

@@ -2,6 +2,8 @@
 config/.env
 config/.env.*
 !config/.env.example
+.env
+.env.*
 
 # Python
 __pycache__/
@@ -52,6 +54,11 @@ tests/output/
 # Logs
 logs/
 *.log
+server.log
+
+# Reports
+report.html
+*.html
 
 # Project specific
 .benchmarks/
@@ -67,6 +74,10 @@ data/context_store.json
 # Database
 *.db
 *.sqlite3
+
+# Redis
+dump.rdb
+*.rdb
 *.db-shm
 *.db-wal
 *.db-journal

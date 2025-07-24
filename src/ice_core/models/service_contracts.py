@@ -2,14 +2,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 class EndpointSpec(BaseModel):
     method: Literal["POST", "GET"]
     path: str
     request_schema: dict  # JSON Schema
     response_schema: dict
     cost_weight: float = 1.0
-
 
 class ServiceContract(BaseModel):
     """Defines a formal interface for cross-layer communication.

@@ -13,18 +13,14 @@ __all__: list[str] = ["public"]
 
 _T = TypeVar("_T", bound=Any)
 
-
 def _get_module(obj: _T) -> ModuleType:  # pragma: no cover – trivial helper
     return sys.modules[obj.__module__]
-
 
 @overload
 def public(obj: _T) -> _T: ...
 
-
 @overload
 def public(*, name: str | None = None) -> Callable[[_T], _T]: ...
-
 
 def public(obj: _T | None = None, *, name: str | None = None):
     """Mark *obj* as part of the public API of its defining module."""

@@ -11,7 +11,6 @@ __all__: list[str] = [
     "AppConfig",
 ]
 
-
 class AppConfig(BaseModel):
     """Top-level application configuration shared across layers."""
 

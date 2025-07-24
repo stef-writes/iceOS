@@ -6,7 +6,6 @@ from typing import Any, Dict
 
 __all__ = ["render_prompt"]
 
-
 async def render_prompt(template: str, context: Dict[str, Any]) -> str:
     try:
         from jinja2 import Template  # type: ignore
