@@ -20,7 +20,7 @@ from typing import Any, Dict, Optional
 
 import yaml  # PyYAML is already a transitive dependency
 
-from ice_orchestrator.workflow import iceEngine, Workflow
+from ice_orchestrator.workflow import Workflow
 from ice_core.models import ChainExecutionResult  # public return type
 from ice_sdk.providers.llm_service import LLMService
 
@@ -51,7 +51,7 @@ class WorkflowTester:  # pylint: disable=too-few-public-methods
         self._orig_generate = None  # will be populated on patch
 
     # ------------------------------------------------------------------ public API
-    async def run(self, workflow: dict[str, Any] | iceEngine) -> ChainExecutionResult:  # type: ignore[type-var]
+    async def run(self, workflow: dict[str, Any] | Workflow) -> ChainExecutionResult:  # type: ignore[type-var]
         """Execute *workflow* and return a :class:`ChainExecutionResult`.
 
         The *workflow* argument can be:
@@ -61,7 +61,7 @@ class WorkflowTester:  # pylint: disable=too-few-public-methods
 
         self._patch_llm()
         try:
-            wf: iceEngine
+            wf: Workflow
             if isinstance(workflow, Workflow):
                 wf = workflow
             else:

@@ -9,7 +9,7 @@ This enhanced demo showcases detailed node inspection with real API calls:
 2. Real LLM API calls with full prompt/response logging
 3. Node Classification and Metadata Analysis
 4. Complete Chain Inspection and Output Tracking
-5. iceEngine Spatial Intelligence Features
+5. Workflow Spatial Intelligence Features
 
 Prerequisites:
     - iceOS API server running: make dev
@@ -489,8 +489,8 @@ async def execute_enhanced_workflow(workflow_blueprint: Dict[str, Any]):
 
 
 async def demonstrate_spatial_features():
-    """Demonstrate iceEngine spatial computing features."""
-    console.print("\n[bold blue]🎨 DEMONSTRATING iceENGINE SPATIAL FEATURES[/bold blue]")
+    """Demonstrate workflow spatial computing features."""
+    console.print("\n[bold blue]🎨 DEMONSTRATING WORKFLOW SPATIAL FEATURES[/bold blue]")
     
     async with httpx.AsyncClient() as client:
         try:
@@ -569,7 +569,7 @@ Every node configuration, prompt, and output will be displayed in detail.
 • Real LLM API calls with full request/response logging
 • Detailed node configuration and metadata display
 • Comprehensive output analysis and classification
-• iceEngine spatial computing features
+• Workflow spatial computing features
 • Multi-node dependency analysis pipeline
     """)
     
@@ -600,7 +600,7 @@ Every node configuration, prompt, and output will be displayed in detail.
         console.print("\n[bold cyan]Key takeaways:[/bold cyan]")
         console.print("• Real LLM API calls provide genuine AI insights")
         console.print("• Detailed node inspection reveals workflow complexity")
-        console.print("• iceEngine spatial features enable canvas visualization")
+        console.print("• Workflow spatial features enable canvas visualization")
         console.print("• Multi-node dependencies create rich analysis pipelines")
         console.print("• Token usage and performance metrics guide optimization")
         

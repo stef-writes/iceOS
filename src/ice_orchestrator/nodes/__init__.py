@@ -1,7 +1,9 @@
-"""Orchestrator node implementations."""
+"""Orchestrator node implementations.
+
+NOTE: Tool and LLM execution now uses protocol-based executors directly.
+These remaining node classes are for advanced orchestration patterns.
+"""
 from ice_core.models import BaseNode
-from .tool import ToolNode
-from .llm import LLMNode
 from .unit import UnitNode
 from .agent import AgentNode
 from .workflow import WorkflowNode
@@ -12,8 +14,6 @@ from .code import CodeNode
 
 __all__ = [
     "BaseNode",
-    "ToolNode",
-    "LLMNode",
     "UnitNode", 
     "AgentNode",
     "WorkflowNode",

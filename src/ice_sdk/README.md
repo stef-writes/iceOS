@@ -4,7 +4,7 @@
 `ice_sdk` is the primary public surface for _developers_ building spatial computing experiences on iceOS.
 It provides:
 * Typed **Node & Tool** abstractions with spatial intelligence
-* **iceEngine** integration for canvas-ready workflows  
+* **Workflow** integration for canvas-ready execution  
 * **Frosty AI** integration points for contextual assistance
 * A **Provider** layer (LLM, vector, embedding) with enhanced analytics
 * High-level **Agent** helpers with memory and collaboration features
@@ -19,7 +19,7 @@ It provides:
 ## Quick-start: Spatial Computing Workflows
 ```python
 from ice_sdk import WorkflowBuilder, WorkflowExecutionService
-from ice_orchestrator.workflow import iceEngine
+from ice_orchestrator.workflow import Workflow
 
 # Build a workflow with spatial intelligence
 builder = WorkflowBuilder("spatial_demo")
@@ -29,7 +29,7 @@ builder.add_llm("summarize", model="gpt-3.5-turbo", prompt="Summarize: {{analysi
 builder.connect("fetch", "analyze")
 builder.connect("analyze", "summarize")
 
-# Execute with iceEngine spatial features
+# Execute with workflow spatial features
 result = await WorkflowExecutionService.execute_workflow_builder(
     builder, 
     inputs={"doc_url": "https://example.com"},

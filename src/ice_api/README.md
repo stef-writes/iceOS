@@ -2,7 +2,7 @@
 
 ## Purpose
 `ice_api` exposes iceOS spatial computing functionality over HTTP + WebSocket.
-It validates requests, translates them into **iceEngine** executions with full spatial intelligence, and streams results back to clients with real-time canvas updates.
+It validates requests, translates them into **Workflow** executions with full spatial intelligence, and streams results back to clients with real-time canvas updates.
 
 **🎯 Spatial Computing Features**
 * **Graph Intelligence Endpoints** – NetworkX-powered analysis, optimization suggestions, and layout hints
@@ -46,11 +46,11 @@ POST /api/v1/mcp/workflows/{workflow_id}/graph/patterns
 
 ## Architecture
 ```
-Canvas UI ──► FastAPI (ice_api) ──► iceEngine (ice_orchestrator) ──► ice_sdk/tools
+Canvas UI ──► FastAPI (ice_api) ──► Workflow (ice_orchestrator) ──► ice_sdk/tools
      │                                   │
      └── WebSocket ←── Real-time ←── Spatial Events
 ```
-* **Spatial Intelligence**: iceEngine provides NetworkX-powered graph analysis and layout hints
+* **Spatial Intelligence**: Workflow provides NetworkX-powered graph analysis and layout hints
 * **Real-time Collaboration**: WebSocket gateway streams canvas updates, cursor positions, and execution events
 * **Frosty Integration**: AI suggestions flow through the API for contextual canvas assistance
 * Dependencies injected via `ice_api.dependencies` with spatial computing support

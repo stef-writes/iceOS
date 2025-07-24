@@ -6,7 +6,7 @@ Analyzes inventory data to identify items that should be sold based on:
 - Category-specific rules
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, ClassVar
 import pandas as pd
 from pydantic import Field
 
@@ -20,7 +20,7 @@ class InventoryAnalyzerTool(ToolBase):
     description: str = "Analyzes inventory data to identify surplus items that should be sold"
     
     # Surplus criteria by category
-    SURPLUS_RULES = {
+    SURPLUS_RULES: ClassVar[Dict[str, Dict[str, int]]] = {
         "Electronics": {"months_threshold": 6, "stock_threshold": 30},
         "Furniture": {"months_threshold": 12, "stock_threshold": 5},
         "Kitchen": {"months_threshold": 8, "stock_threshold": 50},

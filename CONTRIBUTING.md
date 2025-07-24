@@ -39,25 +39,19 @@ make doctor  # Full health check
 3. **External I/O**: Only in Tool implementations
 4. **Dynamic Imports**: Only in `plugin_discovery.py`
 
-## iceEngine Development Guidelines
+## Workflow Development Guidelines
 
 ### Spatial Computing Features
-When working with the iceEngine:
+When working with the Workflow engine:
 - **Spatial Metadata**: Always include layout hints and positioning data in new features
 - **Real-time Events**: Emit spatial events for canvas updates using `_emit_spatial_event()`
 - **Graph Intelligence**: Leverage NetworkX analysis in `GraphAnalyzer` for optimization suggestions
 - **Collaboration Support**: Consider multi-user scenarios and state synchronization
 
-### iceEngine Parameters
-- Use `engine_id` instead of deprecated `chain_id`
+### Workflow Parameters
 - Enable spatial features with `enable_spatial_features=True`
 - Include Frosty integration with `enable_frosty_integration=True`
 - Support collaboration with `enable_collaboration=True`
-
-### Backward Compatibility
-- `Workflow = iceEngine` alias must be maintained
-- All existing APIs should work without modification
-- New spatial features should be opt-in via parameters
 
 ## Deprecation Process
 1. Add `@deprecated(version, replacement)` decorator

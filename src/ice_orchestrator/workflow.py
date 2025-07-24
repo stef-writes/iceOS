@@ -1,8 +1,7 @@
-"""Core iceEngine execution engine (formerly *Workflow/ScriptChain*).
+"""Core workflow execution engine.
 
-Provides a level-based DAG executor with robust error-handling, context
-propagation and agent integration. iceEngine is the powerful execution
-engine that drives all iceOS workflows and spatial computing.
+This is the main orchestration engine for iceOS that provides a level-based 
+DAG executor with robust error-handling, context propagation and agent integration.
 """
 
 from __future__ import annotations
@@ -55,10 +54,10 @@ from ice_sdk.tools.base import ToolBase
 tracer = trace.get_tracer(__name__)
 logger = structlog.get_logger(__name__)
 
-class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseScriptChain across namespace package boundary
+class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseScriptChain across namespace package boundary
     """Execute a directed acyclic workflow using level-based parallelism.
 
-    The iceEngine is the powerful execution engine that drives all iceOS workflows,
+    This is the core execution engine that drives all iceOS workflows,
     from simple task chains to complex spatial computing orchestrations.
 
     Features:
@@ -95,7 +94,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         session_id: Optional[str] = None,
         use_cache: bool = True,
     ) -> None:
-        """Initialize iceEngine.
+        """Initialize Workflow.
 
         Args:
             nodes: List of node configurations
@@ -118,7 +117,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
             session_id: Session identifier
             use_cache: Engine-level cache toggle
         """
-        self.engine_id = engine_id or f"ice_{uuid.uuid4().hex[:8]}"
+        self.chain_id = chain_id or f"wf_{datetime.utcnow().isoformat()}"
         # Semantic version for migration tracking -----------------------
         self.version: str = version
 
@@ -182,9 +181,9 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         # Service locator for workflow protocol
         self.workflow_cls = get_workflow_proto()
 
-        # Use the up-to-date component name in log output
+        # Log initialization
         logger.info(
-            "Initialized iceEngine with %d nodes across %d levels",
+            "Initialized Workflow with %d nodes across %d levels",
             len(nodes),
             len(self.levels),
         )
@@ -199,20 +198,20 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         self._graph_analyzer = GraphAnalyzer(self.graph.graph)  # Use the NetworkX graph from DependencyGraph
 
     async def execute(self) -> NodeExecutionResult:
-        """Execute the iceEngine and return a ChainExecutionResult."""
+        """Execute the workflow and return a ChainExecutionResult."""
         start_time = datetime.utcnow()
         results: Dict[str, NodeExecutionResult] = {}
         errors: List[str] = []
 
         logger.info(
-            "Starting execution of iceEngine '%s' (ID: %s)", self.name, self.engine_id
+            "Starting execution of workflow '%s' (ID: %s)", self.name, self.chain_id
         )
 
         with tracer.start_as_current_span(
-            "iceEngine.execute",
+            "workflow.execute",
             attributes={
-                "engine_id": self.engine_id,
-                "engine_name": self.name,
+                "chain_id": self.chain_id,
+                "workflow_name": self.name,
                 "node_count": len(self.nodes),
             },
         ) as chain_span:
@@ -260,12 +259,12 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
                                 self.token_ceiling is not None
                                 and self.metrics.total_tokens > self.token_ceiling
                             ):
-                                logger.warning(
-                                    "Token ceiling exceeded (%s); aborting engine.",
-                                    self.token_ceiling,
-                                )
-                                errors.append("Token ceiling exceeded")
-                                break
+                                                            logger.warning(
+                                "Token ceiling exceeded (%s); aborting workflow.",
+                                self.token_ceiling,
+                            )
+                            errors.append("Token ceiling exceeded")
+                            break
 
                     # ----------------------------------------------------------------------
                     # Record branch decision for *condition* nodes (always, not usage-only)
@@ -294,9 +293,9 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
             end_time = datetime.utcnow()
             duration = (end_time - start_time).total_seconds()
             logger.info(
-                "Completed iceEngine execution",
-                engine=self.name,
-                engine_id=self.engine_id,
+                "Completed workflow execution",
+                workflow=self.name,
+                chain_id=self.chain_id,
                 duration=duration,
             )
 
@@ -314,7 +313,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
             error="\n".join(errors) if errors else None,
             metadata=NodeMetadata(
                 node_id=final_node_id,
-                node_type="iceEngine",
+                node_type="workflow",
                 name=self.name,
                 version="1.0.0",
                 start_time=start_time,
@@ -507,7 +506,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         event_callback: Optional[Any] = None,
         checkpoint_interval: Optional[int] = None
     ) -> NodeExecutionResult:
-        """Execute iceEngine with event streaming for real-time monitoring.
+        """Execute workflow with event streaming for real-time monitoring.
         
         Args:
             event_callback: Async function to receive events
@@ -518,7 +517,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         """
         # Initialize execution state
         self._execution_state = WorkflowExecutionState(
-            workflow_id=self.engine_id,
+            workflow_id=self.chain_id,
             workflow_name=self.name or "unnamed",
             checkpoint_enabled=checkpoint_interval is not None
         )
@@ -529,7 +528,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
             
         # Emit workflow started event
         await self._event_handler.emit(WorkflowStarted(
-            workflow_id=self.engine_id,
+            workflow_id=self.chain_id,
             workflow_name=self.name or "unnamed",
             total_nodes=len(self.nodes),
             total_levels=len(self.levels),
@@ -547,7 +546,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
             self._execution_state.end_time = datetime.utcnow()
             
             await self._event_handler.emit(WorkflowCompleted(
-                workflow_id=self.engine_id,
+                workflow_id=self.chain_id,
                 duration_seconds=(self._execution_state.end_time - self._execution_state.start_time).total_seconds(),
                 total_tokens=self._execution_state.total_tokens,
                 total_cost=self._execution_state.total_cost,
@@ -562,7 +561,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
             self._execution_state.end_time = datetime.utcnow()
             
             await self._event_handler.emit(WorkflowCompleted(
-                workflow_id=self.engine_id,
+                workflow_id=self.chain_id,
                 duration_seconds=(self._execution_state.end_time - self._execution_state.start_time).total_seconds(),
                 total_tokens=self._execution_state.total_tokens,
                 total_cost=self._execution_state.total_cost,
@@ -629,8 +628,8 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
     def _get_workflow_debug_info(self) -> Dict[str, Any]:
         """Get debug info for entire workflow."""
         debug_info = {
-            "engine_id": self.engine_id,
-            "engine_name": self.name,
+            "workflow_id": self.chain_id,
+            "workflow_name": self.name,
             "total_nodes": len(self.nodes),
             "total_levels": len(self.levels),
             "node_breakdown": {},
@@ -711,7 +710,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         up_to_node_id: Optional[str] = None,
         from_checkpoint: Optional[Dict[str, Any]] = None
     ) -> NodeExecutionResult:
-        """Execute iceEngine incrementally for debugging or preview.
+        """Execute workflow incrementally for debugging or preview.
         
         Args:
             up_to_node_id: Stop after this node completes
@@ -724,7 +723,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
             self._execution_state = WorkflowExecutionState.from_checkpoint(from_checkpoint)
         else:
             self._execution_state = WorkflowExecutionState(
-                workflow_id=self.engine_id,
+                workflow_id=self.chain_id,
                 workflow_name=self.name or "unnamed"
             )
             
@@ -1015,7 +1014,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         node = self.nodes.get(node_id)
         if node:
             await self._event_handler.emit(NodeStarted(
-                workflow_id=self.engine_id,
+                workflow_id=self.chain_id,
                 node_id=node_id,
                 node_type=node.type,
                 node_name=getattr(node, 'name', None),
@@ -1032,7 +1031,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         # Emit appropriate event
         if result.success:
             await self._event_handler.emit(NodeCompleted(
-                workflow_id=self.engine_id,
+                workflow_id=self.chain_id,
                 node_id=node_id,
                 duration_seconds=result.execution_time or 0,
                 tokens_used=result.usage.total_tokens if result.usage else None,
@@ -1041,7 +1040,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
             ))
         else:
             await self._event_handler.emit(NodeFailed(
-                workflow_id=self.engine_id,
+                workflow_id=self.chain_id,
                 node_id=node_id,
                 error_type=type(result.error).__name__ if result.error else "Unknown",
                 error_message=str(result.error) if result.error else "Unknown error"
@@ -1122,8 +1121,8 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         *,
         target_version: str = "1.0.0",
         **kwargs: Any,
-    ) -> "iceEngine":
-        """Create iceEngine from dictionary.
+    ) -> "Workflow":
+        """Create Workflow from dictionary.
         
         Use WorkflowBuilder for new code instead of this method.
         """
@@ -1154,12 +1153,12 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         exposed_outputs: Dict[str, str] | None = None,
     ) -> "NestedChainConfig":
         """Return a :class:`NestedChainConfig` wrapping *self* so it can be
-        embedded inside another *iceEngine*.
+        embedded inside another *Workflow*.
 
         Example
         -------
-        >>> sub_engine = build_checkout_engine()
-        >>> parent_node = sub_engine.as_nested_node(
+        >>> sub_workflow = build_checkout_workflow()
+        >>> parent_node = sub_workflow.as_nested_node(
         ...     id="checkout",
         ...     input_mappings={"amount": InputMapping(...)}
         ... )
@@ -1169,7 +1168,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         from ice_core.models.node_models import NestedChainConfig  # type: ignore
 
         return NestedChainConfig(
-            id=id or self.engine_id,
+            id=id or self.chain_id,
             name=name or self.name,
             chain=self,
             input_mappings=input_mappings or {},
@@ -1205,7 +1204,7 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
             "nodes": [n.dict() for n in self.nodes],
             "name": self.name,
             "version": self.version,
-            "engine_id": self.engine_id,
+            "chain_id": self.chain_id,
             "max_parallel": self.max_parallel,
             "failure_policy": (
                 self.failure_policy.value
@@ -1215,5 +1214,4 @@ class iceEngine(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve Base
         }
 
 
-# Backward compatibility alias
-Workflow = iceEngine 
+ 

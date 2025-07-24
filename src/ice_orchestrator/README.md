@@ -1,8 +1,8 @@
-# ice_orchestrator – iceEngine Spatial Computing Runtime
+# ice_orchestrator – Spatial Computing Runtime
 
 ## Overview
 
-`ice_orchestrator` houses the **iceEngine** - the spatial computing powerhouse that drives all iceOS AI workflows. The iceEngine coordinates nodes, manages data-flow, enforces dependency constraints, and provides graph intelligence for both traditional execution and future canvas experiences.
+`ice_orchestrator` houses the **Workflow** engine - the spatial computing powerhouse that drives all iceOS AI workflows. The workflow engine coordinates nodes, manages data-flow, enforces dependency constraints, and provides graph intelligence for both traditional execution and future canvas experiences.
 
 **🎯 Core Features**
 *  **NetworkX Graph Intelligence** – Advanced dependency analysis, bottleneck detection, and optimization suggestions
@@ -17,7 +17,7 @@
 ## Quick-start
 
 ```python
-from ice_orchestrator.workflow import iceEngine
+from ice_orchestrator.workflow import Workflow
 from ice_core.models.node_models import LLMOperatorConfig
 
 # 1. Declare nodes with spatial intelligence
@@ -30,25 +30,23 @@ nodes = [
     ),
 ]
 
-# 2. Create iceEngine with spatial features enabled
-engine = iceEngine(
+# 2. Create workflow with spatial features enabled
+workflow = Workflow(
     nodes=nodes,
-    name="greeting_engine",
+    name="greeting_workflow",
     enable_spatial_features=True,
     enable_frosty_integration=True
 )
 
 # 3. Execute with spatial intelligence
-result = await engine.execute()
+result = await workflow.execute()
 
 # 4. Get graph metrics and optimization suggestions
-metrics = engine.get_enhanced_metrics()
-suggestions = engine.get_optimization_suggestions()
-layout_hints = engine.get_spatial_layout_hints()
+metrics = workflow.get_enhanced_metrics()
+suggestions = workflow.get_optimization_suggestions()
+layout_hints = workflow.get_spatial_layout_hints()
 
-# 3. Execute
-result = await chain.execute()
-print(result.output["hello"].content)
+print(result.output["greet_user"].content)
 ```
 
 ## Architecture

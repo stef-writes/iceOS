@@ -1,10 +1,10 @@
 # Changelog
 
-## [0.7.0] – 2024-12-30 🚀 **iceEngine Spatial Computing Release**
+## [0.7.0] – 2024-12-30 🚀 **Spatial Computing Release**
 
-### 🎯 Major: iceEngine - The Spatial Computing Powerhouse
+### 🎯 Major: Workflow Engine - The Spatial Computing Powerhouse
 
-**Revolutionary Rename**: `Workflow` → **`iceEngine`** - A complete transformation for spatial computing experiences.
+**Enhanced Workflow Engine**: The core Workflow engine now powers spatial computing experiences.
 
 #### 🧠 **Graph Intelligence**
 - **NetworkX Integration**: Advanced dependency analysis, bottleneck detection, and optimization suggestions
@@ -37,13 +37,12 @@
 - **Pattern Matching**: `/workflows/{id}/graph/patterns` for workflow refactoring opportunities
 
 ### 🔧 **Developer Experience**
-- **Backward Compatibility**: `Workflow = iceEngine` alias maintains existing code compatibility
 - **Enhanced SDK**: All components updated for spatial computing readiness
 - **Comprehensive Demo**: Updated `comprehensive_demo.py` showcases all new capabilities
 - **Documentation Overhaul**: All READMEs updated with spatial computing focus
 
 ### 🏗️ **Architecture Evolution**
-- **Parameter Rename**: `chain_id` → `engine_id` for clarity and future-proofing
+
 - **Spatial Features Toggle**: Optional spatial computing features for gradual adoption
 - **Collaboration Support**: Built-in real-time collaboration infrastructure
 - **Canvas State Management**: Comprehensive state tracking for visual interfaces

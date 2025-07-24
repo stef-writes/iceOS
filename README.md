@@ -12,11 +12,11 @@ iceOS is an **alpha-stage AI workflow runtime** designed for:
 * **Governed execution** – budget & safety guardrails enforced at runtime
 * **Team memory** – every run is traceable, costed and searchable
 
-The runtime is powered by the **iceEngine** - a spatial computing DAG executor with NetworkX-powered graph intelligence - and exposed through the **Model Context Protocol (MCP)** HTTP API.
+The runtime is powered by the **Workflow** engine - a spatial computing DAG executor with NetworkX-powered graph intelligence - and exposed through the **Model Context Protocol (MCP)** HTTP API.
 
-### 🎯 iceEngine: The Spatial Computing Powerhouse
+### 🎯 Workflow Engine: The Spatial Computing Powerhouse
 
-At the heart of iceOS lies the **iceEngine** - designed from the ground up for both traditional workflow execution and future spatial computing experiences:
+At the heart of iceOS lies the **Workflow** engine - designed from the ground up for both traditional workflow execution and future spatial computing experiences:
 
 **🧠 Graph Intelligence**
 - NetworkX-powered dependency analysis and optimization

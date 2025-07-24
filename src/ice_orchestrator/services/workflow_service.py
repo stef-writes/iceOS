@@ -13,7 +13,7 @@ import structlog
 
 from ice_core.models import NodeConfig
 from ice_core.services.contracts import IWorkflowService
-from ice_orchestrator.workflow import iceEngine, Workflow
+from ice_orchestrator.workflow import Workflow
 from ice_sdk.context import GraphContextManager
 
 # Import tools to register them
@@ -102,10 +102,10 @@ class WorkflowService(IWorkflowService):
                 if event_emitter:
                     event_emitter(event_name, payload)
 
-            workflow = iceEngine(
+            workflow = Workflow(
                 nodes=node_configs,
                 name=name,
-                engine_id=run_id,
+                chain_id=run_id,
                 context_manager=self._context_manager,
             )
 

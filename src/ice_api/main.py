@@ -134,6 +134,12 @@ async def list_tools() -> List[str]:
     tool_service = ServiceLocator.get("tool_service")
     return tool_service.available_tools()
 
+@app.get("/api/v1/executors", response_model=Dict[str, str], tags=["discovery"])
+async def list_executors() -> Dict[str, str]:
+    """Return all registered executors."""
+    from ice_sdk.unified_registry import registry
+    return {k: v.__name__ for k, v in registry._executors.items()}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
