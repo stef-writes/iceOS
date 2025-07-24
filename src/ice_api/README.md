@@ -17,6 +17,44 @@ Routes live under `ice_api.api.*` and are versioned (`/v1/...`).
 uvicorn ice_api.main:app --reload
 ```
 
+### Direct Execution Endpoints (NEW)
+For quick testing and experimentation, use these direct execution endpoints that internally create single-node blueprints:
+
+```http
+# Execute a tool directly
+POST /api/v1/tools/{tool_name}
+{
+  "inputs": { "file_path": "data.csv" },
+  "wait_for_completion": true,
+  "timeout": 30.0
+}
+
+# Execute an agent
+POST /api/v1/agents/{agent_name}
+{
+  "inputs": { "query": "analyze this data" }
+}
+
+# Execute a unit
+POST /api/v1/units/{unit_name}
+{
+  "inputs": { "data": [...] }
+}
+
+# Execute a chain
+POST /api/v1/chains/{chain_name}
+{
+  "inputs": { "context": {...} }
+}
+```
+
+Response includes:
+- `run_id` - Track execution progress
+- `status` - "completed", "running", or "failed"
+- `output` - Execution results
+- `telemetry_url` - Real-time event stream
+- `suggestions` - AI-powered next step recommendations
+
 ### Spatial Computing Endpoints
 ```http
 # Execute workflow with spatial intelligence
@@ -51,6 +89,8 @@ Canvas UI ──► FastAPI (ice_api) ──► Workflow (ice_orchestrator) ─�
      └── WebSocket ←── Real-time ←── Spatial Events
 ```
 * **Spatial Intelligence**: Workflow provides NetworkX-powered graph analysis and layout hints
+* **Hybrid Execution**: Direct endpoints create single-node blueprints internally, maintaining consistency while providing simple UX
+* **AI Integration**: Every execution includes Frosty AI suggestions for next steps
 * **Real-time Collaboration**: WebSocket gateway streams canvas updates, cursor positions, and execution events
 * **Frosty Integration**: AI suggestions flow through the API for contextual canvas assistance
 * Dependencies injected via `ice_api.dependencies` with spatial computing support

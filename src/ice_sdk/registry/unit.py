@@ -3,6 +3,6 @@
 This module provides access to unit/tool registries.
 """
 
-from ice_sdk.unified_registry import global_tool_registry as global_unit_registry
+from ice_sdk.unified_registry import global_unit_registry
 
 __all__ = ["global_unit_registry"] 

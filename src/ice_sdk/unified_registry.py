@@ -214,6 +214,10 @@ class AgentRegistry:
     def available(self) -> List[Tuple[str, str]]:
         """List all agents."""
         return registry.available_agents()
+    
+    def __iter__(self):
+        """Support for iteration over agents."""
+        return iter(registry.available_agents())
 
 # Global chain registry wrapper for backward compatibility
 class ChainRegistry:
@@ -235,9 +239,30 @@ class ChainRegistry:
         """Support for iteration over chains."""
         return iter(registry.available_chains())
 
+# Global unit registry wrapper for backward compatibility
+class UnitRegistry:
+    """Wrapper for unit registration (backward compatibility)."""
+    
+    def register(self, name: str, unit: Any) -> None:
+        """Register a unit."""
+        registry.register_unit(name, unit)
+    
+    def get(self, name: str) -> Any:
+        """Get a registered unit."""
+        return registry.get_unit(name)
+    
+    def available(self) -> List[Tuple[str, Any]]:
+        """List all units."""
+        return registry.available_units()
+    
+    def __iter__(self):
+        """Support for iteration over units."""
+        return iter(registry.available_units())
+
 # Global instances for backward compatibility
 global_agent_registry = AgentRegistry()
 global_chain_registry = ChainRegistry()
+global_unit_registry = UnitRegistry()
 
 # Export commonly used symbols
 __all__ = [
@@ -248,6 +273,8 @@ __all__ = [
     "NodeExecutor",
     "global_agent_registry",
     "global_chain_registry",
+    "global_unit_registry",
     "ChainRegistry",
     "AgentRegistry",
+    "UnitRegistry",
 ] 

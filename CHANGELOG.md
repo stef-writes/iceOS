@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Direct Execution API**: New endpoints for executing individual tools, agents, units, and chains
+  - `POST /api/v1/tools/{name}` - Execute tools with automatic blueprint creation
+  - `POST /api/v1/agents/{name}` - Execute agents directly
+  - `POST /api/v1/units/{name}` - Execute units directly  
+  - `POST /api/v1/chains/{name}` - Execute chains directly
+  - All endpoints support sync/async modes and return AI suggestions
+  - Maintains full telemetry and analysis benefits while simplifying UX
+
+### Changed
+- Updated `UnitRegistry` to support iteration like other registries
+- Enhanced API documentation with direct execution examples
+
 ## [0.7.0] – 2024-12-30 🚀 **Spatial Computing Release**
 
 ### 🎯 Major: Workflow Engine - The Spatial Computing Powerhouse

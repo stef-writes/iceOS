@@ -202,6 +202,14 @@ class MyTool(ToolBase):
 
 ## API Endpoints
 
+### Direct Execution (NEW)
+Quick testing and experimentation without creating full workflows:
+
+- `POST /api/v1/tools/{tool_name}` - Execute a single tool
+- `POST /api/v1/agents/{agent_name}` - Execute a single agent  
+- `POST /api/v1/units/{unit_name}` - Execute a single unit
+- `POST /api/v1/chains/{chain_name}` - Execute a single chain
+
 ### Model Context Protocol (MCP)
 
 - `POST /api/v1/mcp/blueprints` - Register workflow blueprints
@@ -212,6 +220,7 @@ class MyTool(ToolBase):
 ### Discovery
 
 - `GET /api/v1/tools` - List available tools
+- `GET /api/v1/executors` - List available executors
 - `GET /health` - Health check endpoint
 
 ---

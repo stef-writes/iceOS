@@ -34,7 +34,8 @@ class _DummyChain:
 # One-time registration ------------------------------------------------------
 
 if "dummy_agent" not in [n for n, _ in global_agent_registry]:
-    global_agent_registry.register("dummy_agent", _DummyAgent())
+    # Register as import path for agent registry
+    global_agent_registry.register("dummy_agent", "tests.unit.ice_api.test_execution_endpoints._DummyAgent")
 
 if "dummy_unit" not in [n for n, _ in global_unit_registry]:
     global_unit_registry.register("dummy_unit", _DummyUnit())
@@ -53,10 +54,17 @@ client = TestClient(app)
     [
         ("agents/dummy_agent", {"inputs": {"foo": "bar"}}, {"agent": {"foo": "bar"}}),
         ("units/dummy_unit", {"inputs": {"x": 1}}, {"unit": {"x": 1}}),
-        ("chains/dummy_chain", {"context": {"y": 2}}, {"chain": {"y": 2}}),
+        ("chains/dummy_chain", {"inputs": {"y": 2}}, {"chain": {"y": 2}}),
     ],
 )
 def test_execute_endpoints(path, payload, expected):
-    resp = client.post(f"/v1/{path}", json=payload)
+    resp = client.post(f"/api/v1/{path}", json=payload)
     assert resp.status_code == 200
-    assert resp.json()["data"] == expected 
+    
+    # The new API returns a structured response with run_id, status, output, etc
+    result = resp.json()
+    assert result["status"] == "completed"
+    assert result["output"] == expected
+    assert "run_id" in result
+    assert "telemetry_url" in result
+    assert "suggestions" in result 
