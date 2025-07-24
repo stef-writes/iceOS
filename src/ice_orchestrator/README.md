@@ -18,35 +18,40 @@
 
 ```python
 from ice_orchestrator.workflow import Workflow
-from ice_core.models.node_models import LLMOperatorConfig
+from ice_core.models import LLMOperatorConfig, LLMConfig, ModelProvider
 
-# 1. Declare nodes with spatial intelligence
+# 1. Declare nodes with correct fields and rich config
 nodes = [
     LLMOperatorConfig(
-        id="greet_user", 
+        id="greet_user",
+        type="llm",  # Required discriminator
         model="gpt-4",
-        prompt="Say hello, {{name}}! Provide a warm, personalized greeting.",
-        dependencies=[]
+        prompt="Say hello, {name}! Provide a warm, personalized greeting.",  # NOT prompt_template, single braces
+        llm_config=LLMConfig(  # Rich unified config
+            provider=ModelProvider.OPENAI,
+            model="gpt-4",
+            temperature=0.9,
+            max_tokens=150,
+            timeout=30
+        ),
+        input_schema={"name": "str"},
+        output_schema={"greeting": "str"}
     ),
 ]
 
-# 2. Create workflow with spatial features enabled
+# 2. Create workflow (actual implementation details)
 workflow = Workflow(
     nodes=nodes,
-    name="greeting_workflow",
-    enable_spatial_features=True,
-    enable_frosty_integration=True
+    name="greeting_workflow"
+    # Note: enable_spatial_features and enable_frosty_integration 
+    # are hypothetical - check actual Workflow constructor
 )
 
-# 3. Execute with spatial intelligence
-result = await workflow.execute()
+# 3. Execute with context
+result = await workflow.execute(context={"name": "Alice"})
 
-# 4. Get graph metrics and optimization suggestions
-metrics = workflow.get_enhanced_metrics()
-suggestions = workflow.get_optimization_suggestions()
-layout_hints = workflow.get_spatial_layout_hints()
-
-print(result.output["greet_user"].content)
+# Access results from the execution
+print(result.node_outputs["greet_user"]["greeting"])
 ```
 
 ## Architecture

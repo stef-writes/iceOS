@@ -56,7 +56,7 @@ class CSVReaderTool(ToolBase):
         try:
             input_data = self.InputModel(**kwargs)
         except Exception as exc:
-            raise ToolExecutionError(f"Invalid CSVReaderTool input: {exc}") from exc
+            raise ToolExecutionError("csv_reader", "csv_reader", f"Invalid CSVReaderTool input: {exc}") from exc
 
         path = Path(input_data.file_path)
 

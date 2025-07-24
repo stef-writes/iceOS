@@ -34,7 +34,7 @@ class InsightsTool(ToolBase):
         try:
             inp = self.InputModel(**kwargs)
         except Exception as exc:
-            raise ToolExecutionError(f"Invalid InsightsTool input: {exc}") from exc
+            raise ToolExecutionError("insights", f"Invalid InsightsTool input: {exc}") from exc
 
         prompt = (
             "You are an inventory analyst. Given the following summary of CSV data, "

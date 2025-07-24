@@ -18,43 +18,63 @@ It provides:
 
 ## Quick-start: Spatial Computing Workflows
 ```python
-from ice_sdk import WorkflowBuilder, WorkflowExecutionService
-from ice_orchestrator.workflow import Workflow
+from ice_sdk.builders.workflow import WorkflowBuilder
+from ice_core.models import LLMConfig, ModelProvider
 
-# Build a workflow with spatial intelligence
+# Build a workflow with correct field names
 builder = WorkflowBuilder("spatial_demo")
-builder.add_tool("fetch", tool_name="http_request", url="https://example.com")
-builder.add_llm("analyze", model="gpt-4", prompt="Analyze this content: {{content}}")
-builder.add_llm("summarize", model="gpt-3.5-turbo", prompt="Summarize: {{analysis}}")
-builder.connect("fetch", "analyze")
-builder.connect("analyze", "summarize")
 
-# Execute with workflow spatial features
-result = await WorkflowExecutionService.execute_workflow_builder(
-    builder, 
-    inputs={"doc_url": "https://example.com"},
-    enable_spatial_features=True,
-    enable_frosty_integration=True
+# Add tool node (uses tool_name, not tool_ref)
+builder.add_tool(
+    "fetch", 
+    tool_name="http_request",  # Correct field name
+    url="https://example.com"
 )
 
-# Get spatial intelligence and optimization suggestions
-engine = result.engine
-layout_hints = engine.get_spatial_layout_hints()  # For canvas visualization
-metrics = engine.get_enhanced_metrics()          # Graph analysis
-suggestions = engine.get_optimization_suggestions()  # AI-powered improvements
+# Add LLM nodes with rich LLMConfig
+builder.add_llm(
+    "analyze", 
+    model="gpt-4",
+    prompt="Analyze this content: {content}",  # NOT prompt_template
+    llm_config=LLMConfig(
+        provider=ModelProvider.OPENAI,
+        model="gpt-4",
+        temperature=0.7,
+        max_tokens=2000
+    )
+)
+
+builder.add_llm(
+    "summarize",
+    model="gpt-3.5-turbo", 
+    prompt="Summarize: {analysis}",  # Single braces for Python format
+    temperature=0.5  # Node-level override
+)
+
+# Connect nodes
+builder.connect("fetch", "analyze")
+builder.connect("analyze", "summarize")
 ```
 
-### Frosty Integration Example
+### Agent Example (with rich LLMConfig)
 ```python
-from ice_sdk.context.graph_analyzer import GraphAnalyzer
+from ice_core.models import AgentNodeConfig, LLMConfig, ModelProvider
 
-# Get AI suggestions for next nodes
-suggestions = engine.suggest_next_nodes_enhanced("analyze")
-for suggestion in suggestions:
-    print(f"💡 {suggestion['reason']}: {suggestion['type']}")
-
-# Apply Frosty suggestion
-result = engine.apply_frosty_suggestion(suggestion_id="opt_123")
+# Create agent with rich configuration
+agent_config = AgentNodeConfig(
+    id="researcher",
+    type="agent", 
+    package="ice_sdk.agents.research.ResearchAgent",  # NOT agent_ref
+    max_iterations=5,  # New field to prevent loops
+    llm_config=LLMConfig(  # Agents now have LLM config!
+        provider=ModelProvider.ANTHROPIC,
+        model="claude-3-opus",
+        temperature=0.7,
+        max_tokens=4000
+    ),
+    tools=[],  # List of ToolConfig objects
+    memory={"type": "conversation"}
+)
 ```
 
 ## Package Layout (Cleaned)

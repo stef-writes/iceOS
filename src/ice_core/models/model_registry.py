@@ -48,11 +48,25 @@ class LLMModelInfo(BaseModel):
 
 _ALLOWED_MODELS: Dict[str, LLMModelInfo] = {
     # OpenAI --------------------------------------------------------------
+    "gpt-4": LLMModelInfo(
+        id="gpt-4",
+        provider=ModelProvider.OPENAI,
+        label="GPT-4 (OpenAI)",
+        best_for="High-quality reasoning and code generation",
+        max_tokens=8192,
+    ),
     "gpt-4.1": LLMModelInfo(
         id="gpt-4.1",
         provider=ModelProvider.OPENAI,
         label="GPT-4.1 (OpenAI)",
         best_for="General reasoning & code generation with high quality",
+        max_tokens=128000,
+    ),
+    "gpt-4-turbo": LLMModelInfo(
+        id="gpt-4-turbo",
+        provider=ModelProvider.OPENAI,
+        label="GPT-4 Turbo (OpenAI)",
+        best_for="Fast GPT-4 performance with reduced cost",
         max_tokens=128000,
     ),
     "gpt-4o": LLMModelInfo(

@@ -32,9 +32,9 @@ class SumTool(ToolBase):
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         numbers_raw = kwargs.get("numbers")
         if not isinstance(numbers_raw, list):
-            raise ToolExecutionError("'numbers' must be list[float]")
+            raise ToolExecutionError("sum", "'numbers' must be list[float]")
         try:
             numbers: List[float] = [float(n) for n in numbers_raw]
         except Exception as exc:
-            raise ToolExecutionError("'numbers' must contain numeric values") from exc
+            raise ToolExecutionError("sum", "'numbers' must contain numeric values") from exc
         return {"sum": sum(numbers)}

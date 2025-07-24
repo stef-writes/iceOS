@@ -57,7 +57,7 @@ class SummarizerTool(ToolBase):
         try:
             inp = self.InputModel(**kwargs)
         except Exception as exc:
-            raise ToolExecutionError(f"Invalid SummarizerTool input: {exc}") from exc
+            raise ToolExecutionError("summarizer", f"Invalid SummarizerTool input: {exc}") from exc
 
         # ------------------------------------------------------------------
         # 1. Decide provider based on available API key ---------------------
@@ -109,7 +109,7 @@ class SummarizerTool(ToolBase):
 
         text, _usage, err = await LLMService().generate(llm_cfg, prompt)
         if err:
-            raise ToolExecutionError(f"LLM summarization failed: {err}")
+            raise ToolExecutionError("summarizer", f"LLM summarization failed: {err}")
 
         return {"summary": text.strip()}
 

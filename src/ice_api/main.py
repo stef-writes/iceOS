@@ -104,7 +104,7 @@ add_exception_handlers(app)
 
 # Include routers
 app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
-app.include_router(direct_router, prefix="/api", tags=["direct"])
+app.include_router(direct_router, tags=["direct"])
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
 
 # Root endpoint
@@ -135,6 +135,24 @@ async def list_tools() -> List[str]:
     """Return all registered tool names."""
     tool_service = ServiceLocator.get("tool_service")
     return tool_service.available_tools()
+
+@app.get("/v1/agents", response_model=List[str], tags=["discovery"])
+async def list_agents() -> List[str]:
+    """Return all registered agent names."""
+    from ice_sdk.unified_registry import registry
+    return list(registry._agents.keys())
+
+@app.get("/v1/units", response_model=List[str], tags=["discovery"])
+async def list_units() -> List[str]:
+    """Return all registered unit names."""
+    from ice_sdk.unified_registry import global_unit_registry
+    return [name for name, _ in global_unit_registry.available()]
+
+@app.get("/v1/chains", response_model=List[str], tags=["discovery"])
+async def list_chains() -> List[str]:
+    """Return all registered chain names."""
+    from ice_sdk.unified_registry import global_chain_registry
+    return [name for name, _ in global_chain_registry.available()]
 
 @app.get("/api/v1/executors", response_model=Dict[str, str], tags=["discovery"])
 async def list_executors() -> Dict[str, str]:

@@ -10,24 +10,16 @@ from ice_core.models import LLMConfig
 class _DummyLLMService:  # pylint: disable=too-few-public-methods
     """Stub LLMService that returns a canned JSON payload."""
 
-    async def generate(
-        self,
-        llm_config: LLMConfig,  # noqa: D401 – signature mirrors real service
-        prompt: str,
-        context: Optional[Dict[str, Any]] = None,
-        tools: Optional[list[Dict[str, Any]]] = None,
-        *,
-        timeout_seconds: Optional[int] = 30,
-        max_retries: int = 2,
-    ) -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:  # type: ignore[override]
-        _ = (llm_config, prompt, context, tools, timeout_seconds, max_retries)
+    async def generate(self, prompt: str, config: LLMConfig) -> Dict[str, Any]:
+        """Match the actual LLMService interface."""
+        _ = (prompt, config)
         payload = {
             "row": {"item": "bananas", "qty": "5"},
             "action": "append",
         }
         import json
 
-        return json.dumps(payload), None, None
+        return {"content": json.dumps(payload)}
 
 
 @pytest.mark.asyncio

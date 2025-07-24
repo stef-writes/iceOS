@@ -3,7 +3,7 @@ import pytest
 from ice_core.models.node_models import ToolNodeConfig
 from ice_orchestrator.utils.context_builder import ContextBuilder
 from ice_core.models.node_models import NodeExecutionResult, NodeMetadata
-from ice_orchestrator.errors.chain_errors import ChainError
+from ice_sdk.exceptions import CoreError
 
 pytestmark = [pytest.mark.unit]
 
@@ -53,5 +53,5 @@ async def test_context_builder_missing_dep_raises():
         input_mappings={"x": {"source_node_id": "missing", "source_output_key": "foo"}},
     )
 
-    with pytest.raises(ChainError):
+    with pytest.raises(CoreError):
         _ = ContextBuilder.build_node_context(node, {}) 

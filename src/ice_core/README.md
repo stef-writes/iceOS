@@ -13,11 +13,19 @@ Typical contents:
 ## Quick-start
 ```python
 from ice_core.models.llm import LLMConfig
-from ice_core.exceptions import DomainValidationError
+from ice_core.models.enums import ModelProvider
+from ice_core.exceptions import CoreError, ErrorCode
 
-cfg = LLMConfig(provider="openai", model="gpt-4o", max_tokens=4096)
-if not cfg.is_valid():
-    raise DomainValidationError("bad config")
+# Rich, unified LLMConfig with all parameters
+cfg = LLMConfig(
+    provider=ModelProvider.OPENAI,  # Uses enum, not string
+    model="gpt-4",
+    temperature=0.7,
+    max_tokens=4096,
+    api_key="sk-...",  # Usually from env
+    timeout=30
+)
+# Note: LLMConfig doesn't have is_valid() method - Pydantic validates on creation
 ```
 
 ## Contract & Rules

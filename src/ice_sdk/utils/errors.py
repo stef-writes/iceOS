@@ -14,7 +14,9 @@ class ToolExecutionError(CoreError):
         message: str,
         details: Optional[Dict[str, Any]] = None,
     ) -> None:
-        super().__init__(f"Tool '{tool_name}' failed: {message}")
+        from ice_sdk.exceptions import ErrorCode
+        # Use a generic tool error code
+        super().__init__(ErrorCode.UNKNOWN, f"Tool '{tool_name}' failed: {message}")
         self.tool_name = tool_name
         self.details = details or {}
 

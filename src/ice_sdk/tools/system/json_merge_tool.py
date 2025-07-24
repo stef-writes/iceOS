@@ -40,12 +40,12 @@ class JSONMergeTool(ToolBase):
             docs = input_data.get("docs")  # type: ignore[assignment]
 
         if not isinstance(docs, list):
-            raise ToolExecutionError("'docs' must be a list of JSON objects")
+            raise ToolExecutionError("json_merge", "'docs' must be a list of JSON objects")
 
         merged: Dict[str, Any] = {}
         for idx, doc in enumerate(docs):
             if not isinstance(doc, dict):
-                raise ToolExecutionError(f"docs[{idx}] is not an object")
+                raise ToolExecutionError("json_merge", f"docs[{idx}] is not an object")
             merged = self._deep_merge(merged, doc)
 
         return {"merged": merged}

@@ -22,30 +22,36 @@ For quick testing and experimentation, use these direct execution endpoints that
 
 ```http
 # Execute a tool directly
-POST /api/v1/tools/{tool_name}
+POST /v1/tools/{tool_name}
 {
   "inputs": { "file_path": "data.csv" },
   "wait_for_completion": true,
   "timeout": 30.0
 }
 
-# Execute an agent
-POST /api/v1/agents/{agent_name}
+# Execute an agent  
+POST /v1/agents/{agent_name}
 {
   "inputs": { "query": "analyze this data" }
 }
 
 # Execute a unit
-POST /api/v1/units/{unit_name}
+POST /v1/units/{unit_name}
 {
   "inputs": { "data": [...] }
 }
 
 # Execute a chain
-POST /api/v1/chains/{chain_name}
+POST /v1/chains/{chain_name}
 {
   "inputs": { "context": {...} }
 }
+
+# Discovery endpoints
+GET /api/v1/tools     # List all tools
+GET /v1/agents        # List all agents
+GET /v1/units         # List all units  
+GET /v1/chains        # List all chains
 ```
 
 Response includes:
@@ -57,12 +63,28 @@ Response includes:
 
 ### Spatial Computing Endpoints
 ```http
-# Execute workflow with spatial intelligence
+# Execute blueprint/workflow
 POST /api/v1/mcp/runs
 {
-  "workflow_id": "spatial_demo",
-  "input": { "query": "hello" },
-  "enable_spatial_features": true
+  "blueprint": {
+    "blueprint_id": "demo_workflow",
+    "nodes": [
+      {
+        "id": "analyze",
+        "type": "llm",
+        "model": "gpt-4",
+        "prompt": "Analyze this: {input}",  # NOT prompt_template
+        "llm_config": {
+          "provider": "openai",
+          "model": "gpt-4"
+        }
+      }
+    ]
+  },
+  "options": {
+    "max_parallel": 2,
+    "retry_failed": true
+  }
 }
 
 # Get graph metrics and layout hints

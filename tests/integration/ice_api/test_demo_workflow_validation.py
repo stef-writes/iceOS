@@ -12,8 +12,8 @@ from unittest.mock import Mock, AsyncMock, patch
 import httpx
 
 from ice_core.models import (
-    NodeType, ToolNodeConfig, LLMNodeConfig,
-    NodeExecutionResult
+    NodeType, ToolNodeConfig, LLMOperatorConfig as LLMNodeConfig,
+    NodeExecutionResult, LLMConfig, ModelProvider
 )
 from ice_core.models.mcp import RunRequest
 from ice_sdk.unified_registry import registry
@@ -163,9 +163,9 @@ class TestDemoWorkflowValidation:
                 {
                     "id": "analyze_data",
                     "type": "llm",
-                    "name": "Data Analyzer",
+                    "name": "Data Analyzer", 
                     "model": "gpt-4-turbo-2024-04-09",  # Use allowed model name
-                    "prompt_template": "Analyze this sales data: {rows}",
+                    "prompt": "Analyze this sales data: {rows}",  # Changed from prompt_template
                     "temperature": 0.7,
                     "max_tokens": 500,
                     "dependencies": ["load_data"],
@@ -182,7 +182,11 @@ class TestDemoWorkflowValidation:
                 assert config.tool_name == "csv_reader"
                 assert config.type == "tool"
             elif node["type"] == "llm":
-                config = LLMNodeConfig(**node)
+                # Fix field names to match LLMOperatorConfig
+                llm_node = node.copy()
+                llm_node["prompt"] = llm_node.pop("prompt_template", "")
+                llm_node["llm_config"] = LLMConfig(provider=ModelProvider.OPENAI)
+                config = LLMNodeConfig(**llm_node)
                 assert config.model == "gpt-4-turbo-2024-04-09"
                 assert config.type == "llm"
     
@@ -227,10 +231,10 @@ class TestDemoWorkflowValidation:
             id="analyze_data",
             name="Data Analyzer",
             model="gpt-4-turbo-2024-04-09",  # Use allowed model name
-            prompt_template="Analyze this sales data: {rows}",
+            prompt="Analyze this sales data: {rows}",  # Changed from prompt_template
             temperature=0.7,
             max_tokens=500,
-            provider="openai"
+            llm_config=LLMConfig(provider=ModelProvider.OPENAI)  # Added required field
         )
         
         # Use tool output as context for LLM

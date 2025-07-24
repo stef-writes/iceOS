@@ -9,11 +9,10 @@ from typing import Any, Dict, TypeAlias
 
 from ice_core.models import (
     NodeExecutionResult, NodeType,
-    ToolNodeConfig, LLMNodeConfig, UnitNodeConfig,
-    AgentNodeConfig, WorkflowNodeConfig, ConditionNodeConfig,
-    LoopNodeConfig, ParallelNodeConfig, CodeNodeConfig
+    ToolNodeConfig, LLMOperatorConfig as LLMNodeConfig,
+    AgentNodeConfig, ConditionNodeConfig, NestedChainConfig
 )
-from ice_core.models.node_models import NodeMetadata
+from ice_core.models.node_metadata import NodeMetadata
 from ice_core.protocols.workflow import WorkflowLike
 from ice_sdk.unified_registry import register_node, registry
 from ice_sdk.services.locator import ServiceLocator
@@ -102,13 +101,13 @@ async def llm_executor(
         
         # Render prompt template with context
         try:
-            prompt = cfg.prompt_template.format(**ctx)
+            prompt = cfg.prompt.format(**ctx)
         except KeyError as e:
             raise ValueError(f"Missing template variable in prompt: {e}")
         
         # Create LLM configuration
         llm_config = LLMConfig(
-            provider=getattr(cfg, 'provider', 'openai'),
+            provider=getattr(cfg.llm_config, 'provider', 'openai') if hasattr(cfg, 'llm_config') else 'openai',
             model=cfg.model,
             max_tokens=cfg.max_tokens,
             temperature=cfg.temperature
@@ -128,7 +127,7 @@ async def llm_executor(
         duration = (end_time - start_time).total_seconds()
         
         # Format output according to response format or default to text
-        if cfg.response_format and cfg.response_format.get("type") == "json_object":
+        if hasattr(cfg, 'response_format') and cfg.response_format and cfg.response_format.get("type") == "json_object":
             # Try to parse as JSON for structured output
             try:
                 import json
@@ -189,61 +188,6 @@ async def llm_executor(
             execution_time=duration
         )
 
-# Unit executor using protocol-based registry lookup
-@register_node("unit")
-async def unit_executor(
-    workflow: Workflow, cfg: UnitNodeConfig, ctx: Dict[str, Any]
-) -> NodeExecutionResult:
-    """Execute a unit using registry lookup for composition."""
-    start_time = datetime.utcnow()
-    
-    try:
-        if cfg.unit_ref:
-            # Get registered unit from registry
-            unit = registry.get_instance(NodeType.UNIT, cfg.unit_ref)
-            output = await unit.execute(ctx)
-        else:
-            # For inline units, this would need mini-orchestrator
-            # For now, return a placeholder
-            output = {"result": "Unit execution not yet implemented for inline nodes"}
-        
-        end_time = datetime.utcnow()
-        duration = (end_time - start_time).total_seconds()
-        
-        return NodeExecutionResult(
-            success=True,
-            output=output,
-            metadata=NodeMetadata(
-                node_id=cfg.id,
-                node_type="unit",
-                name=cfg.name,
-                start_time=start_time,
-                end_time=end_time,
-                duration=duration,
-            ),
-            execution_time=duration
-        )
-        
-    except Exception as e:
-        end_time = datetime.utcnow()
-        duration = (end_time - start_time).total_seconds()
-        
-        return NodeExecutionResult(
-            success=False,
-            error=str(e),
-            output={},
-            metadata=NodeMetadata(
-                node_id=cfg.id,
-                node_type="unit",
-                name=cfg.name,
-                start_time=start_time,
-                end_time=end_time,
-                duration=duration,
-                error_type=type(e).__name__,
-            ),
-            execution_time=duration
-        )
-
 # Agent executor using protocol-based registry lookup
 @register_node("agent")
 async def agent_executor(
@@ -253,8 +197,8 @@ async def agent_executor(
     start_time = datetime.utcnow()
     
     try:
-        # Get agent from registry
-        agent = registry.get_instance(NodeType.AGENT, cfg.agent_ref)
+        # Get agent from registry using package name
+        agent = registry.get_instance(NodeType.AGENT, cfg.package)
         output = await agent.execute(ctx)
         
         end_time = datetime.utcnow()
@@ -285,56 +229,6 @@ async def agent_executor(
             metadata=NodeMetadata(
                 node_id=cfg.id,
                 node_type="agent",
-                name=cfg.name,
-                start_time=start_time,
-                end_time=end_time,
-                duration=duration,
-                error_type=type(e).__name__,
-            ),
-            execution_time=duration
-        )
-
-# Workflow executor using protocol-based registry lookup
-@register_node("workflow")
-async def workflow_executor(
-    workflow: Workflow, cfg: WorkflowNodeConfig, ctx: Dict[str, Any]
-) -> NodeExecutionResult:
-    """Execute a nested workflow using registry lookup."""
-    start_time = datetime.utcnow()
-    
-    try:
-        # Get workflow from registry
-        workflow = registry.get_instance(NodeType.WORKFLOW, cfg.workflow_ref)
-        output = await workflow.execute(ctx)
-        
-        end_time = datetime.utcnow()
-        duration = (end_time - start_time).total_seconds()
-        
-        return NodeExecutionResult(
-            success=True,
-            output=output,
-            metadata=NodeMetadata(
-                node_id=cfg.id,
-                node_type="workflow",
-                name=cfg.name,
-                start_time=start_time,
-                end_time=end_time,
-                duration=duration,
-            ),
-            execution_time=duration
-        )
-        
-    except Exception as e:
-        end_time = datetime.utcnow()
-        duration = (end_time - start_time).total_seconds()
-        
-        return NodeExecutionResult(
-            success=False,
-            error=str(e),
-            output={},
-            metadata=NodeMetadata(
-                node_id=cfg.id,
-                node_type="workflow",
                 name=cfg.name,
                 start_time=start_time,
                 end_time=end_time,
@@ -400,62 +294,52 @@ async def condition_executor(
                 error_type=type(e).__name__,
             ),
             execution_time=duration
+        ) 
+
+# Nested chain executor for backward compatibility
+@register_node("nested_chain")
+async def nested_chain_executor(
+    workflow: Workflow, cfg: NestedChainConfig, ctx: Dict[str, Any]
+) -> NodeExecutionResult:
+    """Execute a nested chain by delegating to the chain."""
+    start_time = datetime.utcnow()
+    
+    try:
+        # For now, return a placeholder result
+        # TODO: Implement actual nested chain execution
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+        
+        return NodeExecutionResult(
+            success=True,
+            output={"result": "Nested chain execution not yet implemented"},
+            metadata=NodeMetadata(
+                node_id=cfg.id,
+                node_type="nested_chain",
+                name=cfg.name,
+                start_time=start_time,
+                end_time=end_time,
+                duration=duration,
+            ),
+            execution_time=duration
         )
-
-# Simplified executors for advanced node types (not used in current demo)
-@register_node("loop")
-async def loop_executor(
-    workflow: Workflow, cfg: LoopNodeConfig, ctx: Dict[str, Any]
-) -> NodeExecutionResult:
-    """Simplified loop executor for protocol compliance."""
-    return NodeExecutionResult(
-        success=True,
-        output={"result": "Loop execution not yet implemented"},
-        metadata=NodeMetadata(
-            node_id=cfg.id,
-            node_type="loop",
-            name=cfg.name,
-            start_time=datetime.utcnow(),
-            end_time=datetime.utcnow(),
-            duration=0.0,
-        ),
-        execution_time=0.0
-    )
-
-@register_node("parallel")
-async def parallel_executor(
-    workflow: Workflow, cfg: ParallelNodeConfig, ctx: Dict[str, Any]
-) -> NodeExecutionResult:
-    """Simplified parallel executor for protocol compliance."""
-    return NodeExecutionResult(
-        success=True,
-        output={"result": "Parallel execution not yet implemented"},
-        metadata=NodeMetadata(
-            node_id=cfg.id,
-            node_type="parallel",
-            name=cfg.name,
-            start_time=datetime.utcnow(),
-            end_time=datetime.utcnow(),
-            duration=0.0,
-        ),
-        execution_time=0.0
-    )
-
-@register_node("code")
-async def code_executor(
-    workflow: Workflow, cfg: CodeNodeConfig, ctx: Dict[str, Any]
-) -> NodeExecutionResult:
-    """Simplified code executor for protocol compliance."""
-    return NodeExecutionResult(
-        success=True,
-        output={"result": "Code execution not yet implemented"},
-        metadata=NodeMetadata(
-            node_id=cfg.id,
-            node_type="code",
-            name=cfg.name,
-            start_time=datetime.utcnow(),
-            end_time=datetime.utcnow(),
-            duration=0.0,
-        ),
-        execution_time=0.0
-    ) 
+        
+    except Exception as e:
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+        
+        return NodeExecutionResult(
+            success=False,
+            error=str(e),
+            output={},
+            metadata=NodeMetadata(
+                node_id=cfg.id,
+                node_type="nested_chain",
+                name=cfg.name,
+                start_time=start_time,
+                end_time=end_time,
+                duration=duration,
+                error_type=type(e).__name__,
+            ),
+            execution_time=duration
+        ) 

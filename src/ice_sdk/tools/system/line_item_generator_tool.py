@@ -48,7 +48,7 @@ class LineItemGeneratorTool(ToolBase):
         try:
             inp = self.InputModel(**kwargs)
         except Exception as exc:
-            raise ToolExecutionError(f"Invalid input: {exc}") from exc
+            raise ToolExecutionError("line_item_generator", f"Invalid input: {exc}") from exc
 
         prompt = (
             "You are an inventory assistant. The CSV has columns: "

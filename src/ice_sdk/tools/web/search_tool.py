@@ -91,7 +91,7 @@ class WebSearchTool(ToolBase):
 
         query = (query or "").strip()
         if not query:
-            raise ToolExecutionError("'query' parameter is required")
+            raise ToolExecutionError("search", "'query' parameter is required")
 
         n: int = num or self.config.num_results
 
@@ -107,7 +107,7 @@ class WebSearchTool(ToolBase):
 
         if resp.status_code != 200:
             snippet = resp.text[:200]
-            raise ToolExecutionError(f"SerpAPI error {resp.status_code}: {snippet}")
+            raise ToolExecutionError("search", f"SerpAPI error {resp.status_code}: {snippet}")
 
         payload = resp.json()
         organic: List[Dict[str, Any]] = payload.get("organic_results", [])

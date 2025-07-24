@@ -232,6 +232,53 @@ async def execute_unit(unit_name: str, request: DirectExecutionRequest) -> Direc
     )
 
 
+@router.post("/v1/llm/{model}", response_model=DirectExecutionResponse)
+async def execute_llm(model: str, request: DirectExecutionRequest) -> DirectExecutionResponse:
+    """Execute a single LLM node with the given prompt and inputs."""
+    
+    # Extract prompt from inputs or options
+    prompt = request.inputs.get("prompt", request.options.get("prompt", ""))
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required in inputs or options")
+    
+    # Create single-node blueprint
+    node_id = f"llm_quick_{uuid.uuid4().hex[:8]}"
+    blueprint = Blueprint(
+        blueprint_id=f"quick_llm_{uuid.uuid4().hex[:8]}",
+        nodes=[
+            NodeSpec(
+                id=node_id,
+                type="llm",
+                model=model,
+                prompt=prompt,
+                temperature=request.options.get("temperature", 0.7),
+                max_tokens=request.options.get("max_tokens", 500),
+                llm_config={"provider": request.options.get("provider", "openai")},
+                inputs=request.inputs,
+            )
+        ]
+    )
+    
+    # Execute through MCP
+    run_request = RunRequest(blueprint=blueprint)
+    run_ack = await start_run(run_request)
+    
+    # Wait for completion if requested
+    if request.wait_for_completion:
+        result = await wait_for_run_completion(run_ack.run_id, request.timeout)
+    else:
+        result = {"status": "running", "output": None, "error": None}
+    
+    return DirectExecutionResponse(
+        run_id=run_ack.run_id,
+        status=result["status"],
+        output=result.get("output"),
+        error=result.get("error"),
+        telemetry_url=run_ack.events_endpoint,
+        suggestions=get_ai_suggestions("llm", model, result) if result["status"] == "completed" else None
+    )
+
+
 @router.post("/v1/chains/{chain_name}", response_model=DirectExecutionResponse)
 async def execute_chain(chain_name: str, request: DirectExecutionRequest) -> DirectExecutionResponse:
     """Execute a single chain with the given inputs."""

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict
 
 import pytest
 
@@ -7,18 +7,10 @@ from ice_core.models import LLMConfig
 
 
 class _StubLLMService:  # pylint: disable=too-few-public-methods
-    async def generate(
-        self,
-        llm_config: LLMConfig,
-        prompt: str,
-        context: Optional[Dict[str, Any]] = None,
-        tools: Optional[list[Dict[str, Any]]] = None,
-        *,
-        timeout_seconds: Optional[int] = 30,
-        max_retries: int = 2,
-    ) -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:  # type: ignore[override]
-        _ = (llm_config, prompt, context, tools, timeout_seconds, max_retries)
-        return "This is a concise summary.", None, None
+    async def generate(self, prompt: str, config: LLMConfig) -> Dict[str, Any]:
+        """Match the actual LLMService interface."""
+        _ = (prompt, config)
+        return {"content": "This is a concise summary."}
 
 
 @pytest.mark.asyncio

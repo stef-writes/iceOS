@@ -70,7 +70,7 @@ class TestUnifiedRegistryCore:
     
     def test_missing_node_raises_error(self):
         """Test that missing nodes raise RegistryError."""
-        with pytest.raises(RegistryError, match="Node tool:missing not found"):
+        with pytest.raises(RegistryError, match="Node class tool:missing not found"):
             registry.get_class(NodeType.TOOL, "missing")
     
     def test_get_instance_creates_from_class(self):

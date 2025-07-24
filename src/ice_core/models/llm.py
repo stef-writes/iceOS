@@ -173,16 +173,24 @@ class MessageTemplate(BaseModel):
 class LLMConfig(BaseModel):
     """Provider-specific configuration for LLM calls."""
 
-    provider: Optional[str] = None
+    provider: ModelProvider = ModelProvider.OPENAI
     model: Optional[str] = None
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     max_context_tokens: Optional[int] = None
     api_key: Optional[str] = None
+    base_url: Optional[str] = None
+    timeout: int = 30
+    max_retries: int = 3
     top_p: Optional[float] = None
     frequency_penalty: Optional[float] = None
     presence_penalty: Optional[float] = None
     stop_sequences: Optional[list[str]] = None
+    
+    # Provider-specific settings
+    openai_api_version: Optional[str] = None
+    anthropic_version: Optional[str] = None
+    
     custom_parameters: Dict[str, Any] = Field(
         default_factory=dict, description="Provider-specific parameters"
     )

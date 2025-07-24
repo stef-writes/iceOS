@@ -33,7 +33,7 @@ class WebhookEmitterTool(ToolBase):
         **kwargs: Any,
     ) -> Dict[str, Any]:
         if not hasattr(ctx, "metadata"):
-            raise ToolExecutionError("'ctx' with metadata is required")
+            raise ToolExecutionError("webhook", "'ctx' with metadata is required")
 
         args = _WebhookArgs(**kwargs)
         async with httpx.AsyncClient(timeout=args.timeout) as client:

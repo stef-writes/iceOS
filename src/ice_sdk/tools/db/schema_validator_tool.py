@@ -32,9 +32,9 @@ class SchemaValidatorTool(ToolBase):
             schema = schema or input_data.get("schema")  # type: ignore[assignment]
             data = data or input_data.get("data")  # type: ignore[assignment]
         if not isinstance(schema, dict):
-            raise ToolExecutionError("'schema' must be object")
+            raise ToolExecutionError("schema_validator", "'schema' must be object")
         if data is None:
-            raise ToolExecutionError("'data' required")
+            raise ToolExecutionError("schema_validator", "'data' required")
 
         validator = Draft7Validator(schema)
         errors = sorted(validator.iter_errors(data), key=lambda e: e.path)

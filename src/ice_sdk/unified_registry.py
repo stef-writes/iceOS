@@ -164,7 +164,10 @@ class Registry(BaseModel):
     def register_agent(self, name: str, import_path: str) -> None:
         """Register an agent with its import path."""
         if name in self._agents:
-            raise RegistryError(f"Agent {name} already registered")
+            # Skip if already registered with same path (idempotent)
+            if self._agents[name] == import_path:
+                return
+            raise RegistryError(f"Agent {name} already registered with different path")
         self._agents[name] = import_path
     
     def get_agent_import_path(self, name: str) -> str:

@@ -38,15 +38,15 @@ class JinjaRenderTool(ToolBase):
             try:
                 return template_str.format(**ctx)
             except Exception as exc:
-                raise ToolExecutionError(f"Template rendering failed: {exc}") from exc
+                raise ToolExecutionError("jinja_render", f"Template rendering failed: {exc}") from exc
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         template = cast(str, kwargs.get("template", ""))
         ctx = cast(Dict[str, Any], kwargs.get("context", {}))
         if not isinstance(template, str):
-            raise ToolExecutionError("'template' must be a string")
+            raise ToolExecutionError("jinja_render", "'template' must be a string")
         if not isinstance(ctx, dict):
-            raise ToolExecutionError("'context' must be a dict")
+            raise ToolExecutionError("jinja_render", "'context' must be a dict")
 
         rendered = self._render_with_jinja(template, ctx)
         return {"rendered": rendered}

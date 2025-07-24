@@ -4,7 +4,7 @@ Generates compelling titles and descriptions for marketplace listings
 while being mindful of token usage and budget constraints.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, ClassVar, List, Optional
 from pydantic import Field
 
 from ice_core.base_tool import ToolBase
@@ -18,7 +18,7 @@ class ListingGeneratorTool(ToolBase):
     description: str = "Creates compelling marketplace titles and descriptions"
     
     # Templates to reduce token usage
-    TITLE_TEMPLATES = {
+    TITLE_TEMPLATES: ClassVar[Dict[str, str]] = {
         "Electronics": "{condition} {brand} {product} - {key_feature}",
         "Furniture": "{product} - {brand} {key_feature} {condition}",
         "Kitchen": "{brand} {product} Set - {condition}",
@@ -27,7 +27,7 @@ class ListingGeneratorTool(ToolBase):
     }
     
     # Enhanced prompt template for better quality
-    DESCRIPTION_PROMPT = """Create a compelling Facebook Marketplace listing description for this item:
+    DESCRIPTION_PROMPT: ClassVar[str] = """Create a compelling Facebook Marketplace listing description for this item:
 
 Product: {product_name}
 Category: {category}

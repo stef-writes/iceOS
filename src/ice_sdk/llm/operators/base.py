@@ -56,7 +56,15 @@ def llm_operator(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 class LLMOperatorConfig(BaseModel):
-    """Configuration for LLM operators."""
+    """Configuration for LLM operators.
+    
+    NOTE: This is NOT the same as ice_core.models.node_models.LLMOperatorConfig!
+    This is a simpler configuration used by SDK operators, while the one in
+    ice_core is a full workflow node configuration.
+    
+    This config is used by LLMOperator subclasses like SummarizerOperator,
+    InsightsOperator, etc. for their internal operation.
+    """
 
     provider: ModelProvider = ModelProvider.OPENAI
     model: str = "gpt-4-turbo"

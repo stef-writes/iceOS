@@ -64,11 +64,11 @@ class HttpRequestTool(ToolBase):
 
         method: str = str(input_data.get("method", self.config.method)).upper()
         if method not in {"GET", "POST"}:
-            raise ToolExecutionError("method must be 'GET' or 'POST'")
+            raise ToolExecutionError("http_request", "method must be 'GET' or 'POST'")
 
         url: str = str(input_data.get("url", ""))
         if not url:
-            raise ToolExecutionError("'url' parameter is required")
+            raise ToolExecutionError("http_request", "'url' parameter is required")
 
         params: Dict[str, Any] = input_data.get("params", {})
         data: Optional[Dict[str, Any]] = input_data.get("data")

@@ -2,10 +2,11 @@
 from typing import List, Dict, Any, Optional
 from ice_core.models import (
     NodeConfig, NodeType,
-    ToolNodeConfig, LLMNodeConfig, UnitNodeConfig,
-    AgentNodeConfig, WorkflowNodeConfig, ConditionNodeConfig,
-    LoopNodeConfig, ParallelNodeConfig, CodeNodeConfig
+    ToolNodeConfig, LLMOperatorConfig,
+    AgentNodeConfig, ConditionNodeConfig,
+    LLMConfig, ModelProvider
 )
+# Note: Unit, Workflow, Loop, Parallel, Code configs don't exist yet
 
 class WorkflowBuilder:
     """Build workflows with a fluent API."""
@@ -24,8 +25,8 @@ class WorkflowBuilder:
         """Add a tool node."""
         self.nodes.append(ToolNodeConfig(
             id=node_id,
-            type=NodeType.TOOL,
-            tool_ref=tool_name,
+            type="tool",  # Use string literal as ToolNodeConfig expects
+            tool_name=tool_name,  # Changed from tool_ref to tool_name
             tool_args=kwargs
         ))
         return self
@@ -38,11 +39,15 @@ class WorkflowBuilder:
         **kwargs
     ) -> "WorkflowBuilder":
         """Add an LLM node."""
-        self.nodes.append(LLMNodeConfig(
+        # Extract llm_config if provided in kwargs
+        llm_config = kwargs.pop('llm_config', LLMConfig(provider=ModelProvider.OPENAI))
+        
+        self.nodes.append(LLMOperatorConfig(
             id=node_id,
-            type=NodeType.LLM,
+            type="llm",  # Use string literal as expected
             model=model,
-            prompt_template=prompt,
+            prompt=prompt,  # LLMOperatorConfig expects 'prompt' not 'prompt_template'
+            llm_config=llm_config,
             **kwargs
         ))
         return self
@@ -65,16 +70,16 @@ class WorkflowBuilder:
     def add_agent(
         self,
         node_id: str,
-        agent_ref: str,
+        package: str,  # AgentNodeConfig uses 'package' not 'agent_ref'
         tools: List[str] = None,
         **kwargs
     ) -> "WorkflowBuilder":
         """Add an agent node."""
         self.nodes.append(AgentNodeConfig(
             id=node_id,
-            type=NodeType.AGENT,
-            agent_ref=agent_ref,
-            tools=tools or [],
+            type="agent",  # Use string literal
+            package=package,
+            tools=[],  # AgentNodeConfig expects List[ToolConfig], not List[str]
             **kwargs
         ))
         return self

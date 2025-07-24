@@ -32,3 +32,30 @@
 
 18. Avoid `importlib` or `__import__` in core layers unless inside a plugin registry. Dynamic imports must register with context manager.
 
+## Test Implementation Rules
+
+19. **Tests must validate the actual implementation, not assumptions**. When a test fails:
+    - FIRST inspect the actual implementation to understand how it works
+    - THEN fix the test to match the implementation
+    - ONLY change core code if there's an actual bug in the implementation
+
+20. **Before writing any test**, you MUST:
+    - Read the actual class/function being tested
+    - Check what fields, methods, and signatures actually exist
+    - Use the exact same field names, types, and patterns as the implementation
+
+21. **Test data must be realistic**. When creating test objects:
+    - Use the actual Pydantic models to validate test data
+    - Don't use mock field names that "seem reasonable" - use real ones
+    - Import and instantiate actual classes to verify structure
+
+22. **Implementation is the source of truth**:
+    - If tests fail, assume the test is wrong until proven otherwise
+    - Core models (LLMConfig, node configs, etc.) are battle-tested - don't change them
+    - Read imports, field definitions, and method signatures from actual files
+
+23. **When debugging test failures**:
+    - Use `grep_search` to find actual field names and types
+    - Use `read_file` to inspect model definitions
+    - Check existing working code that uses these models as examples
+

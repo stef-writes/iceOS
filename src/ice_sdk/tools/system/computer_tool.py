@@ -34,7 +34,7 @@ class ComputerTool(ToolBase):
         input_data: Dict[str, Any] = kwargs.get("input_data", kwargs)
         action = input_data.get("action")
         if action not in {"click", "type", "scroll", "screenshot"}:
-            raise ToolExecutionError("Unsupported action for computer tool")
+            raise ToolExecutionError("computer", "Unsupported action for computer tool")
 
         try:
             import pyautogui  # type: ignore
@@ -48,14 +48,14 @@ class ComputerTool(ToolBase):
                 x = input_data.get("x")
                 y = input_data.get("y")
                 if x is None or y is None:
-                    raise ToolExecutionError("'click' requires 'x' and 'y'")
+                    raise ToolExecutionError("computer", "'click' requires 'x' and 'y'")
                 await asyncio.to_thread(pyautogui.click, x, y)  # type: ignore[arg-type]
                 return {"success": True}
 
             if action == "type":
                 text = input_data.get("text")
                 if text is None:
-                    raise ToolExecutionError("'type' requires 'text'")
+                    raise ToolExecutionError("computer", "'type' requires 'text'")
                 await asyncio.to_thread(pyautogui.typewrite, str(text))  # type: ignore[arg-type]
                 return {"success": True}
 
@@ -63,7 +63,7 @@ class ComputerTool(ToolBase):
                 x = input_data.get("x", 0)
                 y = input_data.get("y")
                 if y is None:
-                    raise ToolExecutionError("'scroll' requires 'y' delta")
+                    raise ToolExecutionError("computer", "'scroll' requires 'y' delta")
                 await asyncio.to_thread(pyautogui.scroll, y, x=x)  # type: ignore[arg-type]
                 return {"success": True}
 
@@ -74,6 +74,6 @@ class ComputerTool(ToolBase):
                 encoded = base64.b64encode(buf.getvalue()).decode()
                 return {"image_base64": encoded}
         except Exception as exc:  # pragma: no cover
-            raise ToolExecutionError(f"Computer action failed: {exc}") from exc
+            raise ToolExecutionError("computer", f"Computer action failed: {exc}") from exc
 
         return {"success": False}

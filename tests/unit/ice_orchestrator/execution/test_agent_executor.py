@@ -6,6 +6,11 @@ import pytest
 
 from ice_core.models.node_models import AgentNodeConfig
 from ice_sdk.registry.node import get_executor
+from ice_sdk.unified_registry import registry
+from ice_core.models import NodeType
+
+# Import executors to ensure they're registered
+import ice_orchestrator.execution.executors.unified  # noqa: F401
 
 # Mark as unit so we can filter via -m "unit"
 pytestmark = [pytest.mark.unit]
@@ -41,6 +46,10 @@ class _BadAgent:
 
 _install_dummy_module("dummy_agents.good", _GoodAgent)
 _install_dummy_module("dummy_agents.bad", _BadAgent)
+
+# Register the agents so the executor can find them
+registry.register_instance(NodeType.AGENT, "dummy_agents.good", _GoodAgent())
+registry.register_instance(NodeType.AGENT, "dummy_agents.bad", _BadAgent())
 
 
 @pytest.mark.asyncio

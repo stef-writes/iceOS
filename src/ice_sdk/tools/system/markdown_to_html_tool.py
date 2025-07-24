@@ -42,7 +42,7 @@ class MarkdownToHTMLTool(ToolBase):
             "markdown"
         )
         if not isinstance(markdown_content, str):
-            raise ToolExecutionError("'markdown_content' must be a string")
+            raise ToolExecutionError("markdown_to_html", "'markdown_content' must be a string")
 
         html_output = self._convert(markdown_content)
         return {"html": html_output}

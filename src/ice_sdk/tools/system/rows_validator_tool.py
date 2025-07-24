@@ -63,7 +63,7 @@ class RowsValidatorTool(ToolBase):
         cleaned_rows: List[Dict[str, Any]] = []
         
         if not isinstance(input_data.rows, list):
-            raise ToolExecutionError("rows must be a list")
+            raise ToolExecutionError("rows_validator", "rows must be a list")
             
         for idx, row in enumerate(input_data.rows):
             if not isinstance(row, dict):

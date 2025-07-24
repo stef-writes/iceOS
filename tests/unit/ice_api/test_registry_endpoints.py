@@ -2,12 +2,16 @@ import pytest
 from fastapi.testclient import TestClient
 
 from ice_api.main import app
+from ice_sdk.services.initialization import initialize_services
+
+# Initialize services before creating test client
+initialize_services()
 
 client = TestClient(app)
 
 
 def test_list_tools_endpoint():
-    resp = client.get("/v1/tools")
+    resp = client.get("/api/v1/tools")
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
 

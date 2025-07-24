@@ -37,22 +37,14 @@ __all__: list[str] = [
     "NodeIO",
     "UsageMetadata",
     "ChainSpec",
-    # New node configs
-    "LLMNodeConfig",
-    "UnitNodeConfig",
-    "WorkflowNodeConfig",
-    "LoopNodeConfig",
-    "ParallelNodeConfig",
-    "CodeNodeConfig",
+    # Node configs that don't exist yet are removed
     # Protocols
     "ITool",
     "IRegistry",
     "IVectorIndex",
     "IEmbedder",
     "IWorkflow",
-    # Base implementations
-    "BaseNode",
-    "ToolBase",
+    # Base implementations removed - they're in ice_core.base
 ]
 
 from .app_config import AppConfig
@@ -60,17 +52,10 @@ from .enums import ModelProvider, NodeType
 from .llm import LLMConfig, MessageTemplate
 from .node_metadata import NodeMetadata
 from ..protocols.node import INode
-from .node_types import (
+# Node types removed - using definitions from node_models.py instead
+from .node_models import (
     BaseNodeConfig,
     RetryPolicy,
-    LLMNodeConfig,
-    UnitNodeConfig,
-    WorkflowNodeConfig,
-    LoopNodeConfig,
-    ParallelNodeConfig,
-    CodeNodeConfig,
-)
-from .node_models import (
     ChainExecutionResult,
     ChainMetadata,
     ChainSpec,
@@ -90,9 +75,8 @@ from .node_models import (
     ToolNodeConfig,
 )
 
-# Import protocols from new location
-from ..protocols import (
-    INode as INodeProtocol,  # Alias to avoid conflict
+# Import protocols from ice_core.protocols
+from ice_core.protocols import (
     ITool,
     IRegistry,
     IVectorIndex,

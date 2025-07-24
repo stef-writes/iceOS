@@ -5,9 +5,10 @@ In production, this would integrate with Facebook's Business API.
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, ClassVar
 from datetime import datetime
 from pathlib import Path
+import aiofiles
 from pydantic import Field
 
 from ice_core.base_tool import ToolBase
@@ -20,7 +21,7 @@ class MarketplacePublisherTool(ToolBase):
     description: str = "Publishes listings to Facebook Marketplace"
     
     # Simulated API endpoint (in production, this would be Facebook's API)
-    MARKETPLACE_API_ENDPOINT = "https://graph.facebook.com/v18.0/marketplace"
+    MARKETPLACE_API_ENDPOINT: ClassVar[str] = "https://graph.facebook.com/v18.0/marketplace"
     
     # Output directory for simulated posts
     OUTPUT_DIR = Path("examples/output/marketplace_posts")

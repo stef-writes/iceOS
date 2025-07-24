@@ -25,6 +25,8 @@ from typing import (
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from ice_core.models.llm import LLMConfig
+
 # ---------------------------------------------------------------------------
 # Retry policy --------------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -54,6 +56,7 @@ class RetryPolicy(BaseModel):
 # Imports
 # ---------------------------------------------------------------------------
 from ice_core.models.enums import ModelProvider
+from ice_core.models.node_metadata import NodeMetadata
 
 # ruff: noqa: F811
 
@@ -125,39 +128,13 @@ class ContextRule(BaseModel):
         default=True, description="Whether to truncate if context exceeds max_tokens"
     )
 
-# ---------------------------------------------------------------------------
-# LLM configuration --------------------------------------------------------
-# ---------------------------------------------------------------------------
-
-class LLMConfig(BaseModel):
-    """Provider-specific LLM configuration."""
-
-    provider: ModelProvider = Field(..., description="LLM provider")
-    api_key: Optional[str] = Field(None, description="API key (from env if None)")
-    base_url: Optional[str] = Field(None, description="Custom base URL")
-    timeout: int = Field(30, description="Request timeout in seconds")
-    max_retries: int = Field(3, description="Maximum retry attempts")
-
-    # Provider-specific settings
-    openai_api_version: Optional[str] = Field(None, description="OpenAI API version")
-    anthropic_version: Optional[str] = Field(None, description="Anthropic API version")
-
-    model_config = ConfigDict(extra="forbid")
+# LLMConfig now imported from ice_core.models.llm for consistency
 
 # ---------------------------------------------------------------------------
 # Base node configuration --------------------------------------------------
 # ---------------------------------------------------------------------------
 
-class NodeMetadata(BaseModel):
-    """Metadata for a node execution."""
-
-    node_id: str
-    node_type: str
-    name: Optional[str] = None
-    start_time: datetime
-    end_time: Optional[datetime] = None
-    version: Optional[str] = None
-    tags: List[str] = Field(default_factory=list)
+# NodeMetadata moved to node_metadata.py
 
 class BaseNodeConfig(BaseModel):
     """Common fields shared by all node configurations."""
@@ -307,6 +284,25 @@ class BaseNodeConfig(BaseModel):
 
 class LLMOperatorConfig(BaseNodeConfig):
     """Configuration for an LLM-powered node.
+    
+    This IS a node configuration! It represents a node in a workflow that uses
+    an LLM to process data. It contains both the workflow-specific settings
+    (prompt, temperature, etc.) AND an LLMConfig instance for provider settings.
+    
+    Don't confuse this with LLMConfig:
+    - LLMConfig = HOW to talk to the LLM provider (API settings)
+    - LLMOperatorConfig = WHAT to do with the LLM in a workflow (prompt, model, etc.)
+    
+    Example:
+        node = LLMOperatorConfig(
+            id="analyzer",
+            type="llm",
+            model="gpt-4",
+            prompt="Analyze this data: {input}",
+            llm_config=LLMConfig(provider=ModelProvider.OPENAI),
+            temperature=0.7,
+            max_tokens=500
+        )
 
     Historical note: early prototypes used the short discriminator value
     ``"ai"``.  This alias is now DEPRECATED – the canonical value going
@@ -372,17 +368,13 @@ class NestedChainConfig(BaseNodeConfig):
         """Ensure *chain* reference is resolvable when provided as a string."""
 
         if isinstance(self.chain, str):
-            try:
-                from ice_sdk.unified_registry import global_chain_registry
-                if self.chain not in [name for name, _ in global_chain_registry]:
-                    import warnings
-                    warnings.warn(
-                        f"NestedChainConfig.chain references unknown chain '{self.chain}' – continuing with placeholder.",
-                        RuntimeWarning,
-                    )
-            except ImportError:
-                # Registry not available, skip validation
-                pass
+            # Note: Chain validation should happen at the SDK/orchestrator layer,
+            # not in core models. Core models should remain pure data structures.
+            import warnings
+            warnings.warn(
+                f"NestedChainConfig.chain is a string reference '{self.chain}' - validation skipped at core layer.",
+                RuntimeWarning,
+            )
         return self
 
 class AgentNodeConfig(BaseNodeConfig):
@@ -406,6 +398,16 @@ class AgentNodeConfig(BaseNodeConfig):
     agent_config: Dict[str, Any] = Field(default_factory=dict)
     tools: Optional[List[ToolConfig]] = Field(default=None)
     memory: Optional[Dict[str, Any]] = Field(default=None)
+    max_iterations: int = Field(
+        default=10,
+        description="Maximum agent reasoning iterations to prevent infinite loops"
+    )
+    
+    # LLM configuration for the agent's reasoning
+    llm_config: Optional[LLMConfig] = Field(
+        default=None,
+        description="LLM configuration for agent reasoning. If None, uses defaults."
+    )
 
     @model_validator(mode="after")
     def _validate_attr(self) -> "AgentNodeConfig":

@@ -46,7 +46,7 @@ class CSVWriterTool(ToolBase):
         try:
             inp = self.InputModel(**kwargs)
         except Exception as exc:
-            raise ToolExecutionError(f"Invalid CSVWriter input: {exc}") from exc
+            raise ToolExecutionError("csv_writer", f"Invalid CSVWriter input: {exc}") from exc
 
         path = Path(inp.file_path)
 

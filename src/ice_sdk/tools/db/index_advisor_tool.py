@@ -32,9 +32,9 @@ class IndexAdvisorTool(ToolBase):
 
         queries = query_samples or []
         if not isinstance(table, str):
-            raise ToolExecutionError("'table' must be a string")
+            raise ToolExecutionError("index_advisor", "'table' must be a string")
         if not isinstance(queries, list):
-            raise ToolExecutionError("'query_samples' must be list[str]")
+            raise ToolExecutionError("index_advisor", "'query_samples' must be list[str]")
 
         suggestions: List[str] = []
         for q in queries:

@@ -21,7 +21,7 @@ class ExplainPlanTool(ToolBase):
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         sql = kwargs.get("sql")
         if not isinstance(sql, str):
-            raise ToolExecutionError("'sql' must be a string")
+            raise ToolExecutionError("explain_plan", "'sql' must be a string")
 
         # Simple fake plan splitting tokens
         steps = [token for token in sql.strip().split() if token]

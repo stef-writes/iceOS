@@ -4,20 +4,20 @@ Generates appropriate responses to common buyer inquiries while
 maintaining a professional and helpful tone.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional, ClassVar, List
 from pydantic import Field
 
 from ice_core.base_tool import ToolBase
 
 
 class InquiryResponderTool(ToolBase):
-    """Generates responses to marketplace buyer inquiries."""
+    """Generates contextual responses to buyer inquiries based on listing data."""
     
     name: str = "inquiry_responder"
     description: str = "Creates appropriate responses to buyer questions"
     
     # Common inquiry patterns and template responses
-    RESPONSE_TEMPLATES = {
+    RESPONSE_TEMPLATES: ClassVar[Dict[str, Dict[str, Any]]] = {
         "availability": {
             "keywords": ["available", "still have", "sold", "in stock"],
             "response": "Hi! Yes, this {product} is still available. We have {stock} units in stock. Would you like to arrange a viewing or pickup?"
@@ -49,7 +49,7 @@ class InquiryResponderTool(ToolBase):
     }
     
     # Condition-specific details
-    CONDITION_DETAILS = {
+    CONDITION_DETAILS: ClassVar[Dict[str, str]] = {
         "New": "It's brand new in original packaging, never opened or used.",
         "Open Box": "The box was opened for inspection but the item was never used. All original accessories included.",
         "Refurbished": "Professionally refurbished to work like new. Fully tested and cleaned.",
