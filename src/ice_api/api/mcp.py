@@ -1,13 +1,25 @@
-"""MCP (Model Context Protocol) HTTP endpoint – complete implementation.
+"""MCP (Model Context Protocol) API implementation.
 
-Exposes three operations required for the Frosty ➔ iceOS control-plane loop:
-1. POST /blueprints – register or upsert a workflow blueprint.
-2. POST /runs       – execute a blueprint (by id or inline).
-3. GET  /runs/{id}  – fetch final result (202 while running).
-4. GET  /runs/{id}/events – SSE telemetry (stub – plain text for now).
+WHY THIS MODULE EXISTS:
+- This is the "Compiler Tier" of the 3-tier architecture
+- Validates blueprints before they reach the runtime
+- Enables incremental construction for canvas UI
+- Provides optimization and governance before execution
 
-The data models intentionally mirror the draft YAML spec so we can generate
-OpenAPI later with *fastapi.openapi.utils.get_openapi*.
+ARCHITECTURAL ROLE:
+- Receives: Blueprint specifications (from Frosty/UI)
+- Validates: Schema, permissions, budget limits
+- Optimizes: Suggests better models, caching opportunities
+- Returns: Validated blueprints ready for runtime
+
+KEY FEATURES:
+1. Partial blueprint support for incremental canvas building
+2. Multi-tenancy with isolated contexts
+3. Cost estimation before execution
+4. Governance rules (PII, budget caps)
+
+This layer exists to separate "design time" from "runtime" - allowing
+the canvas UI to build workflows progressively without executing them.
 """
 
 from __future__ import annotations
@@ -19,6 +31,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, status
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -214,7 +227,8 @@ async def start_run(req: RunRequest) -> RunAck:
 
         # Event emitter closure ---------------------------------------
         def _emit(evt_name: str, payload: dict) -> None:
-            redis.xadd(_stream_key(run_id), {"event": evt_name, "payload": json.dumps(payload)})  # type: ignore[arg-type]
+            # Schedule the async Redis call without blocking
+            asyncio.create_task(redis.xadd(_stream_key(run_id), {"event": evt_name, "payload": json.dumps(payload)}))  # type: ignore[arg-type]
 
         result_obj = await _get_workflow_service().execute(
             conv_nodes,
@@ -345,7 +359,7 @@ except ImportError:  # pragma: no cover – SSE optional
 @router.get("/workflows/{workflow_id}/graph/metrics")
 async def get_workflow_graph_metrics(workflow_id: str):
     """Get comprehensive graph analysis metrics for a workflow."""
-    workflow_service = get_workflow_service()
+    workflow_service = _get_workflow_service()
     try:
         workflow = await workflow_service.get_workflow(workflow_id)
         metrics = workflow.get_graph_metrics()
@@ -357,7 +371,7 @@ async def get_workflow_graph_metrics(workflow_id: str):
 @router.get("/workflows/{workflow_id}/graph/layout")
 async def get_workflow_layout_hints(workflow_id: str):
     """Get intelligent layout hints for canvas visualization."""
-    workflow_service = get_workflow_service()
+    workflow_service = _get_workflow_service()
     try:
         workflow = await workflow_service.get_workflow(workflow_id)
         layout_hints = workflow.get_visual_layout_hints()
@@ -369,7 +383,7 @@ async def get_workflow_layout_hints(workflow_id: str):
 @router.get("/workflows/{workflow_id}/graph/analysis")
 async def get_workflow_graph_analysis(workflow_id: str):
     """Get comprehensive graph analysis including paths, bottlenecks, and optimization suggestions."""
-    workflow_service = get_workflow_service()
+    workflow_service = _get_workflow_service()
     try:
         workflow = await workflow_service.get_workflow(workflow_id)
         
@@ -388,7 +402,7 @@ async def get_workflow_graph_analysis(workflow_id: str):
 @router.get("/workflows/{workflow_id}/nodes/{node_id}/impact")
 async def analyze_node_impact(workflow_id: str, node_id: str):
     """Analyze the impact of changes to a specific node."""
-    workflow_service = get_workflow_service()
+    workflow_service = _get_workflow_service()
     try:
         workflow = await workflow_service.get_workflow(workflow_id)
         impact = workflow.analyze_node_impact(node_id)
@@ -400,7 +414,7 @@ async def analyze_node_impact(workflow_id: str, node_id: str):
 @router.get("/workflows/{workflow_id}/nodes/{node_id}/suggestions")
 async def get_node_suggestions(workflow_id: str, node_id: str):
     """Get AI-powered suggestions for next nodes after the specified node."""
-    workflow_service = get_workflow_service()
+    workflow_service = _get_workflow_service()
     try:
         workflow = await workflow_service.get_workflow(workflow_id)
         suggestions = workflow.suggest_next_nodes(node_id)
@@ -412,7 +426,7 @@ async def get_node_suggestions(workflow_id: str, node_id: str):
 @router.post("/workflows/{workflow_id}/graph/patterns")
 async def find_workflow_patterns(workflow_id: str, pattern_nodes: List[str]):
     """Find similar patterns in the workflow for refactoring opportunities."""
-    workflow_service = get_workflow_service()
+    workflow_service = _get_workflow_service()
     try:
         workflow = await workflow_service.get_workflow(workflow_id)
         patterns = workflow.find_workflow_patterns(pattern_nodes)
