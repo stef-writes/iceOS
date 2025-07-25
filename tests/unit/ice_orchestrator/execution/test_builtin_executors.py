@@ -1,5 +1,6 @@
 import types
 from typing import Any, Dict
+from unittest.mock import Mock, AsyncMock
 
 import pytest
 
@@ -10,8 +11,9 @@ from ice_core.models.node_models import (
     LLMConfig,
 )
 from ice_core.models.enums import ModelProvider
-from ice_orchestrator.execution.executors.builtin import llm_executor, tool_executor
-from ice_orchestrator.execution.executors.condition import condition_executor
+from ice_orchestrator.execution.executors.unified import (
+    llm_executor, tool_executor, condition_executor
+)
 
 pytestmark = [pytest.mark.unit]
 
@@ -29,6 +31,8 @@ class _StubContextManager:  # pylint: disable=too-few-public-methods
 
 class _StubChain:  # pylint: disable=too-few-public-methods
     context_manager = _StubContextManager()
+    _agent_cache = {}
+    _chain_tools = []
 
 
 # Patch LLMService.generate for llm_executor ----------------------------------
@@ -64,6 +68,17 @@ async def test_llm_executor_stubbed(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_tool_executor_placeholder(monkeypatch):
+    # For the protocol-based executor, we need to mock the registry
+    from ice_sdk.unified_registry import registry
+    from ice_core.models import NodeType
+    
+    # Create a mock tool
+    mock_tool = Mock()
+    mock_tool.execute = AsyncMock(return_value={"echoed": "bar"})
+    
+    # Register the mock tool
+    registry.register_instance(NodeType.TOOL, "echo_tool", mock_tool)
+    
     cfg = ToolNodeConfig(
         id="tool1",
         type="tool",
@@ -78,7 +93,14 @@ async def test_tool_executor_placeholder(monkeypatch):
     out = await tool_executor(_StubChain(), cfg, ctx)  # type: ignore[arg-type]
 
     assert out.success is True
-    assert out.output == {"name": "echo_tool", "args": {"msg": "bar"}}
+    assert out.output == {"echoed": "bar"}
+    
+    # Clean up
+    try:
+        del registry._instances[f"{NodeType.TOOL}:echo_tool"]
+    except KeyError:
+        # Already cleaned up
+        pass
 
 
 @pytest.mark.asyncio

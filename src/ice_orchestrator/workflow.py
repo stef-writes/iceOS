@@ -1,7 +1,26 @@
-"""Core workflow execution engine.
+"""Core workflow execution engine for iceOS.
 
-This is the main orchestration engine for iceOS that provides a level-based 
-DAG executor with robust error-handling, context propagation and agent integration.
+WHY THIS MODULE EXISTS:
+- This is the "Runtime Tier" of the 3-tier architecture
+- Executes validated blueprints from the MCP tier with guarantees
+- Handles all runtime concerns: retries, caching, error recovery
+- Provides deterministic execution with full observability
+
+ARCHITECTURAL CONTEXT:
+- Receives: Validated blueprints (from MCP tier)
+- Executes: Via NodeExecutor with proper error handling
+- Returns: Detailed execution results with costs and telemetry
+- Future: Will provide optimization hints back to Frosty
+
+KEY RESPONSIBILITIES:
+1. DAG-based execution with proper dependency resolution
+2. Context propagation between nodes
+3. Cost tracking and budget enforcement
+4. Event streaming for real-time updates
+5. Graceful degradation and error recovery
+
+This is intentionally complex because it handles ALL runtime concerns
+so that the blueprint layer can remain pure and focused on validation.
 """
 
 from __future__ import annotations
@@ -45,7 +64,6 @@ from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 from ice_sdk.agents import AgentNode
 from ice_sdk.config import runtime_config
 from ice_sdk.context import GraphContextManager
-from ice_sdk.services.locator import get_workflow_proto
 from ice_sdk.tools.base import ToolBase
 
 # ---------------------------------------------------------------------------
@@ -177,9 +195,6 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         from ice_core.cache import global_cache  # local import to avoid cycles
 
         self._cache = global_cache()
-
-        # Service locator for workflow protocol
-        self.workflow_cls = get_workflow_proto()
 
         # Log initialization
         logger.info(
@@ -1051,7 +1066,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             from ice_core.models.workflow import SubDAGResult
 
             if isinstance(result.output, SubDAGResult):
-                subdag = self.workflow_cls.from_dict(result.output.workflow_data)
+                subdag = Workflow.from_dict(result.output.workflow_data)
                 subdag.validate()  # From Rule 13
                 return await self.execute_workflow(subdag)
 

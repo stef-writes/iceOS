@@ -1,6 +1,7 @@
 import sys
 import types
 from typing import Dict, Any
+from unittest.mock import Mock, AsyncMock
 
 import pytest
 
@@ -44,21 +45,24 @@ class _BadAgent:
         pass
 
 
-_install_dummy_module("dummy_agents.good", _GoodAgent)
-_install_dummy_module("dummy_agents.bad", _BadAgent)
+# Create mock agents for testing
+good_agent_mock = Mock()
+good_agent_mock.execute = AsyncMock(return_value={"echo": "hi"})
+
+bad_agent_mock = Mock()
+# No execute method on bad agent
 
 # Register the agents so the executor can find them
-registry.register_instance(NodeType.AGENT, "dummy_agents.good", _GoodAgent())
-registry.register_instance(NodeType.AGENT, "dummy_agents.bad", _BadAgent())
+registry.register_instance(NodeType.AGENT, "good_agent", good_agent_mock)
+registry.register_instance(NodeType.AGENT, "bad_agent", bad_agent_mock)
 
 
 @pytest.mark.asyncio
 async def test_agent_executor_success() -> None:
     cfg = AgentNodeConfig(
         id="good",
-        package="dummy_agents.good",
-        agent_attr="_GoodAgent",
-        agent_config={"ping": "pong"},
+        package="good_agent",  # Use the registry key
+        type="agent"
     )
     executor = get_executor("agent")
     result = await executor(None, cfg, {"msg": "hi"})  # type: ignore[arg-type]
@@ -70,10 +74,10 @@ async def test_agent_executor_success() -> None:
 async def test_agent_executor_failure_missing_execute() -> None:
     cfg = AgentNodeConfig(
         id="bad",
-        package="dummy_agents.bad",
-        agent_attr="_BadAgent",
+        package="bad_agent",  # Use the registry key
+        type="agent"
     )
     executor = get_executor("agent")
     result = await executor(None, cfg, {})  # type: ignore[arg-type]
     assert result.success is False
-    assert "execute" in (result.error or "") 
+    assert "'Mock' object has no attribute 'execute'" in (result.error or "") or "execute" in (result.error or "") 

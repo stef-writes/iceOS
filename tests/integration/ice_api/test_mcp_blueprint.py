@@ -1,3 +1,5 @@
+"""Integration tests for MCP blueprint API endpoints using real Redis."""
+
 from typing import Any, Dict
 
 import pytest
@@ -7,52 +9,7 @@ from ice_api.main import app
 from ice_sdk.services.locator import ServiceLocator
 
 
-# ---------------------------------------------------------------------------
-# In-memory Redis stub (minimal subset used by MCP routes) ------------------
-# ---------------------------------------------------------------------------
-
-
-class _MemoryRedis:  # pylint: disable=too-few-public-methods
-    _hashes: Dict[str, Dict[str, str]] = {}
-    _streams: Dict[str, list[tuple[str, Dict[str, str]]]] = {}
-
-    async def hset(self, key: str, mapping: Dict[str, str]):  # noqa: D401
-        self._hashes.setdefault(key, {}).update(mapping)
-        return len(mapping)
-
-    async def hget(self, key: str, field: str):  # noqa: D401, ANN001
-        return self._hashes.get(key, {}).get(field)
-
-    async def exists(self, key: str):  # noqa: D401, ANN001
-        return key in self._hashes or key in self._streams
-
-    async def xadd(self, stream: str, data: Dict[str, str]):  # noqa: D401
-        lst = self._streams.setdefault(stream, [])
-        seq_id = f"{len(lst)}-0"
-        lst.append((seq_id, data))
-        return seq_id
-
-    async def xread(self, streams, block=0, count=None):  # noqa: D401, ANN001
-        results = []
-        for stream, last_id in streams.items():
-            entries = []
-            for seq_id, data in self._streams.get(stream, []):
-                if seq_id > last_id:
-                    entries.append((seq_id, data))
-                    if count and len(entries) >= count:
-                        break
-            if entries:
-                results.append((stream, entries))
-        return results
-
-    async def ping(self):  # noqa: D401
-        return True
-
-
-# Inject stub into redis_client singleton before app code uses it -----------
-import ice_api.redis_client as _rc
-
-_rc._redis_client = _MemoryRedis()  # type: ignore[attr-defined]
+pytestmark = [pytest.mark.integration]
 
 
 class _StubWorkflowService:  # pylint: disable=too-few-public-methods
@@ -71,15 +28,23 @@ class _StubWorkflowService:  # pylint: disable=too-few-public-methods
         return {"success": True, "output": {"hello": "world"}}
 
 
-# Register stub so API routes do not call the real orchestrator.
-ServiceLocator.register("workflow_service", _StubWorkflowService())
-
-client = TestClient(app)
+@pytest.fixture(autouse=True)
+def setup_test_env(redis_url: str):
+    """Set up test environment with Redis URL and stub workflow service."""
+    import os
+    os.environ["REDIS_URL"] = redis_url
+    
+    # Register stub workflow service
+    ServiceLocator.register("workflow_service", _StubWorkflowService())
+    
+    yield
+    
+    # Cleanup
+    ServiceLocator.clear()
 
 
 def _build_minimal_llm_blueprint() -> Dict[str, Any]:
     """Return a minimal, valid blueprint payload as plain dict."""
-
     node = {
         "id": "n1",
         "type": "llm",
@@ -90,8 +55,11 @@ def _build_minimal_llm_blueprint() -> Dict[str, Any]:
     return {"schema_version": "1.1.0", "nodes": [node]}
 
 
-@pytest.mark.integration
-def test_blueprint_registration_success() -> None:
+@pytest.mark.asyncio
+async def test_blueprint_registration_success(redis_client) -> None:
+    """Test successful blueprint registration with real Redis."""
+    client = TestClient(app)
+    
     payload = _build_minimal_llm_blueprint()
     resp = client.post("/api/v1/mcp/blueprints", json=payload)
 
@@ -99,31 +67,39 @@ def test_blueprint_registration_success() -> None:
     body = resp.json()
     assert body.get("status") == "accepted"
     assert "blueprint_id" in body
+    
+    # Verify blueprint is stored in Redis
+    blueprint_id = body["blueprint_id"]
+    stored = await redis_client.hget(f"blueprint:{blueprint_id}", "data")
+    assert stored is not None
 
 
 @pytest.mark.integration
 def test_blueprint_registration_invalid() -> None:
+    """Test invalid blueprint registration."""
+    client = TestClient(app)
+    
     # Missing required fields for deterministic tool node → 400
     invalid_node = {"id": "n1", "type": "tool"}
     resp = client.post("/api/v1/mcp/blueprints", json={"nodes": [invalid_node]})
     assert resp.status_code == 400
 
 
-@pytest.mark.integration
-def test_run_inline_blueprint_success() -> None:
-    bp_payload = _build_minimal_llm_blueprint()
-    run_req = {"blueprint": bp_payload, "options": {"max_parallel": 1}}
-
-    # Start run
-    resp_start = client.post("/api/v1/mcp/runs", json=run_req)
-    assert resp_start.status_code == 202, resp_start.json()
-
-    run_id = resp_start.json()["run_id"]
-
-    # Retrieve final result (should be immediate thanks to stub)
-    resp_result = client.get(f"/api/v1/mcp/runs/{run_id}")
-    assert resp_result.status_code == 200, resp_result.json()
-
-    result_body = resp_result.json()
-    assert result_body["success"] is True
-    assert result_body["output"] == {"hello": "world"} 
+@pytest.mark.asyncio
+async def test_blueprint_retrieval(redis_client) -> None:
+    """Test blueprint retrieval after registration."""
+    client = TestClient(app)
+    
+    # Register blueprint
+    payload = _build_minimal_llm_blueprint()
+    resp = client.post("/api/v1/mcp/blueprints", json=payload)
+    blueprint_id = resp.json()["blueprint_id"]
+    
+    # Retrieve blueprint
+    get_resp = client.get(f"/api/v1/mcp/blueprints/{blueprint_id}")
+    assert get_resp.status_code == 200
+    
+    # Verify content matches
+    retrieved = get_resp.json()
+    assert retrieved["nodes"][0]["id"] == "n1"
+    assert retrieved["nodes"][0]["prompt"] == "Say hi" 

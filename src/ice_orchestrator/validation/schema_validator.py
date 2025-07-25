@@ -46,9 +46,9 @@ class SchemaValidator:  # – internal utility
             )
 
         # --------------------------------------------------------------
-        # Validate schema dict literals first -------------------------
+        # Validate schema dict literals first (now supports JSON Schema)
         if isinstance(schema, dict):
-            from ice_core.utils.schema import is_valid_schema_dict
+            from ice_core.utils.json_schema import is_valid_schema_dict
 
             ok, errs = is_valid_schema_dict(schema)
             if not ok:
@@ -92,27 +92,14 @@ class SchemaValidator:  # – internal utility
             pass
 
         # ------------------------------------------------------------------
-        # 2. dict schema – leverage nested validation helper -----------------
+        # 2. dict schema – use new JSON Schema validation ------------------
         # ------------------------------------------------------------------
         if isinstance(schema, dict):
-            # Accept both {key: "type"} and {key: <type>} formats ------------
-            normalized_schema: dict[str, type] = {}
-            for key, expected in schema.items():
-                if isinstance(expected, str):
-                    try:
-                        normalized_schema[key] = eval(expected)
-                    except Exception:
-                        # Fallback to 'Any' when type string cannot be resolved
-                        from typing import Any  # local import to avoid top-level
-
-                        normalized_schema[key] = Any  # type: ignore[assignment]
-                else:
-                    normalized_schema[key] = expected  # type: ignore[assignment]
-
-            from ice_core.utils.nested_validation import validate_nested_output
-
-            errors = validate_nested_output(output, normalized_schema)
-            return len(errors) == 0
+            from ice_core.utils.json_schema import validate_with_schema
+            
+            # Use the new validator that handles both simple and JSON Schema
+            is_valid, errors, _ = validate_with_schema(output, schema)
+            return is_valid
 
         # Unknown schema format – consider valid to avoid false negatives
         return True

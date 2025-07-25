@@ -18,6 +18,8 @@ from ice_sdk.services.locator import ServiceLocator
 from ice_sdk.tools.service import ToolService
 from ice_sdk.context import GraphContextManager
 from fastapi.testclient import TestClient
+from ice_core.models.llm import LLMConfig
+from ice_core.models.enums import ModelProvider
 
 
 @pytest.fixture(autouse=True)
@@ -459,7 +461,9 @@ class TestComprehensiveDemoFlow:
             "prompt": "Analyze this sales data and provide insights: {data}",
             "dependencies": ["load_data"],
             "pending_inputs": ["data"],  # Tell Frosty we need 'data'
-            "llm_config": {"provider": "openai"}
+            "llm_config": {"provider": "openai"},
+            "temperature": 0.7,
+            "max_tokens": 500
         }
         
         response = test_client.put(
@@ -475,13 +479,33 @@ class TestComprehensiveDemoFlow:
         return bp_id
     
     def test_demo_section_3_execution(self, test_client: TestClient, sample_csv_data: str):
-        """Test Section 3: Workflow Execution."""
-        # Create a finalized blueprint first
-        blueprint_id = self.test_demo_section_1_incremental_construction(test_client, sample_csv_data)
+        """Test Section 3: Real Workflow Execution (skip LLM calls)."""
+        # Build complete blueprint
+        blueprint = {
+            "schema_version": "1.1.0",
+            "nodes": [
+                {
+                    "id": "load_data",
+                    "type": "tool",
+                    "tool_name": "csv_reader",
+                    "tool_args": {"file_path": sample_csv_data}
+                },
+                {
+                    "id": "analyze_trends",
+                    "type": "llm",
+                    "model": "gpt-4",
+                    "prompt": "Analyze this sales data: {rows}",
+                    "dependencies": ["load_data"],
+                    "llm_config": {"provider": "openai"},
+                    "temperature": 0.7,
+                    "max_tokens": 500
+                }
+            ]
+        }
         
         # Execute the workflow
         run_request = {
-            "blueprint_id": blueprint_id,
+            "blueprint": blueprint,
             "options": {"max_parallel": 5}
         }
         

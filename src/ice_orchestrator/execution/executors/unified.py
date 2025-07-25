@@ -107,7 +107,7 @@ async def llm_executor(
         
         # Create LLM configuration
         llm_config = LLMConfig(
-            provider=getattr(cfg.llm_config, 'provider', 'openai') if hasattr(cfg, 'llm_config') else 'openai',
+            provider=cfg.llm_config.provider,  # Use the provider from llm_config
             model=cfg.model,
             max_tokens=cfg.max_tokens,
             temperature=cfg.temperature

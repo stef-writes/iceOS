@@ -111,8 +111,12 @@ async def execute_tool(tool_name: str, request: DirectExecutionRequest) -> Direc
             NodeSpec(
                 id=node_id,
                 type="tool",
-                name=tool_name,
-                inputs=request.inputs,
+                tool_name=tool_name,  # ToolNodeConfig expects tool_name
+                tool_args=request.inputs,  # ToolNodeConfig expects tool_args
+                # Design-time schemas for MCP validation
+                # Tools typically have dict inputs and dict outputs
+                input_schema={"args": "dict"},
+                output_schema={"result": "dict"},
                 **request.options
             )
         ]
@@ -158,8 +162,12 @@ async def execute_agent(agent_name: str, request: DirectExecutionRequest) -> Dir
             NodeSpec(
                 id=node_id,
                 type="agent",
-                name=agent_name,
-                inputs=request.inputs,
+                package=agent_name,  # AgentNodeConfig expects 'package' not 'name'
+                agent_config=request.inputs,  # Pass inputs as agent_config
+                # Design-time schemas for MCP validation
+                # Agents typically have context inputs and structured outputs
+                input_schema={"context": "dict"},
+                output_schema={"response": "dict"},
                 **request.options
             )
         ]
@@ -291,9 +299,12 @@ async def execute_chain(chain_name: str, request: DirectExecutionRequest) -> Dir
         nodes=[
             NodeSpec(
                 id=node_id,
-                type="workflow",
-                workflow_ref=chain_name,
-                inputs=request.inputs,
+                type="nested_chain",  # Use nested_chain type which has a config class
+                chain=chain_name,  # NestedChainConfig expects 'chain' field
+                # Design-time schemas for MCP validation
+                # Chains typically have workflow inputs and outputs
+                input_schema={"inputs": "dict"},
+                output_schema={"outputs": "dict"},
                 **request.options
             )
         ]

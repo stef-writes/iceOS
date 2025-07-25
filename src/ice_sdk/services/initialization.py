@@ -19,13 +19,8 @@ def initialize_services() -> None:
         >>> # Now all services are available through ServiceLocator
         >>> workflow_service = ServiceLocator.get("workflow_service")
     """
-    # Import executor modules to register them with the unified registry
-    try:
-        import ice_orchestrator.execution.executors.unified  # noqa: F401
-        import ice_orchestrator.execution.executors  # noqa: F401
-    except ImportError:
-        # Executors not available
-        pass
+    # NOTE: Executors are now registered by the orchestrator layer itself
+    # when it's imported. This avoids layer boundary violations.
     
     # Initialize orchestrator if available
     try:

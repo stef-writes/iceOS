@@ -153,14 +153,17 @@ class TestProtocolBasedLLMExecutor:
     
     @pytest.fixture
     def llm_config(self):
+        from ice_core.models.llm import LLMConfig
+        from ice_core.models.enums import ModelProvider
+        
         return LLMNodeConfig(
             id="test_llm",
             name="Test Analyzer",
             model="gpt-4-turbo",
-            prompt_template="Analyze this data: {data}",
+            prompt="Analyze this data: {data}",  # Changed from prompt_template
             temperature=0.7,
             max_tokens=500,
-            provider="openai"
+            llm_config=LLMConfig(provider=ModelProvider.OPENAI)  # Added required field
         )
     
     @pytest.fixture(autouse=True)

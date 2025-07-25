@@ -169,18 +169,24 @@ class TestContextManagerIntegration:
         
         ctx_manager = GraphContextManager(project_root=Path.cwd())
         
+        # CSVReaderTool is already registered globally at import time
+        # So the tool_service already knows about it
+        assert "csv_reader" in tool_service.available_tools()
+        
+        # Create tool instances
         tool1 = CSVReaderTool()
         tool2 = CSVReaderTool()
         
-        # First registration should work
+        # First registration in context manager should work
         ctx_manager.register_tool(tool1)
+        assert ctx_manager.get_tool("csv_reader") is tool1
         
-        # Second registration should raise error for context manager
+        # Second registration in context manager should raise error
         with pytest.raises(ValueError, match="Tool 'csv_reader' already registered"):
             ctx_manager.register_tool(tool2)
         
-        # But tool service should handle class duplicate gracefully
-        # (this is tested by calling register_tool which calls tool_service.register)
+        # Verify the first tool is still registered
+        assert ctx_manager.get_tool("csv_reader") is tool1
 
 
 class TestServiceInitializationErrorHandling:
@@ -194,7 +200,7 @@ class TestServiceInitializationErrorHandling:
     
     def test_missing_orchestrator_handled_gracefully(self):
         """Test that missing orchestrator doesn't break SDK initialization."""
-        with patch('ice_sdk.services.initialization.initialize_orchestrator') as mock_init:
+        with patch('ice_orchestrator.initialize_orchestrator') as mock_init:
             mock_init.side_effect = ImportError("No orchestrator")
             
             # Should not raise an exception

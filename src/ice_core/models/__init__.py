@@ -20,7 +20,7 @@ __all__: list[str] = [
     "ModelProvider",
     "LLMConfig",
     "MessageTemplate",
-    "AppConfig",
+    # AppConfig removed - runtime config doesn't belong in core layer
     "NodeConfig",
     "LLMOperatorConfig",
     "ToolNodeConfig",
@@ -47,7 +47,7 @@ __all__: list[str] = [
     # Base implementations removed - they're in ice_core.base
 ]
 
-from .app_config import AppConfig
+# AppConfig removed - runtime config doesn't belong in core layer
 from .enums import ModelProvider, NodeType
 from .llm import LLMConfig, MessageTemplate
 from .node_metadata import NodeMetadata

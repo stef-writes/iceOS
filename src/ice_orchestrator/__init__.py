@@ -18,6 +18,10 @@ def initialize_orchestrator() -> None:
     This function should be called once during application startup to register
     all orchestrator services that the SDK and API layers need.
     """
+    # Import executors to register them with the unified registry
+    from ice_orchestrator.execution.executors import unified  # noqa: F401
+    from ice_orchestrator.execution import executors  # noqa: F401
+    
     # Register workflow service for MCP/API usage
     ServiceLocator.register("workflow_service", WorkflowService())
     

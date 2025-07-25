@@ -1,45 +1,42 @@
-# ice_core – Domain Layer
+# ice_core - Foundation Layer
 
-## Overview
-`ice_core` contains **pure, side-effect-free** business objects for IceOS.  
-It is the _lowest_ layer in the stack and therefore must remain completely
-decoupled from IO, frameworks, and higher-level packages.
+## Vision Context
 
-Typical contents:
-* `models/` – typed Pydantic & Enum models shared across layers
-* `exceptions.py` – domain-specific, typed error hierarchy
-* `utils/` – functional helpers that are safe to import anywhere
+This is the foundation for the **3-tier iceOS architecture**:
+- 🧊 **Frosty** (Interpreter) → Natural language to blueprints
+- 📋 **MCP API** (Compiler) → Blueprint validation & optimization ← *Core models used here*
+- ⚙️ **Orchestrator** (Runtime) → Deterministic execution
 
-## Quick-start
-```python
-from ice_core.models.llm import LLMConfig
-from ice_core.models.enums import ModelProvider
-from ice_core.exceptions import CoreError, ErrorCode
+## Why This Layer Exists
 
-# Rich, unified LLMConfig with all parameters
-cfg = LLMConfig(
-    provider=ModelProvider.OPENAI,  # Uses enum, not string
-    model="gpt-4",
-    temperature=0.7,
-    max_tokens=4096,
-    api_key="sk-...",  # Usually from env
-    timeout=30
-)
-# Note: LLMConfig doesn't have is_valid() method - Pydantic validates on creation
-```
+`ice_core` provides the **pure domain models** that all other layers build upon:
 
-## Contract & Rules
-* **No side-effects** – pure functions / dataclasses only.
-* **No outward imports** – MUST NOT import `ice_sdk`, `ice_orchestrator`, `ice_api`,
-  or any framework code.  
-* Raise only the typed exceptions defined in this layer.
+1. **Blueprint Models** (`models/node_models.py`)
+   - Config classes like `LLMOperatorConfig`, `ToolNodeConfig`
+   - These represent the "design time" form created by Frosty
+   - Support incremental canvas construction
 
-## Development
-```bash
-# run full suite (unit, type, lint)
-make test
-```
-`mypy --strict` must pass before PRs merge. Test coverage ≥90 %.
+2. **Protocol Interfaces** (`protocols/`)
+   - Define contracts between layers
+   - Enable testing with simple stubs
+   - Keep layers loosely coupled
 
-## License
-MIT – see top-level `LICENSE`. 
+3. **Pure Utilities** (`utils/`)
+   - No side effects or I/O
+   - Shared by all layers above
+
+## Multi-Granularity Support
+
+The models support Frosty's 4-level translation:
+- **Tool**: `ToolNodeConfig` - Single utilities
+- **Node**: `LLMOperatorConfig` - Configured components  
+- **Chain**: `AgentNodeConfig` - Multi-step sequences
+- **Workflow**: `WorkflowConfig` - Complete systems
+
+## Key Design Decisions
+
+- **Pydantic Everywhere**: Type safety and validation
+- **No External Dependencies**: Pure Python domain layer
+- **Separate Config from Runtime**: Enables progressive validation
+
+See [iceOS Vision](../../docs/iceos-vision.md) for the complete platform vision. 

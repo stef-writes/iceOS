@@ -1,8 +1,15 @@
-"""Node configuration models for iceOS workflows.
+"""Node models for workflow execution.
 
-This module defines the configuration models for different types of nodes
-that can be used in iceOS workflows, including LLM operators, tools, conditions,
-and nested chains.
+WHY THIS MODULE EXISTS:
+- Provides Pydantic models for the MCP compiler tier (blueprint validation)
+- These models represent the "blueprint" form that Frosty creates from natural language
+- They get transformed into runtime objects by the orchestrator
+- Intentionally separate from runtime classes to support incremental canvas building
+
+Vision Context:
+- MCP Tier: These models are used for blueprint validation and optimization
+- Multi-granularity: Supports tool→node→chain→workflow progression
+- Canvas: Enables partial blueprint construction with pending connections
 """
 
 from __future__ import annotations
@@ -26,6 +33,7 @@ from typing import (
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from ice_core.models.llm import LLMConfig
+from ice_core.utils.vision_markers import mcp_tier, multi_granularity
 
 # ---------------------------------------------------------------------------
 # Retry policy --------------------------------------------------------------
@@ -136,8 +144,14 @@ class ContextRule(BaseModel):
 
 # NodeMetadata moved to node_metadata.py
 
+@mcp_tier("Base blueprint configuration for all node types")
 class BaseNodeConfig(BaseModel):
-    """Common fields shared by all node configurations."""
+    """Base configuration for all nodes - blueprint representation.
+    
+    WHY: This is the "design-time" representation that can be validated
+    without executing. Supports incremental canvas construction where
+    users can add nodes before all connections are defined.
+    """
 
     id: str = Field(..., description="Unique identifier for the node")
     type: str = Field(..., description="Type discriminator (ai | tool | …)")
@@ -282,33 +296,16 @@ class BaseNodeConfig(BaseModel):
 # Specific node configurations ----------------------------------------------
 # ---------------------------------------------------------------------------
 
+@mcp_tier("Blueprint for LLM text operations")  
+@multi_granularity("node")
 class LLMOperatorConfig(BaseNodeConfig):
-    """Configuration for an LLM-powered node.
+    """LLM operator configuration - AI-powered text processing.
     
-    This IS a node configuration! It represents a node in a workflow that uses
-    an LLM to process data. It contains both the workflow-specific settings
-    (prompt, temperature, etc.) AND an LLMConfig instance for provider settings.
+    WHY: This is the "configured component" level where Frosty can
+    create prompts with templates. Separate from runtime to allow
+    validation of token limits, model availability, etc.
     
-    Don't confuse this with LLMConfig:
-    - LLMConfig = HOW to talk to the LLM provider (API settings)
-    - LLMOperatorConfig = WHAT to do with the LLM in a workflow (prompt, model, etc.)
-    
-    Example:
-        node = LLMOperatorConfig(
-            id="analyzer",
-            type="llm",
-            model="gpt-4",
-            prompt="Analyze this data: {input}",
-            llm_config=LLMConfig(provider=ModelProvider.OPENAI),
-            temperature=0.7,
-            max_tokens=500
-        )
-
-    Historical note: early prototypes used the short discriminator value
-    ``"ai"``.  This alias is now DEPRECATED – the canonical value going
-    forward is ``"llm"``.  Runtime conversion still accepts the legacy
-    string (see *node_conversion._NODE_TYPE_MAP*) but new blueprints MUST
-    emit ``type="llm"``.
+    In Frosty: "summarize in 3 bullets" → LLMOperatorConfig with template
     """
 
     type: Literal["llm"] = "llm"  # discriminator
@@ -335,54 +332,30 @@ class LLMOperatorConfig(BaseNodeConfig):
         None, description="JSON schema for output"
     )
 
+@mcp_tier("Blueprint for simple function execution")
+@multi_granularity("tool")
 class ToolNodeConfig(BaseNodeConfig):
-    """Configuration for an idempotent tool execution."""
+    """Configuration for tool nodes - atomic utilities.
+    
+    WHY: Represents the simplest granularity - a single tool invocation.
+    In Frosty: "parse this CSV" → ToolNodeConfig(tool_name="csv_reader")
+    """
 
     type: Literal["tool"] = "tool"
 
     tool_name: str = Field(..., description="Registered name of the tool to invoke")
     tool_args: Dict[str, Any] = Field(default_factory=dict)
 
-class ConditionNodeConfig(BaseNodeConfig):
-    """Branching node that decides execution path based on *expression*."""
-
-    type: Literal["condition"] = "condition"
-
-    expression: str = Field(
-        ..., description="Boolean expression evaluated against context"
-    )
-    true_branch: List[str] = Field(default_factory=list)
-    false_branch: Optional[List[str]] = Field(default=None)
-
-class NestedChainConfig(BaseNodeConfig):
-    """Configuration for a *nested* ScriptChain."""
-
-    type: Literal["nested_chain"] = "nested_chain"
-
-    chain: "ScriptChainLike | Callable[[], ScriptChainLike] | str"  # type: ignore[name-defined]
-    exposed_outputs: Dict[str, str] = Field(default_factory=dict)
-
-    # ------------------------------------------------------------------ validators
-    @model_validator(mode="after")
-    def _validate_chain_reference(self) -> "NestedChainConfig":
-        """Ensure *chain* reference is resolvable when provided as a string."""
-
-        if isinstance(self.chain, str):
-            # Note: Chain validation should happen at the SDK/orchestrator layer,
-            # not in core models. Core models should remain pure data structures.
-            import warnings
-            warnings.warn(
-                f"NestedChainConfig.chain is a string reference '{self.chain}' - validation skipped at core layer.",
-                RuntimeWarning,
-            )
-        return self
-
+@mcp_tier("Blueprint for intelligent decision-making")
+@multi_granularity("chain")  
 class AgentNodeConfig(BaseNodeConfig):
-    """Configuration for using a pre-built multi-tool agent.
-
-    Similar to :class:`LLMOperatorConfig` but encapsulates memory, multiple
-    tool calls, iterative reasoning etc.  The historical discriminator was
-    ``"prebuilt"`` – we now use ``"agent"`` across the board.
+    """Agent configuration - multi-step reasoning with tool access.
+    
+    WHY: Agents represent the "chain" granularity - they internally
+    orchestrate multiple tool calls. This config validates agent
+    availability and tool permissions before runtime.
+    
+    In Frosty: "research and summarize" → AgentNodeConfig with tools
     """
 
     type: Literal["agent"] = "agent"  # canonical
@@ -417,6 +390,40 @@ class AgentNodeConfig(BaseNodeConfig):
             package_parts = self.package.split(".")
             if package_parts:
                 self.agent_attr = package_parts[-1]
+        return self
+
+class ConditionNodeConfig(BaseNodeConfig):
+    """Branching node that decides execution path based on *expression*."""
+
+    type: Literal["condition"] = "condition"
+
+    expression: str = Field(
+        ..., description="Boolean expression evaluated against context"
+    )
+    true_branch: List[str] = Field(default_factory=list)
+    false_branch: Optional[List[str]] = Field(default=None)
+
+class NestedChainConfig(BaseNodeConfig):
+    """Configuration for a *nested* ScriptChain."""
+
+    type: Literal["nested_chain"] = "nested_chain"
+
+    chain: "ScriptChainLike | Callable[[], ScriptChainLike] | str"  # type: ignore[name-defined]
+    exposed_outputs: Dict[str, str] = Field(default_factory=dict)
+
+    # ------------------------------------------------------------------ validators
+    @model_validator(mode="after")
+    def _validate_chain_reference(self) -> "NestedChainConfig":
+        """Ensure *chain* reference is resolvable when provided as a string."""
+
+        if isinstance(self.chain, str):
+            # Note: Chain validation should happen at the SDK/orchestrator layer,
+            # not in core models. Core models should remain pure data structures.
+            import warnings
+            warnings.warn(
+                f"NestedChainConfig.chain is a string reference '{self.chain}' - validation skipped at core layer.",
+                RuntimeWarning,
+            )
         return self
 
 # ---------------------------------------------------------------------------

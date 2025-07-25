@@ -1,25 +1,19 @@
 """Utility helpers for validating *input_schema* / *output_schema* dicts.
 
-The *mini-spec* we support in literals is:
+This module now supports both:
+1. Simple type literals (backward compatible):
+   - Scalar types: "str", "int", "float", "bool"  
+   - Lists: "list[str]", "list[int]"
+   - Objects: "dict"
 
-Scalar types
-------------
-    "str"  → ``str``
-    "int"  → ``int``
-    "float"→ ``float``
-    "bool" → ``bool``
+2. Full JSON Schema format:
+   - {"type": "object", "properties": {...}}
+   - Rich validation with required fields, patterns, etc.
 
-Homogeneous list (square-bracket syntax)
----------------------------------------
-    "list[str]"      → ``list[str]``
-    "list[int]"      → ``list[int]``
-
-Arbitrary mapping / object
---------------------------
-    "dict"           → ``dict[str, Any]``
-
-For more complex nested objects the caller should use a **Pydantic model
-class** instead of a literal string.
+For complex nested objects, you can use either:
+- Pydantic model classes  
+- Full JSON Schema definitions
+- Simple type literals (limited validation)
 """
 
 from __future__ import annotations
@@ -87,10 +81,12 @@ def _validate_schema_value(value: Any) -> bool:
     return False
 
 def is_valid_schema_dict(schema: Dict[str, Any]) -> Tuple[bool, List[str]]:
-    """Validate *schema* dict; returns (is_valid, list_of_errors)."""
-
-    errors: List[str] = []
-    for key, val in schema.items():
-        if not _validate_schema_value(val):
-            errors.append(f"Invalid type spec for key '{key}': {val!r}")
-    return len(errors) == 0, errors 
+    """Validate *schema* dict; returns (is_valid, list_of_errors).
+    
+    Now supports both simple type literals and full JSON Schema format.
+    """
+    # Import the new JSON Schema validator
+    from ice_core.utils.json_schema import is_valid_schema_dict as json_schema_validate
+    
+    # Use the new validator that handles both formats
+    return json_schema_validate(schema) 

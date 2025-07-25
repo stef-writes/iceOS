@@ -7,7 +7,7 @@ Keeping this logic inside *ice_core* prevents higher-level layers from
 hard-coding type switches and ensures that the mapping stays in one place.
 """
 
-from typing import Dict, List, Type
+from typing import Dict, List, Type, Any
 
 from ice_core.models import (
     ConditionNodeConfig,
@@ -17,7 +17,6 @@ from ice_core.models import (
     AgentNodeConfig,
     NestedChainConfig,
 )
-from ice_core.models.mcp import NodeSpec
 
 __all__: list[str] = [
     "convert_node_spec",
@@ -47,13 +46,17 @@ _NODE_TYPE_MAP: Dict[str, Type[NodeConfig]] = {
 # Public API -----------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-def convert_node_spec(spec: NodeSpec) -> NodeConfig:
+def convert_node_spec(spec: Any) -> NodeConfig:
     """Convert a single *NodeSpec* into its concrete :class:`NodeConfig`.
+
+    The incoming object should have at minimum an ``id`` and ``type`` field.
+    Subtype fields (``tool_args``, ``prompt``, etc.) are passed through during
+    model validation.
 
     Parameters
     ----------
     spec : NodeSpec
-        The design-time specification coming from editors / SDK.
+        A MCP node specification object.
 
     Returns
     -------
@@ -65,6 +68,12 @@ def convert_node_spec(spec: NodeSpec) -> NodeConfig:
     ValueError
         If the *type* field is missing or unknown.
     """
+    # Import here to avoid circular dependency
+    from ice_core.models.mcp import NodeSpec
+    
+    # Ensure we have a NodeSpec
+    if not isinstance(spec, NodeSpec):
+        raise ValueError("Expected NodeSpec instance")
 
     payload = spec.model_dump()
     node_type = payload.get("type")
@@ -79,7 +88,7 @@ def convert_node_spec(spec: NodeSpec) -> NodeConfig:
 
     return cfg_cls.model_validate(payload)
 
-def convert_node_specs(specs: List[NodeSpec]) -> List[NodeConfig]:
+def convert_node_specs(specs: List[Any]) -> List[NodeConfig]:
     """Bulk convert a list of NodeSpec objects."""
 
     return [convert_node_spec(s) for s in specs]
