@@ -38,6 +38,8 @@ class ToolService:  # – thin orchestration facade
         import importlib
 
         for _pkg in (
+            "ice_sdk.tools.core",
+            "ice_sdk.tools.ai", 
             "ice_sdk.tools.system",
             "ice_sdk.tools.web",
             "ice_sdk.tools.db",
@@ -112,6 +114,8 @@ class ToolService:  # – thin orchestration facade
                     self._registry.setdefault(obj_name, obj)
 
         for _pkg in (
+            "ice_sdk.tools.core",
+            "ice_sdk.tools.ai",
             "ice_sdk.tools.system",
             "ice_sdk.tools.web",
             "ice_sdk.tools.db",

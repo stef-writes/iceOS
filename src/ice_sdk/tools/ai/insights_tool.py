@@ -10,7 +10,7 @@ from ice_core.models.llm import LLMConfig, ModelProvider
 
 from ...providers.llm_service import LLMService
 from ...utils.errors import ToolExecutionError
-from ..base import ToolBase
+from ice_sdk.tools.ai.base import AITool
 
 __all__: list[str] = ["InsightsTool"]
 
@@ -21,7 +21,7 @@ class InsightsInput(BaseModel):
 class InsightsOutput(BaseModel):
     insights: List[str]
 
-class InsightsTool(ToolBase):
+class InsightsTool(AITool):
     name: str = "insights"
     description: str = (
         "Generate step-by-step actionable insights from a dataset summary."

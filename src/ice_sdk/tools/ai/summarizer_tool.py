@@ -9,7 +9,7 @@ from ice_core.models.llm import LLMConfig, ModelProvider
 from ice_sdk.providers.llm_service import LLMService
 
 from ...utils.errors import ToolExecutionError
-from ..base import ToolBase
+from ice_sdk.tools.ai.base import AITool
 
 class SummarizerInput(BaseModel):
     """Input schema for the summarizer.
@@ -37,7 +37,7 @@ class SummarizerOutput(BaseModel):
 
     summary: str
 
-class SummarizerTool(ToolBase):
+class SummarizerTool(AITool):
     """Summarize a list of structured rows using an LLM.
 
     The tool auto-detects the provider via environment variables:

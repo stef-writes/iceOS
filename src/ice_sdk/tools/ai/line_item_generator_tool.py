@@ -11,7 +11,7 @@ from ice_core.models.llm import LLMConfig, ModelProvider
 
 from ...providers.llm_service import LLMService
 from ...utils.errors import ToolExecutionError
-from ..base import ToolBase
+from ice_sdk.tools.ai.base import AITool
 
 __all__: list[str] = ["LineItemGeneratorTool"]
 
@@ -35,7 +35,7 @@ class LineGenOutput(BaseModel):
     row: Dict[str, Any]
     action: Literal["append", "update", "delete"]
 
-class LineItemGeneratorTool(ToolBase):
+class LineItemGeneratorTool(AITool):
     name: str = "line_item_generator"
     description: str = (
         "LLM converts a plain-English request into a structured CSV row + action."

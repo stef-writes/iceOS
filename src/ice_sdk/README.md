@@ -77,7 +77,7 @@ agent_config = AgentNodeConfig(
 )
 ```
 
-## Package Layout (Cleaned)
+## Package Layout (Cleaned & Enhanced)
 
 ```
 ice_sdk/
@@ -87,10 +87,18 @@ ice_sdk/
 ├── llm/                # LLM operators (summarizer, insights, etc)
 ├── providers/          # External service adapters (OpenAI, Anthropic, etc)
 ├── services/           # Service facades and initialization
-├── tools/              # Tool implementations (system, web, db)
+├── tools/              # Categorized tool implementations
+│   ├── core/          # Data manipulation (CSV, JSON, file operations)
+│   ├── ai/            # LLM-powered tools (insights, summarizers)
+│   ├── system/        # OS utilities (sleep, compute, templates)
+│   ├── integration/   # External services
+│   │   ├── web/      # HTTP, webhooks, search
+│   │   ├── db/       # Database operations
+│   │   └── cloud/    # Cloud services (future)
+│   └── domain/        # Business-specific tools
 ├── utils/              # SDK-specific utilities
 ├── config.py           # Runtime configuration
-├── decorators.py       # @tool decorator
+├── decorators.py       # Enhanced @tool decorator with auto-features
 ├── exceptions.py       # SDK exceptions
 ├── plugin_discovery.py # Dynamic plugin loading
 └── unified_registry.py # Single registry for all components
@@ -111,6 +119,45 @@ ice_sdk/
 * Exposes **validate()** on every Node/Tool
 * External I/O lives strictly inside `tools/` or `providers/`
 * All cross-layer communication via ServiceLocator
+
+## Tool Creation (Enhanced)
+
+### Quick Tool with @tool Decorator
+```python
+from ice_sdk.decorators import tool
+from ice_sdk.tools.core.base import DataTool
+
+@tool(name="data_processor", auto_generate_tests=True)
+class DataProcessor(DataTool):
+    """Process data files."""
+    
+    async def _execute_impl(self, **kwargs):
+        # Tool logic here
+        return {"processed": True}
+```
+
+### AI-Powered Tool
+```python
+from ice_sdk.tools.ai.base import AITool
+
+@tool(name="content_analyzer")
+class ContentAnalyzer(AITool):
+    """Analyze content using AI."""
+    
+    default_model = "gpt-4"  # Override base class default
+    
+    async def _execute_impl(self, **kwargs):
+        content = kwargs["content"]
+        llm_config = self.get_llm_config()
+        # Use LLM service
+        return {"analysis": "..."}
+```
+
+### CLI Scaffolding
+```bash
+ice scaffold tool --interactive
+# Follow prompts to generate complete tool with tests
+```
 
 ## Key Components
 

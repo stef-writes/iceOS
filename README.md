@@ -70,6 +70,8 @@ The demo showcases:
 - 🚀 Real-time event streaming
 - 🔍 Debug information and monitoring
 - 🔗 Nested workflow composition
+- 🛠️ Enhanced tool creation with @tool decorator
+- 📊 Unified CSV operations with single tool
 
 ### Run the Marketplace Workflow Demo
 
