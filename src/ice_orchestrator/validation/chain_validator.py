@@ -148,12 +148,8 @@ class ChainValidator:  # – internal utility
     # Enhanced Chain Validator -----------------------------------------
     # ------------------------------------------------------------------
 
-    # Legacy (advanced) validator kept under new name to avoid symbol clash ----
     def validate_chain_advanced(self, chain: "ChainSpec") -> "ValidationResult":  # type: ignore[name-defined]
-        """Enhanced validation using context registry and tool schemas.
-
-        Retained for backward-compat; prefer :meth:`validate_chain`.
-        """
+        """Enhanced validation using context registry and tool schemas."""
 
         errors = []
         context_keys = set()

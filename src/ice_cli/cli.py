@@ -75,6 +75,3 @@ def doctor(category: str) -> None:  # – imperative mood
 # Allow ``python -m ice_cli.cli doctor`` invocation --------------------------
 if __name__ == "__main__":  # pragma: no cover
     cli()
-
-# Backward-compat alias expected by older imports (tests, tooling)
-app = cli

@@ -8,19 +8,12 @@ import ice_sdk.tools.system
 
 """Runtime node executors for the orchestrator layer.
 
-Importing *ice_orchestrator.execution.executors* performs side-effects that
-register all built-in node executors (ai/llm, tool/skill, condition, etc.)
-with the global :pymod:`ice_sdk.registry.node` mapping.
+Importing ice_orchestrator.execution.executors registers all built-in node executors
+with the unified registry.
 """
-
-# Register built-in executor modules ----------------------------------------
-# Builtin module removed - using unified executors instead
 
 # Import unified executors for new node system
 _unified = import_module(__name__ + ".unified")
-
-# Re-export canonical & deprecated executor callables -----------------------
-# Import from unified instead of builtin
 from .unified import llm_executor, tool_executor, condition_executor
 
 # Optional evaluator stub may be removed later

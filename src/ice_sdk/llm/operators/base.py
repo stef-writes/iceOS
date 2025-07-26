@@ -1,49 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ParamSpec, TypeVar, Dict
+from typing import Any, Callable, Dict
 
 from pydantic import BaseModel
 
 from ice_core.models import LLMConfig, ModelProvider
 
-from functools import wraps
-
 # ----------------------------------------
-# Optional cost-tracking decorator – gracefully degrade when unavailable ----
-
-P = ParamSpec("P")
-R = TypeVar("R")
-
-# Robust no-op decorator that supports optional keyword/positional arguments
-def _noop_decorator(*d_args: Any, **d_kwargs: Any):  # noqa: D401 – flexible shim
-    """Return *func* unchanged regardless of how the decorator is invoked.
-
-    Handles both parameterless ``@decorator`` and parametrised ``@decorator(x=1)``
-    invocations so that call-sites remain syntactically valid even when the
-    real implementation is unavailable at import-time (e.g., during unit
-    tests without the optional *cost* module).
-    """
-
-    if d_args and callable(d_args[0]) and len(d_args) == 1 and not d_kwargs:
-        # Used as plain @decorator -----------------------------------------
-        func = d_args[0]
-        return func  # type: ignore[return-value]
-
-    # Used as @decorator(key=value) – return wrapper factory ----------------
-    def _inner(func: Callable[P, R]) -> Callable[P, R]:  # noqa: D401
-        @wraps(func)
-        def _wrapped(*args: P.args, **kwargs: P.kwargs):  # type: ignore[misc]
-            return func(*args, **kwargs)
-
-        return _wrapped  # type: ignore[return-value]
-
-    return _inner
-
-# Try importing the real cost decorator; fall back to no-op shim ------------
-try:
-    from ice_sdk.providers.costs import cost_checkpoint  # type: ignore[import]
-except ImportError:
-    cost_checkpoint = _noop_decorator
+# Cost-tracking decorator
+from ice_sdk.providers.costs import cost_checkpoint
 
 # ----------------------------------------
 # LLM operator helpers -------------------------------------------------------

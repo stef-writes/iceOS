@@ -142,7 +142,7 @@ class TestToolCreationPathways:
         result = await tool_instance.execute({})
         assert result["discovered"] is True
     
-    def test_progressive_enhancement(self, temp_dir):
+    async def test_progressive_enhancement(self, temp_dir):
         """Test progressively enhancing a basic tool."""
         # Start with basic decorator
         @tool(name="basic", auto_register=False)

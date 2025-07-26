@@ -83,7 +83,7 @@ class LayerViolationError(CoreError):
     def __init__(self, message: str):  # – thin wrapper
         super().__init__(ErrorCode.LAYER_VIOLATION, message)
 
-# Backwards-compatibility alias ------------------------------------------------
+# Direct export
 SecurityViolationError = _CoreSecurityViolationError  # type: ignore[assignment]
 __all__.append("SecurityViolationError")
 

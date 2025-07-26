@@ -10,7 +10,6 @@ from datetime import datetime
 # ---------------------------------------------------------------------------
 from typing import TYPE_CHECKING
 from typing import Any
-from typing import Any as _Any
 from typing import Dict, cast
 
 import structlog
@@ -28,13 +27,10 @@ from ice_core.models.node_models import NodeMetadata
 # ruff: noqa: F401 – imported for side-effects only
 import ice_orchestrator.execution.executors  # Import for side effects
 from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
-from ice_sdk.unified_registry import get_executor
-
-# Local alias to avoid circular import; resolved at runtime
-ScriptChain = _Any  # type: ignore[assignment]
+from ice_sdk.unified_registry import get_executor, ScriptChain
 
 if TYPE_CHECKING:  # pragma: no cover
-    pass
+    from ice_orchestrator.workflow import Workflow
 
 tracer = trace.get_tracer(__name__)
 logger = structlog.get_logger(__name__)

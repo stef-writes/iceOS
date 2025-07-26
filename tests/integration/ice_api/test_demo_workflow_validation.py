@@ -17,7 +17,7 @@ from ice_core.models import (
 )
 from ice_core.models.mcp import RunRequest
 from ice_sdk.unified_registry import registry
-from ice_sdk.tools.system import CSVReaderTool
+from ice_sdk.tools.core import CSVTool
 from ice_sdk.services.locator import ServiceLocator
 
 
@@ -27,9 +27,9 @@ class TestDemoWorkflowValidation:
     @pytest.fixture(autouse=True)
     def setup_services(self):
         """Setup services and tools exactly like the real application."""
-        # Ensure CSV reader tool is registered (might already be from system __init__.py)
+        # Ensure CSV tool is registered (might already be from core __init__.py)
         try:
-            registry.register_instance(NodeType.TOOL, "csv_reader", CSVReaderTool())
+            registry.register_instance(NodeType.TOOL, "csv", CSVTool())
         except Exception:
             # Already registered, which is fine
             pass
@@ -50,8 +50,8 @@ class TestDemoWorkflowValidation:
     
     def test_tool_registration_validation(self):
         """Test that tools are properly registered and discoverable."""
-        # Verify CSV reader is registered
-        csv_tool = registry.get_instance(NodeType.TOOL, "csv_reader")
+        # Verify CSV tool is registered
+        csv_tool = registry.get_instance(NodeType.TOOL, "csv")
         assert csv_tool is not None
         assert hasattr(csv_tool, 'execute')
         assert callable(csv_tool.execute)
@@ -330,8 +330,8 @@ if __name__ == "__main__":
     print("🔍 Running demo workflow validation...")
     
     # Test tool registration
-    registry.register_instance(NodeType.TOOL, "csv_reader", CSVReaderTool())
-    csv_tool = registry.get_instance(NodeType.TOOL, "csv_reader")
+    registry.register_instance(NodeType.TOOL, "csv", CSVTool())
+    csv_tool = registry.get_instance(NodeType.TOOL, "csv")
     assert csv_tool is not None
     print("✅ Tool registration works")
     

@@ -101,5 +101,4 @@ class GraphContextManager(_SyncGraphContextManager):
     # Convenience alias so callers don't need to remember *async_* prefix
     execute_tool_async = async_execute_tool
 
-# Backwards-compat: keep the old symbol around so external plugins don't break
-AsyncGraphContextManager = GraphContextManager
+

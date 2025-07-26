@@ -17,7 +17,7 @@ from ice_orchestrator.workflow import Workflow
 from ice_sdk.context import GraphContextManager
 
 # Import tools to register them
-from ice_sdk.tools.system.csv_reader_tool import CSVReaderTool
+from ice_sdk.tools.core.csv_tool import CSVTool
 from ice_sdk.tools.system.rows_validator_tool import RowsValidatorTool
 
 # Import csv_writer conditionally since it might not be available
@@ -46,7 +46,7 @@ class WorkflowService(IWorkflowService):
             self._context_manager = GraphContextManager()
         
         # Register built-in tools
-        self._context_manager.register_tool(CSVReaderTool())
+        self._context_manager.register_tool(CSVTool())
         if CSV_WRITER_AVAILABLE:
             self._context_manager.register_tool(CSVWriterTool())
         self._context_manager.register_tool(RowsValidatorTool())
