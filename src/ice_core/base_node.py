@@ -13,7 +13,7 @@ class BaseNode(BaseModel, INode):
     Subclasses should override _execute_impl with their specific logic.
     """
     
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
     
     async def validate(self) -> None:
         """Validate node configuration.

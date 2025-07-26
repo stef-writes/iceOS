@@ -143,7 +143,7 @@ class TestContextManagerIntegration:
     
     def test_tool_registration_with_service(self):
         """Test that tool registration works end-to-end."""
-        from ice_sdk.tools.system.csv_reader_tool import CSVReaderTool
+        from ice_sdk.tools.core.csv_tool import CSVTool
         
         # Set up services properly
         tool_service = ToolService()
@@ -152,7 +152,7 @@ class TestContextManagerIntegration:
         ctx_manager = GraphContextManager(project_root=Path.cwd())
         
         # Should be able to register a tool without errors
-        tool = CSVReaderTool()
+        tool = CSVTool()
         ctx_manager.register_tool(tool)
         
         # Tool should be registered in both places
@@ -162,20 +162,20 @@ class TestContextManagerIntegration:
     
     def test_tool_registration_handles_duplicates(self):
         """Test that duplicate tool registration is handled gracefully."""
-        from ice_sdk.tools.system.csv_reader_tool import CSVReaderTool
+        from ice_sdk.tools.core.csv_tool import CSVTool
         
         tool_service = ToolService()
         ServiceLocator.register("tool_service", tool_service)
         
         ctx_manager = GraphContextManager(project_root=Path.cwd())
         
-        # CSVReaderTool is already registered globally at import time
+        # CSVTool is already registered globally at import time
         # So the tool_service already knows about it
         assert "csv_reader" in tool_service.available_tools()
         
         # Create tool instances
-        tool1 = CSVReaderTool()
-        tool2 = CSVReaderTool()
+        tool1 = CSVTool()
+        tool2 = CSVTool()
         
         # First registration in context manager should work
         ctx_manager.register_tool(tool1)
@@ -258,7 +258,7 @@ class TestRealWorldIntegrationPattern:
     
     def test_workflow_service_tool_registration(self):
         """Test that WorkflowService can register tools with context manager."""
-        from ice_sdk.tools.system.csv_reader_tool import CSVReaderTool
+        from ice_sdk.tools.core.csv_tool import CSVTool
         
         # Set up the full service stack
         initialize_services()
@@ -270,7 +270,7 @@ class TestRealWorldIntegrationPattern:
         ServiceLocator.register("context_manager", ctx_manager)
         
         # Simulate what WorkflowService does
-        csv_tool = CSVReaderTool()
+        csv_tool = CSVTool()
         ctx_manager.register_tool(csv_tool)
         
         # Should work without the AttributeError we were seeing

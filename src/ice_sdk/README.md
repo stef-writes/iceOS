@@ -10,7 +10,7 @@ It provides:
 * High-level **Agent** helpers with memory and collaboration features
 * **Workflow builders** for programmatic DAG construction with spatial layout hints
 * **Graph analyzers** for NetworkX-powered intelligence and optimization
-* Unified **Registry** for all components with backward compatibility
+* Unified **Registry** for all components
 
 > **Spatial Computing Ready**: All SDK components are designed for both traditional execution and future canvas-based experiences.
 
@@ -56,71 +56,88 @@ builder.connect("fetch", "analyze")
 builder.connect("analyze", "summarize")
 ```
 
-### Agent Example (with rich LLMConfig)
+### Memory-Enabled Agent Example
 ```python
-from ice_core.models import AgentNodeConfig, LLMConfig, ModelProvider
+from ice_sdk.agents import MemoryAgent, MemoryAgentConfig
+from ice_sdk.memory import UnifiedMemoryConfig
+from ice_core.models.llm import LLMConfig
+from ice_core.models.enums import ModelProvider
 
-# Create agent with rich configuration
-agent_config = AgentNodeConfig(
-    id="researcher",
-    type="agent", 
-    package="ice_sdk.agents.research.ResearchAgent",  # NOT agent_ref
-    max_iterations=5,  # New field to prevent loops
-    llm_config=LLMConfig(  # Agents now have LLM config!
-        provider=ModelProvider.ANTHROPIC,
-        model="claude-3-opus",
-        temperature=0.7,
-        max_tokens=4000
+# Create a memory-enabled agent
+config = MemoryAgentConfig(
+    llm_config=LLMConfig(
+        model="gpt-4",
+        provider=ModelProvider.OPENAI
     ),
-    tools=[],  # List of ToolConfig objects
-    memory={"type": "conversation"}
+    system_prompt="You are a helpful assistant with memory.",
+    tools=["web_search", "calculator"],
+    memory_config=UnifiedMemoryConfig(
+        enable_working=True,     # Short-term memory
+        enable_episodic=True,    # Conversation history
+        enable_semantic=True,    # Domain knowledge
+        enable_procedural=False  # Learned procedures
+    )
 )
+
+# Instantiate as a Pydantic model
+agent = MyMemoryAgent(config=config)
+
+# Agent remembers past interactions
+result = await agent.execute({
+    "user_id": "user123",
+    "query": "What did we discuss yesterday?"
+})
+
+# Store facts for future use
+await agent.remember_fact("User prefers Python over JavaScript")
+
+# Search memories
+memories = await agent.search_memory("Python", ["semantic"])
 ```
 
-## Package Layout (Cleaned & Enhanced)
+## Package Layout (Current State)
 
 ```
 ice_sdk/
-├── agents/             # Agent implementations (AgentNode)
-├── builders/           # Workflow construction APIs
-├── context/            # Execution context management
-├── llm/                # LLM operators (summarizer, insights, etc)
-├── providers/          # External service adapters (OpenAI, Anthropic, etc)
-├── services/           # Service facades and initialization
-├── tools/              # Categorized tool implementations
-│   ├── core/          # Data manipulation (CSV, JSON, file operations)
-│   ├── ai/            # LLM-powered tools (insights, summarizers)
-│   ├── system/        # OS utilities (sleep, compute, templates)
-│   ├── integration/   # External services
-│   │   ├── web/      # HTTP, webhooks, search
-│   │   ├── db/       # Database operations
-│   │   └── cloud/    # Cloud services (future)
-│   └── domain/        # Business-specific tools
-├── utils/              # SDK-specific utilities
-├── config.py           # Runtime configuration
-├── decorators.py       # Enhanced @tool decorator with auto-features
-├── exceptions.py       # SDK exceptions
-├── plugin_discovery.py # Dynamic plugin loading
+├── agents/             # Agent implementations 
+│   ├── agent_node.py  # Base agent (AgentNode)
+│   └── memory_agent.py # Memory-enabled agents
+├── memory/            # Memory subsystem
+│   ├── base.py       # Base memory interface
+│   ├── working.py    # Short-term memory
+│   ├── episodic.py   # Conversation history
+│   ├── semantic.py   # Domain knowledge
+│   ├── procedural.py # Learned procedures
+│   └── unified.py    # Unified memory interface
+├── builders/          # Workflow construction APIs
+├── context/           # Execution context management
+├── llm/               # LLM operators
+│   └── operators/     # Summarizer, insights, etc.
+├── providers/         # External service adapters
+│   └── llm_providers/ # OpenAI, Anthropic, etc.
+├── services/          # Service facades and initialization
+├── tools/             # Categorized tool implementations
+│   ├── core/         # CSV, JSON operations
+│   ├── ai/           # LLM-powered tools
+│   ├── system/       # Computer tool, sleep, etc.
+│   ├── web/          # HTTP, search, webhooks
+│   ├── db/           # Database tools
+│   └── marketplace/  # Domain-specific tools
+├── utils/             # SDK-specific utilities
+├── config.py          # Runtime configuration
+├── decorators.py      # Enhanced @tool decorator
+├── exceptions.py      # SDK exceptions
 └── unified_registry.py # Single registry for all components
 ```
-
-### Removed/Consolidated
-- ~~nodes/~~ - Moved to ice_orchestrator
-- ~~models/~~ - Use ice_core.models directly
-- ~~interfaces/~~ - Use ice_core.protocols
-- ~~protocols/~~ - Use ice_core.protocols
-- ~~events/~~ - Unused
-- ~~dsl/~~ - Unused
-- ~~core/~~ - Moved to ice_core
-- ~~registry/~~ - Consolidated into unified_registry.py
 
 ## Layer Boundaries
 * Depends _only_ on `ice_core`
 * Exposes **validate()** on every Node/Tool
 * External I/O lives strictly inside `tools/` or `providers/`
 * All cross-layer communication via ServiceLocator
+* SDK does NOT import from ice_orchestrator or ice_api
 
-## Tool Creation (Enhanced)
+## Tool Creation
 
 ### Quick Tool with @tool Decorator
 ```python
@@ -153,12 +170,6 @@ class ContentAnalyzer(AITool):
         return {"analysis": "..."}
 ```
 
-### CLI Scaffolding
-```bash
-ice scaffold tool --interactive
-# Follow prompts to generate complete tool with tests
-```
-
 ## Key Components
 
 ### Unified Registry
@@ -171,16 +182,17 @@ from ice_sdk.unified_registry import registry, register_node
 async def custom_executor(chain, cfg, ctx):
     ...
 
-# Register tools, agents, chains
-registry.register_tool("my_tool", MyTool())
-registry.register_agent("my_agent", MyAgent())
+# Direct registry access (no wrapper modules)
+registry.register_agent("my_agent", "path.to.MyAgent")
+registry.register_chain("my_chain", chain_instance)
+registry.register_instance(NodeType.TOOL, "my_tool", tool_instance)
 ```
 
 ### Service Initialization
 Clean initialization without layer violations:
 ```python
 from ice_sdk.services.initialization import initialize_services
-initialize_services()  # Sets up all SDK and orchestrator services
+initialize_services()  # Sets up SDK services only
 ```
 
 ## Development

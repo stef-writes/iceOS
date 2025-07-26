@@ -256,4 +256,4 @@ Quick testing and experimentation without creating full workflows:
 
 ## License
 
-[Apache-2.0](LICENSE) 
+[MIT](LICENSE) 

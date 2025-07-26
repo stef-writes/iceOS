@@ -39,12 +39,10 @@ nodes = [
     ),
 ]
 
-# 2. Create workflow (actual implementation details)
+# 2. Create workflow
 workflow = Workflow(
     nodes=nodes,
     name="greeting_workflow"
-    # Note: enable_spatial_features and enable_frosty_integration 
-    # are hypothetical - check actual Workflow constructor
 )
 
 # 3. Execute with context
@@ -87,10 +85,10 @@ a pluggable store once the buffer reaches `flush_threshold`.
 
 1. **Unit tests** – `make test` (see `tests/orchestrator/*`).
 2. **Lint & type-check** – `make lint` and `make typecheck`.
-3. **Docs** – Update this README and `API_GUIDE.md` for public surfaces.
+3. **Docs** – Update this README and API documentation for public surfaces.
 
 ## License
-Apache-2.0 – see `LICENSE` at repo root. 
+MIT – see `LICENSE` at repo root. 
 
 ## Module Structure (v1.1+)
 
@@ -105,6 +103,4 @@ Apache-2.0 – see `LICENSE` at repo root.
  ├─ errors/         # Exception hierarchy
  ├─ migration/      # Spec up/down-grade helpers
  └─ nodes/          # Node implementations
-```
-
-> See `API_GUIDE.md` for public class reference. 
+``` 

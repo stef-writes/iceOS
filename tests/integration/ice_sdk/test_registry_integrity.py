@@ -232,10 +232,10 @@ class TestBackwardCompatibilityWrappers:
         mock_chain = Mock()
         
         # Registration through wrapper should work
-        global_chain_registry.register("test_chain", mock_chain)
+        global_chain_registry.register_chain("test_chain", mock_chain)
         
         # Retrieval through wrapper should work
-        retrieved = global_chain_registry.get("test_chain")
+        retrieved = global_chain_registry.get_chain("test_chain")
         assert retrieved is mock_chain
         
         # Should also be available through main registry
@@ -246,8 +246,8 @@ class TestBackwardCompatibilityWrappers:
         chain1 = Mock()
         chain2 = Mock()
         
-        global_chain_registry.register("chain1", chain1)
-        global_chain_registry.register("chain2", chain2)
+        global_chain_registry.register_chain("chain1", chain1)
+        global_chain_registry.register_chain("chain2", chain2)
         
         # Should support iteration
         chains = list(global_chain_registry)
@@ -257,41 +257,15 @@ class TestBackwardCompatibilityWrappers:
     
     def test_global_agent_registry_wrapper(self):
         """Test that global_agent_registry wrapper delegates correctly."""
-        global_agent_registry.register("test_agent", "path.to.agent")
+        global_agent_registry.register_agent("test_agent", "path.to.agent")
         
         # Retrieval through wrapper should work
-        path = global_agent_registry.get("test_agent")
+        path = global_agent_registry.get_agent_import_path("test_agent")
         assert path == "path.to.agent"
         
         # Should also be available through main registry
         assert registry.get_agent_import_path("test_agent") == "path.to.agent"
 
-
-class TestBackwardCompatibilityImports:
-    """Test that backward compatibility imports work."""
-    
-    def test_chain_registry_import(self):
-        """Test importing from ice_sdk.registry.chain works."""
-        from ice_sdk.registry.chain import global_chain_registry as imported_registry
-        
-        # Should be the same object
-        assert imported_registry is global_chain_registry
-    
-    def test_agent_registry_import(self):
-        """Test importing from ice_sdk.registry.agent works."""
-        from ice_sdk.registry.agent import global_agent_registry as imported_registry
-        
-        # Should be the same object
-        assert imported_registry is global_agent_registry
-    
-    def test_node_executor_import(self):
-        """Test importing from ice_sdk.registry.node works."""
-        from ice_sdk.registry.node import get_executor, register_node
-        from ice_sdk.unified_registry import get_executor as unified_get, register_node as unified_register
-        
-        # Should be the same functions
-        assert get_executor is unified_get
-        assert register_node is unified_register
 
 
 class TestRegistryErrorHandling:
@@ -312,29 +286,29 @@ class TestRegistryErrorHandling:
     def test_chain_registry_error_propagation(self):
         """Test that errors propagate correctly through wrapper."""
         mock_chain = Mock()
-        global_chain_registry.register("test_chain", mock_chain)
+        global_chain_registry.register_chain("test_chain", mock_chain)
         
         # Duplicate registration should raise error
         with pytest.raises(RegistryError, match="Chain test_chain already registered"):
-            global_chain_registry.register("test_chain", mock_chain)
+            global_chain_registry.register_chain("test_chain", mock_chain)
     
     def test_missing_chain_error(self):
         """Test error when retrieving missing chain."""
         with pytest.raises(KeyError, match="Chain missing not found"):
-            global_chain_registry.get("missing")
+            global_chain_registry.get_chain("missing")
     
     def test_agent_registry_error_propagation(self):
         """Test that agent registry errors propagate correctly."""
-        global_agent_registry.register("test_agent", "path.to.agent")
+        global_agent_registry.register_agent("test_agent", "path.to.agent")
         
         # Duplicate registration should raise error
         with pytest.raises(RegistryError, match="Agent test_agent already registered"):
-            global_agent_registry.register("test_agent", "another.path")
+            global_agent_registry.register_agent("test_agent", "another.path")
     
     def test_missing_agent_error(self):
         """Test error when retrieving missing agent."""
         with pytest.raises(KeyError, match="Agent missing not found"):
-            global_agent_registry.get("missing")
+            global_agent_registry.get_agent_import_path("missing")
 
 
 class TestRegistryEntryPointsIntegration:

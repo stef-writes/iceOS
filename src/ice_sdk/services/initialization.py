@@ -8,7 +8,7 @@ from ice_sdk.services.locator import ServiceLocator
 
 
 def initialize_services() -> None:
-    """Initialize all SDK and orchestrator services.
+    """Initialize all SDK services.
     
     This function should be called once during application startup to ensure
     all services are properly registered and available through ServiceLocator.
@@ -19,16 +19,8 @@ def initialize_services() -> None:
         >>> # Now all services are available through ServiceLocator
         >>> workflow_service = ServiceLocator.get("workflow_service")
     """
-    # NOTE: Executors are now registered by the orchestrator layer itself
-    # when it's imported. This avoids layer boundary violations.
-    
-    # Initialize orchestrator if available
-    try:
-        from ice_orchestrator import initialize_orchestrator
-        initialize_orchestrator()
-    except ImportError:
-        # Orchestrator not available (SDK-only usage)
-        pass
+    # NOTE: The orchestrator layer is responsible for its own initialization.
+    # SDK should not depend on orchestrator.
     
     # Initialize SDK services
     try:

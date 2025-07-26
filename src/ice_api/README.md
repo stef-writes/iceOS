@@ -1,28 +1,28 @@
-# ice_api – Spatial Computing API Gateway
+# ice_api – API Gateway
 
 ## Purpose
-`ice_api` exposes iceOS spatial computing functionality over HTTP + WebSocket.
-It validates requests, translates them into **Workflow** executions with full spatial intelligence, and streams results back to clients with real-time canvas updates.
+`ice_api` exposes iceOS functionality over HTTP + WebSocket.
+It validates requests, translates them into **Workflow** executions, and streams results back to clients.
 
-**🎯 Spatial Computing Features**
-* **Graph Intelligence Endpoints** – NetworkX-powered analysis, optimization suggestions, and layout hints
-* **Real-time Collaboration** – WebSocket streaming for canvas updates and cursor tracking  
-* **Frosty Integration** – AI-powered contextual suggestions and workflow optimization
-* **Blueprint Management** – Incremental construction with spatial metadata
+**🎯 Core Features**
+* **MCP Protocol** – Model Context Protocol for blueprint management and execution
+* **Direct Execution** – Quick endpoints for single tool/agent/unit/chain execution
+* **Event Streaming** – Real-time execution events via SSE
+* **Blueprint Management** – Register and execute workflows
 
-Routes live under `ice_api.api.*` and are versioned (`/v1/...`).
+Routes live under `ice_api.api.*` and are versioned (`/api/v1/...`).
 
 ## Quick-start (dev server)
 ```bash
 uvicorn ice_api.main:app --reload
 ```
 
-### Direct Execution Endpoints (NEW)
-For quick testing and experimentation, use these direct execution endpoints that internally create single-node blueprints:
+### Direct Execution Endpoints
+For quick testing and experimentation, use these direct execution endpoints:
 
 ```http
 # Execute a tool directly
-POST /v1/tools/{tool_name}
+POST /api/v1/tools/{tool_name}
 {
   "inputs": { "file_path": "data.csv" },
   "wait_for_completion": true,
@@ -30,99 +30,92 @@ POST /v1/tools/{tool_name}
 }
 
 # Execute an agent  
-POST /v1/agents/{agent_name}
+POST /api/v1/agents/{agent_name}
 {
   "inputs": { "query": "analyze this data" }
 }
 
 # Execute a unit
-POST /v1/units/{unit_name}
+POST /api/v1/units/{unit_name}
 {
   "inputs": { "data": [...] }
 }
 
 # Execute a chain
-POST /v1/chains/{chain_name}
+POST /api/v1/chains/{chain_name}
 {
   "inputs": { "context": {...} }
 }
 
 # Discovery endpoints
 GET /api/v1/tools     # List all tools
-GET /v1/agents        # List all agents
-GET /v1/units         # List all units  
-GET /v1/chains        # List all chains
+GET /api/v1/agents    # List all agents
+GET /api/v1/units     # List all units  
+GET /api/v1/chains    # List all chains
 ```
 
 Response includes:
 - `run_id` - Track execution progress
 - `status` - "completed", "running", or "failed"
 - `output` - Execution results
-- `telemetry_url` - Real-time event stream
-- `suggestions` - AI-powered next step recommendations
+- `telemetry_url` - Event stream URL
 
-### Spatial Computing Endpoints
+### MCP Blueprint Endpoints
 ```http
+# Register blueprint
+POST /api/v1/mcp/blueprints
+{
+  "blueprint_id": "my_workflow",
+  "nodes": [
+    {
+      "id": "analyze",
+      "type": "llm",
+      "model": "gpt-4",
+      "prompt": "Analyze this: {input}",
+      "llm_config": {
+        "provider": "openai",
+        "model": "gpt-4"
+      }
+    }
+  ]
+}
+
 # Execute blueprint/workflow
 POST /api/v1/mcp/runs
 {
-  "blueprint": {
-    "blueprint_id": "demo_workflow",
-    "nodes": [
-      {
-        "id": "analyze",
-        "type": "llm",
-        "model": "gpt-4",
-        "prompt": "Analyze this: {input}",  # NOT prompt_template
-        "llm_config": {
-          "provider": "openai",
-          "model": "gpt-4"
-        }
-      }
-    ]
-  },
+  "blueprint_id": "my_workflow",
+  "inputs": {"input": "test data"},
   "options": {
     "max_parallel": 2,
     "retry_failed": true
   }
 }
 
-# Get graph metrics and layout hints
-GET /api/v1/mcp/workflows/{workflow_id}/graph/metrics
-GET /api/v1/mcp/workflows/{workflow_id}/graph/layout
+# Get execution status
+GET /api/v1/mcp/runs/{run_id}
 
-# Analyze node impact for canvas updates  
-GET /api/v1/mcp/workflows/{workflow_id}/nodes/{node_id}/impact
-
-# Get Frosty AI suggestions
-GET /api/v1/mcp/workflows/{workflow_id}/nodes/{node_id}/suggestions
-
-# Find similar patterns for refactoring
-POST /api/v1/mcp/workflows/{workflow_id}/graph/patterns
-{
-  "pattern_nodes": ["node1", "node2"]
-}
+# Stream execution events
+GET /api/v1/mcp/runs/{run_id}/events
 ```
 
 ## Architecture
 ```
-Canvas UI ──► FastAPI (ice_api) ──► Workflow (ice_orchestrator) ──► ice_sdk/tools
-     │                                   │
-     └── WebSocket ←── Real-time ←── Spatial Events
+Client ──► FastAPI (ice_api) ──► Workflow (ice_orchestrator) ──► ice_sdk/tools
+            │                         │
+            └── Events ←── Execution Events
 ```
-* **Spatial Intelligence**: Workflow provides NetworkX-powered graph analysis and layout hints
-* **Hybrid Execution**: Direct endpoints create single-node blueprints internally, maintaining consistency while providing simple UX
-* **AI Integration**: Every execution includes Frosty AI suggestions for next steps
-* **Real-time Collaboration**: WebSocket gateway streams canvas updates, cursor positions, and execution events
-* **Frosty Integration**: AI suggestions flow through the API for contextual canvas assistance
-* Dependencies injected via `ice_api.dependencies` with spatial computing support
+* **MCP Protocol**: Standard interface for workflow management
+* **Hybrid Execution**: Direct endpoints create single-node blueprints internally
+* **Event Streaming**: Server-sent events for real-time updates
+* Dependencies injected via `ice_api.dependencies`
 
 ## Rules
-* No direct DB or vectorstore access – delegate to Tool implementations.
-* All external side-effects live in `ice_sdk.tools.*`.
+* No direct DB or vectorstore access – delegate to Tool implementations
+* All external side-effects live in `ice_sdk.tools.*`
+* Layer boundaries strictly enforced
 
 ## Testing
 `pytest tests/api` runs contract & smoke tests.
 
 ## License
-MIT. 
+MIT 

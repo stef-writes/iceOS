@@ -70,7 +70,7 @@ class Blueprint(BaseModel):
         using the central registry so that invalid blueprints are rejected
         early – either at registration time or before inline execution.
         """
-
+        # Import here to avoid circular dependency
         from ice_core.utils.node_conversion import convert_node_specs
 
         # Will raise ValueError / ValidationError on failure

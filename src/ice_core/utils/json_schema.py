@@ -77,6 +77,7 @@ def convert_simple_to_json_schema(simple_schema: Dict[str, str]) -> Dict[str, An
         "list[int]": {"type": "array", "items": {"type": "integer"}},
         "list[float]": {"type": "array", "items": {"type": "number"}},
         "list[bool]": {"type": "array", "items": {"type": "boolean"}},
+        "list[dict]": {"type": "array", "items": {"type": "object"}},
     }
     
     properties = {}
