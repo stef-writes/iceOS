@@ -13,7 +13,7 @@ from ..base import ToolBase
 __all__ = ["WebSearchTool", "WebSearchConfig"]
 
 class WebSearchConfig(BaseModel):
-    """Configuration for *WebSearchSkill*.
+    """Configuration for *WebSearchTool*.
 
     Attributes
     ----------
@@ -47,8 +47,8 @@ class WebSearchTool(ToolBase):
     -------
     >>> import asyncio, os
     >>> os.environ["SERPAPI_KEY"] = "test-123"
-    >>> tool = WebSearchSkill()
-    >>> asyncio.run(skill.execute({"query": "openai"}))  # doctest: +SKIP
+    >>> tool = WebSearchTool()
+    >>> asyncio.run(tool.execute({"query": "openai"}))  # doctest: +SKIP
     {"results": [{"title": "OpenAI", "link": "https://openai.com", ...}]}
     """
 
@@ -132,15 +132,15 @@ class WebSearchTool(ToolBase):
         """Get JSON schema for tool inputs.
 
         Example:
-            WebSearchSkill.get_input_schema() => {'type': 'object', ...}
+            WebSearchTool.get_input_schema() => {'type': 'object', ...}
         """
-        return cls.model_json_schema()  # From git status, InputModel exists in skills
+        return cls.model_json_schema()  # From git status, InputModel exists in tools
 
     @classmethod
     def get_output_schema(cls) -> dict:
         """Get JSON schema for tool outputs.
 
         Example:
-            WebSearchSkill.get_output_schema() => {'type': 'object', ...}
+            WebSearchTool.get_output_schema() => {'type': 'object', ...}
         """
         return cls.model_json_schema()

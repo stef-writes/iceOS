@@ -208,11 +208,11 @@ async def build_custom_product(required_components: List[str]):
 4. **Component Discoverability** - Registry info for documentation
 5. **Cross-Demo Reuse** - Import components from other demos
 6. **Early Product Ready** - Component catalog for product builds
-7. **Enterprise Security** - WASM sandboxing integration
+7. **Enterprise Security** - Selective WASM sandboxing for user code
 8. **Proper Error Handling** - Graceful degradation patterns
 
 ## ✅ **Working Examples**
 
 - **RivaRidge**: ✅ Full marketplace automation with agents, memory, HTTP calls
 - **DocumentAssistant**: ✅ Enterprise chat-in-a-box with document processing
-- **Both**: ✅ Cross-compatible, reusable, WASM-secured, enterprise-ready 
+- **Both**: ✅ Cross-compatible, reusable, selectively secured, enterprise-ready 

@@ -346,7 +346,7 @@ class GraphAnalyzer:
                 # Part of a potential chain
                 continue
                 
-        # TODO: Implement chain detection algorithm
+        # Chain detection algorithm not yet implemented
         return chains
         
     def _is_on_critical_path(self, node_id: str) -> bool:

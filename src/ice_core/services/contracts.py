@@ -39,7 +39,7 @@ def load_current(service_name: str) -> ServiceContract:
     0.1.0
     """
 
-    # TODO: Implement loading service contracts from ice_contracts/contracts/{service_name}.yaml
+    # Service contract loading from YAML not yet implemented
     return ServiceContract(version="0.1.0", name=service_name)
 
 @runtime_checkable

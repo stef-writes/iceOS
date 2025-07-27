@@ -14,7 +14,7 @@ Workflow: Tool → LLM → Agent → Results
 
 ## 🛡️ **Security-First Design**
 
-All code execution runs in **WASM sandboxes** with resource limits:
+User code execution runs in **WASM sandboxes** with resource limits:
 - CPU/memory monitoring and enforcement
 - Import restrictions and network isolation  
 - Timeout protection and audit logging
@@ -49,7 +49,7 @@ iceOS follows a strict 4-layer architecture where each layer has a specific purp
 
 ### 🏆 **Enterprise Features**
 
-- **🔐 WASM Sandboxing**: All node execution in secure WebAssembly containers
+- **🔐 WASM Sandboxing**: User code execution in secure WebAssembly containers
 - **🧠 Unified Memory**: Working/Episodic/Semantic/Procedural agent memory
 - **⚡ Plugin System**: Protocol-based with 20+ production tools
 - **📊 Observability**: OpenTelemetry tracing, structured logging, metrics

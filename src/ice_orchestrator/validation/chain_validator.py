@@ -92,11 +92,11 @@ class ChainValidator:  # – internal utility
         return errs
 
     def check_license_compliance(self) -> List[str]:
-        # TODO(issue-123): Implement SBOM scanning & license validation
+        # License validation not yet implemented
         return []
 
     def detect_sensitive_data_flows(self) -> List[str]:
-        # TODO(issue-124): Integrate with privacy analysis engine
+        # Privacy analysis not yet implemented
         return []
 
     # ------------------------------------------------------------------
@@ -157,10 +157,10 @@ class ChainValidator:  # – internal utility
 
         for node in chain.nodes:  # type: ignore[attr-defined]
             # Get tool metadata lazily to avoid heavy imports when unused
-            from ice_core.models.tool import get_skill_class  # local import
-
-            skill_cls = get_skill_class(node.type)
-            input_schema = skill_cls.get_input_schema()
+            from ice_core.models.tool import get_tool_class  # local import
+            
+            tool_cls = get_tool_class(node.type)
+            input_schema = tool_cls.get_input_schema()
 
             # Check 1: Input context availability
             for input_key in node.inputs:  # type: ignore[attr-defined]

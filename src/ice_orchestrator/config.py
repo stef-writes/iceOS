@@ -46,7 +46,7 @@ class RuntimeConfig(BaseModel):
     def testing_mode(self) -> bool:  # – convenience accessor
         """Return *True* when the test-suite runs with ``ICE_TESTING=1``.
 
-        Having a single feature flag makes it easy for skills and services to
+        Having a single feature flag makes it easy for tools and services to
         switch to deterministic fakes instead of performing real network
         requests during the test run.  The property is **read-only** to keep
         the pydantic model immutable after instantiation.

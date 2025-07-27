@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """LineItemGeneratorOperator – converts natural‐language inventory requests into structured row + action.
 
-This is the LLMOperator replacement for the deprecated `line_item_generator_skill`.
+This is the LLMOperator replacement for the deprecated `line_item_generator_tool`.
 """
 
 from typing import Any, Dict, List, Literal

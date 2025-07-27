@@ -1,7 +1,7 @@
 """LLM Operators package.
 
 This subpackage hosts concrete LLM-backed processors that should not be confused
-with deterministic *skills* or side-effectful *tools*.
+with deterministic *operations* or side-effectful *tools*.
 """
 
 from importlib import import_module

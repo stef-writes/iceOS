@@ -510,7 +510,7 @@ interface CanvasPermissions {
 > "Basic foundation with simple DAG execution"
 
 **What Was Actually Built:**
-> **Enterprise-grade orchestration platform with sophisticated plugin ecosystem, unified memory system, WASM-secured execution, and production-ready agent framework**
+> **Enterprise-grade orchestration platform with sophisticated plugin ecosystem, unified memory system, selective WASM security, and production-ready agent framework**
 
 ### 🏆 **Major Achievements Beyond Expectations:**
 
@@ -539,11 +539,12 @@ interface CanvasPermissions {
 - Type-safe configuration with Pydantic validation
 
 **5. ✨ WASM Security Sandboxing (NEW)**
-- Universal WASM executor for ALL node types
+- Selective WASM executor for untrusted user code only
+- Direct execution for tools, agents, LLMs (need I/O, network access)
 - Resource monitoring and limits (CPU, memory, timeout)
 - 12+ comprehensive security audit tests
-- OpenTelemetry observability integration
 - Production-ready with wasmtime-py backend
+- **Best Practice**: Balance security with functionality
 
 **6. 🏢 Enterprise Component Reuse (NEW)**
 - Production user storage architecture designed
@@ -557,7 +558,7 @@ interface CanvasPermissions {
 
 **Ready for Canvas:** Progressive blueprint APIs support real-time collaborative editing
 
-**Ready for Scale:** Enterprise security, observability, WASM sandboxing, and plugin architecture built-in
+**Ready for Scale:** Enterprise security, observability, selective WASM sandboxing, and plugin architecture built-in
 
 **Ready for Production:** User component storage, sharing, and marketplace architecture designed
 

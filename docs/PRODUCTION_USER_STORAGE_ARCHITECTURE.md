@@ -449,7 +449,7 @@ Team Workflow:
 
 ## 🔒 **Security & Governance**
 
-- **WASM Sandboxing**: All user code runs in WASM sandbox
+- **WASM Sandboxing**: Untrusted user code runs in WASM sandbox
 - **Security Scanning**: Automated malware/vulnerability detection
 - **Content Moderation**: AI-powered inappropriate content detection
 - **Access Control**: Granular permissions for sharing

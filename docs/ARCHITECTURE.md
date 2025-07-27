@@ -389,7 +389,7 @@ class CustomAgent(AgentNode):
 
 - **Layer Isolation**: Each layer has specific responsibilities
 - **Service Access**: Controlled through ServiceLocator
-- **Tool Sandboxing**: Tools run with limited permissions
+- **Selective Sandboxing**: User code runs in WASM; tools/agents use direct execution
 - **Input Validation**: Pydantic models at every boundary
 
 ## Future Enhancements

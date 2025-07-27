@@ -773,7 +773,7 @@ async def run_interactive_demo():
         print(f"✅ Created {len(file_paths)} comprehensive documents")
         
         # Process documents through workflow
-        print(f"\n🔄 Processing documents through DAG orchestrator...")
+        print(f"\n🔄 Processing documents through intelligent DAG orchestrator...")
         
         workflow = (WorkflowBuilder("DocumentAssistant Knowledge Base")
             .add_tool("parse_docs", "document_parser", file_paths=file_paths)
@@ -786,7 +786,88 @@ async def run_interactive_demo():
             .build()
         )
         
+        # 🚀 NEW: Automatic workflow intelligence (natural user experience)
+        print(f"\n📊 WORKFLOW INTELLIGENCE")
+        print("-" * 50)
+        
+        try:
+            # Users automatically get workflow insights
+            optimization_insights = workflow.graph.get_optimization_insights()
+            
+            print(f"📈 Processing Pipeline Analysis:")
+            print(f"   📄 Documents to process: {len(file_paths)}")
+            print(f"   🔧 Processing steps: {optimization_insights['total_nodes']}")
+            print(f"   📏 Pipeline depth: {optimization_insights['max_depth']}")
+            
+            # Show estimated processing characteristics
+            execution_insights = optimization_insights.get('execution_insights', {})
+            estimated_cost = execution_insights.get('estimated_total_cost', 0)
+            if estimated_cost > 0:
+                print(f"   💰 Estimated cost: ${estimated_cost:.4f}")
+            
+            # Show pipeline optimization
+            cacheable_nodes = execution_insights.get('cacheable_nodes', [])
+            if cacheable_nodes:
+                print(f"   🚀 Cacheable steps: {len(cacheable_nodes)} (for faster re-runs)")
+            
+        except Exception as e:
+            print(f"   ⚠️  Pipeline analysis unavailable: {e}")
+        
+        # Enable automatic performance tracking
+        workflow._optimization_insights_enabled = True
+        processing_times = []
+        
+        async def document_processing_insights(event_type: str, data: dict):
+            if event_type == "graph_insights":
+                node_id = data.get("node_id")
+                execution_time = data.get("execution_time", 0)
+                processing_times.append((node_id, execution_time))
+                
+                # Show natural processing updates
+                if node_id == "parse_docs":
+                    print(f"   📄 Document parsing completed ({execution_time:.2f}s)")
+                elif node_id == "chunk_docs":
+                    print(f"   🧩 Intelligent chunking completed ({execution_time:.2f}s)")
+                elif node_id == "index_docs":
+                    print(f"   🔍 Semantic indexing completed ({execution_time:.2f}s)")
+        
+        workflow._emit_event = document_processing_insights
+        
+        print(f"\n🚀 Executing document processing workflow...")
         result = await workflow.execute()
+        
+        # 🚀 NEW: Automatic processing insights
+        print(f"\n📊 PROCESSING INSIGHTS")
+        print("-" * 50)
+        
+        try:
+            final_insights = workflow.graph.get_optimization_insights()
+            execution_insights = final_insights.get('execution_insights', {})
+            
+            # Show processing performance
+            total_time = sum(t[1] for t in processing_times)
+            if total_time > 0:
+                print(f"⏱️  Total processing time: {total_time:.2f}s")
+            
+            # Show step breakdown
+            if processing_times:
+                print(f"📋 Processing breakdown:")
+                for step_name, step_time in processing_times:
+                    print(f"   {step_name}: {step_time:.2f}s")
+            
+            # Show optimization opportunities
+            bottlenecks = final_insights.get('bottlenecks', [])
+            if bottlenecks:
+                print(f"🎯 Performance insight: '{bottlenecks[0]}' is the slowest step")
+            
+            # Show future optimization hints
+            cacheable = execution_insights.get('cacheable_nodes', [])
+            if cacheable:
+                print(f"💡 Optimization tip: Cache {len(cacheable)} steps for faster re-runs")
+                
+        except Exception as e:
+            print(f"⚠️  Processing insights unavailable: {e}")
+        
         print("✅ Document processing complete!")
         
         # Create tools for testing

@@ -134,7 +134,7 @@ class GraphContextManager:
         prevents different chains sharing a manager from leaking data into one
         another.
         """
-        # No special handling requested – maintain legacy behaviour ----------
+        # Use default behavior for context management
         if session_id is None:
             return self._context
 

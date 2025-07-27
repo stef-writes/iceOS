@@ -44,8 +44,7 @@ from ice_core.models import (
 from ice_core.models.node_models import NodeMetadata
 from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy
-# ChainFactory removed - use WorkflowBuilder instead
-# AgentFactory removed - LLM nodes no longer have tools
+# Use WorkflowBuilder for creating workflows
 from ice_orchestrator.execution.executor import NodeExecutor
 from ice_orchestrator.execution.metrics import ChainMetrics
 from ice_orchestrator.execution.workflow_state import WorkflowExecutionState, ExecutionPhase
@@ -190,7 +189,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         self.metrics = ChainMetrics()
         # Executor helper -----------------------------------------------------
         self._executor = NodeExecutor(self)
-        # Agent factory removed - LLM nodes no longer have tools
+        # LLM nodes are now direct API calls
         # Schema validator helper ---------------------------------------------
         self._schema_validator = SchemaValidator()
 
@@ -216,6 +215,10 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
 
         # Agent instance cache
         self._agent_cache: Dict[str, AgentNode] = {}
+
+        # 🚀 Enhanced NetworkX integration - Track execution with rich analytics
+        self._execution_start_times: Dict[str, float] = {}
+        self._optimization_insights_enabled = True
 
     def _populate_missing_schemas(self, nodes: List[NodeConfig]) -> List[NodeConfig]:
         """Blueprint layer: Auto-populate schemas for tool nodes.
@@ -769,7 +772,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 workflow_name=self.name or "unnamed"
             )
             
-        # TODO: Implement incremental execution logic
+        # Incremental execution not yet implemented
         # For now, delegate to regular execute
         return await self.execute()
         
@@ -1046,38 +1049,75 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
     async def execute_node(
         self, node_id: str, input_data: Dict[str, Any]
     ) -> NodeExecutionResult:
-        """Execute a single processor – now delegated to *NodeExecutor* utility."""
+        """Execute a single processor with enhanced NetworkX analytics tracking."""
+        
+        # 🚀 Enhanced NetworkX tracking - Record start time for performance analysis
+        import time
+        execution_start = time.time()
+        self._execution_start_times[node_id] = execution_start
         
         # Track state if available
         if self._execution_state:
             self._execution_state.record_node_start(node_id)
             
-        # Emit node started event
+        # Emit node started event with enhanced graph metadata
         node = self.nodes.get(node_id)
         if node:
+            # Get rich node metadata from enhanced graph
+            node_data = self.graph.graph.nodes.get(node_id, {})
+            
             await self._event_handler.emit(NodeStarted(
                 workflow_id=self.chain_id,
                 node_id=node_id,
                 node_type=node.type,
                 node_name=getattr(node, 'name', None),
                 level=self.graph.get_node_level(node_id),
-                dependencies=node.dependencies
+                dependencies=node.dependencies,
+                # Enhanced metadata from NetworkX graph
+                metadata={
+                    "complexity_score": node_data.get("complexity_score", 1.0),
+                    "estimated_cost": node_data.get("estimated_cost", 0.0),
+                    "parallel_safe": node_data.get("parallel_safe", True),
+                    "canvas_cluster": node_data.get("canvas_cluster", "default"),
+                    "is_bottleneck": node_data.get("is_bottleneck", False),
+                    "is_critical_path": node_data.get("is_critical_path", False),
+                }
             ))
 
         result = await self._executor.execute_node(node_id, input_data)
+        
+        # 🚀 Enhanced NetworkX tracking - Update execution statistics
+        execution_time = time.time() - execution_start
+        self.graph.update_execution_stats(
+            node_id=node_id,
+            execution_time=execution_time,
+            success=result.success,
+            error=str(result.error) if hasattr(result, 'error') and result.error else None
+        )
+        
+        # 🚀 Track data transfer statistics for dependencies
+        if result.success and input_data:
+            estimated_data_size = len(str(input_data).encode('utf-8'))  # Rough estimate
+            for dep_id in node.dependencies if node else []:
+                self.graph.update_data_transfer_stats(
+                    source_id=dep_id,
+                    target_id=node_id,
+                    transfer_time=0.001,  # Negligible for in-memory transfers
+                    data_size=estimated_data_size
+                )
         
         # Track completion
         if self._execution_state:
             self._execution_state.record_node_complete(node_id, result)
             
-        # Emit appropriate event
+        # Emit appropriate event with enhanced metadata
         if result.success:
             await self._event_handler.emit(NodeCompleted(
                 workflow_id=self.chain_id,
                 node_id=node_id,
                 duration_seconds=result.execution_time or 0,
                 tokens_used=result.usage.total_tokens if result.usage else None,
-                cost=None,  # TODO: Calculate from usage
+                cost=None,  # Cost calculation from usage not yet implemented
                 cache_hit=getattr(result, 'cache_hit', False)
             ))
         else:
@@ -1087,6 +1127,29 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 error_type=type(result.error).__name__ if result.error else "Unknown",
                 error_message=str(result.error) if result.error else "Unknown error"
             ))
+
+        # 🚀 Enhanced NetworkX insights - Emit optimization insights
+        if self._optimization_insights_enabled and self._emit_event:
+            optimization_insights = self.graph.get_optimization_insights()
+            canvas_hints = self.graph.get_canvas_layout_hints()
+            
+            self._emit_event("graph_insights", {
+                "node_id": node_id,
+                "execution_time": execution_time,
+                "optimization_insights": optimization_insights,
+                "bottlenecks": optimization_insights.get("bottlenecks", []),
+                "critical_path": optimization_insights.get("critical_path", []),
+                "parallel_opportunities": optimization_insights.get("parallel_opportunities", 0),
+                "canvas_hints": canvas_hints.get(node_id, {}),
+                "graph_metrics": {
+                    "total_nodes": self.graph.graph.number_of_nodes(),
+                    "total_edges": self.graph.graph.number_of_edges(),
+                    "completion_percentage": len([
+                        n for n in self.graph.graph.nodes() 
+                        if self.graph.graph.nodes[n].get("execution_state") == "completed"
+                    ]) / max(self.graph.graph.number_of_nodes(), 1) * 100
+                }
+            })
 
         # Handle SubDAG results
         if hasattr(result, "output") and result.output is not None:
@@ -1123,7 +1186,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
     # Internal helpers -----------------------------------------------------
     # ---------------------------------------------------------------------
 
-    # NOTE: _make_agent removed - LLM nodes no longer have tools
+            # LLM nodes use direct API calls instead of agent pattern
     # Users must explicitly use AgentNodeConfig for LLM+tools use cases
 
     @staticmethod

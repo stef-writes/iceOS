@@ -78,4 +78,4 @@ def register_prompt_template(name: str) -> Callable[[Callable[[], MessageTemplat
 
     return decorator
 
-# PromptTemplateStore removed in v1.1 – use *global_prompt_template_registry* instead. 
+# Use global_prompt_template_registry for prompt template management 

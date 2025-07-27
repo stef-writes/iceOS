@@ -25,7 +25,7 @@ from .unified import (
     code_executor,
 )
 
-# Optional evaluator stub may be removed later
+# Evaluator functionality integrated into main executors
 evaluator_executor = None  # type: ignore
 
 __all__ = [

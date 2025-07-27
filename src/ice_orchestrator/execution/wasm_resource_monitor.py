@@ -66,10 +66,10 @@ class ResourceUsage:
     memory_pages_used: int
     fuel_consumed: int
     execution_time: float
-    file_operations: int = 0
-    network_calls: int = 0
     start_time: datetime
     end_time: datetime
+    file_operations: int = 0
+    network_calls: int = 0
     
     @property
     def memory_mb(self) -> float:

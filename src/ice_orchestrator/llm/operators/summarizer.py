@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """SummarizerOperator – summarises tabular row data using an LLM.
 
-Replaces the old `summarizer_skill` implementation.
+Replaces the old `summarizer_tool` implementation.
 """
 
 import json
@@ -44,7 +44,7 @@ class SummarizerOperator(LLMOperator):
         config: Optional[LLMOperatorConfig] = None,
         llm_service: Optional[LLMService] = None,
     ) -> None:
-        # Choose provider/model dynamically (same logic as old skill) --------
+        # Choose provider/model dynamically (same logic as old tool) --------
         if config is None:
             if os.getenv("OPENAI_API_KEY"):
                 provider = ModelProvider.OPENAI

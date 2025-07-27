@@ -50,7 +50,7 @@ class HttpRequestTool(ToolBase):
     # Required config keys
     # ---------------------------------------------------------------------
     def get_required_config(self) -> HttpRequestConfig:
-        """Return the minimal configuration required by this skill."""
+        """Return the minimal configuration required by this tool."""
         return self.config
 
     # ---------------------------------------------------------------------

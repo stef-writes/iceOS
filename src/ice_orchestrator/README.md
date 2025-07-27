@@ -201,6 +201,47 @@ text, usage, error = await service.generate(
 - **📋 Results Organization**: `get_results_by_node_type()` - O(1) access to execution results
 - **🔍 Performance Breakdown**: Complete analytics with success rates, costs, and tokens by node type
 
+## Security & Sandboxing Strategy
+
+### Selective WASM Sandboxing 🔒
+
+iceOS uses a **selective sandboxing approach** that balances security with functionality:
+
+**🟢 Direct Execution (Trusted Components)**
+- **Tool Nodes**: Need file I/O, network access, library imports
+- **Agent Nodes**: Require full Python capabilities for reasoning
+- **LLM Nodes**: Need network access for API calls
+- **Orchestration Logic**: Core system functionality
+
+**🔒 WASM Sandboxed (Untrusted Content)**
+- **Code Nodes**: User-provided Python code with unknown security risk
+- **Dynamic Expressions**: Condition evaluations from untrusted sources
+
+```python
+# ✅ Tools get direct execution - full system access
+@register_node("tool")
+async def tool_executor(workflow, cfg, ctx):
+    tool = registry.get_instance(NodeType.TOOL, cfg.tool_name)
+    return await tool.execute(inputs)  # No restrictions
+
+# 🔒 User code gets WASM sandboxing
+@register_node("code") 
+async def code_executor(workflow, cfg, ctx):
+    return await execute_node_with_wasm(
+        code=cfg.code,
+        context=ctx,
+        allowed_imports=cfg.imports  # Restricted
+    )
+```
+
+**Why This Approach?**
+- **Performance**: No unnecessary compilation overhead
+- **Compatibility**: Tools can use full Python ecosystem
+- **Security**: Untrusted code still safely sandboxed
+- **Reliability**: Network and I/O operations work correctly
+
+See `docs/WASM_SECURITY_BEST_PRACTICES.md` for detailed guidelines.
+
 ## Service Registration
 
 The orchestrator registers its services for SDK access:
