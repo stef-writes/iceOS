@@ -1,6 +1,6 @@
 # iceOS - AI Workflow Orchestration System
 
-A clean, layered architecture for building and executing AI workflows with strict separation of concerns.
+A clean, layered architecture for building and executing AI workflows with enterprise-grade security and strict separation of concerns.
 
 ## 🎯 Vision
 
@@ -12,6 +12,14 @@ User: "Analyze sales data and generate insights"
 Workflow: Tool → LLM → Agent → Results
 ```
 
+## 🛡️ **Security-First Design**
+
+All code execution runs in **WASM sandboxes** with resource limits:
+- CPU/memory monitoring and enforcement
+- Import restrictions and network isolation  
+- Timeout protection and audit logging
+- OpenTelemetry observability integration
+
 ## 🏗️ Architecture Overview
 
 iceOS follows a strict 4-layer architecture where each layer has a specific purpose:
@@ -19,10 +27,10 @@ iceOS follows a strict 4-layer architecture where each layer has a specific purp
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    ice_api                              │
-│            HTTP/WebSocket Gateway                       │
+│       HTTP/WebSocket Gateway + MCP Blueprint API       │
 ├─────────────────────────────────────────────────────────┤
 │                ice_orchestrator                         │
-│     Runtime Engine (Agents, Memory, LLM, Context)      │
+│   Runtime Engine (Agents, Memory, LLM, WASM Security)  │
 ├─────────────────────────────────────────────────────────┤
 │                    ice_sdk                              │
 │      Developer SDK (Tools, Builders, Services)         │
@@ -35,9 +43,17 @@ iceOS follows a strict 4-layer architecture where each layer has a specific purp
 ### Layer Responsibilities
 
 - **ice_core**: Shared models, protocols, and unified registry
-- **ice_sdk**: Tool development, workflow builders, service locator
-- **ice_orchestrator**: Runtime execution, agents, memory, LLM services
-- **ice_api**: External HTTP/WebSocket interfaces
+- **ice_sdk**: Tool development, workflow builders, service locator  
+- **ice_orchestrator**: Runtime execution, agents, memory, LLM services, WASM security
+- **ice_api**: External HTTP/WebSocket interfaces, MCP blueprint API
+
+### 🏆 **Enterprise Features**
+
+- **🔐 WASM Sandboxing**: All node execution in secure WebAssembly containers
+- **🧠 Unified Memory**: Working/Episodic/Semantic/Procedural agent memory
+- **⚡ Plugin System**: Protocol-based with 20+ production tools
+- **📊 Observability**: OpenTelemetry tracing, structured logging, metrics
+- **🔄 Reusable Components**: Enterprise patterns for tool/agent sharing
 
 ## 🚀 Quick Start
 

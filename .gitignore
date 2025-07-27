@@ -99,3 +99,4 @@ config/api_keys.json
 site/ 
 # Ignore pytest coverage artifacts
 .coverage*
+dump.rdb

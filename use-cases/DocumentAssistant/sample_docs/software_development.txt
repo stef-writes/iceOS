@@ -1,0 +1,21 @@
+# Software Development Lifecycle
+
+## Development Phases
+1. Requirements gathering
+2. System design
+3. Implementation
+4. Testing
+5. Deployment
+6. Maintenance
+
+## Code Quality
+- Write clean, readable code
+- Follow coding standards
+- Implement comprehensive testing
+- Use version control effectively
+
+## Testing Strategy
+- Unit testing
+- Integration testing
+- System testing
+- User acceptance testing
