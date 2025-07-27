@@ -24,24 +24,19 @@ class ToolBase(BaseModel, ABC):
     
     async def execute(
         self,
-        input_data: Optional[Dict[str, Any]] = None,
-        idempotency_key: Optional[str] = None,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Execute the tool with given inputs.
         
-        Merges input_data with kwargs for backward compatibility.
         Subclasses should override _execute_impl.
         """
-        # Merge inputs for backward compatibility
-        merged_inputs = {**(input_data or {}), **kwargs}
         
         try:
             # Validate inputs
-            self._validate_inputs(merged_inputs)
+            self._validate_inputs(kwargs)
             
             # Execute implementation
-            result = await self._execute_impl(**merged_inputs)
+            result = await self._execute_impl(**kwargs)
             
             # Validate outputs
             self._validate_outputs(result)

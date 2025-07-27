@@ -10,12 +10,15 @@ hard-coding type switches and ensures that the mapping stays in one place.
 from typing import Dict, List, Type, Any
 
 from ice_core.models import (
-    ConditionNodeConfig,
-    LLMOperatorConfig,
     NodeConfig,
     ToolNodeConfig,
+    LLMOperatorConfig,
     AgentNodeConfig,
-    NestedChainConfig,
+    ConditionNodeConfig,
+    WorkflowNodeConfig,
+    LoopNodeConfig,
+    ParallelNodeConfig,
+    CodeNodeConfig,
 )
 
 __all__: list[str] = [
@@ -28,18 +31,19 @@ __all__: list[str] = [
 # ---------------------------------------------------------------------------
 
 _NODE_TYPE_MAP: Dict[str, Type[NodeConfig]] = {
-    # Deterministic tool ---------------------------------------------
+    # Execution nodes
     "tool": ToolNodeConfig,
-
-    # LLM operator ----------------------------------------------------------
     "llm": LLMOperatorConfig,
-
-    # Agent -----------------------------------------------------------------
     "agent": AgentNodeConfig,
+    "code": CodeNodeConfig,
 
-    # Control-flow ----------------------------------------------------------
+    # Control flow nodes
     "condition": ConditionNodeConfig,
-    "nested_chain": NestedChainConfig,
+    "loop": LoopNodeConfig,
+    "parallel": ParallelNodeConfig,
+
+    # Composition node
+    "workflow": WorkflowNodeConfig,
 }
 
 # ---------------------------------------------------------------------------

@@ -25,20 +25,11 @@ class JinjaRenderTool(ToolBase):
             env = jinja2.Environment(autoescape=True)
             template = env.from_string(template_str)
             rendered: str = template.render(**ctx)
-
-            # When developers use *format*-style placeholders ("{name}") Jinja2
-            # leaves them untouched.  Detect that scenario and fall back to
-            # Python's ``str.format`` so templates written for the legacy
-            # *HttpRequestTool* continue to work.
-            if rendered == template_str and "{" in template_str:
-                return template_str.format(**ctx)
-
             return rendered
-        except ModuleNotFoundError:
-            try:
-                return template_str.format(**ctx)
-            except Exception as exc:
-                raise ToolExecutionError("jinja_render", f"Template rendering failed: {exc}") from exc
+        except ModuleNotFoundError as exc:
+            raise ToolExecutionError("jinja_render", "Jinja2 module not found. Please install jinja2.") from exc
+        except Exception as exc:
+            raise ToolExecutionError("jinja_render", f"Template rendering failed: {exc}") from exc
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         template = cast(str, kwargs.get("template", ""))

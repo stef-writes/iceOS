@@ -5,7 +5,7 @@
 
 **🎯 Core Features**
 * **MCP Protocol** – Model Context Protocol for blueprint management and execution
-* **Direct Execution** – Quick endpoints for single tool/agent/unit/chain execution
+* **Direct Execution** – Quick endpoints for single tool/agent/workflow execution
 * **Event Streaming** – Real-time execution events via SSE
 * **Blueprint Management** – Register and execute workflows
 * **Redis Integration** – Event streaming and blueprint persistence
@@ -35,8 +35,8 @@ POST /api/v1/agents/{agent_name}
   "inputs": { "query": "analyze this data" }
 }
 
-# Execute a unit
-POST /api/v1/units/{unit_name}
+# Execute a workflow node
+POST /api/v1/workflows/{workflow_name}/execute
 {
   "inputs": { "data": [...] }
 }
@@ -50,7 +50,7 @@ POST /api/v1/chains/{chain_name}
 # Discovery endpoints
 GET /api/v1/tools     # List all tools
 GET /api/v1/agents    # List all agents
-GET /api/v1/units     # List all units  
+GET /api/v1/workflows # List all workflows  
 GET /api/v1/chains    # List all chains
 ```
 

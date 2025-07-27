@@ -7,11 +7,11 @@ from ice_core.models import NodeType, INode, NodeConfig, NodeExecutionResult
 class RegistryError(Exception):
     """Base exception for registry operations."""
     pass
-from ice_core.protocols.workflow import ScriptChainLike
+from ice_core.protocols.workflow import WorkflowLike
 import importlib.metadata as metadata
 
 # Type aliases for node executors
-ScriptChain: TypeAlias = ScriptChainLike
+ScriptChain: TypeAlias = WorkflowLike
 ExecCallable = Callable[[ScriptChain, NodeConfig, Dict[str, Any]], Awaitable[NodeExecutionResult]]
 F = TypeVar("F", bound=ExecCallable)
 
@@ -31,7 +31,7 @@ class Registry(BaseModel):
     _instances: Dict[str, INode] = PrivateAttr(default_factory=dict)
     _executors: Dict[str, ExecCallable] = PrivateAttr(default_factory=dict)
     _chains: Dict[str, Any] = PrivateAttr(default_factory=dict)
-    _units: Dict[str, Any] = PrivateAttr(default_factory=dict)
+    # NOTE: Units removed - use workflows instead
     _agents: Dict[str, str] = PrivateAttr(default_factory=dict)  # Maps agent names to import paths
     
     def _make_key(self, node_type: NodeType, name: str) -> str:
@@ -143,22 +143,7 @@ class Registry(BaseModel):
         """List all registered chains with their instances."""
         return [(name, chain) for name, chain in sorted(self._chains.items())]
     
-    # Unit registry methods
-    def register_unit(self, name: str, unit: Any) -> None:
-        """Register a unit (composite node)."""
-        if name in self._units:
-            raise RegistryError(f"Unit {name} already registered")
-        self._units[name] = unit
-    
-    def get_unit(self, name: str) -> Any:
-        """Get a registered unit."""
-        if name not in self._units:
-            raise KeyError(f"Unit {name} not found")
-        return self._units[name]
-    
-    def available_units(self) -> List[Tuple[str, Any]]:
-        """List all registered units with their instances."""
-        return [(name, unit) for name, unit in sorted(self._units.items())]
+    # NOTE: Unit methods removed - use workflow registration instead
     
     # Agent registry methods
     def register_agent(self, name: str, import_path: str) -> None:
@@ -205,7 +190,7 @@ def get_executor(node_type: str) -> ExecCallable:
 # Direct access to the registry - no backward compatibility needed
 global_agent_registry = registry
 global_chain_registry = registry
-global_unit_registry = registry
+# global_unit_registry removed - use registry directly
 
 # Export commonly used symbols
 __all__ = [
@@ -216,5 +201,5 @@ __all__ = [
     "NodeExecutor",
     "global_agent_registry",
     "global_chain_registry",
-    "global_unit_registry",
+
 ] 

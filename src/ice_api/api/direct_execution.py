@@ -1,6 +1,6 @@
 """Direct execution endpoints for quick testing and experimentation.
 
-These endpoints provide a simpler UX for executing individual nodes (tools, agents, units)
+These endpoints provide a simpler UX for executing individual nodes (tools, agents, workflows)
 while internally creating single-node blueprints to maintain consistency with the 
 MCP workflow system. This ensures all executions benefit from telemetry, analysis,
 and AI suggestions.
@@ -16,7 +16,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from ice_core.models.mcp import Blueprint, RunRequest, NodeSpec
-from ice_core.unified_registry import registry, global_unit_registry, global_agent_registry
+from ice_core.unified_registry import registry, global_agent_registry
 from ice_core.models import NodeType
 
 from .mcp import start_run, get_result
@@ -83,11 +83,75 @@ def get_ai_suggestions(node_type: str, node_name: str, result: Dict[str, Any]) -
                 "Summarize search results",
                 "Filter results by relevance"
             ])
+        else:
+            suggestions.extend([
+                "Chain with another tool for data transformation",
+                "Add error handling with condition nodes",
+                "Store results for later use"
+            ])
+    
     elif node_type == "agent":
         suggestions.extend([
             "Chain with another agent for complex reasoning",
             "Add human-in-the-loop validation",
-            "Store results for future reference"
+            "Store results for future reference",
+            "Add memory to improve context retention"
+        ])
+    
+    elif node_type == "llm":
+        suggestions.extend([
+            "Add tools to create an agent for enhanced capabilities",
+            "Chain with condition node for response validation",
+            "Use parallel node to compare multiple model outputs",
+            "Add output parsing with structured schemas"
+        ])
+    
+    elif node_type == "condition":
+        suggestions.extend([
+            "Add parallel branches for complex logic trees",
+            "Chain with loop node for retry logic",
+            "Add workflow node to encapsulate the conditional flow",
+            "Use code node for custom condition evaluation"
+        ])
+    
+    elif node_type == "workflow":
+        suggestions.extend([
+            "Add monitoring and logging for workflow steps",
+            "Create parallel sub-workflows for efficiency",
+            "Add condition nodes for dynamic workflow paths",
+            "Embed as sub-workflow in larger orchestration"
+        ])
+    
+    elif node_type == "loop":
+        suggestions.extend([
+            "Add condition node to control loop termination",
+            "Use parallel node for batch processing",
+            "Add aggregation logic to collect loop results",
+            "Implement backoff strategy for retries"
+        ])
+    
+    elif node_type == "parallel":
+        suggestions.extend([
+            "Add synchronization logic for results merging",
+            "Use condition nodes to handle partial failures",
+            "Chain with aggregation tools for result combination",
+            "Add timeout handling for long-running branches"
+        ])
+    
+    elif node_type == "code":
+        suggestions.extend([
+            "Add error handling with try-catch patterns",
+            "Chain with validation tools for output verification",
+            "Use sandboxing for security isolation",
+            "Add logging for debugging and monitoring"
+        ])
+    
+    # Generic suggestions for all types
+    if result.get("error"):
+        suggestions.extend([
+            "Add retry logic with exponential backoff",
+            "Implement fallback strategies",
+            "Add error notification mechanisms"
         ])
     
     return suggestions
@@ -193,27 +257,27 @@ async def execute_agent(agent_name: str, request: DirectExecutionRequest) -> Dir
     )
 
 
-@router.post("/v1/units/{unit_name}", response_model=DirectExecutionResponse)
-async def execute_unit(unit_name: str, request: DirectExecutionRequest) -> DirectExecutionResponse:
-    """Execute a single unit with the given inputs."""
+@router.post("/v1/workflows/{workflow_name}/execute", response_model=DirectExecutionResponse)
+async def execute_workflow_node(workflow_name: str, request: DirectExecutionRequest) -> DirectExecutionResponse:
+    """Execute a workflow as a single node with the given inputs."""
     
-    # Verify unit exists
+    # Verify workflow exists
     try:
-        unit = global_unit_registry.get(unit_name)
-        if not unit:
+        workflow = registry.get_instance(NodeType.WORKFLOW, workflow_name)
+        if not workflow:
             raise KeyError()
     except KeyError:
-        raise HTTPException(status_code=404, detail=f"Unit '{unit_name}' not found")
+        raise HTTPException(status_code=404, detail=f"Workflow '{workflow_name}' not found")
     
     # Create single-node blueprint
-    node_id = f"{unit_name}_quick_{uuid.uuid4().hex[:8]}"
+    node_id = f"{workflow_name}_quick_{uuid.uuid4().hex[:8]}"
     blueprint = Blueprint(
-        blueprint_id=f"quick_unit_{uuid.uuid4().hex[:8]}",
+        blueprint_id=f"quick_workflow_{uuid.uuid4().hex[:8]}",
         nodes=[
             NodeSpec(
                 id=node_id,
-                type="unit",
-                unit_ref=unit_name,
+                type="workflow",
+                workflow_ref=workflow_name,
                 inputs=request.inputs,
                 **request.options
             )
@@ -236,7 +300,7 @@ async def execute_unit(unit_name: str, request: DirectExecutionRequest) -> Direc
         output=result.get("output"),
         error=result.get("error"),
         telemetry_url=run_ack.events_endpoint,
-        suggestions=get_ai_suggestions("unit", unit_name, result) if result["status"] == "completed" else None
+        suggestions=get_ai_suggestions("workflow", workflow_name, result) if result["status"] == "completed" else None
     )
 
 
@@ -299,8 +363,8 @@ async def execute_chain(chain_name: str, request: DirectExecutionRequest) -> Dir
         nodes=[
             NodeSpec(
                 id=node_id,
-                type="nested_chain",  # Use nested_chain type which has a config class
-                chain=chain_name,  # NestedChainConfig expects 'chain' field
+                type="workflow",  # Use workflow type (merged unit/nested_chain)
+                workflow_ref=chain_name,  # WorkflowNodeConfig expects 'workflow_ref' field
                 # Design-time schemas for MCP validation
                 # Chains typically have workflow inputs and outputs
                 input_schema={"inputs": "dict"},
@@ -327,4 +391,167 @@ async def execute_chain(chain_name: str, request: DirectExecutionRequest) -> Dir
         error=result.get("error"),
         telemetry_url=run_ack.events_endpoint,
         suggestions=get_ai_suggestions("chain", chain_name, result) if result["status"] == "completed" else None
+    ) 
+
+
+@router.post("/v1/condition/{condition_name}", response_model=DirectExecutionResponse)
+async def execute_condition(condition_name: str, request: DirectExecutionRequest) -> DirectExecutionResponse:
+    """Execute a single condition node with the given inputs."""
+    
+    # Create single-node blueprint
+    node_id = f"condition_quick_{uuid.uuid4().hex[:8]}"
+    blueprint = Blueprint(
+        blueprint_id=f"quick_condition_{uuid.uuid4().hex[:8]}",
+        nodes=[
+            NodeSpec(
+                id=node_id,
+                type="condition",
+                condition_expression=request.inputs.get("expression", "true"),
+                true_branch=request.inputs.get("true_branch"),
+                false_branch=request.inputs.get("false_branch"),
+                inputs=request.inputs,
+                **request.options
+            )
+        ]
+    )
+    
+    # Execute through MCP
+    run_request = RunRequest(blueprint=blueprint)
+    run_ack = await start_run(run_request)
+    
+    # Wait for completion if requested
+    if request.wait_for_completion:
+        result = await wait_for_run_completion(run_ack.run_id, request.timeout)
+    else:
+        result = {"status": "running", "output": None, "error": None}
+    
+    return DirectExecutionResponse(
+        run_id=run_ack.run_id,
+        status=result["status"],
+        output=result.get("output"),
+        error=result.get("error"),
+        telemetry_url=run_ack.events_endpoint,
+        suggestions=get_ai_suggestions("condition", condition_name, result) if result["status"] == "completed" else None
+    )
+
+
+@router.post("/v1/loop/{loop_name}", response_model=DirectExecutionResponse)
+async def execute_loop(loop_name: str, request: DirectExecutionRequest) -> DirectExecutionResponse:
+    """Execute a single loop node with the given inputs."""
+    
+    # Create single-node blueprint
+    node_id = f"loop_quick_{uuid.uuid4().hex[:8]}"
+    blueprint = Blueprint(
+        blueprint_id=f"quick_loop_{uuid.uuid4().hex[:8]}",
+        nodes=[
+            NodeSpec(
+                id=node_id,
+                type="loop",
+                items=request.inputs.get("items", []),
+                max_iterations=request.options.get("max_iterations", 100),
+                parallel=request.options.get("parallel", False),
+                inputs=request.inputs,
+                **request.options
+            )
+        ]
+    )
+    
+    # Execute through MCP
+    run_request = RunRequest(blueprint=blueprint)
+    run_ack = await start_run(run_request)
+    
+    # Wait for completion if requested
+    if request.wait_for_completion:
+        result = await wait_for_run_completion(run_ack.run_id, request.timeout)
+    else:
+        result = {"status": "running", "output": None, "error": None}
+    
+    return DirectExecutionResponse(
+        run_id=run_ack.run_id,
+        status=result["status"],
+        output=result.get("output"),
+        error=result.get("error"),
+        telemetry_url=run_ack.events_endpoint,
+        suggestions=get_ai_suggestions("loop", loop_name, result) if result["status"] == "completed" else None
+    )
+
+
+@router.post("/v1/parallel/{parallel_name}", response_model=DirectExecutionResponse)
+async def execute_parallel(parallel_name: str, request: DirectExecutionRequest) -> DirectExecutionResponse:
+    """Execute a single parallel node with the given inputs."""
+    
+    # Create single-node blueprint
+    node_id = f"parallel_quick_{uuid.uuid4().hex[:8]}"
+    blueprint = Blueprint(
+        blueprint_id=f"quick_parallel_{uuid.uuid4().hex[:8]}",
+        nodes=[
+            NodeSpec(
+                id=node_id,
+                type="parallel",
+                branches=request.inputs.get("branches", []),
+                merge_strategy=request.options.get("merge_strategy", "collect"),
+                inputs=request.inputs,
+                **request.options
+            )
+        ]
+    )
+    
+    # Execute through MCP
+    run_request = RunRequest(blueprint=blueprint)
+    run_ack = await start_run(run_request)
+    
+    # Wait for completion if requested
+    if request.wait_for_completion:
+        result = await wait_for_run_completion(run_ack.run_id, request.timeout)
+    else:
+        result = {"status": "running", "output": None, "error": None}
+    
+    return DirectExecutionResponse(
+        run_id=run_ack.run_id,
+        status=result["status"],
+        output=result.get("output"),
+        error=result.get("error"),
+        telemetry_url=run_ack.events_endpoint,
+        suggestions=get_ai_suggestions("parallel", parallel_name, result) if result["status"] == "completed" else None
+    )
+
+
+@router.post("/v1/code/{code_name}", response_model=DirectExecutionResponse)
+async def execute_code(code_name: str, request: DirectExecutionRequest) -> DirectExecutionResponse:
+    """Execute a single code node with the given inputs."""
+    
+    # Create single-node blueprint
+    node_id = f"code_quick_{uuid.uuid4().hex[:8]}"
+    blueprint = Blueprint(
+        blueprint_id=f"quick_code_{uuid.uuid4().hex[:8]}",
+        nodes=[
+            NodeSpec(
+                id=node_id,
+                type="code",
+                code=request.inputs.get("code", ""),
+                language=request.options.get("language", "python"),
+                sandbox=request.options.get("sandbox", True),
+                inputs=request.inputs,
+                **request.options
+            )
+        ]
+    )
+    
+    # Execute through MCP
+    run_request = RunRequest(blueprint=blueprint)
+    run_ack = await start_run(run_request)
+    
+    # Wait for completion if requested
+    if request.wait_for_completion:
+        result = await wait_for_run_completion(run_ack.run_id, request.timeout)
+    else:
+        result = {"status": "running", "output": None, "error": None}
+    
+    return DirectExecutionResponse(
+        run_id=run_ack.run_id,
+        status=result["status"],
+        output=result.get("output"),
+        error=result.get("error"),
+        telemetry_url=run_ack.events_endpoint,
+        suggestions=get_ai_suggestions("code", code_name, result) if result["status"] == "completed" else None
     ) 

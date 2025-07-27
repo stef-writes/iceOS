@@ -30,8 +30,20 @@ pytestmark = [pytest.mark.unit]
             {"expression": "True"},
         ),
         (
-            "nested_chain",
-            {"chain": "dummy"},
+            "workflow",
+            {"workflow_ref": "dummy"},
+        ),
+        (
+            "loop",
+            {"items_source": "data.items", "body_nodes": ["node1"], "max_iterations": 10},
+        ),
+        (
+            "parallel",
+            {"branches": [["node1"], ["node2"]]},
+        ),
+        (
+            "code",
+            {"code": "output['result'] = 42", "language": "python"},
         ),
     ],
 )

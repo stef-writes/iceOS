@@ -37,7 +37,7 @@ from ice_core.models import (
     ChainExecutionResult,
     ConditionNodeConfig,
     LLMOperatorConfig,
-    NestedChainConfig,
+    WorkflowNodeConfig,
     NodeConfig,
     NodeExecutionResult,
 )
@@ -45,7 +45,7 @@ from ice_core.models.node_models import NodeMetadata
 from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy
 # ChainFactory removed - use WorkflowBuilder instead
-from ice_orchestrator.execution.agent_factory import AgentFactory
+# AgentFactory removed - LLM nodes no longer have tools
 from ice_orchestrator.execution.executor import NodeExecutor
 from ice_orchestrator.execution.metrics import ChainMetrics
 from ice_orchestrator.execution.workflow_state import WorkflowExecutionState, ExecutionPhase
@@ -180,8 +180,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         self.metrics = ChainMetrics()
         # Executor helper -----------------------------------------------------
         self._executor = NodeExecutor(self)
-        # Agent factory helper ------------------------------------------------
-        self._agent_factory = AgentFactory(self.context_manager, self._chain_tools)
+        # Agent factory removed - LLM nodes no longer have tools
         # Schema validator helper ---------------------------------------------
         self._schema_validator = SchemaValidator()
         # Agent instance cache -------------------------------------------
@@ -883,7 +882,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 "reason": "Consider breaking complex logic into sub-workflow",
                 "priority": "low",
                 "suggested_config": {
-                    "type": "nested_chain",
+                    "type": "workflow",
                     "chain_reference": "sub_workflow_template"
                 }
             })
@@ -980,7 +979,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 "icon": "branch",
                 "size": "small"
             },
-            "nested_chain": {
+            "workflow": {
                 "shape": "double-rounded-rectangle",
                 "color": "#50E3C2",
                 "icon": "folder",
@@ -1096,10 +1095,8 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
     # Internal helpers -----------------------------------------------------
     # ---------------------------------------------------------------------
 
-    def _make_agent(self, node: LLMOperatorConfig) -> AgentNode:
-        """Delegate to :class:`AgentFactory`."""
-
-        return self._agent_factory.make_agent(node)
+    # NOTE: _make_agent removed - LLM nodes no longer have tools
+    # Users must explicitly use AgentNodeConfig for LLM+tools use cases
 
     @staticmethod
     def _is_output_valid(node: NodeConfig, output: Any) -> bool:
@@ -1159,37 +1156,41 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
     # Composition helper -------------------------------------------------
     # -------------------------------------------------------------------
 
-    def as_nested_node(  # – helper name
+    def as_workflow_node(
         self,
         id: str | None = None,
         *,
         name: str | None = None,
-        input_mappings: Dict[str, Any] | None = None,
+        workflow_ref: str | None = None,
+        config_overrides: Dict[str, Any] | None = None,
         exposed_outputs: Dict[str, str] | None = None,
-    ) -> "NestedChainConfig":
-        """Return a :class:`NestedChainConfig` wrapping *self* so it can be
+    ) -> "WorkflowNodeConfig":
+        """Return a :class:`WorkflowNodeConfig` wrapping *self* so it can be
         embedded inside another *Workflow*.
 
         Example
         -------
         >>> sub_workflow = build_checkout_workflow()
-        >>> parent_node = sub_workflow.as_nested_node(
+        >>> # Register the workflow first
+        >>> registry.register_instance(NodeType.WORKFLOW, "checkout_workflow", sub_workflow)
+        >>> # Then use it as a node
+        >>> parent_node = sub_workflow.as_workflow_node(
         ...     id="checkout",
-        ...     input_mappings={"amount": InputMapping(...)}
+        ...     workflow_ref="checkout_workflow"
         ... )
         """
 
         # Local import to avoid circular dependency at module import time
-        from ice_core.models.node_models import NestedChainConfig  # type: ignore
+        from ice_core.models.node_models import WorkflowNodeConfig  # type: ignore
 
-        return NestedChainConfig(
+        return WorkflowNodeConfig(
             id=id or self.chain_id,
             name=name or self.name,
-            chain=self,
-            input_mappings=input_mappings or {},
+            workflow_ref=workflow_ref or self.chain_id,
+            config_overrides=config_overrides or {},
             exposed_outputs=exposed_outputs or {},
             dependencies=[],
-            type="nested_chain",  # explicit for clarity
+            type="workflow",  # explicit for clarity
         )
 
     def add_node(self, config: NodeConfig, depends_on: list[str] | None = None) -> str:

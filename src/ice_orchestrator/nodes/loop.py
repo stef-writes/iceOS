@@ -1,6 +1,6 @@
 """Loop node - iteration over collections."""
 from typing import Dict, Any, List
-from ice_core.models import BaseNode
+from ice_core.base_node import BaseNode
 
 class LoopNode(BaseNode):
     """Iterate over a collection and execute body nodes."""

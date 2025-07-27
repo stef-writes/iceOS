@@ -39,10 +39,7 @@ def load_current(service_name: str) -> ServiceContract:
     0.1.0
     """
 
-    # NOTE: For now we return a placeholder until real contract files exist.
-    # In the future this will locate `<_CONTRACTS_DIR>/<service_name>.json` (or
-    # .yaml), load it, and validate via :class:`ServiceContract`.
-    _ = service_name  # Placeholder – keep the signature stable
+    # TODO: Implement loading service contracts from ice_contracts/contracts/{service_name}.yaml
     return ServiceContract(version="0.1.0", name=service_name)
 
 @runtime_checkable
@@ -50,7 +47,7 @@ class MicroserviceContract(Protocol):
     """Base protocol for microservice implementations."""
 
     def validate_api_surface(self) -> bool:
-        """Ensures backward compatibility"""
+        """Validate the API surface matches the contract."""
         ...
 
 class NodeService(MicroserviceContract):

@@ -1,6 +1,6 @@
 """Condition node - branching logic."""
 from typing import Dict, Any, List
-from ice_core.models import BaseNode
+from ice_core.base_node import BaseNode
 
 class ConditionNode(BaseNode):
     """Branching node that decides execution path based on expression."""

@@ -13,7 +13,7 @@ from ice_core.utils.schema import parse_type_literal, is_valid_schema_dict
 from ice_core.models.mcp import NodeSpec, Blueprint, PartialBlueprint, RunRequest
 from ice_core.models.node_models import (
     LLMOperatorConfig, ToolNodeConfig, ConditionNodeConfig, 
-    NestedChainConfig, AgentNodeConfig
+    AgentNodeConfig, WorkflowNodeConfig
 )
 from ice_core.utils.node_conversion import convert_node_spec
 

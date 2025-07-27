@@ -22,7 +22,7 @@ class NodeMetadata(BaseModel):
     """
 
     node_id: str = Field(..., description="Unique node identifier")
-    node_type: str = Field(..., description="Type of node (ai)")
+    node_type: str = Field(..., description="Type of node (tool, llm, agent, etc.)")
     name: Optional[str] = None
     version: str = Field(
         "1.0.0",

@@ -1,6 +1,6 @@
 """Parallel node - concurrent execution branches."""
 from typing import Dict, Any, List, Literal
-from ice_core.models import BaseNode
+from ice_core.base_node import BaseNode
 
 class ParallelNode(BaseNode):
     """Execute multiple branches concurrently."""

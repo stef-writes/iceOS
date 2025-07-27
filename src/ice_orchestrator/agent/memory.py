@@ -2,7 +2,8 @@
 
 from typing import Any, Dict, List, Optional
 from pydantic import Field, model_validator, PrivateAttr
-from .base import AgentNode, AgentNodeConfig  
+from .base import AgentNode
+from ice_core.models.node_models import AgentNodeConfig  
 from ice_orchestrator.memory import UnifiedMemory, UnifiedMemoryConfig
 
 

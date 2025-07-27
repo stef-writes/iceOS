@@ -1,6 +1,6 @@
 """Workflow node - reusable sub-workflows."""
 from typing import Dict, Any
-from ice_core.models import BaseNode
+from ice_core.base_node import BaseNode
 
 class WorkflowNode(BaseNode):
     """Execute a registered workflow as a node."""

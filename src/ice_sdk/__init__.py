@@ -2,7 +2,7 @@
 
 # Core imports
 # AgentNode moved to ice_orchestrator.agent
-from ice_core.models import BaseNode
+from ice_core.base_node import BaseNode
 # GraphContextManager moved to ice_orchestrator.context
 from ice_core.models import LLMConfig, MessageTemplate
 from ice_core.models.node_models import NodeConfig, NodeExecutionResult, NodeMetadata
@@ -32,4 +32,4 @@ __all__ = [
     "WorkflowBuilder",
 ]
 
-# Nested chain features intentionally not part of stable public surface yet
+# Workflow composition features for embedding sub-workflows

@@ -181,15 +181,26 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
 
                     if isinstance(result_raw, _NER):
                         # Allow budget tracking before returning ----------
-                        if node.type == "ai":
+                        if node.type == "llm":
                             cost = (
                                 getattr(result_raw.usage, "cost", 0.0)
                                 if result_raw.usage
                                 else 0.0
                             )
                             self.budget.register_llm_call(cost=cost)
+                        elif node.type == "agent":
+                            cost = (
+                                getattr(result_raw.usage, "cost", 0.0)
+                                if result_raw.usage
+                                else 0.0
+                            )
+                            self.budget.register_agent_call(cost=cost)
                         elif node.type == "tool":
                             self.budget.register_tool_execution()
+                        elif node.type == "workflow":
+                            self.budget.register_workflow_execution()
+                        elif node.type == "code":
+                            self.budget.register_code_execution()
 
                         return result_raw
 
@@ -307,13 +318,21 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                             )
 
                     # Add budget tracking
-                    if node.type == "ai":
+                    if node.type == "llm" or node.type == "agent":
                         cost = (
                             getattr(result.usage, "cost", 0.0) if result.usage else 0.0
                         )
-                        self.budget.register_llm_call(cost=cost)
+                        if node.type == "llm":
+                            self.budget.register_llm_call(cost=cost)
+                        else:  # agent
+                            self.budget.register_agent_call(cost=cost)
                     elif node.type == "tool":
                         self.budget.register_tool_execution()
+                    elif node.type == "workflow":
+                        self.budget.register_workflow_execution()
+                    elif node.type == "code":
+                        self.budget.register_code_execution()
+                    # Note: condition, loop, and parallel are orchestration nodes that don't need budget tracking
 
                     return result
 

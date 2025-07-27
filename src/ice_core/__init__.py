@@ -7,8 +7,8 @@ exceptions.  It MUST NOT import from any higher layer such as ``app`` or
 
 Example
 -------
->>> from ice_core.exceptions import DeprecatedError
->>> raise DeprecatedError("This feature is gone")
+>>> from ice_core.exceptions import CoreError
+>>> raise CoreError("This feature is unavailable")
 """
 
 from __future__ import annotations

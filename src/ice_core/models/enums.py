@@ -27,13 +27,11 @@ class NodeType(str, Enum):
     Only *canonical* names are exposed; all aliases have been removed.
     """
 
-    TOOL = "tool"  # deterministic tool implementation (formerly "tool")
-    LLM = "llm"  # single-prompt LLM operator
-    CONDITION = "condition"
-    NESTED_CHAIN = "nested_chain"
-    AGENT = "agent"  # pre-built iterative agent
-    UNIT = "unit"  # stateless composition of nodes
-    WORKFLOW = "workflow"  # reusable sub-workflows
+    TOOL = "tool"  # deterministic tool implementation
+    LLM = "llm"  # single-prompt LLM operator (no tools)
+    CONDITION = "condition"  # if/else branching
+    AGENT = "agent"  # LLM + tools + memory
+    WORKFLOW = "workflow"  # embed sub-workflows (merged unit/nested_chain)
     LOOP = "loop"  # iteration over collections
     PARALLEL = "parallel"  # concurrent execution branches
     CODE = "code"  # direct code execution

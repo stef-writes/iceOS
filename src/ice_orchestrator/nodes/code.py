@@ -1,6 +1,6 @@
 """Code node - direct code execution."""
 from typing import Dict, Any, Literal
-from ice_core.models import BaseNode
+from ice_core.base_node import BaseNode
 import ast
 
 class CodeNode(BaseNode):

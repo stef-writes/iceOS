@@ -6,7 +6,7 @@ from ice_core.models import (
     AgentNodeConfig, ConditionNodeConfig,
     LLMConfig, ModelProvider
 )
-# Note: Unit, Workflow, Loop, Parallel, Code configs don't exist yet
+# All node types now have config classes
 
 class WorkflowBuilder:
     """Build workflows with a fluent API."""
@@ -52,17 +52,20 @@ class WorkflowBuilder:
         ))
         return self
     
-    def add_unit(
+    def add_workflow(
         self,
         node_id: str,
-        unit_ref: str,
+        workflow_ref: str,
+        exposed_outputs: Optional[Dict[str, str]] = None,
         **kwargs
     ) -> "WorkflowBuilder":
-        """Add a unit node."""
-        self.nodes.append(UnitNodeConfig(
+        """Add an embedded workflow node."""
+        from ice_core.models import WorkflowNodeConfig
+        self.nodes.append(WorkflowNodeConfig(
             id=node_id,
-            type=NodeType.UNIT,
-            unit_ref=unit_ref,
+            type="workflow",
+            workflow_ref=workflow_ref,
+            exposed_outputs=exposed_outputs or {},
             config_overrides=kwargs
         ))
         return self
@@ -71,15 +74,19 @@ class WorkflowBuilder:
         self,
         node_id: str,
         package: str,  # AgentNodeConfig uses 'package' not 'agent_ref'
-        tools: List[str] = None,
+        tools: Optional[List[str]] = None,
+        memory: Optional[Dict[str, Any]] = None,
         **kwargs
     ) -> "WorkflowBuilder":
         """Add an agent node."""
+        from ice_core.models import AgentNodeConfig, ToolConfig
+        tool_configs = [ToolConfig(name=t) for t in (tools or [])]
         self.nodes.append(AgentNodeConfig(
             id=node_id,
-            type="agent",  # Use string literal
+            type="agent",
             package=package,
-            tools=[],  # AgentNodeConfig expects List[ToolConfig], not List[str]
+            tools=tool_configs,
+            memory=memory,
             **kwargs
         ))
         return self
@@ -88,48 +95,41 @@ class WorkflowBuilder:
         self,
         node_id: str,
         expression: str,
-        true_nodes: List[str] = None,
-        false_nodes: List[str] = None
+        true_branch: List[str],
+        false_branch: Optional[List[str]] = None,
+        **kwargs
     ) -> "WorkflowBuilder":
         """Add a condition node."""
+        from ice_core.models import ConditionNodeConfig
         self.nodes.append(ConditionNodeConfig(
             id=node_id,
-            type=NodeType.CONDITION,
+            type="condition",
             expression=expression,
-            true_nodes=true_nodes or [],
-            false_nodes=false_nodes or []
-        ))
-        return self
-    
-    def add_workflow(
-        self,
-        node_id: str,
-        workflow_ref: str,
-        inputs: Dict[str, Any] = None
-    ) -> "WorkflowBuilder":
-        """Add a sub-workflow node."""
-        self.nodes.append(WorkflowNodeConfig(
-            id=node_id,
-            type=NodeType.WORKFLOW,
-            workflow_ref=workflow_ref,
-            inputs=inputs or {}
+            true_branch=true_branch,
+            false_branch=false_branch,
+            **kwargs
         ))
         return self
     
     def add_loop(
         self,
         node_id: str,
-        iterator_path: str,
-        body_nodes: List[str] = None,
-        max_iterations: int = 100
+        items_source: str,
+        body_nodes: List[str],
+        item_var: str = "item",
+        parallel: bool = False,
+        **kwargs
     ) -> "WorkflowBuilder":
         """Add a loop node."""
+        from ice_core.models import LoopNodeConfig
         self.nodes.append(LoopNodeConfig(
             id=node_id,
-            type=NodeType.LOOP,
-            iterator_path=iterator_path,
-            body_nodes=body_nodes or [],
-            max_iterations=max_iterations
+            type="loop",
+            items_source=items_source,
+            item_var=item_var,
+            body_nodes=body_nodes,
+            parallel=parallel,
+            **kwargs
         ))
         return self
     
@@ -137,14 +137,17 @@ class WorkflowBuilder:
         self,
         node_id: str,
         branches: List[List[str]],
-        wait_strategy: str = "all"
+        max_concurrency: Optional[int] = None,
+        **kwargs
     ) -> "WorkflowBuilder":
-        """Add a parallel node."""
+        """Add a parallel execution node."""
+        from ice_core.models import ParallelNodeConfig
         self.nodes.append(ParallelNodeConfig(
             id=node_id,
-            type=NodeType.PARALLEL,
+            type="parallel",
             branches=branches,
-            wait_strategy=wait_strategy
+            max_concurrency=max_concurrency,
+            **kwargs
         ))
         return self
     
@@ -152,14 +155,19 @@ class WorkflowBuilder:
         self,
         node_id: str,
         code: str,
-        runtime: str = "python"
+        language: str = "python",
+        sandbox: bool = True,
+        **kwargs
     ) -> "WorkflowBuilder":
-        """Add a code node."""
+        """Add a code execution node."""
+        from ice_core.models import CodeNodeConfig
         self.nodes.append(CodeNodeConfig(
             id=node_id,
-            type=NodeType.CODE,
+            type="code",
             code=code,
-            runtime=runtime
+            language=language,
+            sandbox=sandbox,
+            **kwargs
         ))
         return self
     
@@ -175,17 +183,10 @@ class WorkflowBuilder:
         
         return self
     
-    def build(self) -> Dict[str, Any]:
-        """Build the workflow specification.
-        
-        Returns a dictionary that can be passed to a workflow execution service.
-        To execute, use ice_sdk.services.workflow_service.execute_workflow(spec).
-        """
-        return {
-            "name": self.name,
-            "nodes": [node.model_dump() for node in self.nodes],
-            "version": "1.0"
-        }
+    def build(self) -> Any:  # Would return Workflow instance
+        """Build the final workflow."""
+        # TODO: Implement workflow building
+        pass
     
     def to_workflow(self):
         """Convert to Workflow instance using ServiceLocator.

@@ -1,7 +1,10 @@
-"""Agent factory for ScriptChain execution.
+"""Agent factory for workflow execution - DEPRECATED.
 
-Builds :class:`AgentNode` instances from **LLMOperatorConfig** nodes while
-respecting chain-level and global tool precedence.
+This factory was used to auto-upgrade LLM nodes with tools to Agent nodes.
+Since LLM nodes no longer support tools, this factory should not be used.
+Users should explicitly create AgentNodeConfig for any LLM+tools use case.
+
+TODO: Remove this factory entirely once all references are cleaned up.
 """
 
 from __future__ import annotations
@@ -10,7 +13,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, List
 
 from ice_core.models.llm import LLMConfig
-from ice_orchestrator.agent import AgentNode, AgentNodeConfig  # local import
+from ice_orchestrator.agent import AgentNode  # local import
+from ice_core.models.node_models import AgentNodeConfig
 from ice_core.base_tool import ToolBase
 
 # ------------------------------------------------------------------
@@ -20,8 +24,8 @@ from ice_core.base_tool import ToolBase
 if TYPE_CHECKING:  # pragma: no cover
     # Type-checking imports
     from ice_core.models.llm import LLMConfig
-    from ice_core.models.node_models import LLMOperatorConfig
-    from ice_orchestrator.agent import AgentNode, AgentNodeConfig
+    from ice_core.models.node_models import LLMOperatorConfig, AgentNodeConfig
+    from ice_orchestrator.agent import AgentNode
     from ice_orchestrator.context import GraphContextManager
 
 class AgentFactory:  # – internal utility
@@ -53,21 +57,27 @@ class AgentFactory:  # – internal utility
         for t in self.chain_tools:
             tool_map[t.name] = t
 
-        # 3. Node-specific tool refs override everything else -----------
-        for cfg in getattr(node, "tools", None) or []:  # type: ignore[attr-defined]
-            t_obj = self.context_manager.get_tool(cfg.name)
-            if t_obj is not None:
-                tool_map[t_obj.name] = t_obj
+        # NOTE: LLM nodes no longer have tools - removed this check
 
         tools: List["ToolBase"] = list(tool_map.values())
 
         # Build AgentConfig ----------------------------------------------
-        llm_cfg = LLMConfig(provider=node.provider)  # minimal mapping
+        llm_cfg = LLMConfig(provider=node.provider, model=node.model)
 
-        agent_cfg = AgentNodeConfig(  # type: ignore[call-arg]
+        # Create proper AgentNodeConfig with required fields
+        from ice_core.models.node_models import ToolConfig
+        tool_configs = [ToolConfig(name=t.name) for t in tools]
+        
+        agent_cfg = AgentNodeConfig(
+            id=node.id,
+            type="agent",
+            package="ice_orchestrator.agent",  # Using built-in agent
             llm_config=llm_cfg,
-            system_prompt=node.prompt,
-            tools=[t.name for t in tools],
+            tools=tool_configs,
+            agent_config={
+                "system_prompt": node.prompt,
+                "max_retries": 3,
+            }
         )
 
         agent = AgentNode(config=agent_cfg, context_manager=self.context_manager)

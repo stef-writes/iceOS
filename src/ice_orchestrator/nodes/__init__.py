@@ -3,8 +3,7 @@
 NOTE: Tool and LLM execution now uses protocol-based executors directly.
 These remaining node classes are for advanced orchestration patterns.
 """
-from ice_core.models import BaseNode
-from .unit import UnitNode
+from ice_core.base_node import BaseNode
 from .agent import AgentNode
 from .workflow import WorkflowNode
 from .condition import ConditionNode
@@ -14,7 +13,6 @@ from .code import CodeNode
 
 __all__ = [
     "BaseNode",
-    "UnitNode", 
     "AgentNode",
     "WorkflowNode",
     "ConditionNode",

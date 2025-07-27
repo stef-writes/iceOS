@@ -54,10 +54,9 @@ class SafetyValidator:  # – internal utility
             if not allowed:
                 continue
 
-            if node.type == "ai":
-                # Legitimate use-case – AI node wants to limit which registered
-                # tools it may call.  No validation needed here; enforcement
-                # happens inside the agent executor at runtime.
+            if node.type == "agent":
+                # Legitimate use-case – Agent nodes can use tools with memory.
+                # Enforcement happens inside the agent executor at runtime.
                 continue
 
             # Any other node type is not allowed to carry *allowed_tools* for

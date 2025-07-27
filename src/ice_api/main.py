@@ -134,11 +134,12 @@ async def list_agents() -> List[str]:
     from ice_core.unified_registry import registry
     return list(registry._agents.keys())
 
-@app.get("/v1/units", response_model=List[str], tags=["discovery"])
-async def list_units() -> List[str]:
-    """Return all registered unit names."""
-    from ice_core.unified_registry import global_unit_registry
-    return [name for name, _ in global_unit_registry.available()]
+@app.get("/v1/workflows", response_model=List[str], tags=["discovery"]) 
+async def list_workflows() -> List[str]:
+    """Return all registered workflow names."""
+    from ice_core.unified_registry import registry
+    from ice_core.models import NodeType
+    return [name for name, _ in registry.available_instances(NodeType.WORKFLOW)]
 
 @app.get("/v1/chains", response_model=List[str], tags=["discovery"])
 async def list_chains() -> List[str]:

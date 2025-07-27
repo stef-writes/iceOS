@@ -73,7 +73,7 @@ class WorkflowCostEstimator:
         "tool": {"min": 0, "avg": 0, "max": 0},
         "agent": {"min": 2000, "avg": 5000, "max": 10000},
         "condition": {"min": 0, "avg": 0, "max": 0},
-        "nested_chain": {"min": 1000, "avg": 3000, "max": 8000},
+        "workflow": {"min": 1000, "avg": 3000, "max": 8000},
     }
     
     # Execution time estimates (seconds)
@@ -82,7 +82,7 @@ class WorkflowCostEstimator:
         "tool": {"min": 0.1, "avg": 0.5, "max": 2.0},
         "agent": {"min": 5.0, "avg": 15.0, "max": 30.0},
         "condition": {"min": 0.01, "avg": 0.05, "max": 0.1},
-        "nested_chain": {"min": 2.0, "avg": 10.0, "max": 30.0},
+        "workflow": {"min": 2.0, "avg": 10.0, "max": 30.0},
     }
     
     def __init__(self):

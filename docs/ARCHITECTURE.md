@@ -360,3 +360,60 @@ The iceOS architecture provides clear separation of concerns:
 - **API**: External interfaces
 
 This separation enables independent evolution of each layer while maintaining clean contracts through protocols and service patterns. 
+
+## The 8 Clean Node Types
+
+iceOS uses 8 distinct, non-overlapping node types for building workflows:
+
+### Execution Nodes
+
+1. **Tool Node** (`type: "tool"`)
+   - **Purpose**: Execute a single tool without LLM
+   - **Use Cases**: CSV parsing, API calls, data transformations
+   - **Example**: `tool_name: "csv_reader"`
+
+2. **LLM Node** (`type: "llm"`)
+   - **Purpose**: Pure text generation, NO tools allowed
+   - **Use Cases**: Summarization, translation, text analysis
+   - **Example**: `prompt: "Summarize this article"`
+
+3. **Agent Node** (`type: "agent"`)
+   - **Purpose**: LLM + Tools + Memory for multi-turn reasoning
+   - **Use Cases**: Customer support, research tasks, debugging
+   - **Example**: `package: "ice_sdk.agents.support"`
+
+4. **Code Node** (`type: "code"`)
+   - **Purpose**: Direct code execution
+   - **Use Cases**: Custom logic, data transformations
+   - **Example**: `code: "return sum(data['values'])"`
+
+### Control Flow Nodes
+
+5. **Condition Node** (`type: "condition"`)
+   - **Purpose**: If/else branching based on expressions
+   - **Use Cases**: Conditional logic, routing
+   - **Example**: `expression: "result > 100"`
+
+6. **Loop Node** (`type: "loop"`)
+   - **Purpose**: Iterate over collections
+   - **Use Cases**: Batch processing, data aggregation
+   - **Example**: `items_source: "products"`
+
+7. **Parallel Node** (`type: "parallel"`)
+   - **Purpose**: Concurrent execution of branches
+   - **Use Cases**: Performance optimization, independent operations
+   - **Example**: `branches: [["node1", "node2"], ["node3"]]`
+
+### Composition Node
+
+8. **Workflow Node** (`type: "workflow"`)
+   - **Purpose**: Embed sub-workflows
+   - **Use Cases**: Reusable components, modular design
+   - **Example**: `workflow_ref: "checkout_process"`
+
+### Key Design Principles
+
+- **No Overlaps**: Each node type has a single, clear purpose
+- **No Auto-Upgrades**: What you specify is what executes
+- **Complete Coverage**: All use cases are covered by exactly one node type
+- **Explicit Over Implicit**: Users must choose the right node type 

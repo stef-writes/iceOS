@@ -38,7 +38,7 @@ class TestUnifiedRegistryCore:
         registry._instances.clear()
         registry._executors.clear()
         registry._chains.clear()
-        registry._units.clear()
+        # Units removed - workflows used instead
         registry._agents.clear()
     
     def test_node_class_registration(self):

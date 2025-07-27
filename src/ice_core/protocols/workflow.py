@@ -22,5 +22,4 @@ class WorkflowLike(Protocol):
     # Methods that are directly invoked
     # (currently none; extend when needed)
 
-# Legacy alias for backward compatibility
-ScriptChainLike = WorkflowLike 
+ 

@@ -73,11 +73,13 @@ from ice_core.models.node_metadata import NodeMetadata
 # ---------------------------------------------------------------------------
 
 if TYPE_CHECKING:  # pragma: no cover – import only for type checkers
-    from ice_core.protocols.workflow import ScriptChainLike as _ScriptChainLike
+    from ice_core.protocols.workflow import WorkflowLike as _WorkflowLike
 else:
-    _ScriptChainLike = Any  # type: ignore[misc]
+    _WorkflowLike = Any  # type: ignore[misc]
 
-ScriptChainLike: TypeAlias = _ScriptChainLike  # public alias
+WorkflowLike: TypeAlias = _WorkflowLike  # public alias
+# Keep ScriptChainLike alias for backwards compatibility
+ScriptChainLike: TypeAlias = _WorkflowLike
 
 # ---------------------------------------------------------------------------
 # Tool configuration --------------------------------------------------------
@@ -154,7 +156,7 @@ class BaseNodeConfig(BaseModel):
     """
 
     id: str = Field(..., description="Unique identifier for the node")
-    type: str = Field(..., description="Type discriminator (ai | tool | …)")
+    type: str = Field(..., description="Type discriminator (tool | llm | agent | ...)")
     name: Optional[str] = Field(None, description="Human-readable name")
     dependencies: List[str] = Field(
         default_factory=list, description="IDs of prerequisite nodes"
@@ -235,7 +237,7 @@ class BaseNodeConfig(BaseModel):
         """Validate configuration at runtime.
 
         Enforces mandatory *input_schema* and *output_schema* for deterministic
-        node types (tool, agent, nested_chain, condition).  LLM nodes get a
+        node types (tool, agent, condition).  LLM nodes get a
         fallback ``{"text": "string"}`` output schema if none is provided so
         experimentation remains low-friction.
         """
@@ -260,13 +262,19 @@ class BaseNodeConfig(BaseModel):
             if _is_schema_missing(self.output_schema):
                 self.output_schema = {"text": "string"}  # type: ignore[assignment]
                 warnings.warn(
-                    "LLM node missing output_schema – defaulting to {'text':'string'} (will become a hard requirement in v2)",
-                    DeprecationWarning,
+                    "LLM node missing output_schema – defaulting to {'text':'string'}",
+                    UserWarning,
                     stacklevel=2,
                 )
             return  # No further checks for input_schema – prompts often vary.
 
-        # Deterministic nodes – require both schemas ------------------------
+        # Node types that don't require schema validation
+        schema_optional_types = {"workflow", "loop", "parallel", "code"}
+        
+        if node_type in schema_optional_types:
+            return
+
+        # Deterministic execution nodes – require both schemas ------------------------
         if _is_schema_missing(self.input_schema) or _is_schema_missing(self.output_schema):
             raise ValueError(
                 f"Node '{self.id}' of type '{node_type}' must declare non-empty input_schema and output_schema."
@@ -299,11 +307,13 @@ class BaseNodeConfig(BaseModel):
 @mcp_tier("Blueprint for LLM text operations")  
 @multi_granularity("node")
 class LLMOperatorConfig(BaseNodeConfig):
-    """LLM operator configuration - AI-powered text processing.
+    """LLM operator configuration - Pure text generation without tools.
     
-    WHY: This is the "configured component" level where Frosty can
-    create prompts with templates. Separate from runtime to allow
-    validation of token limits, model availability, etc.
+    WHY: For stateless, one-shot LLM operations. NO tool access.
+    If you need tools, use AgentNodeConfig instead.
+    
+    Use this for: Summarization, extraction, translation, single Q&A
+    Use AgentNodeConfig for: Any LLM operation that needs tools or memory
     
     In Frosty: "summarize in 3 bullets" → LLMOperatorConfig with template
     """
@@ -322,9 +332,8 @@ class LLMOperatorConfig(BaseNodeConfig):
     coerce_output_types: bool = Field(default=True)
     coerce_input_types: bool = Field(default=True)
 
-    tools: Optional[List[ToolConfig]] = Field(default=None)
-    allowed_tools: Optional[List[str]] = Field(default=None)
-    tool_args: Dict[str, Any] = Field(default_factory=dict)
+    # NOTE: Tools removed - use AgentNodeConfig for LLM + tools
+    # LLM nodes are for pure text generation only
 
     # Output formatting
     output_format: Optional[str] = Field(None, description="Expected output format")
@@ -349,13 +358,16 @@ class ToolNodeConfig(BaseNodeConfig):
 @mcp_tier("Blueprint for intelligent decision-making")
 @multi_granularity("chain")  
 class AgentNodeConfig(BaseNodeConfig):
-    """Agent configuration - multi-step reasoning with tool access.
+    """Agent configuration - Multi-turn reasoning with memory and state.
     
-    WHY: Agents represent the "chain" granularity - they internally
-    orchestrate multiple tool calls. This config validates agent
-    availability and tool permissions before runtime.
+    WHY: Agents maintain conversation history, learn from interactions,
+    and can perform complex multi-step reasoning. They have persistent
+    memory across turns, unlike stateless LLM nodes.
     
-    In Frosty: "research and summarize" → AgentNodeConfig with tools
+    Use this for: Customer support, research tasks, iterative problem solving
+    Use LLMOperatorConfig for: Single-shot generation without memory needs
+    
+    In Frosty: "help me debug this issue" → AgentNodeConfig with memory
     """
 
     type: Literal["agent"] = "agent"  # canonical
@@ -403,28 +415,91 @@ class ConditionNodeConfig(BaseNodeConfig):
     true_branch: List[str] = Field(default_factory=list)
     false_branch: Optional[List[str]] = Field(default=None)
 
-class NestedChainConfig(BaseNodeConfig):
-    """Configuration for a *nested* ScriptChain."""
+@mcp_tier("Blueprint for embedded workflows")
+@multi_granularity("workflow")
+class WorkflowNodeConfig(BaseNodeConfig):
+    """Configuration for embedding a sub-workflow.
+    
+    WHY: Enables composition of workflows. Replaces both Unit and NestedChain
+    concepts with a single, clear abstraction for workflow embedding.
+    
+    Use this for: Reusable workflow components, modular design
+    """
 
-    type: Literal["nested_chain"] = "nested_chain"
+    type: Literal["workflow"] = "workflow"
 
-    chain: "ScriptChainLike | Callable[[], ScriptChainLike] | str"  # type: ignore[name-defined]
+    workflow_ref: str = Field(..., description="Reference to registered workflow")
     exposed_outputs: Dict[str, str] = Field(default_factory=dict)
+    config_overrides: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Override configuration for the embedded workflow"
+    )
 
-    # ------------------------------------------------------------------ validators
-    @model_validator(mode="after")
-    def _validate_chain_reference(self) -> "NestedChainConfig":
-        """Ensure *chain* reference is resolvable when provided as a string."""
+@mcp_tier("Blueprint for iteration")
+class LoopNodeConfig(BaseNodeConfig):
+    """Configuration for loop/iteration nodes.
+    
+    WHY: Enables iteration over collections with proper context propagation.
+    
+    Use this for: Processing lists, batch operations, map-reduce patterns
+    """
 
-        if isinstance(self.chain, str):
-            # Note: Chain validation should happen at the SDK/orchestrator layer,
-            # not in core models. Core models should remain pure data structures.
-            import warnings
-            warnings.warn(
-                f"NestedChainConfig.chain is a string reference '{self.chain}' - validation skipped at core layer.",
-                RuntimeWarning,
-            )
-        return self
+    type: Literal["loop"] = "loop"
+
+    items_source: str = Field(..., description="Context key containing items to iterate over")
+    item_var: str = Field(default="item", description="Variable name for current item")
+    body_nodes: List[str] = Field(..., description="Node IDs to execute for each item")
+    max_iterations: Optional[int] = Field(None, description="Maximum iterations allowed")
+    parallel: bool = Field(default=False, description="Execute iterations in parallel")
+
+@mcp_tier("Blueprint for parallel execution")
+class ParallelNodeConfig(BaseNodeConfig):
+    """Configuration for parallel execution branches.
+    
+    WHY: Enables concurrent execution of independent branches.
+    
+    Use this for: Independent operations, performance optimization
+    """
+
+    type: Literal["parallel"] = "parallel"
+
+    branches: List[List[str]] = Field(
+        ...,
+        description="List of branches, each containing node IDs to execute"
+    )
+    max_concurrency: Optional[int] = Field(
+        None,
+        description="Maximum concurrent branches (None = unlimited)"
+    )
+    merge_outputs: bool = Field(
+        default=True,
+        description="Whether to merge outputs from all branches"
+    )
+
+@mcp_tier("Blueprint for code execution")
+class CodeNodeConfig(BaseNodeConfig):
+    """Configuration for direct code execution.
+    
+    WHY: Enables custom logic that doesn't fit other node types.
+    
+    Use this for: Data transformations, custom calculations, glue code
+    """
+
+    type: Literal["code"] = "code"
+
+    language: Literal["python", "javascript"] = Field(
+        default="python",
+        description="Programming language"
+    )
+    code: str = Field(..., description="Code to execute")
+    sandbox: bool = Field(
+        default=True,
+        description="Execute in sandboxed environment"
+    )
+    imports: List[str] = Field(
+        default_factory=list,
+        description="Allowed imports for sandboxed execution"
+    )
 
 # ---------------------------------------------------------------------------
 # Discriminated union & helpers
@@ -432,11 +507,14 @@ class NestedChainConfig(BaseNodeConfig):
 
 NodeConfig = Annotated[
     Union[
-        LLMOperatorConfig,
         ToolNodeConfig,
-        ConditionNodeConfig,
-        NestedChainConfig,
+        LLMOperatorConfig,
         AgentNodeConfig,
+        ConditionNodeConfig,
+        WorkflowNodeConfig,
+        LoopNodeConfig,
+        ParallelNodeConfig,
+        CodeNodeConfig,
     ],
     Field(discriminator="type"),
 ]

@@ -14,7 +14,7 @@ from ice_core.models import (
     NodeExecutionResult, NodeMetadata, NodeType,
     ToolNodeConfig, LLMOperatorConfig as LLMNodeConfig
 )
-from ice_core.protocols.workflow import ScriptChainLike
+from ice_core.protocols.workflow import WorkflowLike
 from ice_core.unified_registry import registry
 from ice_orchestrator.execution.executors.unified import (
     tool_executor, llm_executor
@@ -41,7 +41,7 @@ class MockTool:
 
 
 class MockChain:
-    """Mock chain implementing ScriptChainLike protocol."""
+    """Mock chain implementing WorkflowLike protocol."""
     
     def __init__(self):
         self.context_manager = Mock()

@@ -52,9 +52,9 @@ class FBMSeller:
         self.builder.add_node(
             NodeConfig(
                 id="inventory_analyzer",
-                type=NodeType.UNIT,
+                type=NodeType.WORKFLOW,
                 name="Analyze Inventory",
-                unit_ref="inventory_analyzer"
+                workflow_ref="inventory_analyzer"
             )
         )
         
@@ -62,10 +62,10 @@ class FBMSeller:
         self.builder.add_node(
             NodeConfig(
                 id="pricing_optimizer", 
-                type=NodeType.UNIT,
+                type=NodeType.WORKFLOW,
                 name="Optimize Pricing",
                 dependencies=["inventory_analyzer"],
-                unit_ref="pricing_optimizer"
+                workflow_ref="pricing_optimizer"
             )
         )
         
@@ -73,10 +73,10 @@ class FBMSeller:
         self.builder.add_node(
             NodeConfig(
                 id="image_processor",
-                type=NodeType.UNIT,
+                type=NodeType.WORKFLOW,
                 name="Process Images",
                 dependencies=["inventory_analyzer"],
-                unit_ref="image_processor"
+                workflow_ref="image_processor"
             )
         )
         
@@ -109,10 +109,10 @@ class FBMSeller:
         self.builder.add_node(
             NodeConfig(
                 id="order_handler",
-                type=NodeType.UNIT,
+                type=NodeType.WORKFLOW,
                 name="Handle Orders",
                 dependencies=["conversation_manager"],
-                unit_ref="order_handler"
+                workflow_ref="order_handler"
             )
         )
         
@@ -120,10 +120,10 @@ class FBMSeller:
         self.builder.add_node(
             NodeConfig(
                 id="metrics_tracker",
-                type=NodeType.UNIT,
+                type=NodeType.WORKFLOW,
                 name="Track Metrics",
                 dependencies=["listing_creator"],
-                unit_ref="metrics_tracker"
+                workflow_ref="metrics_tracker"
             )
         )
         
