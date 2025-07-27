@@ -8,17 +8,17 @@ from pathlib import Path
 from typing import AsyncIterator, List, Dict, Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from ice_api.redis_client import get_redis
 from ice_api.api.mcp import router as mcp_router
+from ice_api.dependencies import get_tool_service
 from ice_api.api.direct_execution import router as direct_router
 from ice_api.ws_gateway import router as ws_router
 from ice_core.utils.logging import setup_logger
 from ice_sdk import ToolService
-from ice_orchestrator.context import GraphContextManager
-from ice_orchestrator.providers.llm_service import LLMService
+# Note: API layer uses ServiceLocator for orchestrator services
 from ice_sdk.services import ServiceLocator
 from ice_api.errors import add_exception_handlers
 
@@ -34,19 +34,46 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     
     Sets up services and cleans up resources on shutdown.
     """
-    # Import executor modules first to register them
-    import ice_orchestrator.execution.executors.unified  # noqa: F401
-    import ice_orchestrator.execution.executors  # noqa: F401
-    
-    # Initialize orchestrator services through SDK initialization
+    # Initialize services through proper layer interfaces
     from ice_sdk.services.initialization import initialize_sdk
     from ice_orchestrator import initialize_orchestrator
-
+    
     # Initialize layers in order
     initialize_sdk()
     initialize_orchestrator()
 
+    # Load custom demo components if available
+    try:
+        import sys
+        import os
+        from pathlib import Path
+        
+        # Add use-cases to path if FB Marketplace demo exists
+        project_root = Path(__file__).parent.parent.parent
+        use_cases_path = project_root / "use-cases"
+        fb_marketplace_path = use_cases_path / "RivaRidge" / "FB_Marketplace_Seller"
+        
+        if fb_marketplace_path.exists():
+            logger.info("Loading FB Marketplace Seller demo components...")
+            if str(use_cases_path) not in sys.path:
+                sys.path.insert(0, str(use_cases_path))
+            
+            # Import and initialize FB Marketplace Seller components
+            from RivaRidge.FB_Marketplace_Seller.initialization import initialize_all
+            success = initialize_all("mcp")
+            
+            if success:
+                logger.info("✅ FB Marketplace Seller components loaded successfully")
+            else:
+                logger.warning("⚠️ FB Marketplace Seller components failed to load")
+    except Exception as e:
+        logger.info(f"FB Marketplace demo not available: {e}")
+
     app.state.context_manager = ServiceLocator.get("context_manager")  # type: ignore[attr-defined]
+    
+    # Initialize tool service to bridge unified registry to API endpoints
+    from ice_sdk.tools.service import ToolService
+    app.state.tool_service = ToolService()  # type: ignore[attr-defined]
 
     # Load API keys from environment
     api_keys_to_load: dict[str, bool] = {
@@ -123,9 +150,8 @@ async def health_check() -> Dict[str, str]:
 
 # Discovery endpoints
 @app.get("/api/v1/tools", response_model=List[str], tags=["discovery"])
-async def list_tools() -> List[str]:
+async def list_tools(tool_service = Depends(get_tool_service)) -> List[str]:
     """Return all registered tool names."""
-    tool_service = ServiceLocator.get("tool_service")
     return tool_service.available_tools()
 
 @app.get("/v1/agents", response_model=List[str], tags=["discovery"])

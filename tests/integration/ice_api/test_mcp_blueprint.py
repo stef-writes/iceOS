@@ -70,7 +70,7 @@ async def test_blueprint_registration_success(redis_client) -> None:
     
     # Verify blueprint is stored in Redis
     blueprint_id = body["blueprint_id"]
-    stored = await redis_client.hget(f"blueprint:{blueprint_id}", "data")
+    stored = await redis_client.hget(f"bp:{blueprint_id}", "json")
     assert stored is not None
 
 

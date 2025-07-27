@@ -1,30 +1,25 @@
-"""Marketplace Publisher Tool for posting listings to Facebook Marketplace.
+"""Marketplace Publisher Tool - Publishes content to marketplace platforms."""
 
-This tool simulates the Facebook Marketplace API integration.
-In production, this would integrate with Facebook's Business API.
-"""
-
+import asyncio
 import json
-from typing import Any, Dict, List, Optional, ClassVar
-from datetime import datetime
+from typing import Dict, Any, List, Optional, ClassVar
 from pathlib import Path
-import aiofiles
-from pydantic import Field
+from datetime import datetime
+import logging
 
+from pydantic import Field
 from ice_core.base_tool import ToolBase
+import aiofiles
 
 
 class MarketplacePublisherTool(ToolBase):
-    """Publishes listings to Facebook Marketplace (simulated)."""
+    """Publishes marketplace content across multiple platforms."""
     
     name: str = "marketplace_publisher"
-    description: str = "Publishes listings to Facebook Marketplace"
+    description: str = "Publishes product listings to marketplace platforms"
     
-    # Simulated API endpoint (in production, this would be Facebook's API)
-    MARKETPLACE_API_ENDPOINT: ClassVar[str] = "https://graph.facebook.com/v18.0/marketplace"
-    
-    # Output directory for simulated posts
-    OUTPUT_DIR = Path("examples/output/marketplace_posts")
+    # Class variable for output directory
+    OUTPUT_DIR: ClassVar[Path] = Path("examples/output/marketplace_posts")
     
     async def _execute_impl(
         self,

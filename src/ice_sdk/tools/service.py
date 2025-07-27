@@ -40,8 +40,10 @@ class ToolService:
         Returns:
             Tool class or None if not found
         """
-        tool_registry = registry._registry.get(NodeType.TOOL, {})
-        return tool_registry.get(name)
+        try:
+            return registry.get_class(NodeType.TOOL, name)
+        except Exception:
+            return None
     
     def list_tools(self) -> List[str]:
         """List all registered tool names.
@@ -49,8 +51,12 @@ class ToolService:
         Returns:
             List of tool names
         """
-        tool_registry = registry._registry.get(NodeType.TOOL, {})
-        return list(tool_registry.keys())
+        tools = registry.list_nodes(NodeType.TOOL)
+        return [name for node_type, name in tools]
+    
+    def available_tools(self) -> List[str]:
+        """Get available tool names - alias for list_tools() for API compatibility."""
+        return self.list_tools()
     
     def get_tool_metadata(self, name: str) -> Optional[Dict[str, any]]:
         """Get metadata for a tool.

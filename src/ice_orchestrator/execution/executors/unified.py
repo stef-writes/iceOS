@@ -20,6 +20,46 @@ from ice_sdk.services.locator import ServiceLocator
 
 Workflow: TypeAlias = WorkflowLike
 
+def _flatten_dependency_outputs(merged_inputs: Dict[str, Any], tool: Any) -> Dict[str, Any]:
+    """Smart parameter flattening for seamless workflow execution.
+    
+    This automatically extracts commonly needed parameters from nested 
+    dependency outputs so workflows "just work" without manual input mappings.
+    
+    For example:
+    Input: {"read_data": {"clean_items": [...], "success": true}, "tool_args": {...}}
+    Output: {"clean_items": [...], "read_data": {...}, "tool_args": {...}}
+    """
+    try:
+        import inspect
+        
+        # Get tool's expected parameters through introspection
+        execute_method = getattr(tool, '_execute_impl', None)
+        if not execute_method:
+            return merged_inputs  # Fallback to original behavior
+        
+        # Get parameter names from tool implementation
+        sig = inspect.signature(execute_method)
+        expected_params = set(sig.parameters.keys()) - {'self', 'kwargs'}
+        
+        # Start with original inputs
+        flattened = merged_inputs.copy()
+        
+        # Look for dependency outputs (keys that look like node IDs)
+        for key, value in merged_inputs.items():
+            if isinstance(value, dict) and key not in expected_params:
+                # This looks like a dependency output - extract matching parameters
+                for param_name in expected_params:
+                    if param_name in value and param_name not in flattened:
+                        # Found a match! Extract the parameter to top level
+                        flattened[param_name] = value[param_name]
+        
+        return flattened
+        
+    except Exception:
+        # If introspection fails, fallback to original behavior
+        return merged_inputs
+
 # Tool executor using protocol-based registry lookup
 @register_node("tool")
 async def tool_executor(
@@ -36,11 +76,15 @@ async def tool_executor(
         # Get tool instance from registry using ITool protocol
         tool = registry.get_instance(NodeType.TOOL, cfg.tool_name)
         
-        # Merge tool configuration with runtime context
+        # Smart parameter flattening for the "easy way"
         merged_inputs = {**cfg.tool_args, **ctx}
         
+        # Auto-extract commonly needed parameters from nested dependency outputs
+        # This makes workflows "just work" without manual input mappings
+        flattened_inputs = _flatten_dependency_outputs(merged_inputs, tool)
+        
         # Execute using ITool protocol
-        output = await tool.execute(merged_inputs)
+        output = await tool.execute(flattened_inputs)
         
         # Build successful result
         end_time = datetime.utcnow()

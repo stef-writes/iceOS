@@ -12,10 +12,13 @@ import asyncio
 import uuid
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 
 from ice_core.models.mcp import Blueprint, RunRequest, NodeSpec
+from ice_core.models.llm import LLMConfig
+from ice_core.models.enums import ModelProvider
+from ice_api.dependencies import get_tool_service
 from ice_core.unified_registry import registry, global_agent_registry
 from ice_core.models import NodeType
 
@@ -158,12 +161,14 @@ def get_ai_suggestions(node_type: str, node_name: str, result: Dict[str, Any]) -
 
 
 @router.post("/v1/tools/{tool_name}", response_model=DirectExecutionResponse)
-async def execute_tool(tool_name: str, request: DirectExecutionRequest) -> DirectExecutionResponse:
+async def execute_tool(
+    tool_name: str, 
+    request: DirectExecutionRequest,
+    tool_service = Depends(get_tool_service)
+) -> DirectExecutionResponse:
     """Execute a single tool with the given inputs."""
     
     # Verify tool exists
-    from ice_sdk.services.locator import ServiceLocator
-    tool_service = ServiceLocator.get("tool_service")
     if tool_service and tool_name not in tool_service.available_tools():
         raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
     
@@ -323,9 +328,12 @@ async def execute_llm(model: str, request: DirectExecutionRequest) -> DirectExec
                 type="llm",
                 model=model,
                 prompt=prompt,
-                temperature=request.options.get("temperature", 0.7),
-                max_tokens=request.options.get("max_tokens", 500),
-                llm_config={"provider": request.options.get("provider", "openai")},
+                llm_config=LLMConfig(
+                    provider=ModelProvider(request.options.get("provider", "openai")),
+                    model=model,
+                    temperature=request.options.get("temperature", 0.7),
+                    max_tokens=request.options.get("max_tokens", 500)
+                ),
                 inputs=request.inputs,
             )
         ]
@@ -406,7 +414,7 @@ async def execute_condition(condition_name: str, request: DirectExecutionRequest
             NodeSpec(
                 id=node_id,
                 type="condition",
-                condition_expression=request.inputs.get("expression", "true"),
+                expression=request.inputs.get("expression", "true"),
                 true_branch=request.inputs.get("true_branch"),
                 false_branch=request.inputs.get("false_branch"),
                 inputs=request.inputs,
@@ -447,8 +455,10 @@ async def execute_loop(loop_name: str, request: DirectExecutionRequest) -> Direc
             NodeSpec(
                 id=node_id,
                 type="loop",
-                items=request.inputs.get("items", []),
-                max_iterations=request.options.get("max_iterations", 100),
+                items_source=request.inputs.get("items_source", "items"),
+                item_var=request.inputs.get("item_var", "item"),
+                body_nodes=request.inputs.get("body_nodes", []),
+                max_iterations=request.options.get("max_iterations", None),
                 parallel=request.options.get("parallel", False),
                 inputs=request.inputs,
                 **request.options
@@ -489,7 +499,8 @@ async def execute_parallel(parallel_name: str, request: DirectExecutionRequest) 
                 id=node_id,
                 type="parallel",
                 branches=request.inputs.get("branches", []),
-                merge_strategy=request.options.get("merge_strategy", "collect"),
+                max_concurrency=request.options.get("max_concurrency", None),
+                merge_outputs=request.options.get("merge_outputs", True),
                 inputs=request.inputs,
                 **request.options
             )
@@ -531,6 +542,7 @@ async def execute_code(code_name: str, request: DirectExecutionRequest) -> Direc
                 code=request.inputs.get("code", ""),
                 language=request.options.get("language", "python"),
                 sandbox=request.options.get("sandbox", True),
+                imports=request.options.get("imports", []),
                 inputs=request.inputs,
                 **request.options
             )

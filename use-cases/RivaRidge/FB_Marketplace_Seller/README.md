@@ -97,7 +97,7 @@ Agents are referenced by package string in workflows:
 ```python
 builder.add_agent(
     node_id="listing_creator",
-    package="ice_sdk.agents.marketplace_agent",
+    package="use-cases.RivaRidge.FB-Marketplace-Seller.agents.marketplace_agent",
     tools=["facebook_api", "price_research"]
 )
 ```

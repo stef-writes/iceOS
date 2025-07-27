@@ -139,6 +139,9 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         # Semantic version for migration tracking -----------------------
         self.version: str = version
 
+        # Blueprint layer: Auto-populate schemas for tool nodes BEFORE validation
+        nodes = self._populate_missing_schemas(nodes)
+
         # Safety checks BEFORE super().__init__ builds runtime structures ----
         SafetyValidator.validate_layer_boundaries()
         SafetyValidator.validate_node_tool_access(nodes)
@@ -173,6 +176,13 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         self.graph.validate_schema_alignment(nodes)
         self.levels = self.graph.get_level_nodes()
 
+        # Track decisions made by *condition* nodes - must be after graph building
+        self._branch_resolver = BranchGatingResolver(self.nodes, self.graph)
+        
+        # Preserve original attrs for B/C (alias to resolver internals)
+        self._branch_decisions = self._branch_resolver.branch_decisions  # type: ignore[attr-defined]
+        self._active_cache = self._branch_resolver.active_cache  # type: ignore[attr-defined]
+
         # Validator helper ----------------------------------------------------
         self._validator = ChainValidator(self.failure_policy, self.levels, self.nodes)
 
@@ -183,13 +193,6 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         # Agent factory removed - LLM nodes no longer have tools
         # Schema validator helper ---------------------------------------------
         self._schema_validator = SchemaValidator()
-        # Agent instance cache -------------------------------------------
-        self._agent_cache: Dict[str, AgentNode] = {}
-        # Track decisions made by *condition* nodes -----------------------
-        self._branch_resolver = BranchGatingResolver(self.nodes, self.graph)
-        # Preserve original attrs for B/C (alias to resolver internals)
-        self._branch_decisions = self._branch_resolver.branch_decisions  # type: ignore[attr-defined]
-        self._active_cache = self._branch_resolver.active_cache  # type: ignore[attr-defined]
 
         from ice_core.cache import global_cache  # local import to avoid cycles
 
@@ -210,6 +213,31 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         # Graph intelligence analyzer
         from ice_orchestrator.context.graph_analyzer import GraphAnalyzer
         self._graph_analyzer = GraphAnalyzer(self.graph.graph)  # Use the NetworkX graph from DependencyGraph
+
+        # Agent instance cache
+        self._agent_cache: Dict[str, AgentNode] = {}
+
+    def _populate_missing_schemas(self, nodes: List[NodeConfig]) -> List[NodeConfig]:
+        """Blueprint layer: Auto-populate schemas for tool nodes.
+        
+        This is the critical bridge that makes the blueprint layer seamless -
+        it automatically discovers and populates schemas from registered tools
+        so users don't have to manually specify them.
+        """
+        from ice_core.models.node_models import ToolNodeConfig
+        from ice_core.utils.node_conversion import populate_tool_node_schemas
+        
+        updated_nodes = []
+        for node in nodes:
+            if isinstance(node, ToolNodeConfig):
+                # Auto-populate schemas from registered tool
+                updated_node = populate_tool_node_schemas(node)
+                updated_nodes.append(updated_node)
+            else:
+                # Non-tool nodes pass through unchanged
+                updated_nodes.append(node)
+        
+        return updated_nodes
 
     async def execute(self) -> NodeExecutionResult:
         """Execute the workflow and return a ChainExecutionResult."""

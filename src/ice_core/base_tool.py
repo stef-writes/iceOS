@@ -68,6 +68,6 @@ class ToolBase(BaseModel, ABC):
         return {
             "type": "object",
             "properties": {
-                "result": {"type": "any"}
+                "result": {}  # Empty schema means "any value" in JSON Schema
             }
         } 

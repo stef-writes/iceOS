@@ -46,3 +46,7 @@ def initialize_orchestrator() -> None:
     # Register tool service wrapper
     from ice_sdk.tools.service import ToolService
     ServiceLocator.register("tool_service", ToolService())
+    
+    # Import executor modules to register them with the execution system
+    import ice_orchestrator.execution.executors.unified  # noqa: F401
+    import ice_orchestrator.execution.executors  # noqa: F401

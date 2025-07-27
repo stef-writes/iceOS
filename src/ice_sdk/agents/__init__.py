@@ -1,19 +1,17 @@
-"""SDK Agents module."""
+"""SDK Agents module.
 
-from ice_sdk.agents.marketplace_agent import MarketplaceAgent, create_marketplace_agent
-from ice_sdk.agents.customer_service import CustomerServiceAgent, create_customer_service_agent
+The SDK layer should only contain general-purpose agent utilities and base classes.
+Use-case specific agents belong in their respective use case directories.
 
-# Register agents with the global registry
-from ice_core.unified_registry import global_agent_registry
+For example:
+- General agent utilities: ice_sdk.agents.utils
+- FB Marketplace agents: use-cases.RivaRidge.FB-Marketplace-Seller.agents
+- Other domain agents: use-cases.{Domain}.{UseCase}.agents
+"""
 
-# Register marketplace agent
-global_agent_registry["marketplace_agent"] = "ice_sdk.agents.marketplace_agent"
-# Register customer service agent
-global_agent_registry["customer_service"] = "ice_sdk.agents.customer_service"
+# Import only general utilities, not specific agent implementations
+from . import utils
 
 __all__ = [
-    "MarketplaceAgent",
-    "create_marketplace_agent",
-    "CustomerServiceAgent",
-    "create_customer_service_agent"
+    "utils",
 ]

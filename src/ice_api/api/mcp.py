@@ -100,6 +100,18 @@ async def create_blueprint(bp: Blueprint) -> BlueprintAck:
     await redis.hset(_bp_key(bp.blueprint_id), mapping={"json": bp.model_dump_json()})
     return BlueprintAck(blueprint_id=bp.blueprint_id, status="accepted")
 
+@router.get("/blueprints/{blueprint_id}")
+async def get_blueprint(blueprint_id: str) -> Dict[str, Any]:
+    """Retrieve a registered blueprint by ID."""
+    redis = get_redis()
+    raw_json = await redis.hget(_bp_key(blueprint_id), "json")
+    
+    if not raw_json:
+        raise HTTPException(404, detail=f"Blueprint {blueprint_id} not found")
+    
+    blueprint = Blueprint.model_validate_json(raw_json)
+    return blueprint.model_dump()
+
 # ---------------------------------------------------------------------------
 # Partial Blueprint Routes (Incremental Construction) -----------------------
 # ---------------------------------------------------------------------------
