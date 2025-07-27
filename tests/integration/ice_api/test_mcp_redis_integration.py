@@ -13,7 +13,8 @@ import pytest_asyncio
 from fastapi.testclient import TestClient
 
 from ice_api.main import app
-from ice_sdk.services.initialization import initialize_services
+from ice_sdk.services.initialization import initialize_sdk
+from ice_orchestrator import initialize_orchestrator
 from ice_sdk.services.locator import ServiceLocator
 
 
@@ -31,7 +32,8 @@ def initialize_app(redis_url: str):
     _rc._redis_client = None  # Force recreation with new URL
     
     # Initialize services
-    initialize_services()
+    initialize_sdk()
+    initialize_orchestrator()
     
     yield
     
@@ -188,7 +190,8 @@ async def test_blueprint_persistence_across_restarts(redis_client, redis_url):
     
     # Simulate app restart by clearing ServiceLocator
     ServiceLocator.clear()
-    initialize_services()
+    initialize_sdk()
+    initialize_orchestrator()
     
     # Create new client and verify blueprint still exists
     new_client = TestClient(app)

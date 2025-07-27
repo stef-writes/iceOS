@@ -1,205 +1,193 @@
-# ice_sdk – Spatial Computing Developer SDK
+# ice_sdk – Developer SDK
 
 ## Purpose
-`ice_sdk` is the primary public surface for _developers_ building spatial computing experiences on iceOS.
-It provides:
-* Typed **Node & Tool** abstractions with spatial intelligence
-* **Workflow** integration for canvas-ready execution  
-* **Frosty AI** integration points for contextual assistance
-* A **Provider** layer (LLM, vector, embedding) with enhanced analytics
-* High-level **Agent** helpers with memory and collaboration features
-* **Workflow builders** for programmatic DAG construction with spatial layout hints
-* **Graph analyzers** for NetworkX-powered intelligence and optimization
-* Unified **Registry** for all components
+`ice_sdk` is the developer-facing SDK for building tools and workflows on iceOS. It provides:
 
-> **Spatial Computing Ready**: All SDK components are designed for both traditional execution and future canvas-based experiences.
+* **Tool Development**: Base classes, decorators, and utilities for creating tools
+* **Workflow Builders**: Fluent APIs for programmatic workflow construction
+* **Service Locator**: Cross-layer dependency injection pattern
+* **Development Utilities**: Type coercion, error handling, and developer conveniences
 
-> Rule: Nothing inside `ice_sdk.*` may import from higher layers (ice_api, ice_orchestrator)
+> **Layer Boundaries**: SDK depends only on `ice_core`. It does NOT import from `ice_orchestrator` or `ice_api`. Cross-layer dependencies use ServiceLocator.
 
-## Quick-start: Spatial Computing Workflows
-```python
-from ice_sdk.builders.workflow import WorkflowBuilder
-from ice_core.models import LLMConfig, ModelProvider
+## Quick Start: Building Tools
 
-# Build a workflow with correct field names
-builder = WorkflowBuilder("spatial_demo")
-
-# Add tool node (uses tool_name, not tool_ref)
-builder.add_tool(
-    "fetch", 
-    tool_name="http_request",  # Correct field name
-    url="https://example.com"
-)
-
-# Add LLM nodes with rich LLMConfig
-builder.add_llm(
-    "analyze", 
-    model="gpt-4",
-    prompt="Analyze this content: {content}",  # NOT prompt_template
-    llm_config=LLMConfig(
-        provider=ModelProvider.OPENAI,
-        model="gpt-4",
-        temperature=0.7,
-        max_tokens=2000
-    )
-)
-
-builder.add_llm(
-    "summarize",
-    model="gpt-3.5-turbo", 
-    prompt="Summarize: {analysis}",  # Single braces for Python format
-    temperature=0.5  # Node-level override
-)
-
-# Connect nodes
-builder.connect("fetch", "analyze")
-builder.connect("analyze", "summarize")
-```
-
-### Memory-Enabled Agent Example
-```python
-from ice_sdk.agents import MemoryAgent, MemoryAgentConfig
-from ice_sdk.memory import UnifiedMemoryConfig
-from ice_core.models.llm import LLMConfig
-from ice_core.models.enums import ModelProvider
-
-# Create a memory-enabled agent
-config = MemoryAgentConfig(
-    llm_config=LLMConfig(
-        model="gpt-4",
-        provider=ModelProvider.OPENAI
-    ),
-    system_prompt="You are a helpful assistant with memory.",
-    tools=["web_search", "calculator"],
-    memory_config=UnifiedMemoryConfig(
-        enable_working=True,     # Short-term memory
-        enable_episodic=True,    # Conversation history
-        enable_semantic=True,    # Domain knowledge
-        enable_procedural=False  # Learned procedures
-    )
-)
-
-# Instantiate as a Pydantic model
-agent = MyMemoryAgent(config=config)
-
-# Agent remembers past interactions
-result = await agent.execute({
-    "user_id": "user123",
-    "query": "What did we discuss yesterday?"
-})
-
-# Store facts for future use
-await agent.remember_fact("User prefers Python over JavaScript")
-
-# Search memories
-memories = await agent.search_memory("Python", ["semantic"])
-```
-
-## Package Layout (Current State)
-
-```
-ice_sdk/
-├── agents/             # Agent implementations 
-│   ├── agent_node.py  # Base agent (AgentNode)
-│   └── memory_agent.py # Memory-enabled agents
-├── memory/            # Memory subsystem
-│   ├── base.py       # Base memory interface
-│   ├── working.py    # Short-term memory
-│   ├── episodic.py   # Conversation history
-│   ├── semantic.py   # Domain knowledge
-│   ├── procedural.py # Learned procedures
-│   └── unified.py    # Unified memory interface
-├── builders/          # Workflow construction APIs
-├── context/           # Execution context management
-├── llm/               # LLM operators
-│   └── operators/     # Summarizer, insights, etc.
-├── providers/         # External service adapters
-│   └── llm_providers/ # OpenAI, Anthropic, etc.
-├── services/          # Service facades and initialization
-├── tools/             # Categorized tool implementations
-│   ├── core/         # CSV, JSON operations
-│   ├── ai/           # LLM-powered tools
-│   ├── system/       # Computer tool, sleep, etc.
-│   ├── web/          # HTTP, search, webhooks
-│   ├── db/           # Database tools
-│   └── marketplace/  # Domain-specific tools
-├── utils/             # SDK-specific utilities
-├── config.py          # Runtime configuration
-├── decorators.py      # Enhanced @tool decorator
-├── exceptions.py      # SDK exceptions
-└── unified_registry.py # Single registry for all components
-```
-
-## Layer Boundaries
-* Depends _only_ on `ice_core`
-* Exposes **validate()** on every Node/Tool
-* External I/O lives strictly inside `tools/` or `providers/`
-* All cross-layer communication via ServiceLocator
-* SDK does NOT import from ice_orchestrator or ice_api
-
-## Tool Creation
-
-### Quick Tool with @tool Decorator
+### Using the @tool Decorator
 ```python
 from ice_sdk.decorators import tool
-from ice_sdk.tools.core.base import DataTool
+from ice_sdk.tools.base import ToolBase
+from typing import Dict, Any
 
-@tool(name="data_processor", auto_generate_tests=True)
-class DataProcessor(DataTool):
-    """Process data files."""
+@tool(name="data_processor", category="core")
+class DataProcessor(ToolBase):
+    """Process data files with validation."""
     
-    async def _execute_impl(self, **kwargs):
-        # Tool logic here
-        return {"processed": True}
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
+        file_path = kwargs["file_path"]
+        # Process the file
+        return {"processed": True, "rows": 100}
 ```
 
-### AI-Powered Tool
+### AI-Powered Tools
 ```python
 from ice_sdk.tools.ai.base import AITool
+from ice_sdk.services import ServiceLocator
 
 @tool(name="content_analyzer")
 class ContentAnalyzer(AITool):
-    """Analyze content using AI."""
+    """Analyze content using LLM via ServiceLocator."""
     
-    default_model = "gpt-4"  # Override base class default
-    
-    async def _execute_impl(self, **kwargs):
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         content = kwargs["content"]
-        llm_config = self.get_llm_config()
-        # Use LLM service
-        return {"analysis": "..."}
+        
+        # Get LLM service via ServiceLocator (not direct import)
+        llm_service = ServiceLocator.get("llm_service")
+        
+        result = await llm_service.generate(
+            self.get_llm_config(),
+            f"Analyze this content: {content}"
+        )
+        
+        return {"analysis": result.text}
 ```
 
-## Key Components
+## Building Workflows
 
-### Unified Registry
-Single source of truth for all registrations:
 ```python
-from ice_sdk.unified_registry import registry, register_node
+from ice_sdk.builders.workflow import WorkflowBuilder
+from ice_sdk.builders.agent import AgentBuilder, create_agent
 
-# Register a node executor
-@register_node("custom")
-async def custom_executor(chain, cfg, ctx):
-    ...
+# Build a workflow
+builder = WorkflowBuilder("my_workflow")
 
-# Direct registry access (no wrapper modules)
-registry.register_agent("my_agent", "path.to.MyAgent")
-registry.register_chain("my_chain", chain_instance)
-registry.register_instance(NodeType.TOOL, "my_tool", tool_instance)
+# Add tool nodes
+builder.add_tool(
+    "fetch", 
+    tool_name="http_request",
+    url="https://api.example.com/data"
+)
+
+# Create agent configuration
+agent_config = create_agent(
+    name="analyzer",
+    model="gpt-4",
+    tools=["web_search", "calculator"],
+    system_prompt="You are a data analyst"
+)
+
+# Add agent to workflow
+builder.add_agent("analyze", agent_config)
+
+# Connect nodes
+builder.connect("fetch", "analyze")
+
+# Get workflow config
+workflow_config = builder.build()
 ```
 
-### Service Initialization
-Clean initialization without layer violations:
+## Package Layout
+
+```
+ice_sdk/
+├── tools/              # Tool implementations
+│   ├── base.py        # Base tool classes
+│   ├── core/          # CSV, JSON operations
+│   ├── ai/            # AI-powered tools (insights, summarizer)
+│   ├── system/        # System tools (sleep, jinja)
+│   ├── web/           # HTTP, search, webhooks
+│   ├── db/            # Database tools
+│   └── marketplace/   # Domain-specific tools
+├── builders/          # Workflow and agent builders
+│   ├── workflow.py    # WorkflowBuilder
+│   └── agent.py       # AgentBuilder, create_agent
+├── services/          # Service layer
+│   ├── locator.py     # ServiceLocator pattern
+│   ├── initialization.py # Service setup
+│   └── llm_adapter.py # LLM service adapter
+├── context/           # SDK context utilities
+│   ├── formatter.py   # Context formatting
+│   ├── types.py       # ToolContext type
+│   └── type_manager.py # Type management
+├── utils/             # Developer utilities
+│   ├── coercion.py    # Type coercion
+│   ├── errors.py      # Error handling
+│   └── retry.py       # Retry logic
+├── agents/            # Agent utilities (NOT runtime)
+│   └── utils.py       # JSON extraction, parsing
+├── config.py          # SDK configuration
+├── decorators.py      # @tool decorator
+└── exceptions.py      # SDK exceptions
+```
+
+## Service Locator Pattern
+
+The SDK uses ServiceLocator to access orchestrator services without direct imports:
+
 ```python
-from ice_sdk.services.initialization import initialize_services
-initialize_services()  # Sets up SDK services only
+from ice_sdk.services import ServiceLocator
+
+# In tool implementation
+async def execute(self, **kwargs):
+    # Get services from orchestrator layer
+    llm_service = ServiceLocator.get("llm_service")
+    context_manager = ServiceLocator.get("context_manager")
+    
+    # Use services without importing from orchestrator
+    result = await llm_service.generate(config, prompt)
 ```
 
-## Development
+## What Moved to Orchestrator
+
+The following components now live in `ice_orchestrator` for proper separation of concerns:
+
+- **Agent Runtime**: `AgentNode`, `MemoryAgent`, `AgentExecutor`
+- **Memory Subsystem**: All memory implementations (working, episodic, semantic, etc.)
+- **LLM Providers**: OpenAI, Anthropic, Gemini handlers and `LLMService`
+- **Context Management**: `GraphContextManager`, workflow context, stores
+- **LLM Operators**: Insights, summarizer, line item generator operators
+
+## Development Patterns
+
+### Creating Tools
+1. Inherit from appropriate base class (`ToolBase`, `AITool`, `DataTool`)
+2. Use `@tool` decorator for auto-registration
+3. Implement `_execute_impl()` method
+4. Access orchestrator services via `ServiceLocator`
+
+### Building Agents
+1. Use `AgentBuilder` or `create_agent()` to create configurations
+2. Agent runtime execution happens in orchestrator layer
+3. SDK provides configuration builders, not runtime
+
+### Type Safety
+```python
+from ice_sdk.utils.coercion import safe_cast
+
+# Coerce types safely
+value = safe_cast(user_input, int, default=0)
+```
+
+## Testing
 ```bash
-make test   # unit + integration tests
-make type   # mypy --strict
+make test   # Run SDK tests
+make type   # Type check with mypy --strict
 ```
+
+## Key Design Principles
+
+1. **Developer-Focused**: SDK provides tools for developers, not runtime
+2. **Layer Boundaries**: Never import from orchestrator or API layers
+3. **Service Pattern**: Use ServiceLocator for cross-layer dependencies
+4. **Tool-Centric**: Primary focus is enabling tool development
+5. **Type Safety**: Pydantic models and type hints throughout
+
+## Migration Notes
+
+If upgrading from previous versions:
+- Import agents from `ice_orchestrator.agent` instead of `ice_sdk.agents`
+- Import memory from `ice_orchestrator.memory` instead of `ice_sdk.memory`
+- Use ServiceLocator.get("llm_service") instead of importing LLMService
+- Unified registry is now in `ice_core.unified_registry`
 
 ## License
 MIT 

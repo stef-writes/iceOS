@@ -10,7 +10,7 @@ from ice_core.utils.text import TextProcessor  # re-export
 
 if TYPE_CHECKING:
     from ice_core.utils.coercion import coerce_types
-    from ice_sdk.utils.token_counter import TokenCounter
+    from ice_core.utils.token_counter import TokenCounter
 
 __all__ = [
     "logger",

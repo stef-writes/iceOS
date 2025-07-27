@@ -15,6 +15,8 @@ from __future__ import annotations
 
 __all__: list[str] = [
     "exceptions",
+    "unified_registry",
 ]
 
 from . import exceptions  # import after __all__ definition
+from . import unified_registry

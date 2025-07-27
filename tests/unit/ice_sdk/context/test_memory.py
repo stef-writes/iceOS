@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ice_sdk.context.memory import NullMemory
+from ice_orchestrator.context.memory import NullMemory
 
 pytestmark = [pytest.mark.unit]
 

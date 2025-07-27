@@ -9,7 +9,7 @@ This is the foundation for the **3-tier iceOS architecture**:
 
 ## Why This Layer Exists
 
-`ice_core` provides the **pure domain models** that all other layers build upon:
+`ice_core` provides the **pure domain models and shared infrastructure** that all other layers build upon:
 
 1. **Blueprint Models** (`models/node_models.py`)
    - Config classes like `LLMOperatorConfig`, `ToolNodeConfig`
@@ -21,7 +21,12 @@ This is the foundation for the **3-tier iceOS architecture**:
    - Enable testing with simple stubs
    - Keep layers loosely coupled
 
-3. **Pure Utilities** (`utils/`)
+3. **Unified Registry** (`unified_registry.py`)
+   - Central registry for all components (nodes, tools, agents, chains)
+   - Shared by all layers to maintain component catalog
+   - Enables dynamic discovery and instantiation
+
+4. **Pure Utilities** (`utils/`)
    - No side effects or I/O
    - Shared by all layers above
 
@@ -38,5 +43,6 @@ The models support Frosty's 4-level translation:
 - **Pydantic Everywhere**: Type safety and validation
 - **No External Dependencies**: Pure Python domain layer
 - **Separate Config from Runtime**: Enables progressive validation
+- **Central Registry**: Single source of truth for all components
 
 See [iceOS Vision](../../docs/iceos-vision.md) for the complete platform vision. 

@@ -2,8 +2,8 @@
 
 import pytest
 from typing import Dict, Any
-from ice_sdk.agents import MemoryAgent, MemoryAgentConfig
-from ice_sdk.memory import UnifiedMemoryConfig, MemoryConfig
+from ice_orchestrator.agent import MemoryAgent, MemoryAgentConfig
+from ice_orchestrator.memory import UnifiedMemoryConfig, MemoryConfig
 from ice_core.models.llm import LLMConfig
 from ice_core.models.enums import ModelProvider
 

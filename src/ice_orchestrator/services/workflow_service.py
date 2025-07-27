@@ -14,18 +14,9 @@ import structlog
 from ice_core.models import NodeConfig
 from ice_core.services.contracts import IWorkflowService
 from ice_orchestrator.workflow import Workflow
-from ice_sdk.context import GraphContextManager
+from ice_orchestrator.context import GraphContextManager
 
-# Import tools to register them
-from ice_sdk.tools.core.csv_tool import CSVTool
-from ice_sdk.tools.system.rows_validator_tool import RowsValidatorTool
-
-# Import csv_writer conditionally since it might not be available
-try:
-    from ice_sdk.tools.system.csv_writer_tool import CSVWriterTool
-    CSV_WRITER_AVAILABLE = True
-except ImportError:
-    CSV_WRITER_AVAILABLE = False
+# Tools are accessed via unified registry, not imported directly
 
 logger = structlog.get_logger(__name__)
 
@@ -45,22 +36,8 @@ class WorkflowService(IWorkflowService):
         if self._context_manager is None:
             self._context_manager = GraphContextManager()
         
-        # Register built-in tools
-        self._context_manager.register_tool(CSVTool())
-        if CSV_WRITER_AVAILABLE:
-            self._context_manager.register_tool(CSVWriterTool())
-        self._context_manager.register_tool(RowsValidatorTool())
-        
-        # Register marketplace tools
-        from ice_sdk.tools.marketplace.inventory_analyzer_tool import InventoryAnalyzerTool
-        from ice_sdk.tools.marketplace.listing_generator_tool import ListingGeneratorTool
-        from ice_sdk.tools.marketplace.inquiry_responder_tool import InquiryResponderTool
-        from ice_sdk.tools.marketplace.marketplace_publisher_tool import MarketplacePublisherTool
-        
-        self._context_manager.register_tool(InventoryAnalyzerTool())
-        self._context_manager.register_tool(ListingGeneratorTool())
-        self._context_manager.register_tool(InquiryResponderTool())
-        self._context_manager.register_tool(MarketplacePublisherTool())
+        # Tools are auto-registered via @tool decorator when SDK is initialized
+        # No need to manually import and register them here
 
     async def execute(
         self,

@@ -1,7 +1,9 @@
 """Helper factory for creating AgentNodeConfig instances.
 
-This module lives in the SDK layer so examples, scripts and higher-level
-orchestrators can depend on it without introducing an import cycle.
+This module provides configuration builders for agents.
+Runtime agent execution has moved to ice_orchestrator.agent.
+
+This is kept in SDK as a development utility for creating agent configurations.
 """
 
 from __future__ import annotations

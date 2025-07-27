@@ -1,46 +1,37 @@
 """Service initialization for iceOS SDK.
 
-This module provides a clean initialization interface that sets up all
-required services without violating layer boundaries.
+This module ensures the SDK is properly initialized with minimal setup.
+All runtime services are handled by the orchestrator.
 """
 
 from ice_sdk.services.locator import ServiceLocator
 
 
-def initialize_services() -> None:
-    """Initialize all SDK services.
+def initialize_sdk() -> None:
+    """Initialize the SDK layer.
     
-    This function should be called once during application startup to ensure
-    all services are properly registered and available through ServiceLocator.
+    This performs minimal initialization:
+    - Imports tool packages to trigger @tool decorator registration
+    - Sets up the ServiceLocator for accessing orchestrator services
     
-    Example:
-        >>> from ice_sdk.services.initialization import initialize_services
-        >>> initialize_services()
-        >>> # Now all services are available through ServiceLocator
-        >>> workflow_service = ServiceLocator.get("workflow_service")
+    All runtime services (workflow execution, tool execution, context management)
+    are handled by the orchestrator layer.
     """
-    # NOTE: The orchestrator layer is responsible for its own initialization.
-    # SDK should not depend on orchestrator.
-    
-    # Initialize SDK services
+    # Import tool packages to trigger registration
     try:
-        from ice_sdk.services.builder_service import BuilderService
-        ServiceLocator.register("builder_service", BuilderService())
+        import ice_sdk.tools.core
+        import ice_sdk.tools.ai
+        import ice_sdk.tools.system
+        import ice_sdk.tools.web
+        import ice_sdk.tools.db
+        import ice_sdk.tools.marketplace
+    except ImportError:
+        pass  # Best effort - some tool categories may not be available
+    
+    # Import agent utilities to ensure they're available
+    try:
+        import ice_sdk.agents.utils
     except ImportError:
         pass
     
-    try:
-        from ice_sdk.services.llm_adapter import LLMServiceAdapter
-        ServiceLocator.register("llm_service", LLMServiceAdapter())
-    except ImportError:
-        pass
-    
-    # Initialize agent registry
-    try:
-        from ice_sdk.services.agent_registry_init import initialize_agent_registry
-        initialize_agent_registry()
-    except ImportError:
-        pass
-
-
-__all__ = ["initialize_services"] 
+    # That's it! All runtime services are in orchestrator 

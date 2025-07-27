@@ -8,13 +8,13 @@ from typing import Any, Optional, Tuple
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from ice_core.models import LLMConfig, ModelProvider
-from ice_sdk.providers.llm_providers import (
+from ice_orchestrator.providers.llm_providers import (
     AnthropicHandler,
     DeepSeekHandler,
     GoogleGeminiHandler,
     OpenAIHandler,
 )
-from ice_sdk.providers.llm_providers.base_handler import BaseLLMHandler
+from ice_orchestrator.providers.llm_providers.base_handler import BaseLLMHandler
 
 try:
     from openai import error as openai_error  # type: ignore
@@ -35,7 +35,7 @@ class LLMService:
     """High-level helper for synchronous/asynchronous LLM calls.
 
     Delegates the actual HTTP interaction to provider-specific *handler* classes
-    located under ``ice_sdk.providers.llm_providers`` and offers:
+    located under ``ice_orchestrator.providers.llm_providers`` and offers:
 
     • Automatic provider dispatch based on ``LLMConfig.provider``.
     • Built-in retries with exponential backoff (via *tenacity*).

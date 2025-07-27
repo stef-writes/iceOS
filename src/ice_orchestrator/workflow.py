@@ -61,10 +61,10 @@ from ice_orchestrator.validation import ChainValidator, SafetyValidator, SchemaV
 from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 
 # NOTE: use AgentNode from SDK to avoid core dependency
-from ice_sdk.agents import AgentNode
-from ice_sdk.config import runtime_config
-from ice_sdk.context import GraphContextManager
-from ice_sdk.tools.base import ToolBase
+from ice_orchestrator.agent import AgentNode
+from ice_orchestrator.config import runtime_config
+from ice_orchestrator.context import GraphContextManager
+from ice_core.base_tool import ToolBase
 
 # ---------------------------------------------------------------------------
 # Tracing & logging setup ----------------------------------------------------
@@ -209,7 +209,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         self._execution_state: Optional[WorkflowExecutionState] = None
         
         # Graph intelligence analyzer
-        from ice_sdk.context.graph_analyzer import GraphAnalyzer
+        from ice_orchestrator.context.graph_analyzer import GraphAnalyzer
         self._graph_analyzer = GraphAnalyzer(self.graph.graph)  # Use the NetworkX graph from DependencyGraph
 
     async def execute(self) -> NodeExecutionResult:

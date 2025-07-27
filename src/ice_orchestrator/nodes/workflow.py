@@ -9,7 +9,7 @@ class WorkflowNode(BaseNode):
     
     async def _execute_impl(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the referenced workflow."""
-        from ice_sdk.unified_registry import registry
+        from ice_core.unified_registry import registry
         from ice_core.models import NodeType
         
         # Get workflow instance

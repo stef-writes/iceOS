@@ -9,7 +9,7 @@ all functionality while improving maintainability.
 import pytest
 from unittest.mock import Mock
 
-from ice_sdk.unified_registry import (
+from ice_core.unified_registry import (
     registry, 
     global_agent_registry, 
     global_chain_registry,

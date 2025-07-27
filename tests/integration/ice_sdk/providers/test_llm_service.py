@@ -2,7 +2,7 @@ import os
 import pytest
 
 from ice_core.models.llm import LLMConfig, ModelProvider
-from ice_sdk.providers.llm_service import LLMService
+from ice_orchestrator.providers.llm_service import LLMService
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 

@@ -34,7 +34,7 @@ from .insights import InsightsOperator  # noqa: E402 F401
 # discoverable by orchestrators that rely on `registry.processor` look-ups.
 # ----------------------------------------
 
-from ice_sdk.unified_registry import registry
+from ice_core.unified_registry import registry
 from ice_core.models import NodeType
 
 for _op in (

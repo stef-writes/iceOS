@@ -10,20 +10,19 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict, List
 
 from ice_core.models.llm import LLMConfig
-from ice_sdk.agents import AgentNode, AgentNodeConfig  # runtime import
-from ice_sdk.tools.base import ToolBase
+from ice_orchestrator.agent import AgentNode, AgentNodeConfig  # local import
+from ice_core.base_tool import ToolBase
 
 # ------------------------------------------------------------------
 # Backwards-compatibility: *BaseTool* alias -------------------------
 # ------------------------------------------------------------------
 
 if TYPE_CHECKING:  # pragma: no cover
-    # Type-checking imports using SDK alias to avoid cross-layer dependency
+    # Type-checking imports
     from ice_core.models.llm import LLMConfig
     from ice_core.models.node_models import LLMOperatorConfig
-    from ice_sdk import AgentNode
-    from ice_sdk.agents.agent_node import AgentNodeConfig
-    from ice_sdk.context import GraphContextManager
+    from ice_orchestrator.agent import AgentNode, AgentNodeConfig
+    from ice_orchestrator.context import GraphContextManager
 
 class AgentFactory:  # – internal utility
     """Factory for creating AgentNode instances from LLMOperatorConfig."""

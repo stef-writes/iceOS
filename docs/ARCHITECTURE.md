@@ -33,15 +33,6 @@ Frosty understands requests at different levels:
 "Daily reports" → Workflow # Complete system
 ```
 
-### ⚠️ Yes, We Have Duplicate Class Names (It's Intentional!)
-
-| Class Name | Location | Purpose |
-|------------|----------|---------|
-| `LLMOperatorConfig` | `ice_core.models` | Blueprint for workflows |
-| `LLMOperatorConfig` | `ice_sdk.llm.operators` | Internal SDK config |
-
-**Simple Rule**: Building workflows? Use `ice_core`. Writing SDK internals? Use `ice_sdk`.
-
 ---
 
 ## Overview
@@ -56,13 +47,13 @@ iceOS is a clean, layered AI workflow orchestration system designed with clear s
 │  (HTTP/WebSocket API Layer - FastAPI)                      │
 ├─────────────────────────────────────────────────────────────┤
 │                    ice_orchestrator                         │
-│  (Workflow Execution Engine - DAG Processing)              │
+│  (Runtime Engine - Agents, Memory, LLM, Context)           │
 ├─────────────────────────────────────────────────────────────┤
 │                        ice_sdk                              │
-│  (Developer SDK - Tools, Agents, Services)                 │
+│  (Developer SDK - Tools, Builders, ServiceLocator)         │
 ├─────────────────────────────────────────────────────────────┤
 │                       ice_core                              │
-│  (Domain Models, Protocols, Base Classes)                  │
+│  (Foundation - Models, Protocols, Registry)                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -70,260 +61,302 @@ iceOS is a clean, layered AI workflow orchestration system designed with clear s
 
 1. **Dependency Direction**: Each layer can only import from layers below it
 2. **No Cross-Layer Imports**: Direct imports across layers are forbidden
-3. **Service Interfaces**: All cross-layer communication goes through service interfaces
-4. **Side Effects**: External I/O only in Tool implementations (ice_sdk/tools)
+3. **Service Pattern**: SDK uses ServiceLocator for orchestrator services
+4. **Side Effects**: External I/O only in Tool implementations
 
-## Core Components
+## Core Components by Layer
 
 ### ice_core (Foundation Layer)
 
-Pure domain layer with no external dependencies:
+Pure domain layer with shared infrastructure:
 
 - **Models** (`models/`): Pydantic data models for all domain objects
-  - `NodeConfig`, `NodeExecutionResult`, `NodeMetadata`
-  - `LLMConfig`, `MessageTemplate`
-  - `BaseNode`, `ToolBase` abstract base classes
+  - `NodeConfig` hierarchy: `ToolNodeConfig`, `LLMOperatorConfig`, `AgentNodeConfig`
+  - `LLMConfig`, `ModelProvider` for LLM configuration
+  - `NodeExecutionResult`, `NodeMetadata` for execution tracking
   
 - **Protocols** (`protocols/`): Python Protocol interfaces
-  - `INode`, `ITool`, `IWorkflow`
-  - `IEmbedder`, `IVectorStore`
-  - `WorkflowLike`, `ScriptChainLike`
+  - `INode`, `ITool`, `IWorkflow` for core abstractions
+  - `IEmbedder`, `IVectorStore` for ML operations
+  - `NodeProtocol`, `ToolProtocol` for runtime contracts
   
-- **Utils** (`utils/`): Pure utility functions
-  - Hashing, coercion, validation helpers
-  - No I/O or side effects
-
-### ice_sdk (Developer SDK) - CLEANED & REORGANIZED
-
-User-facing APIs and implementations with a streamlined structure:
-
-- **Tools** (`tools/`): Categorized by purpose and cost model
-  - **Core** (`core/`): Free, fast data manipulation (unified CSV, JSON, file operations)
-  - **AI** (`ai/`): LLM-powered tools with cost tracking (insights, summarizer, generators)
-  - **System** (`system/`): OS and utility operations (sleep, compute, templates)
-  - **Integration** (`integration/`):
-    - Web (`web/`): HTTP requests, webhooks, search
-    - DB (`db/`): Query optimization, schema validation
-    - Cloud (`cloud/`): Future cloud service integrations
-  - **Domain** (`domain/`): Business-specific tools (marketplace, analytics)
+- **Unified Registry** (`unified_registry.py`): Central component registry
+  - Single source of truth for all components
+  - Handles tools, agents, chains, executors
+  - Shared across all layers
   
-- **Agents** (`agents/`): LLM-powered decision makers
-  - `AgentNode`: Configurable agent with tool access
+- **Base Classes** (`base_node.py`, `base_tool.py`): Abstract foundations
+  - Common behavior for nodes and tools
+  - Validation and execution contracts
+
+### ice_sdk (Developer SDK)
+
+Developer-facing tools and utilities:
+
+- **Tools** (`tools/`): Categorized tool implementations
+  - **Base** (`base.py`): `ToolBase`, `AITool`, `DataTool` base classes
+  - **Core** (`core/`): CSV, JSON, file operations
+  - **AI** (`ai/`): Insights, summarizer (using ServiceLocator for LLM)
+  - **System** (`system/`): Sleep, jinja templates, computer control
+  - **Web** (`web/`): HTTP, search, webhooks
+  - **DB** (`db/`): Database optimization tools
+  - **Marketplace** (`marketplace/`): Domain-specific tools
   
-- **Services** (`services/`): Service facades and locators
-  - `ServiceLocator`: Dependency injection registry
-  - `WorkflowExecutionService`: Clean workflow execution API
-  - `initialization.py`: Centralized service setup
+- **Builders** (`builders/`): Fluent APIs for construction
+  - `WorkflowBuilder`: Build workflows programmatically
+  - `AgentBuilder`: Configure agents (config only, not runtime)
   
-- **Builders** (`builders/`): Fluent APIs for workflow construction
-  - `WorkflowBuilder`: Programmatic workflow creation
+- **Services** (`services/`): Service layer
+  - `ServiceLocator`: Dependency injection pattern
+  - `initialization.py`: SDK service setup
+  - `llm_adapter.py`: Adapter for LLM service access
+  
+- **Context Utilities** (`context/`): SDK-specific context helpers
+  - `ContextFormatter`: Format context for display
+  - `ToolContext`: Context type for tools
+  - `ContextTypeManager`: Manage context types
+  
+- **Decorators** (`decorators.py`): Enhanced @tool decorator
+  - Auto-registration with unified registry
+  - Schema generation and validation
+  
+- **Utils** (`utils/`): Developer utilities
+  - Type coercion, error handling, retry logic
 
-- **Context** (`context/`): Execution context management
-  - `GraphContextManager`: State management during execution
+### ice_orchestrator (Runtime Engine)
 
-- **LLM** (`llm/`): LLM operators for text processing
-  - `SummarizerOperator`, `InsightsOperator`, etc.
+Complete runtime execution environment:
 
-- **Providers** (`providers/`): External service integrations
-  - OpenAI, Anthropic, Google Gemini, DeepSeek handlers
-
-- **Utils** (`utils/`): SDK-specific utilities
-  - Error handling, retry logic, token counting
-
-- **Unified Registry** (`unified_registry.py`): Single registry for all components
-  - Replaces previous scattered registry modules
-  - Handles tools, agents, chains, executors in one place
-
-### ice_orchestrator (Execution Engine)
-
-Workflow execution and coordination:
-
-- **Workflow** (`workflow.py`): Core DAG executor
-  - Level-based execution with proper error handling
+- **Agent Runtime** (`agent/`): Full agent implementation
+  - `AgentNode`, `AgentNodeConfig`: Base agent with tool loop
+  - `MemoryAgent`: Agent with integrated memory
+  - `AgentExecutor`: Tool coordination and LLM reasoning
+  
+- **Memory Subsystem** (`memory/`): Comprehensive memory
+  - `WorkingMemory`: Short-term task context
+  - `EpisodicMemory`: Conversation history
+  - `SemanticMemory`: Long-term knowledge
+  - `ProceduralMemory`: Learned procedures
+  - `UnifiedMemory`: Integrated memory interface
+  
+- **LLM Providers** (`providers/`): Model integrations
+  - `LLMService`: Unified LLM interface
+  - Provider handlers: OpenAI, Anthropic, Gemini, DeepSeek
+  
+- **Context Management** (`context/`): Runtime state
+  - `GraphContextManager`: Workflow execution context
+  - `ContextStore`: Persistent state storage
+  - `SessionState`: User session tracking
+  
+- **LLM Operators** (`llm/operators/`): Specialized processors
+  - `InsightsOperator`: Generate actionable insights
+  - `SummarizerOperator`: Text summarization
+  - `LineItemGenerator`: Structured data generation
+  
+- **Workflow Engine** (`workflow.py`): Core orchestration
+  - DAG-based execution with level parallelism
+  - Error handling and retry policies
   - Context propagation between nodes
   
-- **Nodes** (`nodes/`): Concrete node implementations
-  - `ToolNode`, `LLMNode`, `AgentNode`
+- **Node Executors** (`nodes/`): Type-specific execution
+  - `ToolNode`, `LLMNode`, `AgentNode` bridges
   - `ConditionNode`, `LoopNode`, `ParallelNode`
-  
-- **Services** (`services/`): Orchestration services
-  - `WorkflowService`: IWorkflowService implementation
-  
-- **Validation** (`validation/`): Pre-flight checks
-  - Schema validation, safety checks, cycle detection
 
 ### ice_api (API Layer)
 
 External HTTP/WebSocket interfaces:
 
-- **MCP Router** (`api/mcp.py`): Model Context Protocol endpoints
-  - Blueprint registration and management
-  - Workflow execution via HTTP
+- **MCP Router** (`api/mcp.py`): Model Context Protocol
+  - Blueprint registration and persistence
+  - Workflow execution endpoints
+  - Event streaming via Redis
   
-- **WebSocket Gateway** (`ws_gateway.py`): Real-time event streaming
-  - Live workflow execution updates
+- **Direct Execution** (`api/direct_execution.py`): Quick endpoints
+  - `/tools/{name}`, `/agents/{name}` for single execution
+  - Discovery endpoints for component listing
   
-- **Main App** (`main.py`): FastAPI application
-  - Clean initialization using SDK services
-  - No direct orchestrator imports
+- **WebSocket Gateway** (`ws_gateway.py`): Real-time updates
+  - Live workflow execution events
+  - Progress tracking
 
 ## Service Architecture
 
 ### ServiceLocator Pattern
 
-The `ServiceLocator` provides dependency injection without tight coupling:
+The SDK accesses orchestrator services without direct imports:
 
 ```python
-# Registration (during initialization)
-ServiceLocator.register("workflow_service", WorkflowService())
+# In SDK tool implementation
+from ice_sdk.services import ServiceLocator
 
-# Usage (anywhere in the code)
-workflow_service = ServiceLocator.get("workflow_service")
+llm_service = ServiceLocator.get("llm_service")
+result = await llm_service.generate(config, prompt)
+
+# In orchestrator initialization
+ServiceLocator.register("llm_service", LLMService())
+ServiceLocator.register("context_manager", GraphContextManager())
 ```
 
-### Common Services
+### Registered Services
 
-1. **workflow_service**: IWorkflowService for workflow execution
-2. **workflow_proto**: Workflow class for SDK usage
-3. **tool_service**: ToolService for tool discovery/execution
-4. **context_manager**: GraphContextManager for state management
-5. **llm_service**: LLMService for model interactions
+1. **llm_service**: LLM provider access
+2. **llm_service_impl**: Internal LLM service (for adapter)
+3. **context_manager**: Workflow context management
+4. **tool_service**: Tool discovery and execution
+5. **workflow_service**: Workflow execution service
 
-## Initialization Flow
+## Data Flow Example
 
-1. **API Startup** (`ice_api/main.py`):
-   ```python
-   from ice_sdk.services.initialization import initialize_services
-   initialize_services()  # Sets up all layers
-   ```
+```
+1. API receives request → Creates workflow config
+                    ↓
+2. Orchestrator validates → Builds execution graph
+                    ↓
+3. Executes nodes in levels → Tools use ServiceLocator
+                    ↓
+4. Agent nodes run loops → Access memory & LLM
+                    ↓
+5. Results flow back → Events stream via Redis
+```
 
-2. **SDK Initialization** (`ice_sdk/services/initialization.py`):
-   - Checks for orchestrator availability
-   - Registers SDK services
-   - Calls orchestrator initialization if present
+## Key Design Changes (Latest Migration)
 
-3. **Orchestrator Setup** (`ice_orchestrator/__init__.py`):
-   - Registers workflow service
-   - Registers workflow prototype
+### ✅ COMPLETED: Clean Architecture Migration
 
-## Key Design Decisions
+The architectural migration has been successfully completed:
 
-### 1. Single Unified Registry
-- All registrations in `ice_sdk/unified_registry.py`
-- No scattered registry modules
-- Backward compatibility through wrapper classes
+1. **Agent Runtime** → ✅ Moved to Orchestrator
+   - AgentNode, MemoryAgent, AgentExecutor now in `ice_orchestrator/agent/`
+   - SDK only provides builders and utilities
 
-### 2. Clean SDK Structure
-- Removed 12 unnecessary directories
-- Consolidated from ~20 subdirectories to 8 essential ones
-- No more compatibility shims or re-exports
+2. **Memory Subsystem** → ✅ Moved to Orchestrator  
+   - All memory implementations in `ice_orchestrator/memory/`
+   - Working, episodic, semantic, procedural memory
 
-### 3. Protocol-Based Interfaces
-- Use Python Protocols for contracts
-- Allows testing with simple stubs
+3. **LLM Services** → ✅ Moved to Orchestrator
+   - LLMService and all providers in `ice_orchestrator/providers/`
+   - SDK accesses via ServiceLocator
 
-### 4. Pydantic Everywhere
-- All data structures are Pydantic models
-- Automatic validation and serialization
+4. **Context Management** → ✅ Consolidated in Orchestrator
+   - ALL context components in `ice_orchestrator/context/`
+   - No more split between layers
 
-### 5. Async-First
-- All I/O operations are async
-- Proper context managers for resources
+5. **Unified Registry** → ✅ Moved to Core
+   - Now properly in `ice_core/unified_registry.py`
+   - Shared foundation for all layers
 
-### 6. Intentional Duplicate Class Names
-- **This is by design, not confusion!**
-- Blueprint layer (`ice_core.models`) has `LLMOperatorConfig`, `AgentNodeConfig` for workflow definitions
-- SDK layer (`ice_sdk`) has duplicate names for internal runtime implementations
-- Supports progressive canvas workflow building and clean execution separation
-- See [CONFIG_CLARIFICATION.md](./CONFIG_CLARIFICATION.md) for detailed explanation
+6. **Service Pattern** → ✅ Clean ServiceLocator Implementation
+   - SDK only uses ServiceLocator to access orchestrator services
+   - No direct imports between layers
+   - All runtime services registered by orchestrator
+
+### Current State
+
+The architecture now achieves complete separation of concerns:
+
+- **ice_core**: Pure data structures and contracts
+- **ice_sdk**: Pure development kit (tools and builders only)
+- **ice_orchestrator**: ALL runtime execution and services
+- **ice_api**: Pure HTTP/WebSocket gateway
+
+No layer violations remain. Each layer has a single, clear purpose.
+
+## Migration Guide
+
+For existing code:
+
+```python
+# Old (incorrect)
+from ice_sdk.agents import AgentNode
+from ice_sdk.memory import WorkingMemory
+from ice_sdk.providers.llm_service import LLMService
+
+# New (correct)
+from ice_orchestrator.agent import AgentNode
+from ice_orchestrator.memory import WorkingMemory
+from ice_sdk.services import ServiceLocator
+
+llm_service = ServiceLocator.get("llm_service")
+```
 
 ## Testing Strategy
 
-### Unit Tests
-- Test each component in isolation
-- Mock external dependencies
-- Focus on business logic
+### Layer-Specific Tests
+- **Core**: Pure unit tests, no I/O
+- **SDK**: Tool tests with mocked services
+- **Orchestrator**: Integration tests with real components
+- **API**: End-to-end tests with full stack
 
-### Integration Tests
-- Test layer interactions
-- Use real services where possible
-- Validate end-to-end flows
-
-### Smoke Tests
-- Basic functionality checks
-- Ensure system can start
-- Validate critical paths
+### Boundary Tests
+- Verify no illegal imports between layers
+- Check ServiceLocator usage in SDK
+- Validate all cross-layer contracts
 
 ## Development Guidelines
 
-### Adding a New Tool
+### Adding a New Tool (SDK)
 
-**Option 1: Enhanced @tool Decorator (Recommended)**
 ```python
 from ice_sdk.decorators import tool
-from ice_sdk.tools.core.base import DataTool  # or AITool
+from ice_sdk.tools.base import ToolBase
+from ice_sdk.services import ServiceLocator
 
-@tool(name="my_tool", auto_generate_tests=True)
-class MyTool(DataTool):
-    """Tool description."""
+@tool(name="my_tool")
+class MyTool(ToolBase):
     async def _execute_impl(self, **kwargs):
+        # Access orchestrator services if needed
+        llm_service = ServiceLocator.get("llm_service")
         return {"result": "success"}
 ```
 
-**Option 2: CLI Scaffolding**
-```bash
-ice scaffold tool --interactive
-# Follow prompts for name, category, inputs/outputs
+### Adding a New Agent (Orchestrator)
+
+```python
+from ice_orchestrator.agent import AgentNode, AgentNodeConfig
+from ice_orchestrator.memory import UnifiedMemory
+
+class CustomAgent(AgentNode):
+    def __init__(self, config: AgentNodeConfig):
+        super().__init__(config)
+        self.memory = UnifiedMemory(config.memory_config)
 ```
-
-**Option 3: Traditional Method**
-1. Choose appropriate category: `core/`, `ai/`, `system/`, `web/`, `db/`
-2. Inherit from category base class (`DataTool`, `AITool`, etc.)
-3. Implement `_execute_impl()` method
-4. Tool auto-registers via decorator
-5. Tests can be auto-generated
-
-### Adding a New Node Type
-
-1. Create node class in `ice_orchestrator/nodes/`
-2. Inherit from appropriate base class
-3. Register executor if needed
-4. Add validation logic
-5. Write integration tests
 
 ### Adding a New Service
 
-1. Define protocol in `ice_core/protocols/`
-2. Implement in appropriate layer
-3. Register in initialization
-4. Add to ServiceLocator docs
-5. Write usage examples
+1. Define interface in `ice_core/protocols/`
+2. Implement in appropriate layer (usually orchestrator)
+3. Register in orchestrator initialization
+4. Document in ServiceLocator registry
+5. Access via ServiceLocator in SDK
 
-## Recent Improvements
+## Performance Considerations
 
-### SDK Cleanup (Latest)
-- Deleted unused directories: nodes/, events/, dsl/, interfaces/, protocols/, core/, models/
-- Consolidated all registry functionality into `unified_registry.py`
-- Updated all imports to use `ice_core.models` directly
-- Removed compatibility layers and shims
-- Cleaner, more maintainable structure
+- **Lazy Loading**: Services loaded on first access
+- **Connection Pooling**: LLM providers share connections
+- **Memory Management**: Configurable memory limits
+- **Parallel Execution**: Level-based DAG processing
 
-### Tool Reorganization & Enhancement (Latest)
-- **Category-based structure**: Tools now organized by purpose (core, ai, system, etc.)
-- **Unified tools**: CSV read/write combined into single `csv` tool with actions
-- **Enhanced @tool decorator**: Auto-registration, schema generation, test creation
-- **CLI scaffolding**: Interactive tool generation with `ice scaffold tool`
-- **Cost awareness**: AI tools clearly separated with cost estimation
-- **Base classes**: `DataTool` for free operations, `AITool` for LLM-powered tools
+## Security Considerations
+
+- **Layer Isolation**: Each layer has specific responsibilities
+- **Service Access**: Controlled through ServiceLocator
+- **Tool Sandboxing**: Tools run with limited permissions
+- **Input Validation**: Pydantic models at every boundary
 
 ## Future Enhancements
 
-1. **Plugin System**: Dynamic tool/node discovery
-2. **Distributed Execution**: Multi-node workflow processing
-3. **Advanced Monitoring**: OpenTelemetry integration
-4. **Workflow Versioning**: Blueprint version management
-5. **Visual Editor**: Canvas-based workflow design
+1. **Plugin System**: Dynamic tool/agent loading
+2. **Distributed Execution**: Multi-node orchestration
+3. **Advanced Monitoring**: Full observability stack
+4. **Workflow Versioning**: Blueprint version control
+5. **Visual Editor**: Canvas-based design
 
 ## Conclusion
 
-The iceOS architecture provides a clean, maintainable foundation for AI workflow orchestration. By following strict layer boundaries and using well-defined interfaces, the system remains flexible while preventing architectural drift. The recent SDK cleanup has significantly improved maintainability by reducing complexity and removing unnecessary abstractions. 
+The iceOS architecture provides clear separation of concerns:
+- **Core**: Shared models and infrastructure
+- **SDK**: Developer tools and utilities
+- **Orchestrator**: Complete runtime environment
+- **API**: External interfaces
+
+This separation enables independent evolution of each layer while maintaining clean contracts through protocols and service patterns. 

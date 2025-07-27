@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from ice_core.models.llm import ModelProvider
-from ice_sdk.llm.operators.base import LLMOperator, LLMOperatorConfig
-from ice_sdk.providers.llm_service import LLMService
+from ice_orchestrator.llm.operators.base import LLMOperator, LLMOperatorConfig
+from ice_orchestrator.providers.llm_service import LLMService
 
 __all__: list[str] = ["InsightsOperator"]
 

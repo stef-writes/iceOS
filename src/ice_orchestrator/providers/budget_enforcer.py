@@ -3,7 +3,7 @@
 import logging
 from typing import Optional
 
-from ice_sdk.config import runtime_config
+from ice_orchestrator.config import runtime_config
 
 logger = logging.getLogger(__name__)
 

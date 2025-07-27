@@ -1,19 +1,46 @@
 # Changelog
 
+All notable changes to iceOS will be documented in this file.
+
 ## [Unreleased]
 
-### Added
-- **Direct Execution API**: New endpoints for executing individual tools, agents, units, and chains
-  - `POST /api/v1/tools/{name}` - Execute tools with automatic blueprint creation
-  - `POST /api/v1/agents/{name}` - Execute agents directly
-  - `POST /api/v1/units/{name}` - Execute units directly  
-  - `POST /api/v1/chains/{name}` - Execute chains directly
-  - All endpoints support sync/async modes and return AI suggestions
-  - Maintains full telemetry and analysis benefits while simplifying UX
+### Major Architectural Refactoring - Clean Architecture Achieved
 
-### Changed
-- Updated `UnitRegistry` to support iteration like other registries
-- Enhanced API documentation with direct execution examples
+#### Changed
+- **Moved ALL execution logic to orchestrator layer**
+  - `WorkflowExecutionService` moved from SDK to orchestrator
+  - Created new `ToolExecutionService` in orchestrator 
+  - SDK `ToolService` now purely registry/discovery (no execution)
+  - All runtime concerns now properly isolated in orchestrator
+
+- **Consolidated context management in orchestrator**
+  - Moved `formatter.py`, `types.py`, `type_manager.py` from SDK to orchestrator
+  - All context components now in single layer
+  - No more split context functionality
+
+- **Moved shared components to core**
+  - `exceptions.py` moved from SDK to core
+  - `token_counter.py` moved from SDK to core utils
+  - `config.py` (runtime config) moved from SDK to orchestrator
+  - Cost tracking moved from SDK to orchestrator
+
+- **Simplified SDK to pure development kit**
+  - Removed `WorkflowExecutionService` 
+  - Removed `BuilderService` (builders used directly)
+  - Removed empty `providers` directory
+  - SDK now only contains: tools, builders, ServiceLocator, dev utilities
+
+- **Updated service initialization**
+  - Split `initialize_services()` into `initialize_sdk()` and `initialize_orchestrator()`
+  - Each layer initializes its own services
+  - Clean dependency flow via ServiceLocator
+
+#### Architecture Benefits
+- **Clear layer boundaries**: Each layer has single, clear purpose
+- **No crossover**: SDK builds, Orchestrator executes
+- **Clean imports**: No layer violations or circular dependencies
+- **Simple mental model**: Easy to understand where code belongs
+- **Future-proof**: New features clearly belong in one layer
 
 ## [0.7.0] – 2024-12-30 🚀 **Spatial Computing Release**
 

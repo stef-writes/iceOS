@@ -4,7 +4,7 @@ from .search_tool import WebSearchTool
 from .webhook_tool import WebhookEmitterTool
 
 try:
-    from ice_sdk.unified_registry import registry
+    from ice_core.unified_registry import registry
 
     registry.register_instance(NodeType.TOOL, "http_request", HttpRequestTool())
     registry.register_instance(NodeType.TOOL, "webhook_emitter", WebhookEmitterTool())

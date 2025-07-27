@@ -7,8 +7,7 @@ from typing import Any, ClassVar, Dict, List
 from pydantic import BaseModel, Field
 
 from ice_core.models.llm import LLMConfig, ModelProvider
-
-from ...providers.llm_service import LLMService
+from ice_sdk.services import ServiceLocator
 from ...utils.errors import ToolExecutionError
 from ice_sdk.tools.ai.base import AITool
 
@@ -50,7 +49,8 @@ class InsightsTool(AITool):
             temperature=0.3,
         )
 
-        text, _usage, err = await LLMService().generate(llm_cfg, prompt)
+        llm_service = ServiceLocator.get("llm_service")
+        text, _usage, err = await llm_service.generate(llm_cfg, prompt)
         if err:
             raise ToolExecutionError(err)
 

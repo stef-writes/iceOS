@@ -2,8 +2,8 @@
 
 from typing import Any, Dict, List, Optional
 from pydantic import Field, model_validator, PrivateAttr
-from ice_sdk.agents.agent_node import AgentNode, AgentNodeConfig  
-from ice_sdk.memory import UnifiedMemory, UnifiedMemoryConfig
+from .base import AgentNode, AgentNodeConfig  
+from ice_orchestrator.memory import UnifiedMemory, UnifiedMemoryConfig
 
 
 class MemoryAgentConfig(AgentNodeConfig):

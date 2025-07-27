@@ -5,7 +5,7 @@ from ice_sdk.tools.core.base import DataTool
 __all__ = ["CSVTool", "DataTool"]
 
 # Auto-register core tools
-from ice_sdk.unified_registry import registry
+from ice_core.unified_registry import registry
 from ice_core.models.enums import NodeType
 
 try:

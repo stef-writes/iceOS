@@ -2,7 +2,7 @@
 
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from ice_sdk.agents.agent_node import AgentNode, AgentNodeConfig
+from ice_orchestrator.agent import AgentNode, AgentNodeConfig
 from ice_core.models.llm import LLMConfig
 from ice_core.models.enums import ModelProvider
 

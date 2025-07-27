@@ -5,7 +5,7 @@ from typing import Any, Callable, Optional, Type, Dict
 from pathlib import Path
 
 from ice_core.base_tool import ToolBase
-from ice_sdk.unified_registry import registry
+from ice_core.unified_registry import registry
 from ice_core.models.enums import NodeType
 
 

@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Set, Tuple
 
 import networkx as nx
 
-from ice_sdk.exceptions import CycleDetectionError as CircularDependencyError
+from ice_core.exceptions import CycleDetectionError as CircularDependencyError
 
 class DependencyGraph:
     """

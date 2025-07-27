@@ -1,23 +1,12 @@
-"""Context management helpers (session state, stores, etc.) shared by agents and orchestrator."""
+"""Context utilities moved to orchestrator.
 
-from __future__ import annotations
+All context management functionality has been moved to ice_orchestrator.context
+for proper separation of concerns. The SDK should not contain runtime context logic.
 
-from ice_sdk.context.scoped_context_store import ScopedContextStore
-from ice_sdk.context.session_state import SessionState
+To access context services, use ServiceLocator:
+    from ice_sdk.services import ServiceLocator
+    context_manager = ServiceLocator.get("context_manager")
+"""
 
-from .async_manager import GraphContextManager  # async-first implementation
-
-from .memory import BaseMemory, NullMemory  # re-export for convenience
-from .graph_analyzer import GraphAnalyzer, GraphMetrics, DependencyImpact  # Graph intelligence
-
-__all__: list[str] = [
-    "GraphContextManager",
-    "SessionState",
-    "ScopedContextStore",
-    "BaseMemory",
-    "NullMemory",
-    "AsyncGraphContextManager",
-    "GraphAnalyzer",
-    "GraphMetrics", 
-    "DependencyImpact",
-]
+# This module is now empty - all context management is in orchestrator
+__all__ = []

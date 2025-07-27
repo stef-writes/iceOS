@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, Optional
 
-from ice_sdk.exceptions import CoreError
+from ice_core.exceptions import CoreError
 
 
 class ToolExecutionError(CoreError):
@@ -14,7 +14,7 @@ class ToolExecutionError(CoreError):
         message: str,
         details: Optional[Dict[str, Any]] = None,
     ) -> None:
-        from ice_sdk.exceptions import ErrorCode
+        from ice_core.exceptions import ErrorCode
         # Use a generic tool error code
         super().__init__(ErrorCode.UNKNOWN, f"Tool '{tool_name}' failed: {message}")
         self.tool_name = tool_name

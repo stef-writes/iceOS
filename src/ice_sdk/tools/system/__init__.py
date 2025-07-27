@@ -8,7 +8,7 @@ from .sleep_tool import SleepTool
 from .sum_tool import SumTool
 
 try:
-    from ice_sdk.unified_registry import registry
+    from ice_core.unified_registry import registry
 
     registry.register_instance(NodeType.TOOL, "computer", ComputerTool())
     registry.register_instance(NodeType.TOOL, "jinja_render", JinjaRenderTool())

@@ -15,7 +15,7 @@ from ice_core.models import (
     ToolNodeConfig, LLMOperatorConfig as LLMNodeConfig
 )
 from ice_core.protocols.workflow import ScriptChainLike
-from ice_sdk.unified_registry import registry
+from ice_core.unified_registry import registry
 from ice_orchestrator.execution.executors.unified import (
     tool_executor, llm_executor
 )
@@ -181,9 +181,9 @@ class TestProtocolBasedLLMExecutor:
             return mock_service
         
         # Mock the import inside the module
-        import ice_sdk.providers.llm_service
+        import ice_orchestrator.providers.llm_service
         monkeypatch.setattr(
-            ice_sdk.providers.llm_service,
+            ice_orchestrator.providers.llm_service,
             "LLMService",
             mock_llm_service_init
         )
@@ -308,7 +308,7 @@ class TestProtocolBasedArchitecture:
     
     def test_registry_integration(self):
         """Test that registry integration works as expected."""
-        from ice_sdk.unified_registry import registry
+        from ice_core.unified_registry import registry
         from ice_core.models.enums import NodeType
         
         # Test tool registration and retrieval

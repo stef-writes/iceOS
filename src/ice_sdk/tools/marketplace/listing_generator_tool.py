@@ -8,7 +8,7 @@ from typing import Any, Dict, ClassVar, List, Optional
 from pydantic import Field
 
 from ice_core.base_tool import ToolBase
-from ice_sdk.providers.llm_service import LLMService
+from ice_sdk.services import ServiceLocator
 
 
 class ListingGeneratorTool(ToolBase):
@@ -60,7 +60,7 @@ Be friendly, trustworthy, and conversational - like a neighbor selling to a neig
         title = self._generate_title(product)
         
         # Generate description using LLM with better quality
-        llm_service = LLMService()
+        llm_service = ServiceLocator.get("llm_service")
         
         # Use GPT-4 for better quality since budget allows
         description = await llm_service.generate(

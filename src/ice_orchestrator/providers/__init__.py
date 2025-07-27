@@ -1,8 +1,9 @@
-"""Provider-specific integrations (LLM, vector DBs, etc.)."""
+"""Provider integrations for orchestrator runtime.
 
-from __future__ import annotations
+This module contains runtime implementations for various providers
+including LLM services and their handlers.
+"""
 
-# Direct imports - no lazy loading needed
 from .llm_service import LLMService
 from .llm_providers import (
     OpenAIHandler,
@@ -15,6 +16,6 @@ __all__ = [
     "LLMService",
     "OpenAIHandler",
     "AnthropicHandler",
-    "GoogleGeminiHandler",
+    "GoogleGeminiHandler", 
     "DeepSeekHandler",
-]
+] 

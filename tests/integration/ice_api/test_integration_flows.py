@@ -16,7 +16,7 @@ from pathlib import Path
 from ice_api.main import app
 from ice_sdk.services.locator import ServiceLocator
 from ice_sdk.tools.service import ToolService
-from ice_sdk.context import GraphContextManager
+from ice_orchestrator.context import GraphContextManager
 from fastapi.testclient import TestClient
 from ice_core.models.llm import LLMConfig
 from ice_core.models.enums import ModelProvider
@@ -32,7 +32,7 @@ def setup_services():
     tool_service = ToolService()
     ServiceLocator.register("tool_service", tool_service)
     
-    from ice_sdk.providers.llm_service import LLMService
+    from ice_orchestrator.providers.llm_service import LLMService
     ServiceLocator.register("llm_service", LLMService())
     
     # Create context manager

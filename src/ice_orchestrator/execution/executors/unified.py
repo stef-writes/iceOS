@@ -14,7 +14,7 @@ from ice_core.models import (
 )
 from ice_core.models.node_metadata import NodeMetadata
 from ice_core.protocols.workflow import WorkflowLike
-from ice_sdk.unified_registry import register_node, registry
+from ice_core.unified_registry import register_node, registry
 from ice_sdk.services.locator import ServiceLocator
 
 Workflow: TypeAlias = WorkflowLike
@@ -94,7 +94,7 @@ async def llm_executor(
     
     try:
         # Get LLM service from service locator
-        from ice_sdk.providers.llm_service import LLMService
+        from ice_orchestrator.providers.llm_service import LLMService
         from ice_core.models.llm import LLMConfig
         
         llm_service = LLMService()

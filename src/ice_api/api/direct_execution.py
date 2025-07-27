@@ -16,7 +16,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from ice_core.models.mcp import Blueprint, RunRequest, NodeSpec
-from ice_sdk.unified_registry import registry, global_unit_registry, global_agent_registry
+from ice_core.unified_registry import registry, global_unit_registry, global_agent_registry
 from ice_core.models import NodeType
 
 from .mcp import start_run, get_result

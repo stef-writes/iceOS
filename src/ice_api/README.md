@@ -1,14 +1,14 @@
 # ice_api – API Gateway
 
 ## Purpose
-`ice_api` exposes iceOS functionality over HTTP + WebSocket.
-It validates requests, translates them into **Workflow** executions, and streams results back to clients.
+`ice_api` exposes iceOS functionality over HTTP + WebSocket. It validates requests, translates them into **Workflow** executions via the orchestrator layer, and streams results back to clients.
 
 **🎯 Core Features**
 * **MCP Protocol** – Model Context Protocol for blueprint management and execution
 * **Direct Execution** – Quick endpoints for single tool/agent/unit/chain execution
 * **Event Streaming** – Real-time execution events via SSE
 * **Blueprint Management** – Register and execute workflows
+* **Redis Integration** – Event streaming and blueprint persistence
 
 Routes live under `ice_api.api.*` and are versioned (`/api/v1/...`).
 
@@ -100,22 +100,44 @@ GET /api/v1/mcp/runs/{run_id}/events
 
 ## Architecture
 ```
-Client ──► FastAPI (ice_api) ──► Workflow (ice_orchestrator) ──► ice_sdk/tools
-            │                         │
-            └── Events ←── Execution Events
+Client ──► FastAPI ──► Orchestrator ──► Runtime Services
+         (ice_api)   (ice_orchestrator)  │
+            │                            ├─► Agents
+            │                            ├─► Memory
+            └── Events ←── Execution ────┴─► LLM Services
+                          Events
 ```
+
 * **MCP Protocol**: Standard interface for workflow management
 * **Hybrid Execution**: Direct endpoints create single-node blueprints internally
-* **Event Streaming**: Server-sent events for real-time updates
-* Dependencies injected via `ice_api.dependencies`
+* **Event Streaming**: Server-sent events via Redis for real-time updates
+* **Service Injection**: Dependencies injected via `ice_api.dependencies`
+
+## Layer Interactions
+
+The API layer:
+1. Receives HTTP/WebSocket requests
+2. Validates and transforms them into workflow configurations
+3. Delegates execution to `ice_orchestrator`
+4. Streams back events and results
+
+Key dependencies:
+- `ice_orchestrator.workflow.Workflow` - Main workflow execution
+- `ice_orchestrator.context.GraphContextManager` - Context management
+- `ice_core.unified_registry` - Component discovery
+- Redis - Event streaming and blueprint storage
 
 ## Rules
-* No direct DB or vectorstore access – delegate to Tool implementations
-* All external side-effects live in `ice_sdk.tools.*`
+* No direct business logic – purely API translation layer
+* All execution happens in orchestrator layer
+* No direct tool/agent implementation access
 * Layer boundaries strictly enforced
 
 ## Testing
-`pytest tests/api` runs contract & smoke tests.
+```bash
+pytest tests/integration/ice_api  # Integration tests
+pytest tests/unit/ice_api         # Unit tests
+```
 
 ## License
 MIT 

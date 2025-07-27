@@ -8,7 +8,7 @@ from ice_core.models import LLMConfig, ModelProvider
 
 # ----------------------------------------
 # Cost-tracking decorator
-from ice_sdk.providers.costs import cost_checkpoint
+from ice_orchestrator.providers.costs import cost_checkpoint
 
 # ----------------------------------------
 # LLM operator helpers -------------------------------------------------------
@@ -58,7 +58,7 @@ class LLMOperator(BaseModel):
             Processed output string
         """
         # Import here to avoid circular dependencies
-        from ice_sdk.providers.llm_service import LLMService
+        from ice_orchestrator.providers.llm_service import LLMService
 
         llm_config = LLMConfig(
             provider=self.config.provider,

@@ -9,11 +9,11 @@ import networkx as nx
 from pydantic import BaseModel, Field
 
 from ice_sdk.services import ServiceLocator  # new
-from ice_sdk.tools import ToolBase
-from ice_sdk.context.types import ToolContext
+from ice_core.base_tool import ToolBase
+from .types import ToolContext
 
 # Unified tool execution via ToolService -------------------------------
-from ice_sdk.tools.service import ToolRequest, ToolService
+# Tools are executed via tool execution service
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
@@ -49,7 +49,6 @@ class GraphContextManager:
         store: Optional[ContextStore] = None,
         formatter: Optional[ContextFormatter] = None,
         memory: Optional[BaseMemory] = None,
-        tool_service: Optional[ToolService] = None,
         project_root: Optional[Path] = None,
     ):
         """Create a ``GraphContextManager``.
@@ -65,7 +64,6 @@ class GraphContextManager:
                 store by default.
             formatter: Custom formatter for rendering context as text.
             memory: Long-term memory implementation.
-            tool_service: Optional ToolService instance to use.
             project_root: Root directory for the project (defaults to current working directory).
         """
         from collections import OrderedDict
@@ -83,28 +81,8 @@ class GraphContextManager:
         self._contexts: "OrderedDict[str, GraphContext]" = OrderedDict()
         self._context: Optional[GraphContext] = None
 
-        # Unified ToolService instance ----------------------------------
-        if tool_service is None:
-            tool_service = ServiceLocator.get("tool_service")
-            if tool_service is None:
-                tool_service = ToolService()
-                ServiceLocator.register("tool_service", tool_service)
-
-        self.tool_service: ToolService = cast(ToolService, tool_service)
+        # Tool service is accessed via ServiceLocator when needed
         self._project_root = project_root or Path.cwd()
-
-        # ------------------------------------------------------------------
-        # Auto-discover project-local `*.tool.py` modules so ScriptChains
-        # automatically pick up newly scaffolded tools without explicit
-        # registration calls in the chain constructor (#workflow-automation).
-        # ------------------------------------------------------------------
-        try:
-            # Scan from project root – assumes chains/nodes/tools live under workspace.
-            self.tool_service.discover_and_register(self._project_root)
-        except Exception:  # – best-effort, never hard-fail
-            # Any import error is logged inside ToolService; we silently
-            # continue so orchestrator startup is resilient.
-            pass
 
     def register_agent(self, agent: "AgentNode") -> None:
         """Register an agent for lookup by other agents."""
@@ -124,7 +102,8 @@ class GraphContextManager:
 
         # Register tool CLASS with ToolService for unified execution ----
         try:
-            self.tool_service.register(tool.__class__)
+            # Tools are auto-registered via @tool decorator
+            pass
         except ValueError:
             # Ignore duplicate class registration
             pass
@@ -219,14 +198,12 @@ class GraphContextManager:
                 logger.error("Tool execution failed (stateful path): %s", e)
                 raise
 
-        request = ToolRequest(tool_name=tool_name, inputs=kwargs, context=ctx_payload)
-
-        try:
-            result_wrapper = await self.tool_service.execute(request)
-            return result_wrapper["data"]
-        except Exception as e:
-            logger.error("Tool execution failed via ToolService: %s", e)
-            raise
+        # Execute tool directly via tool execution service
+        tool_service = ServiceLocator.get("tool_execution_service")
+        if tool_service:
+            return await tool_service.execute_tool(tool_name, kwargs, ctx_payload)
+        else:
+            raise RuntimeError("Tool execution service not available")
 
     def update_node_context(
         self,
@@ -246,7 +223,7 @@ class GraphContextManager:
             import json
 
             from ice_core.models import ModelProvider
-            from ice_sdk.utils.token_counter import TokenCounter
+            from ice_core.utils.token_counter import TokenCounter
 
             if isinstance(content, str):
                 serialised = content
@@ -380,7 +357,7 @@ class GraphContextManager:
 
         # Import token counter lazily to avoid heavy startup costs
         from ice_core.models import ModelProvider
-        from ice_sdk.utils.token_counter import TokenCounter
+        from ice_core.utils.token_counter import TokenCounter
 
         def _estimate_tokens(text: str) -> int:
             """Return token estimate for *text* as *int*."""

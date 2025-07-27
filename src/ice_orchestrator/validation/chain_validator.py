@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING, List, Mapping, Set
 
 from structlog import get_logger
 
-from ice_sdk.context.type_manager import context_type_manager
+from ice_orchestrator.context import ContextTypeManager
+context_type_manager = ContextTypeManager()
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models.node_models import NodeConfig

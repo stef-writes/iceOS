@@ -4,7 +4,7 @@ import asyncio
 import pytest
 from datetime import datetime, timedelta
 
-from ice_sdk.memory import WorkingMemory, MemoryConfig, MemoryEntry
+from ice_orchestrator.memory import WorkingMemory, MemoryConfig, MemoryEntry
 
 
 @pytest.mark.asyncio

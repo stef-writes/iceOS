@@ -4,7 +4,7 @@ from .index_advisor_tool import IndexAdvisorTool
 from .schema_validator_tool import SchemaValidatorTool
 
 try:
-    from ice_sdk.unified_registry import registry
+    from ice_core.unified_registry import registry
 
     registry.register_instance(NodeType.TOOL, "index_advisor", IndexAdvisorTool())
     registry.register_instance(NodeType.TOOL, "explain_plan", ExplainPlanTool())

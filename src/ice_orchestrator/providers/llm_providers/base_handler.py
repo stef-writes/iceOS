@@ -4,7 +4,7 @@ from __future__ import annotations
 """Abstract base class for LLM provider handlers.
 
 Migrated from ``ice_tools.llm_providers.base_handler`` to the new
-``ice_sdk.providers.llm_providers`` namespace.
+``ice_orchestrator.providers.llm_providers`` namespace.
 """
 
 import json

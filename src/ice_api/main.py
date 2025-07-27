@@ -17,8 +17,8 @@ from ice_api.api.direct_execution import router as direct_router
 from ice_api.ws_gateway import router as ws_router
 from ice_core.utils.logging import setup_logger
 from ice_sdk import ToolService
-from ice_sdk.context import GraphContextManager
-from ice_sdk.providers.llm_service import LLMService
+from ice_orchestrator.context import GraphContextManager
+from ice_orchestrator.providers.llm_service import LLMService
 from ice_sdk.services import ServiceLocator
 from ice_api.errors import add_exception_handlers
 
@@ -39,22 +39,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     import ice_orchestrator.execution.executors  # noqa: F401
     
     # Initialize orchestrator services through SDK initialization
-    from ice_sdk.services.initialization import initialize_services
-    initialize_services()
-    
-    # Initialize core services in the correct order
-    project_root = Path.cwd()
-    tool_service = ToolService()
-    
-    # Register tool service BEFORE creating context manager
-    ServiceLocator.register("tool_service", tool_service)
-    ServiceLocator.register("llm_service", LLMService())
-    
-    # Now create context manager (it will find the registered tool_service)
-    ctx_manager = GraphContextManager(project_root=project_root)
-    ServiceLocator.register("context_manager", ctx_manager)
+    from ice_sdk.services.initialization import initialize_sdk
+    from ice_orchestrator import initialize_orchestrator
 
-    app.state.context_manager = ctx_manager  # type: ignore[attr-defined]
+    # Initialize layers in order
+    initialize_sdk()
+    initialize_orchestrator()
+
+    app.state.context_manager = ServiceLocator.get("context_manager")  # type: ignore[attr-defined]
 
     # Load API keys from environment
     api_keys_to_load: dict[str, bool] = {
@@ -139,25 +131,25 @@ async def list_tools() -> List[str]:
 @app.get("/v1/agents", response_model=List[str], tags=["discovery"])
 async def list_agents() -> List[str]:
     """Return all registered agent names."""
-    from ice_sdk.unified_registry import registry
+    from ice_core.unified_registry import registry
     return list(registry._agents.keys())
 
 @app.get("/v1/units", response_model=List[str], tags=["discovery"])
 async def list_units() -> List[str]:
     """Return all registered unit names."""
-    from ice_sdk.unified_registry import global_unit_registry
+    from ice_core.unified_registry import global_unit_registry
     return [name for name, _ in global_unit_registry.available()]
 
 @app.get("/v1/chains", response_model=List[str], tags=["discovery"])
 async def list_chains() -> List[str]:
     """Return all registered chain names."""
-    from ice_sdk.unified_registry import global_chain_registry
+    from ice_core.unified_registry import global_chain_registry
     return [name for name, _ in global_chain_registry.available()]
 
 @app.get("/api/v1/executors", response_model=Dict[str, str], tags=["discovery"])
 async def list_executors() -> Dict[str, str]:
     """Return all registered executors."""
-    from ice_sdk.unified_registry import registry
+    from ice_core.unified_registry import registry
     return {k: v.__name__ for k, v in registry._executors.items()}
 
 if __name__ == "__main__":

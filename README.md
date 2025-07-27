@@ -1,259 +1,218 @@
-# iceOS v1(A)
+# iceOS - AI Workflow Orchestration System
 
-> *"Give every distributed team a shared canvas where natural-language ideas become governance-ready AI workflows in seconds."*
+A clean, layered architecture for building and executing AI workflows with strict separation of concerns.
 
----
+## 🎯 Vision
 
-## What is iceOS?
+Transform natural language requests into executable AI workflows:
 
-iceOS is an **alpha-stage AI workflow runtime** designed for:
+```
+User: "Analyze sales data and generate insights"
+    ↓
+Workflow: Tool → LLM → Agent → Results
+```
 
-* **Zero-code design** – blueprints created from natural language via Frosty or the canvas editor
-* **Governed execution** – budget & safety guardrails enforced at runtime
-* **Team memory** – every run is traceable, costed and searchable
+## 🏗️ Architecture Overview
 
-The runtime is powered by the **Workflow** engine - a spatial computing DAG executor with NetworkX-powered graph intelligence - and exposed through the **Model Context Protocol (MCP)** HTTP API.
+iceOS follows a strict 4-layer architecture where each layer has a specific purpose:
 
-### 🎯 Workflow Engine: The Spatial Computing Powerhouse
+```
+┌─────────────────────────────────────────────────────────┐
+│                    ice_api                              │
+│            HTTP/WebSocket Gateway                       │
+├─────────────────────────────────────────────────────────┤
+│                ice_orchestrator                         │
+│     Runtime Engine (Agents, Memory, LLM, Context)      │
+├─────────────────────────────────────────────────────────┤
+│                    ice_sdk                              │
+│      Developer SDK (Tools, Builders, Services)         │
+├─────────────────────────────────────────────────────────┤
+│                   ice_core                              │
+│         Foundation (Models, Protocols, Registry)        │
+└─────────────────────────────────────────────────────────┘
+```
 
-At the heart of iceOS lies the **Workflow** engine - designed from the ground up for both traditional workflow execution and future spatial computing experiences:
+### Layer Responsibilities
 
-**🧠 Graph Intelligence**
-- NetworkX-powered dependency analysis and optimization
-- Real-time bottleneck detection and parallelization suggestions
-- Pattern recognition for workflow refactoring opportunities
-
-**🎨 Canvas-Ready Architecture**  
-- Spatial layout hints for visual programming interfaces
-- Scope-based organization with contextual AI assistance
-- Real-time collaboration with cursor tracking and shared state
-
-**🤖 Frosty AI Integration**
-- Contextual suggestions based on graph position and flow
-- Intelligent node recommendations using dependency analysis
-- AI-powered optimization and debugging assistance
-
-**⚡ Advanced Execution**
-- Level-based parallel execution with intelligent scheduling
-- Event streaming for real-time canvas updates
-- Incremental execution and checkpoint recovery
-
----
+- **ice_core**: Shared models, protocols, and unified registry
+- **ice_sdk**: Tool development, workflow builders, service locator
+- **ice_orchestrator**: Runtime execution, agents, memory, LLM services
+- **ice_api**: External HTTP/WebSocket interfaces
 
 ## 🚀 Quick Start
 
-### Install
+### Installation
 
 ```bash
-# Using Poetry (recommended)
-poetry install --with dev
+# Clone the repository
+git clone https://github.com/your-org/iceos.git
+cd iceos
 
-# Or with pip
-pip install -e ".[dev]"
-```
+# Install dependencies with Poetry
+poetry install
 
-📚 **[Full Setup Guide](docs/SETUP_GUIDE.md)** - Detailed instructions for getting started
+# Run tests
+make test
 
-### Run the Comprehensive Demo
-
-```bash
-# Start the server
-make dev
-
-# In another terminal, run the demo
-python examples/comprehensive_demo.py
-```
-
-The demo showcases:
-- 📝 Incremental blueprint construction (Frosty-style)
-- 💰 Cost estimation before execution
-- 🚀 Real-time event streaming
-- 🔍 Debug information and monitoring
-- 🔗 Nested workflow composition
-- 🛠️ Enhanced tool creation with @tool decorator
-- 📊 Unified CSV operations with single tool
-
-### Run the Marketplace Workflow Demo
-
-```bash
-# In another terminal (with server running)
-python examples/marketplace_workflow_demo.py
-```
-
-This advanced demo demonstrates:
-- 🏪 Real-world workflow: selling surplus inventory via Facebook Marketplace
-- 💸 Budget-conscious AI usage ($5 budget limit)
-- 🛠️ Custom tools: InventoryAnalyzer, ListingGenerator, InquiryResponder
-- 🤖 Smart agents: ListingAgent with template optimization
-- 💬 Automated buyer inquiry handling
-- 📊 Performance tracking and cost optimization
-
-### Running the API
-
-```bash
-# Start the FastAPI server
-make dev
-
-# Or run directly
+# Start the API server
 uvicorn ice_api.main:app --reload
 ```
 
-The API will be available at http://localhost:8000 with interactive docs at http://localhost:8000/docs.
+### Build Your First Tool
 
----
+```python
+from ice_sdk.decorators import tool
+from ice_sdk.tools.base import ToolBase
 
-## Architecture
-
-iceOS follows a clean, layered architecture with strict boundaries:
-
-```
-┌─────────────────────────────────────┐
-│         ice_api (HTTP/WS)          │
-├─────────────────────────────────────┤
-│    ice_orchestrator (Engine)       │
-├─────────────────────────────────────┤
-│        ice_sdk (Tools/SDK)         │
-├─────────────────────────────────────┤
-│      ice_core (Domain/Models)      │
-└─────────────────────────────────────┘
+@tool(name="data_analyzer")
+class DataAnalyzer(ToolBase):
+    """Analyze data and return insights."""
+    
+    async def _execute_impl(self, **kwargs):
+        data = kwargs["data"]
+        # Your analysis logic here
+        return {"insights": ["insight1", "insight2"]}
 ```
 
-For detailed architecture documentation, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+### Create a Workflow
 
-### Key Features
+```python
+from ice_sdk.builders import WorkflowBuilder
 
-- **Clean Layer Boundaries**: Each layer only imports from layers below
-- **Service Locator Pattern**: Dependency injection without tight coupling  
-- **Protocol-Based Interfaces**: Testable contracts between layers
-- **Async-First Design**: Non-blocking I/O throughout
-- **Type Safety**: Pydantic models and mypy strict mode
+# Build workflow
+builder = WorkflowBuilder("analysis_workflow")
 
----
+# Add nodes
+builder.add_tool("fetch", tool_name="http_request", url="https://api.example.com")
+builder.add_tool("analyze", tool_name="data_analyzer")
 
-## Development
+# Connect nodes
+builder.connect("fetch", "analyze")
 
-### Running Tests
+# Execute via API
+workflow_config = builder.build()
+```
+
+### Execute an Agent
+
+```python
+from ice_sdk.builders import create_agent
+
+# Configure agent
+agent_config = create_agent(
+    name="assistant",
+    model="gpt-4",
+    tools=["web_search", "calculator"],
+    system_prompt="You are a helpful assistant"
+)
+
+# Agent execution happens in orchestrator runtime
+```
+
+## 📋 Recent Architectural Migration
+
+We've completed a major architectural refactoring to improve separation of concerns:
+
+### What Changed
+
+1. **Runtime → Orchestrator**: Agent execution, memory subsystem, LLM providers, and context management moved from SDK to orchestrator
+2. **Registry → Core**: Unified registry moved from SDK to core for shared access
+3. **Service Pattern**: SDK now uses ServiceLocator to access orchestrator services
+4. **Clear Boundaries**: Each layer now has distinct responsibilities
+
+### Migration Guide
+
+```python
+# Old imports (incorrect)
+from ice_sdk.agents import AgentNode
+from ice_sdk.memory import WorkingMemory
+from ice_sdk.providers.llm_service import LLMService
+
+# New imports (correct)
+from ice_orchestrator.agent import AgentNode
+from ice_orchestrator.memory import WorkingMemory
+from ice_sdk.services import ServiceLocator
+
+# Access LLM service via ServiceLocator
+llm_service = ServiceLocator.get("llm_service")
+```
+
+## 🛠️ Key Components
+
+### Tools (SDK)
+- CSV, JSON, file operations
+- AI-powered tools (insights, summarization)
+- Web tools (HTTP, search, webhooks)
+- Database optimization tools
+
+### Agents (Orchestrator)
+- Autonomous agents with tool access
+- Memory-enabled agents
+- Custom reasoning loops
+
+### Memory (Orchestrator)
+- Working memory (short-term)
+- Episodic memory (conversations)
+- Semantic memory (knowledge)
+- Procedural memory (learned patterns)
+
+### LLM Services (Orchestrator)
+- OpenAI, Anthropic, Gemini, DeepSeek
+- Unified interface
+- Cost tracking
+
+## 📚 Documentation
+
+- [Architecture Overview](docs/ARCHITECTURE.md) - Detailed architecture documentation
+- [API Reference](src/ice_api/README.md) - API endpoints and usage
+- [SDK Guide](src/ice_sdk/README.md) - Tool development guide
+- [Orchestrator Details](src/ice_orchestrator/README.md) - Runtime engine documentation
+- [Core Models](src/ice_core/README.md) - Foundation layer reference
+
+## 🧪 Testing
 
 ```bash
-# Run full test suite
+# Run all tests
 make test
 
-# Run specific test categories
-pytest tests/unit/        # Unit tests
-pytest tests/integration/ # Integration tests
-pytest tests/smoke/       # Smoke tests
+# Type checking
+make typecheck
+
+# Linting
+make lint
+
+# Run specific test suites
+pytest tests/unit/ice_sdk
+pytest tests/integration/ice_orchestrator
 ```
 
-### Type Checking
+## 🔒 Security & Best Practices
 
-```bash
-# Run mypy in strict mode
-make type
+- **Layer Isolation**: Each layer has specific access patterns
+- **Service Locator**: Controlled access to runtime services
+- **Input Validation**: Pydantic models at all boundaries
+- **Tool Sandboxing**: Limited permissions for tool execution
 
-# Or directly
-mypy --strict src/
-```
+## 🤝 Contributing
 
-### Code Quality
+1. Follow the layer architecture - no cross-layer imports
+2. Use ServiceLocator for accessing orchestrator services from SDK
+3. Write tests for new components
+4. Update documentation for API changes
+5. Run `make test` before submitting PRs
 
-The project enforces:
-- ✅ Type hints on all functions [[memory:3930965]]
-- ✅ Mypy strict mode compliance
-- ✅ 90%+ test coverage on changed lines
-- ✅ Clean layer architecture with no violations
+## 📄 License
 
----
+MIT - See [LICENSE](LICENSE) file for details.
 
-## Using the SDK
+## 🎯 Roadmap
 
-### Building Workflows
-
-```python
-from ice_sdk import WorkflowBuilder, WorkflowExecutionService
-
-# Create a workflow
-builder = WorkflowBuilder("my_workflow")
-builder.add_llm("summarize", model="gpt-4", prompt="Summarize: {{text}}")
-builder.add_tool("fetch", tool_name="http_request", url="{{url}}")
-builder.connect("fetch", "summarize")
-
-# Execute it
-result = await WorkflowExecutionService.execute_workflow_builder(
-    builder,
-    inputs={"url": "https://example.com"}
-)
-```
-
-### Creating Tools
-
-```python
-from ice_sdk import ToolBase
-from typing import Dict, Any
-
-class MyTool(ToolBase):
-    name = "my_tool"
-    description = "Does something useful"
-    
-    async def execute(self, **kwargs) -> Dict[str, Any]:
-        # Tool implementation
-        result = await do_something(kwargs["input"])
-        return {"output": result}
-```
+- [ ] Plugin system for dynamic tool loading
+- [ ] Distributed workflow execution
+- [ ] Advanced monitoring and observability
+- [ ] Visual workflow editor
+- [ ] Workflow versioning and rollback
 
 ---
 
-## API Endpoints
-
-### Direct Execution (NEW)
-Quick testing and experimentation without creating full workflows:
-
-- `POST /api/v1/tools/{tool_name}` - Execute a single tool
-- `POST /api/v1/agents/{agent_name}` - Execute a single agent  
-- `POST /api/v1/units/{unit_name}` - Execute a single unit
-- `POST /api/v1/chains/{chain_name}` - Execute a single chain
-
-### Model Context Protocol (MCP)
-
-- `POST /api/v1/mcp/blueprints` - Register workflow blueprints
-- `POST /api/v1/mcp/runs` - Execute workflows
-- `GET /api/v1/mcp/runs/{run_id}` - Get execution results
-- `GET /api/v1/mcp/runs/{run_id}/events` - Stream execution events
-
-### Discovery
-
-- `GET /api/v1/tools` - List available tools
-- `GET /api/v1/executors` - List available executors
-- `GET /health` - Health check endpoint
-
----
-
-## Contributing
-
-1. Fork and create a feature branch
-2. Follow the architecture guidelines in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-3. Ensure all tests pass (`make test`)
-4. Submit a PR with clear description
-
-### Development Rules
-
-1. **Layer Boundaries**: Never import from higher layers
-2. **Side Effects**: Only in Tool implementations
-3. **Type Safety**: All code must pass mypy strict
-4. **Documentation**: All public APIs need docstrings
-
----
-
-## Roadmap
-
-| Milestone | ETA | Status |
-|-----------|-----|--------|
-| **Alpha Runtime** | Q3 2024 | ✅ Complete |
-| **Canvas Editor** | Q4 2024 | 🚧 In Progress |
-| **Frosty Integration** | Q1 2025 | 📋 Planned |
-| **Public Beta** | Q2 2025 | 📋 Planned |
-
----
-
-## License
-
-[MIT](LICENSE) 
+Built with ❤️ for clean architecture and AI workflow orchestration. 

@@ -1,7 +1,7 @@
 from fastapi import Request
 
 from ice_sdk.tools.service import ToolService
-from ice_sdk.context import GraphContextManager
+from ice_orchestrator.context import GraphContextManager
 
 def get_tool_service(request: Request) -> ToolService:
     """Return the application-wide ToolService stored in `app.state`."""

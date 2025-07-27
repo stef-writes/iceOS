@@ -1,64 +1,107 @@
-"""ice_core.exceptions
-~~~~~~~~~~~~~~~~~~~~~~
-Domain-level, typed exceptions used across layers.
+"""Shared exception & error-code hierarchy for iceOS core packages.
+
+Adding a thin but expressive hierarchy makes it easier to:
+* Attach stable machine-readable codes to errors (monitoring/alerting)
+* Preserve the original error message/context
+* Avoid a proliferation of bespoke exception classes
+
+IMPORTANT: Keep the dependency footprint minimal – no external imports.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from enum import IntEnum
+from typing import Any, Optional
 
-class IceCoreError(Exception):
-    """Base-class for all core-layer exceptions."""
+__all__ = [
+    "ErrorCode",
+    "CoreError",
+    "CycleDetectionError",
+    "LayerViolationError",
+    "SecurityViolationError",
+    "RegistryError",
+]
 
+class ErrorCode(IntEnum):
+    """Stable error codes for high-level failure classes."""
 
-class RegistryError(IceCoreError):
-    """Error raised during registry operations."""
-    pass
+    CYCLIC_TOOL_COMPOSITION = 1001
+    LAYER_VIOLATION = 1002  # New – layer boundary breach
+    PATH_SECURITY_VIOLATION = 1003  # Unsafe path outside project root
+    SCAFFOLD_VALIDATION = 1004  # Scaffolded content failed schema validation
 
-class DeprecatedError(ImportError, IceCoreError):
-    """Raised when a deprecated shim or symbol is accessed in *strict* mode.
+    # Generic fall-back
+    UNKNOWN = 9000
 
-    By default, importing deprecated modules only emits a :class:`DeprecationWarning`.
-    To fail hard, set the environment variable ``ICE_STRICT_SHIMS=1`` in the
-    process (CI can flip this flag once all migrations are complete).
+    def describe(self) -> str:
+        """Return human-readable description."""
+        mapping = {
+            ErrorCode.CYCLIC_TOOL_COMPOSITION: "Cyclic tool/agent invocation detected",
+            ErrorCode.LAYER_VIOLATION: "Layer boundary violation detected",
+            ErrorCode.UNKNOWN: "Unknown or uncategorised error",
+        }
+        return mapping.get(self, mapping[ErrorCode.UNKNOWN])
+
+class CoreError(RuntimeError):
+    """Base class for all custom iceOS errors.
+
+    Args:
+        code: Machine-readable :class:`ErrorCode`
+        message: Human-readable explanation (optional – will default to :pyattr:`ErrorCode.describe`)
+        payload: Optional additional data to attach to the error for programmatic handling.
     """
 
-    def __init__(self, message: str) -> None:  # – imperative mood
-        super().__init__(message)
+    def __init__(
+        self,
+        code: ErrorCode,
+        message: Optional[str] = None,
+        *,
+        payload: Any | None = None,
+    ):
+        self.code = code
+        self.payload = payload
+        super().__init__(message or code.describe())
 
-# ---------------------------------------------------------------------------
-#  Path security ----------------------------------------------------------------
-# ---------------------------------------------------------------------------
+class CycleDetectionError(CoreError):
+    """Raised when an agent–tool cycle is detected at runtime."""
 
-class SecurityViolationError(IceCoreError):
-    """Raised when a provided path escapes allowed root directory."""
+    def __init__(self, cycle_path: str):
+        super().__init__(
+            ErrorCode.CYCLIC_TOOL_COMPOSITION,
+            f"Cyclic agent–tool invocation detected: {cycle_path}",
+            payload={"cycle": cycle_path},
+        )
 
-    def __init__(self, path: str):  # – param path only
-        super().__init__(f"Illegal path traversal attempt detected: {path}")
+# ----------------------------------------
+#  Layer boundary violation --------------------------------------------------
+# ----------------------------------------
 
-# ---------------------------------------------------------------------------
-#  Workflow and SubDAG errors --------------------------------------------------
-# ---------------------------------------------------------------------------
+class LayerViolationError(CoreError):
+    """Raised when lower-layer code imports or uses forbidden higher-layer modules."""
 
-class WorkflowError(IceCoreError):
-    """Base class for workflow-related errors."""
+    def __init__(self, message: str):  # – thin wrapper
+        super().__init__(ErrorCode.LAYER_VIOLATION, message)
 
-class SubDAGError(WorkflowError):
-    """Raised when subDAG validation or execution fails.
 
-    Example:
-        try:
-            subdag.validate()
-        except SubDAGError as e:
-            logger.error(f"SubDAG failed: {e.workflow_data}")
-    """
+class SecurityViolationError(Exception):
+    """Raised when a security violation is detected."""
+    
+    def __init__(self, message: str):
+        super().__init__(f"Security violation: {message}")
 
-    def __init__(self, message: str, workflow_data: Dict[str, Any]):
-        super().__init__(message)
-        self.workflow_data = workflow_data
+class ScaffoldValidationError(CoreError):
+    """Raised when generated scaffold fails JSON schema validation."""
 
-class SpecConflictError(IceCoreError):
-    """Raised when trying to create a spec that already exists."""
+    def __init__(self, details: Any | None = None):
+        super().__init__(
+            ErrorCode.SCAFFOLD_VALIDATION,
+            "Scaffolded resource failed schema validation",
+            payload=details,
+        )
 
-class NetworkValidationError(IceCoreError):
-    """Raised when a network spec fails validation."""
+
+class RegistryError(Exception):
+    """Raised when registry operations fail."""
+    
+    def __init__(self, message: str):
+        super().__init__(f"Registry error: {message}")

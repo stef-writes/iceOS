@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from ice_core.models.mcp import PartialBlueprint, PartialNodeSpec
 from ice_api.redis_client import get_redis
-from ice_sdk.unified_registry import registry
+from ice_core.unified_registry import registry
 from ice_core.models.enums import NodeType
 
 

@@ -27,7 +27,7 @@ from ice_core.models.node_models import NodeMetadata
 # ruff: noqa: F401 – imported for side-effects only
 import ice_orchestrator.execution.executors  # Import for side effects
 from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
-from ice_sdk.unified_registry import get_executor, ScriptChain
+from ice_core.unified_registry import get_executor, ScriptChain
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_orchestrator.workflow import Workflow

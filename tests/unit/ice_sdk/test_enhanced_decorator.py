@@ -6,7 +6,7 @@ from typing import Dict, Any
 
 from ice_core.base_tool import ToolBase
 from ice_sdk.decorators import tool
-from ice_sdk.unified_registry import registry
+from ice_core.unified_registry import registry
 from ice_core.models.enums import NodeType
 
 
@@ -95,7 +95,7 @@ class TestEnhancedToolDecorator:
                 return {}
         
         # Should not be in registry
-        from ice_sdk.unified_registry import RegistryError
+        from ice_core.unified_registry import RegistryError
         with pytest.raises(RegistryError):
             registry.get_instance(NodeType.TOOL, "manual_tool")
     

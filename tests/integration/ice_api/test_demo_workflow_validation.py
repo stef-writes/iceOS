@@ -16,7 +16,7 @@ from ice_core.models import (
     NodeExecutionResult, LLMConfig, ModelProvider
 )
 from ice_core.models.mcp import RunRequest
-from ice_sdk.unified_registry import registry
+from ice_core.unified_registry import registry
 from ice_sdk.tools.core import CSVTool
 from ice_sdk.services.locator import ServiceLocator
 

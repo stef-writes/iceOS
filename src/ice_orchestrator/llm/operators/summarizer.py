@@ -12,8 +12,8 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from ice_core.models.llm import LLMConfig as CoreLLMConfig, ModelProvider
-from ice_sdk.llm.operators.base import LLMOperator, LLMOperatorConfig
-from ice_sdk.providers.llm_service import LLMService
+from ice_orchestrator.llm.operators.base import LLMOperator, LLMOperatorConfig
+from ice_orchestrator.providers.llm_service import LLMService
 
 __all__: list[str] = ["SummarizerOperator"]
 

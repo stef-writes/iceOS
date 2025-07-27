@@ -7,7 +7,7 @@ from ice_sdk.tools.ai.line_item_generator_tool import LineItemGeneratorTool
 __all__ = ["AITool", "InsightsTool", "SummarizerTool", "LineItemGeneratorTool"]
 
 # Register AI tools
-from ice_sdk.unified_registry import registry
+from ice_core.unified_registry import registry
 from ice_core.models.enums import NodeType
 
 try:

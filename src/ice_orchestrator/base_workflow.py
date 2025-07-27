@@ -17,10 +17,10 @@ from uuid import uuid4
 
 from ice_core.models import NodeConfig, NodeExecutionResult
 from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
-from ice_sdk.context import GraphContextManager
-from ice_sdk.context.manager import GraphContext
+from ice_orchestrator.context import GraphContextManager
+from ice_orchestrator.context.manager import GraphContext
 from ice_sdk.services import ServiceLocator
-from ice_sdk.tools.base import ToolBase
+from ice_core.base_tool import ToolBase
 
 class FailurePolicy(str, Enum):
     """Strategies controlling how the chain proceeds after node failures."""

@@ -1,16 +1,12 @@
-"""Agent package providing runtime AgentNode and helper utilities."""
+"""Agent package providing development utilities for agents.
 
-from ..utils.agent_factory import AgentFactory
-from .agent_node import AgentNode, AgentNodeConfig
-from .memory_agent import MemoryAgent, MemoryAgentConfig
+NOTE: Runtime agent execution has moved to ice_orchestrator.agent
+This package now only contains builders and development helpers.
+"""
+
 from .utils import extract_json, parse_llm_outline
 
 __all__ = [
-    "AgentNode",
-    "AgentNodeConfig",
-    "MemoryAgent",
-    "MemoryAgentConfig",
-    "extract_json",
+    "extract_json", 
     "parse_llm_outline",
-    "AgentFactory",
 ]

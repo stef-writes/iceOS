@@ -58,7 +58,7 @@ async def test_llm_executor_stubbed(monkeypatch):
     )
 
     # Monkey-patch LLMService inside executor module
-    monkeypatch.setattr("ice_sdk.providers.llm_service.LLMService", _StubLLMService)
+    monkeypatch.setattr("ice_orchestrator.providers.llm_service.LLMService", _StubLLMService)
 
     result = await llm_executor(_StubChain(), cfg, {})  # type: ignore[arg-type]
 
@@ -69,7 +69,7 @@ async def test_llm_executor_stubbed(monkeypatch):
 @pytest.mark.asyncio
 async def test_tool_executor_placeholder(monkeypatch):
     # For the protocol-based executor, we need to mock the registry
-    from ice_sdk.unified_registry import registry
+    from ice_core.unified_registry import registry
     from ice_core.models import NodeType
     
     # Create a mock tool
