@@ -1,12 +1,19 @@
-"""Agent package providing development utilities for agents.
+"""SDK Agents module."""
 
-NOTE: Runtime agent execution has moved to ice_orchestrator.agent
-This package now only contains builders and development helpers.
-"""
+from ice_sdk.agents.marketplace_agent import MarketplaceAgent, create_marketplace_agent
+from ice_sdk.agents.customer_service import CustomerServiceAgent, create_customer_service_agent
 
-from .utils import extract_json, parse_llm_outline
+# Register agents with the global registry
+from ice_core.unified_registry import global_agent_registry
+
+# Register marketplace agent
+global_agent_registry["marketplace_agent"] = "ice_sdk.agents.marketplace_agent"
+# Register customer service agent
+global_agent_registry["customer_service"] = "ice_sdk.agents.customer_service"
 
 __all__ = [
-    "extract_json", 
-    "parse_llm_outline",
+    "MarketplaceAgent",
+    "create_marketplace_agent",
+    "CustomerServiceAgent",
+    "create_customer_service_agent"
 ]

@@ -1,36 +1,41 @@
 # Facebook Marketplace Seller Automation
 
-A complete workflow automation system for managing Facebook Marketplace listings, from inventory analysis to customer communication.
+A complete workflow automation system for managing Facebook Marketplace listings, from inventory analysis to customer communication, built using iceOS patterns.
 
 ## Project Structure
 
 ```
 FB-Marketplace-Seller/
-├── FBMSeller.py           # Main workflow orchestrator
+├── FBMSeller.py           # Main workflow orchestrator using WorkflowBuilder
 ├── __init__.py            # Package initialization
-├── agents/                # Intelligent agents for complex tasks
+├── agents/                # Documentation about agents (actual agents in ice_sdk.agents)
+│   └── __init__.py
+├── tools/                 # Reusable tools implementing ToolBase
 │   ├── __init__.py
-│   ├── marketplace_agent.py      # Listing creation and optimization
-│   └── customer_service_agent.py # Customer interaction handling
-├── nodes/                 # Workflow nodes for specific tasks
-│   ├── __init__.py
-│   ├── inventory_analyzer/       # Analyze inventory for listing eligibility
-│   ├── pricing_optimizer/        # Optimize pricing based on market data
-│   ├── listing_creator/          # Create marketplace listings
-│   ├── image_processor/          # Process and enhance product images
-│   ├── conversation_manager/     # Manage buyer conversations
-│   ├── order_handler/            # Handle orders and transactions
-│   └── metrics_tracker/          # Track performance metrics
-├── tools/                 # Reusable tools for specific operations
-│   ├── __init__.py
-│   ├── marketplace/              # Facebook Marketplace API tools
-│   ├── inventory/                # Inventory management tools
-│   ├── analytics/                # Analytics and reporting tools
-│   └── communication/            # Messaging and notification tools
+│   ├── marketplace/       # Facebook Marketplace API tools
+│   │   ├── __init__.py
+│   │   ├── facebook_api_tool.py
+│   │   └── price_research_tool.py
+│   ├── inventory/         # Inventory management tools
+│   │   ├── __init__.py
+│   │   ├── inventory_analyzer_tool.py
+│   │   └── image_enhancer_tool.py
+│   ├── analytics/         # Analytics and reporting tools
+│   └── communication/     # Messaging and notification tools
 ├── workflows/             # Pre-defined workflow templates
 ├── config/                # Configuration files
-└── tests/                 # Unit and integration tests
+├── tests/                 # Unit and integration tests
+└── docs/                  # Documentation
+    └── AGENT_MEMORY_REQUIREMENTS.md
 ```
+
+## Architecture
+
+This use case follows iceOS patterns:
+- **Tools**: Stateless operations that inherit from `ToolBase`
+- **Agents**: Intelligent reasoning nodes referenced by package string
+- **WorkflowBuilder**: Fluent API for constructing workflows
+- **Unified Registry**: Automatic registration of tools and agents
 
 ## Quick Start
 
@@ -41,7 +46,8 @@ from use_cases.RivaRidge.FB_Marketplace_Seller import FBMSeller
 seller = FBMSeller(config={
     "marketplace": "facebook",
     "location": "Seattle, WA",
-    "category": "Electronics"
+    "category": "Electronics",
+    "min_value_threshold": 25.0
 })
 
 # Run with inventory data
@@ -60,63 +66,97 @@ results = await seller.run({
 
 ## Workflow Phases
 
-1. **Inventory Analysis** - Filter items suitable for listing
-2. **Pricing Optimization** - Determine competitive pricing
-3. **Image Processing** - Enhance product images
-4. **Listing Creation** - Generate and post listings
-5. **Conversation Management** - Monitor and respond to inquiries
-6. **Order Handling** - Process sales and coordinate pickup
-7. **Metrics Tracking** - Monitor performance and optimize
+The workflow uses the `WorkflowBuilder` to create a DAG of operations:
+
+1. **Inventory Analysis** (Tool) - Filter items suitable for listing
+2. **Price Research** (Tool) - Analyze market prices
+3. **Image Enhancement** (Tool) - Enhance product images (parallel with pricing)
+4. **Listing Creation** (Agent) - AI-powered listing generation
+5. **Message Monitoring** (Loop) - Monitor and respond to inquiries
+6. **Metrics Tracking** (Tool) - Track performance metrics
 
 ## Key Components
 
-### Nodes
-Each node represents a discrete step in the workflow:
-- **InventoryAnalyzerNode**: Filters inventory based on condition and value
-- **PricingOptimizerNode**: Uses market data to set competitive prices
-- **ListingCreatorNode**: Generates listing content and posts to marketplace
-- **ImageProcessorNode**: Enhances images for better presentation
-- **ConversationManagerNode**: Handles buyer inquiries
-- **OrderHandlerNode**: Manages the sales process
-- **MetricsTrackerNode**: Tracks KPIs and generates reports
-
 ### Tools
-Reusable tools that nodes and agents can leverage:
-- **FacebookAPITool**: Direct interface with Facebook Marketplace
-- **PriceResearchTool**: Analyze market prices for similar items
-- **ImageEnhancerTool**: AI-powered image enhancement
-- **MessageParserTool**: Parse and understand buyer messages
+Tools are stateless operations that implement `ToolBase`:
+
+- **InventoryAnalyzerTool**: Filters inventory based on conditions and value
+- **FacebookAPITool**: Interfaces with Facebook Marketplace API
+- **PriceResearchTool**: Analyzes market prices for competitive pricing
+- **ImageEnhancerTool**: Enhances product images for better presentation
+
+All tools are automatically registered with the unified registry.
 
 ### Agents
-Intelligent agents that orchestrate complex multi-step processes:
-- **MarketplaceAgent**: Creates optimized listings using AI
-- **CustomerServiceAgent**: Handles customer interactions professionally
+Agents provide intelligent reasoning and are registered in `ice_sdk.agents`:
+
+- **marketplace_agent**: Creates optimized listings using AI
+- **customer_service**: Handles customer interactions (TBD)
+
+Agents are referenced by package string in workflows:
+```python
+builder.add_agent(
+    node_id="listing_creator",
+    package="ice_sdk.agents.marketplace_agent",
+    tools=["facebook_api", "price_research"]
+)
+```
 
 ## Configuration
 
-The system can be configured via the `config` parameter:
+The system supports configuration at multiple levels:
 
 ```python
 config = {
     "marketplace": "facebook",
     "location": "Seattle, WA",
     "categories": ["Electronics", "Home & Garden"],
-    "pricing_strategy": "competitive",
+    "min_value_threshold": 25.0,
+    "condition_requirements": ["New", "Like New", "Good"],
     "auto_respond": True,
-    "response_delay_minutes": 5,
-    "min_item_value": 10.0,
-    "acceptable_conditions": ["New", "Like New", "Good"]
+    "response_delay_minutes": 5
 }
 ```
 
 ## Development
 
-To add new components:
+### Adding New Tools
 
-1. **New Node**: Create a folder in `nodes/` with the node implementation
-2. **New Tool**: Add to appropriate subfolder in `tools/`
-3. **New Agent**: Add to `agents/` directory
-4. Update the respective `__init__.py` files to export your component
+1. Create a new tool class inheriting from `ToolBase`:
+```python
+from ice_core.base_tool import ToolBase
+
+class MyNewTool(ToolBase):
+    name = "my_new_tool"
+    description = "Does something useful"
+    
+    async def _execute_impl(self, **kwargs):
+        # Implementation
+        return {"result": "success"}
+```
+
+2. Register in the appropriate `__init__.py`:
+```python
+registry.register_instance(NodeType.TOOL, "my_new_tool", MyNewTool())
+```
+
+### Adding New Agents
+
+1. Create agent in `ice_sdk.agents/`:
+```python
+class MyAgent(AgentNode):
+    def __init__(self):
+        config = AgentNodeConfig(
+            package="ice_sdk.agents.my_agent",
+            # ... configuration
+        )
+        super().__init__(config=config)
+```
+
+2. Register in `ice_sdk.agents.__init__.py`:
+```python
+global_agent_registry["my_agent"] = "ice_sdk.agents.my_agent"
+```
 
 ## Testing
 
@@ -128,8 +168,8 @@ python -m pytest tests/
 ## Future Enhancements
 
 - [ ] Multi-marketplace support (OfferUp, Craigslist, etc.)
-- [ ] Advanced pricing algorithms
+- [ ] Advanced pricing algorithms using ML
 - [ ] Automated negotiation handling
-- [ ] Inventory sync with external systems
+- [ ] Real-time inventory sync
 - [ ] Mobile app notifications
 - [ ] Performance analytics dashboard 

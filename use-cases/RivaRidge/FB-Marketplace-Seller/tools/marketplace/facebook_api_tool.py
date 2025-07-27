@@ -1,11 +1,10 @@
 """Facebook Marketplace API Tool - Interfaces with Facebook for listings."""
 
 from typing import Dict, Any, Optional, List
-from ice_sdk.tools.base import ToolBase
-from ice_core.base_tool import BaseTool
+from ice_core.base_tool import ToolBase
 
 
-class FacebookAPITool(BaseTool):
+class FacebookAPITool(ToolBase):
     """Tool for interacting with Facebook Marketplace API.
     
     Handles listing creation, updates, messaging, and status checks.
@@ -13,26 +12,25 @@ class FacebookAPITool(BaseTool):
     
     name: str = "facebook_api"
     description: str = "Interface with Facebook Marketplace for listings and messages"
-    category: str = "marketplace"
     
     # Tool configuration
     api_version: str = "v18.0"
     rate_limit_per_hour: int = 200
     
-    async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         """Execute Facebook API operations based on action type."""
-        action = inputs.get("action")
+        action = kwargs.get("action")
         
         if action == "create_listing":
-            return await self._create_listing(inputs)
+            return await self._create_listing(kwargs)
         elif action == "update_listing":
-            return await self._update_listing(inputs)
+            return await self._update_listing(kwargs)
         elif action == "get_messages":
-            return await self._get_messages(inputs)
+            return await self._get_messages(kwargs)
         elif action == "send_message":
-            return await self._send_message(inputs)
+            return await self._send_message(kwargs)
         elif action == "check_listing_status":
-            return await self._check_listing_status(inputs)
+            return await self._check_listing_status(kwargs)
         else:
             raise ValueError(f"Unknown action: {action}")
             
@@ -116,8 +114,25 @@ class FacebookAPITool(BaseTool):
             "success": True,
             "statuses": statuses
         }
-        
-    def validate(self) -> None:
-        """Validate tool configuration."""
-        # Add any validation logic here
-        pass 
+    
+    @classmethod
+    def get_input_schema(cls) -> Dict[str, Any]:
+        """Return JSON schema for tool inputs."""
+        return {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["create_listing", "update_listing", "get_messages", 
+                            "send_message", "check_listing_status"]
+                },
+                "listing_data": {"type": "object"},
+                "listing_id": {"type": "string"},
+                "listing_ids": {"type": "array", "items": {"type": "string"}},
+                "updates": {"type": "object"},
+                "recipient_id": {"type": "string"},
+                "message": {"type": "string"},
+                "since_timestamp": {"type": "string"}
+            },
+            "required": ["action"]
+        } 
