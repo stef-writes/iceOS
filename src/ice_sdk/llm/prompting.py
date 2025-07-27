@@ -1,6 +1,6 @@
-from typing import Type
+from typing import Type, Any
 
-def build_robust_prompt(base_prompt: str, output_format: Type) -> str:
+def build_robust_prompt(base_prompt: str, output_format: Type[Any]) -> str:
     format_instructions = {
         int: "Respond with ONLY the numeric result, no explanation or formatting.",
         float: "Respond with ONLY the decimal number, no text or symbols.",

@@ -80,7 +80,7 @@ class WorkflowBuilder:
     ) -> "WorkflowBuilder":
         """Add an agent node."""
         from ice_core.models import AgentNodeConfig, ToolConfig
-        tool_configs = [ToolConfig(name=t) for t in (tools or [])]
+        tool_configs = [ToolConfig(name=t, parameters={}) for t in (tools or [])]
         self.nodes.append(AgentNodeConfig(
             id=node_id,
             type="agent",
@@ -175,18 +175,40 @@ class WorkflowBuilder:
         """Connect two nodes."""
         self.edges.append((from_node, to_node))
         
-        # Update depends_on
+        # Update dependencies (all node types use 'dependencies' from BaseNodeConfig)
         for node in self.nodes:
             if node.id == to_node:
-                if from_node not in node.depends_on:
-                    node.depends_on.append(from_node)
+                if from_node not in node.dependencies:
+                    node.dependencies.append(from_node)
         
         return self
     
-    def build(self) -> Any:  # Would return Workflow instance
+    def _apply_connections(self) -> None:
+        """Apply all edge connections to update node dependencies."""
+        # Clear existing dependencies first (all nodes inherit from BaseNodeConfig)
+        for node in self.nodes:
+            node.dependencies = []
+        
+        # Apply all edges to update dependencies
+        for from_node, to_node in self.edges:
+            for node in self.nodes:
+                if node.id == to_node:
+                    if from_node not in node.dependencies:
+                        node.dependencies.append(from_node)
+    
+    def build(self):
         """Build the final workflow."""
-        # TODO: Implement workflow building
-        pass
+        # Process edges to update node dependencies
+        self._apply_connections()
+        
+        # Import Workflow class (avoid circular imports)
+        from ice_orchestrator.workflow import Workflow
+        
+        # Create and return workflow instance
+        return Workflow(
+            nodes=self.nodes,
+            name=self.name
+        )
     
     def to_workflow(self):
         """Convert to Workflow instance using ServiceLocator.

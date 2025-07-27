@@ -27,8 +27,11 @@ class SemanticMemory(BaseMemory):
         super().__init__(config)
         self._facts_store: Dict[str, MemoryEntry] = {}
         self._embeddings: Dict[str, np.ndarray] = {}
-        self._relationships: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
-        self._entity_index: Dict[str, List[str]] = defaultdict(list)
+        
+        # 🚀 NESTED STRUCTURE: Much better performance!
+        self._relationships: Dict[str, Dict[str, List[Tuple[str, str]]]] = defaultdict(lambda: defaultdict(list))
+        self._entity_index: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
+        
         self._embedding_dim = 384  # Default dimension for embeddings
         self._enable_vectors = config.enable_vector_search
         
@@ -40,6 +43,27 @@ class SemanticMemory(BaseMemory):
         # In production, would connect to vector store here
         # For now, using in-memory implementation
         self._initialized = True
+    
+    # 🚀 NEW: High-performance nested query methods
+    def get_entities_by_domain(self, domain: str) -> List[str]:
+        """Get all entities in a specific domain - MUCH faster than iterating all!"""
+        return list(self._entity_index.get(domain, {}).keys())
+    
+    def get_facts_for_entity_in_domain(self, entity: str, domain: str) -> List[str]:
+        """Get fact keys for entity in specific domain - targeted querying!"""
+        return self._entity_index.get(domain, {}).get(entity, [])
+    
+    def get_relationships_by_type(self, rel_type: str) -> Dict[str, List[Tuple[str, float]]]:
+        """Get all relationships of a specific type - organized access!"""
+        return dict(self._relationships.get(rel_type, {}))
+    
+    def list_domains(self) -> List[str]:
+        """List all domains with entities - great for analytics!"""
+        return list(self._entity_index.keys())
+    
+    def list_relationship_types(self) -> List[str]:
+        """List all relationship types - perfect for exploration!"""
+        return list(self._relationships.keys())
         
     async def store(
         self,
@@ -74,14 +98,16 @@ class SemanticMemory(BaseMemory):
         # Store the fact
         self._facts_store[key] = entry
         
-        # Index entities
+        # Index entities by domain for much better query performance
+        domain = entry.metadata.get("domain", "general")
         for entity in entry.metadata.get("entities", []):
-            self._entity_index[entity].append(key)
+            self._entity_index[domain][entity].append(key)
             
-        # Store relationships
+        # Store relationships by relationship type for better querying  
         for rel in entry.metadata.get("relationships", []):
             if isinstance(rel, dict) and "target" in rel and "type" in rel:
-                self._relationships[key].append((rel["type"], rel["target"]))
+                rel_type = rel["type"]
+                self._relationships[rel_type][key].append((rel["target"], rel.get("strength", 1.0)))
                 
         # Generate and store embedding if vector search is enabled
         if self._enable_vectors:
@@ -201,16 +227,24 @@ class SemanticMemory(BaseMemory):
             
         entry = self._facts_store[key]
         
-        # Remove from entity index
+        # Remove from nested entity index
+        domain = entry.metadata.get("domain", "general")
         for entity in entry.metadata.get("entities", []):
-            if entity in self._entity_index:
-                self._entity_index[entity].remove(key)
-                if not self._entity_index[entity]:
-                    del self._entity_index[entity]
+            if domain in self._entity_index and entity in self._entity_index[domain]:
+                self._entity_index[domain][entity].remove(key)
+                if not self._entity_index[domain][entity]:
+                    del self._entity_index[domain][entity]
+                    if not self._entity_index[domain]:
+                        del self._entity_index[domain]
                     
-        # Remove relationships
-        if key in self._relationships:
-            del self._relationships[key]
+        # Remove from nested relationships
+        for rel in entry.metadata.get("relationships", []):
+            if isinstance(rel, dict) and "type" in rel:
+                rel_type = rel["type"]
+                if rel_type in self._relationships and key in self._relationships[rel_type]:
+                    del self._relationships[rel_type][key]
+                    if not self._relationships[rel_type]:
+                        del self._relationships[rel_type]
             
         # Remove embedding
         if key in self._embeddings:
@@ -313,8 +347,10 @@ class SemanticMemory(BaseMemory):
                 "facts": []
             }
             
-            # Find facts about this entity
-            fact_keys = self._entity_index.get(entity, [])
+            # Find facts about this entity across all domains
+            fact_keys = []
+            for domain_entities in self._entity_index.values():
+                fact_keys.extend(domain_entities.get(entity, []))
             for key in fact_keys[:5]:  # Limit facts per entity
                 entry = self._facts_store.get(key)
                 if entry:

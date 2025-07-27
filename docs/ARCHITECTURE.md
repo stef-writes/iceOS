@@ -94,7 +94,7 @@ Pure domain layer with shared infrastructure:
 Developer-facing tools and utilities:
 
 - **Tools** (`tools/`): Categorized tool implementations
-  - **Base** (`base.py`): `ToolBase`, `AITool`, `DataTool` base classes
+  - **Base** (`base.py`): `ToolBase` base class (simplified 2-level hierarchy)
   - **Core** (`core/`): CSV, JSON, file operations
   - **AI** (`ai/`): Insights, summarizer (using ServiceLocator for LLM)
   - **System** (`system/`): Sleep, jinja templates, computer control
@@ -116,9 +116,9 @@ Developer-facing tools and utilities:
   - `ToolContext`: Context type for tools
   - `ContextTypeManager`: Manage context types
   
-- **Decorators** (`decorators.py`): Enhanced @tool decorator
+- **Decorators** (`decorators.py`): Simple @tool decorator
   - Auto-registration with unified registry
-  - Schema generation and validation
+  - Simplified focus on registration only
   
 - **Utils** (`utils/`): Developer utilities
   - Type coercion, error handling, retry logic
@@ -250,6 +250,11 @@ The architectural migration has been successfully completed:
    - No direct imports between layers
    - All runtime services registered by orchestrator
 
+7. **Tool Hierarchy** → ✅ Simplified to 2 Levels
+   - Removed `AITool` and `DataTool` category base classes
+   - All tools inherit directly from `ToolBase`
+   - Simplified `@tool` decorator focused on registration
+
 ### Current State
 
 The architecture now achieves complete separation of concerns:
@@ -261,6 +266,44 @@ The architecture now achieves complete separation of concerns:
 
 No layer violations remain. Each layer has a single, clear purpose.
 
+## Tool Architecture (Simplified)
+
+### Clean 2-Level Hierarchy
+
+```python
+ice_core.base_tool.ToolBase    # Abstract base with execute() contract
+├── CSVTool                    # Direct inheritance 
+├── InsightsTool               # Direct inheritance
+├── ComputerTool               # Direct inheritance
+└── All other tools            # All inherit directly from ToolBase
+```
+
+### Benefits of Simplified Tool Hierarchy
+
+1. **One Pattern**: All tools follow the same inheritance pattern
+2. **No Confusion**: No choice paralysis about which base class to use
+3. **Faster Development**: Less boilerplate, clearer examples
+4. **Easier Maintenance**: Single base class to update
+5. **Category Metadata**: Use simple attributes instead of inheritance
+
+### Tool Development Pattern
+
+```python
+from ice_sdk.decorators import tool
+from ice_sdk.tools.base import ToolBase
+
+@tool  # Auto-registers with snake_case name
+class DataProcessorTool(ToolBase):
+    name = "data_processor"
+    description = "Process data files"
+    category = "core"          # Simple metadata
+    requires_llm = False       # Simple metadata
+    
+    async def _execute_impl(self, **kwargs):
+        # Tool implementation
+        return {"processed": True}
+```
+
 ## Migration Guide
 
 For existing code:
@@ -270,11 +313,14 @@ For existing code:
 from ice_sdk.agents import AgentNode
 from ice_sdk.memory import WorkingMemory
 from ice_sdk.providers.llm_service import LLMService
+from ice_sdk.tools.ai.base import AITool
+from ice_sdk.tools.core.base import DataTool
 
 # New (correct)
 from ice_orchestrator.agent import AgentNode
 from ice_orchestrator.memory import WorkingMemory
 from ice_sdk.services import ServiceLocator
+from ice_sdk.tools.base import ToolBase  # All tools inherit from ToolBase
 
 llm_service = ServiceLocator.get("llm_service")
 ```
@@ -301,8 +347,11 @@ from ice_sdk.decorators import tool
 from ice_sdk.tools.base import ToolBase
 from ice_sdk.services import ServiceLocator
 
-@tool(name="my_tool")
+@tool  # Auto-registers as "my_tool" 
 class MyTool(ToolBase):
+    name = "my_tool"
+    description = "Does something useful"
+    
     async def _execute_impl(self, **kwargs):
         # Access orchestrator services if needed
         llm_service = ServiceLocator.get("llm_service")

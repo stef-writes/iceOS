@@ -22,10 +22,12 @@ class ProceduralMemory(BaseMemory):
         """Initialize procedural memory."""
         super().__init__(config)
         self._procedures: Dict[str, MemoryEntry] = {}
-        self._success_metrics: Dict[str, List[float]] = defaultdict(list)
-        self._usage_counts: Dict[str, int] = defaultdict(int)
-        self._category_index: Dict[str, List[str]] = defaultdict(list)
-        self._context_index: Dict[str, List[str]] = defaultdict(list)
+        
+        # 🚀 NESTED STRUCTURE: Categories -> Items -> Metrics
+        self._success_metrics: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+        self._usage_counts: Dict[str, Dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        self._category_index: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
+        self._context_index: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
         
     async def initialize(self) -> None:
         """Initialize procedural memory backend."""
@@ -33,10 +35,46 @@ class ProceduralMemory(BaseMemory):
             return
             
         self._initialized = True  # Set this FIRST to prevent recursion
+    
+    # 🚀 NEW: High-performance nested query methods
+    def get_procedures_by_category(self, category: str, procedure_type: str = None) -> List[str]:
+        """Get procedures by category and type - MUCH faster than scanning all!"""
+        if procedure_type:
+            return self._category_index.get(category, {}).get(procedure_type, [])
+        else:
+            result = []
+            for proc_type_dict in self._category_index.get(category, {}).values():
+                result.extend(proc_type_dict)
+            return result
+    
+    def get_procedures_by_context(self, domain: str, context: str = None) -> List[str]:
+        """Get procedures by domain and context - targeted querying!"""
+        if context:
+            return self._context_index.get(domain, {}).get(context, [])
+        else:
+            result = []
+            for context_dict in self._context_index.get(domain, {}).values():
+                result.extend(context_dict)
+            return result
+    
+    def get_success_metrics_for_domain(self, domain: str) -> Dict[str, List[float]]:
+        """Get all success metrics for domain - perfect for analytics!"""
+        return dict(self._success_metrics.get(domain, {}))
+    
+    def get_usage_stats_for_domain(self, domain: str) -> Dict[str, int]:
+        """Get usage statistics for domain - great for monitoring!"""
+        return dict(self._usage_counts.get(domain, {}))
+    
+    def list_categories(self) -> List[str]:
+        """List all procedure categories - organizational view!"""
+        return list(self._category_index.keys())
+    
+    def list_domains(self) -> List[str]:
+        """List all domains - high-level overview!"""
+        return list(self._context_index.keys())
         
         # In production, would load from file or database
-        # Initialize with some default procedures
-        await self._load_default_procedures()
+        # Default procedures will be loaded lazily in initialize()
         
     async def _load_default_procedures(self) -> None:
         """Load default procedures for marketplace selling."""
@@ -142,14 +180,15 @@ class ProceduralMemory(BaseMemory):
         # Store procedure
         self._procedures[key] = entry
         
-        # Index by category
-        category = entry.metadata.get("category")
-        if category:
-            self._category_index[category].append(key)
+        # Index by category and procedure type for better organization
+        category = entry.metadata.get("category", "general")
+        procedure_type = entry.metadata.get("type", "generic")
+        self._category_index[category][procedure_type].append(key)
             
-        # Index by context
+        # Index by context with nesting for better performance
+        domain = entry.metadata.get("domain", "general")
         for context in entry.metadata.get("contexts", []):
-            self._context_index[context].append(key)
+            self._context_index[domain][context].append(key)
             
     async def retrieve(self, key: str) -> Optional[MemoryEntry]:
         """Retrieve a specific procedure."""
@@ -228,22 +267,35 @@ class ProceduralMemory(BaseMemory):
             
         entry = self._procedures[key]
         
-        # Remove from category index
-        category = entry.metadata.get("category")
-        if category and key in self._category_index[category]:
-            self._category_index[category].remove(key)
+        # Remove from nested category index
+        category = entry.metadata.get("category", "general")
+        procedure_type = entry.metadata.get("type", "generic")
+        if category in self._category_index and procedure_type in self._category_index[category]:
+            if key in self._category_index[category][procedure_type]:
+                self._category_index[category][procedure_type].remove(key)
+                if not self._category_index[category][procedure_type]:
+                    del self._category_index[category][procedure_type]
+                    if not self._category_index[category]:
+                        del self._category_index[category]
             
-        # Remove from context index
+        # Remove from nested context index
+        domain = entry.metadata.get("domain", "general")
         for context in entry.metadata.get("contexts", []):
-            if key in self._context_index[context]:
-                self._context_index[context].remove(key)
+            if domain in self._context_index and context in self._context_index[domain]:
+                if key in self._context_index[domain][context]:
+                    self._context_index[domain][context].remove(key)
+                    if not self._context_index[domain][context]:
+                        del self._context_index[domain][context]
+                        if not self._context_index[domain]:
+                            del self._context_index[domain]
                 
         # Remove procedure
         del self._procedures[key]
         
-        # Clean up metrics
-        if key in self._success_metrics:
-            del self._success_metrics[key]
+        # Clean up nested metrics
+        for domain_metrics in self._success_metrics.values():
+            if key in domain_metrics:
+                del domain_metrics[key]
         if key in self._usage_counts:
             del self._usage_counts[key]
             
@@ -365,17 +417,18 @@ class ProceduralMemory(BaseMemory):
         if not entry:
             return
             
-        # Update usage count
-        self._usage_counts[procedure_key] += 1
-        entry.metadata["usage_count"] = self._usage_counts[procedure_key]
+        # Update usage count with nested structure
+        domain = entry.metadata.get("domain", "general")
+        self._usage_counts[domain][procedure_key] += 1
+        entry.metadata["usage_count"] = self._usage_counts[domain][procedure_key]
         entry.metadata["last_used"] = datetime.now().isoformat()
         
-        # Record success metric
+        # Record success metric in nested structure
         success_score = outcome.get("success_score", 0.5)
-        self._success_metrics[procedure_key].append(success_score)
+        self._success_metrics[domain][procedure_key].append(success_score)
         
         # Update success rate (weighted average)
-        metrics = self._success_metrics[procedure_key]
+        metrics = self._success_metrics[domain][procedure_key]
         if len(metrics) > 1:
             # Weight recent executions more heavily
             weights = [0.5 ** i for i in range(len(metrics)-1, -1, -1)]

@@ -2,7 +2,8 @@
 from __future__ import annotations
 from typing import Dict, Type, Any, Optional, List, Tuple, Callable, Awaitable, TypeAlias, TypeVar, Protocol
 from pydantic import BaseModel, PrivateAttr
-from ice_core.models import NodeType, INode, NodeConfig, NodeExecutionResult
+from ice_core.models import INode, NodeConfig, NodeExecutionResult
+from ice_core.models.enums import NodeType
 # Define RegistryError locally to avoid circular imports
 class RegistryError(Exception):
     """Base exception for registry operations."""
@@ -27,62 +28,67 @@ class NodeExecutor(Protocol):
 class Registry(BaseModel):
     """Single registry for all node types, tools, chains, and executors."""
     
-    _nodes: Dict[str, Type[INode]] = PrivateAttr(default_factory=dict)
-    _instances: Dict[str, INode] = PrivateAttr(default_factory=dict)
+    _nodes: Dict[NodeType, Dict[str, Type[INode]]] = PrivateAttr(default_factory=dict)
+    _instances: Dict[NodeType, Dict[str, INode]] = PrivateAttr(default_factory=dict)
     _executors: Dict[str, ExecCallable] = PrivateAttr(default_factory=dict)
     _chains: Dict[str, Any] = PrivateAttr(default_factory=dict)
     # NOTE: Units removed - use workflows instead
     _agents: Dict[str, str] = PrivateAttr(default_factory=dict)  # Maps agent names to import paths
     
-    def _make_key(self, node_type: NodeType, name: str) -> str:
-        """Create registry key from type and name."""
-        return f"{node_type.value}:{name}"
-    
     def register_class(self, node_type: NodeType, name: str, implementation: Type[INode]) -> None:
         """Register a node class."""
-        key = self._make_key(node_type, name)
-        if key in self._nodes:
-            raise RegistryError(f"Node {key} already registered")
-        self._nodes[key] = implementation
+        if node_type not in self._nodes:
+            self._nodes[node_type] = {}
+        if name in self._nodes[node_type]:
+            raise RegistryError(f"Node {node_type.value}:{name} already registered")
+        self._nodes[node_type][name] = implementation
     
     def register_instance(self, node_type: NodeType, name: str, instance: INode) -> None:
         """Register a node instance (for singletons like tools)."""
-        key = self._make_key(node_type, name)
-        if key in self._instances:
-            raise RegistryError(f"Instance {key} already registered")
-        self._instances[key] = instance
+        if node_type not in self._instances:
+            self._instances[node_type] = {}
+        if name in self._instances[node_type]:
+            raise RegistryError(f"Instance {node_type.value}:{name} already registered")
+        self._instances[node_type][name] = instance
     
     def get_class(self, node_type: NodeType, name: str) -> Type[INode]:
         """Get a registered node class."""
-        key = self._make_key(node_type, name)
-        if key not in self._nodes:
-            raise RegistryError(f"Node class {key} not found")
-        return self._nodes[key]
+        if node_type not in self._nodes or name not in self._nodes[node_type]:
+            raise RegistryError(f"Node class {node_type.value}:{name} not found")
+        return self._nodes[node_type][name]
     
     def get_instance(self, node_type: NodeType, name: str) -> INode:
         """Get or create a node instance."""
-        key = self._make_key(node_type, name)
-        
         # Return existing instance if available
-        if key in self._instances:
-            return self._instances[key]
+        if node_type in self._instances and name in self._instances[node_type]:
+            return self._instances[node_type][name]
         
         # Otherwise create from class
-        if key in self._nodes:
-            return self._nodes[key]()
+        if node_type in self._nodes and name in self._nodes[node_type]:
+            instance = self._nodes[node_type][name]()
+            # Cache the new instance
+            if node_type not in self._instances:
+                self._instances[node_type] = {}
+            self._instances[node_type][name] = instance
+            return instance
         
-        raise RegistryError(f"Node {key} not found")
+        raise RegistryError(f"Node {node_type.value}:{name} not found")
     
     def list_nodes(self, node_type: Optional[NodeType] = None) -> List[Tuple[NodeType, str]]:
         """List all registered nodes, optionally filtered by type."""
         results = []
         
-        for key in list(self._nodes.keys()) + list(self._instances.keys()):
-            type_str, name = key.split(":", 1)
-            node_type_enum = NodeType(type_str)
-            
-            if node_type is None or node_type == node_type_enum:
-                results.append((node_type_enum, name))
+        # Collect from class registry
+        for nt, names_dict in self._nodes.items():
+            if node_type is None or node_type == nt:
+                for name in names_dict.keys():
+                    results.append((nt, name))
+        
+        # Collect from instance registry 
+        for nt, names_dict in self._instances.items():
+            if node_type is None or node_type == nt:
+                for name in names_dict.keys():
+                    results.append((nt, name))
         
         return sorted(set(results))
     
@@ -109,7 +115,7 @@ class Registry(BaseModel):
         
         return count
     
-    # Node executor methods
+    # Node executor methods  
     def register_executor(self, node_type: str, executor: ExecCallable) -> None:
         """Register a node executor function."""
         if node_type in self._executors:
@@ -121,6 +127,25 @@ class Registry(BaseModel):
         if node_type not in self._executors:
             raise KeyError(f"No executor registered for node type: {node_type}")
         return self._executors[node_type]
+    
+    # Convenience methods for better API
+    def list_tools(self) -> List[str]:
+        """List all registered tool names."""
+        if NodeType.TOOL in self._instances:
+            return list(self._instances[NodeType.TOOL].keys())
+        return []
+    
+    def list_agents(self) -> List[str]:
+        """List all registered agent names."""
+        return list(self._agents.keys())
+    
+    def get_tool(self, name: str) -> INode:
+        """Get a tool instance by name."""
+        return self.get_instance(NodeType.TOOL, name)
+    
+    def has_tool(self, name: str) -> bool:
+        """Check if a tool is registered."""
+        return NodeType.TOOL in self._instances and name in self._instances[NodeType.TOOL]
     
     # Chain registry methods
     def register_chain(self, name: str, chain: Any) -> None:

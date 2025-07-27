@@ -18,9 +18,12 @@ from ice_sdk.decorators import tool
 from ice_sdk.tools.base import ToolBase
 from typing import Dict, Any
 
-@tool(name="data_processor", category="core")
+@tool  # Auto-registers as "data_processor"
 class DataProcessor(ToolBase):
     """Process data files with validation."""
+    
+    name = "data_processor"
+    description = "Processes data files with validation"
     
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         file_path = kwargs["file_path"]
@@ -30,12 +33,15 @@ class DataProcessor(ToolBase):
 
 ### AI-Powered Tools
 ```python
-from ice_sdk.tools.ai.base import AITool
+from ice_sdk.tools.base import ToolBase
 from ice_sdk.services import ServiceLocator
 
-@tool(name="content_analyzer")
-class ContentAnalyzer(AITool):
+@tool  # Auto-registers as "content_analyzer"
+class ContentAnalyzer(ToolBase):
     """Analyze content using LLM via ServiceLocator."""
+    
+    name = "content_analyzer"
+    description = "Analyzes content using AI"
     
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         content = kwargs["content"]
@@ -44,7 +50,7 @@ class ContentAnalyzer(AITool):
         llm_service = ServiceLocator.get("llm_service")
         
         result = await llm_service.generate(
-            self.get_llm_config(),
+            {"model": "gpt-4", "temperature": 0.1},
             f"Analyze this content: {content}"
         )
         
@@ -149,8 +155,8 @@ The following components now live in `ice_orchestrator` for proper separation of
 ## Development Patterns
 
 ### Creating Tools
-1. Inherit from appropriate base class (`ToolBase`, `AITool`, `DataTool`)
-2. Use `@tool` decorator for auto-registration
+1. Inherit from `ToolBase` (simplified 2-level hierarchy)
+2. Use `@tool` decorator for auto-registration  
 3. Implement `_execute_impl()` method
 4. Access orchestrator services via `ServiceLocator`
 

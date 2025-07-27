@@ -10,7 +10,13 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 import redis.asyncio as redis
-from testcontainers.redis import RedisContainer
+
+try:
+    from testcontainers.redis import RedisContainer
+    HAS_TESTCONTAINERS = True
+except ImportError:
+    HAS_TESTCONTAINERS = False
+    RedisContainer = None
 
 
 @pytest.fixture(scope="session")
@@ -28,6 +34,9 @@ async def redis_container():
     This fixture starts a Redis Docker container that persists for the entire
     test session. The container is automatically cleaned up after tests complete.
     """
+    if not HAS_TESTCONTAINERS:
+        pytest.skip("testcontainers not available - install with: pip install testcontainers")
+    
     with RedisContainer() as container:
         yield container
 

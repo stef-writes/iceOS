@@ -3,13 +3,15 @@
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
+from collections import OrderedDict, defaultdict
 
 import networkx as nx
 from pydantic import BaseModel, Field
 
 from ice_sdk.services import ServiceLocator  # new
 from ice_core.base_tool import ToolBase
+from ice_core.models.enums import NodeType
 from .types import ToolContext
 
 # Unified tool execution via ToolService -------------------------------
@@ -75,8 +77,8 @@ class GraphContextManager:
         self.formatter = formatter or ContextFormatter()
         # Memory adapter ---------------------------------------------------
         self.memory: BaseMemory = memory or NullMemory()
-        self._agents: Dict[str, "AgentNode"] = {}
-        self._tools: Dict[str, ToolBase] = {}
+        # 🚀 UNIFIED NESTED STRUCTURE: Better organization like registry pattern
+        self._nodes: Dict[NodeType, Dict[str, Union["AgentNode", ToolBase]]] = defaultdict(dict)
         # Map of session_id -> GraphContext (acts as LRU cache) --------------
         self._contexts: "OrderedDict[str, GraphContext]" = OrderedDict()
         self._context: Optional[GraphContext] = None
@@ -85,20 +87,20 @@ class GraphContextManager:
         self._project_root = project_root or Path.cwd()
 
     def register_agent(self, agent: "AgentNode") -> None:
-        """Register an agent for lookup by other agents."""
-        if agent.config.name in self._agents:
+        """🚀 Register an agent using nested structure for better organization."""
+        if agent.config.name in self._nodes[NodeType.AGENT]:
             raise ValueError(f"Agent '{agent.config.name}' already registered")
-        self._agents[agent.config.name] = agent
+        self._nodes[NodeType.AGENT][agent.config.name] = agent
 
     def register_tool(self, tool: ToolBase) -> None:
-        """Register a tool for use by agents.
+        """🚀 Register a tool using nested structure for better organization.
 
         Args:
             tool: Tool to register
         """
-        if tool.name in self._tools:
+        if tool.name in self._nodes[NodeType.TOOL]:
             raise ValueError(f"Tool '{tool.name}' already registered")
-        self._tools[tool.name] = tool
+        self._nodes[NodeType.TOOL][tool.name] = tool
 
         # Register tool CLASS with ToolService for unified execution ----
         try:
@@ -110,19 +112,19 @@ class GraphContextManager:
 
     def get_agent(self, name: str) -> Optional["AgentNode"]:
         """Look up an agent by name."""
-        return self._agents.get(name)
+        return self._nodes[NodeType.AGENT].get(name)
 
     def get_tool(self, name: str) -> Optional[ToolBase]:
-        """Get registered tool by name."""
-        return self._tools.get(name)
+        """🚀 Get registered tool by name using nested structure."""
+        return self._nodes[NodeType.TOOL].get(name)
 
     def get_all_agents(self) -> Dict[str, "AgentNode"]:
-        """Get all registered agents."""
-        return dict(self._agents)
+        """🚀 Get all registered agents from nested structure."""
+        return dict(self._nodes[NodeType.AGENT])
 
     def get_all_tools(self) -> Dict[str, ToolBase]:
-        """Get all registered tools."""
-        return dict(self._tools)
+        """🚀 Get all registered tools from nested structure."""
+        return dict(self._nodes[NodeType.TOOL])
 
     def get_context(self, session_id: Optional[str] = None) -> Optional[GraphContext]:
         """Return the current :class:`GraphContext`.
@@ -166,8 +168,8 @@ class GraphContextManager:
             "metadata": self._context.metadata,
         }
 
-        # Prefer pre-instantiated tool instance when available -------------
-        stateful_tool = self._tools.get(tool_name)
+        # 🚀 Prefer pre-instantiated tool instance from nested structure -----
+        stateful_tool = self._nodes[NodeType.TOOL].get(tool_name)
         if stateful_tool is not None:
             try:
                 call_kwargs = dict(kwargs)
@@ -312,12 +314,33 @@ class GraphContextManager:
         logger.error(f"Error in node {node_id}: {str(error)}")
 
     def list_agents(self) -> List[str]:
-        """List registered agent names."""
-        return list(self._agents.keys())
+        """🚀 List registered agent names from nested structure."""
+        return list(self._nodes[NodeType.AGENT].keys())
 
     def list_tools(self) -> List[str]:
-        """List registered tool names."""
-        return list(self._tools.keys())
+        """🚀 List registered tool names from nested structure."""
+        return list(self._nodes[NodeType.TOOL].keys())
+    
+    # 🚀 NEW: High-performance analytics methods
+    def get_nodes_by_type(self, node_type: NodeType) -> Dict[str, Union["AgentNode", ToolBase]]:
+        """Get all nodes of a specific type - perfect for monitoring!"""
+        return dict(self._nodes.get(node_type, {}))
+    
+    def get_registered_node_types(self) -> List[NodeType]:
+        """List all node types that have registrations - great for dashboard!"""
+        return list(self._nodes.keys())
+    
+    def get_registration_summary(self) -> Dict[str, Dict[str, Any]]:
+        """🚀 Get comprehensive registration summary by node type - ultimate overview!"""
+        summary = {}
+        for node_type in self.get_registered_node_types():
+            nodes = self.get_nodes_by_type(node_type)
+            summary[node_type.value] = {
+                "count": len(nodes),
+                "names": list(nodes.keys()),
+                "types": [type(node).__name__ for node in nodes.values()]
+            }
+        return summary
 
     # ------------------------------------------------------------------
     # Experimental helpers ---------------------------------------------

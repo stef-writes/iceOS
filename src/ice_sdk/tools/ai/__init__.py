@@ -1,10 +1,9 @@
 """AI-powered tools using LLM services."""
-from ice_sdk.tools.ai.base import AITool
 from ice_sdk.tools.ai.insights_tool import InsightsTool
 from ice_sdk.tools.ai.summarizer_tool import SummarizerTool
 from ice_sdk.tools.ai.line_item_generator_tool import LineItemGeneratorTool
 
-__all__ = ["AITool", "InsightsTool", "SummarizerTool", "LineItemGeneratorTool"]
+__all__ = ["InsightsTool", "SummarizerTool", "LineItemGeneratorTool"]
 
 # Register AI tools
 from ice_core.unified_registry import registry

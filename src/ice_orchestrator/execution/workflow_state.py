@@ -9,8 +9,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional, Set, Any
 from enum import Enum
+from collections import defaultdict
 
 from ice_core.models import NodeExecutionResult
+from ice_core.models.enums import NodeType
 
 
 class ExecutionPhase(Enum):
@@ -31,7 +33,10 @@ class LevelExecutionState:
     level_num: int
     node_ids: List[str]
     active_node_ids: List[str] = field(default_factory=list)
-    results: Dict[str, NodeExecutionResult] = field(default_factory=dict)
+    # 🚀 NESTED STRUCTURE: NodeType -> node_id -> result
+    results: Dict[NodeType, Dict[str, NodeExecutionResult]] = field(
+        default_factory=lambda: defaultdict(dict)
+    )
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     
@@ -52,8 +57,10 @@ class WorkflowExecutionState:
     end_time: Optional[datetime] = None
     phase: ExecutionPhase = ExecutionPhase.INITIALIZING
     
-    # Results and errors
-    node_results: Dict[str, NodeExecutionResult] = field(default_factory=dict)
+    # 🚀 NESTED RESULTS: NodeType -> node_id -> result for better analytics
+    node_results: Dict[NodeType, Dict[str, NodeExecutionResult]] = field(
+        default_factory=lambda: defaultdict(dict)
+    )
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
     
@@ -179,4 +186,46 @@ class WorkflowExecutionState:
             "total_tokens": self.total_tokens,
             "total_cost": self.total_cost,
             "api_calls": self.api_calls,
-        } 
+        }
+    
+    # 🚀 NEW: High-performance analytics methods for nested results
+    def get_results_by_node_type(self, node_type: NodeType) -> Dict[str, NodeExecutionResult]:
+        """Get all results for a specific node type - perfect for monitoring!"""
+        return dict(self.node_results.get(node_type, {}))
+    
+    def get_node_types_with_results(self) -> List[NodeType]:
+        """List all node types that have results - great for dashboard!"""
+        return list(self.node_results.keys())
+    
+    def get_success_rate_by_node_type(self, node_type: NodeType) -> float:
+        """Calculate success rate for a specific node type - performance tracking!"""
+        results = self.get_results_by_node_type(node_type)
+        if not results:
+            return 0.0
+        successful = sum(1 for result in results.values() if result.success)
+        return successful / len(results)
+    
+    def get_performance_breakdown(self) -> Dict[str, Dict[str, Any]]:
+        """🚀 Get comprehensive performance breakdown by node type - ultimate analytics!"""
+        breakdown = {}
+        for node_type in self.get_node_types_with_results():
+            results = self.get_results_by_node_type(node_type)
+            total_tokens = sum(
+                getattr(result.usage, 'total_tokens', 0) if result.usage else 0 
+                for result in results.values()
+            )
+            total_cost = sum(
+                getattr(result.usage, 'total_cost', getattr(result.usage, 'cost', 0.0)) if result.usage else 0.0
+                for result in results.values()
+            )
+            
+            breakdown[node_type.value] = {
+                "node_count": len(results),
+                "success_rate": self.get_success_rate_by_node_type(node_type),
+                "total_tokens": total_tokens,
+                "total_cost": total_cost,
+                "avg_tokens_per_node": total_tokens / len(results) if results else 0,
+                "avg_cost_per_node": total_cost / len(results) if results else 0.0,
+                "nodes": list(results.keys())
+            }
+        return breakdown 

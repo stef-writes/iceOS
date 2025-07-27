@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from ice_core.models.llm import LLMConfig, ModelProvider
 from ice_sdk.services import ServiceLocator
 from ...utils.errors import ToolExecutionError
-from ice_sdk.tools.ai.base import AITool
+from ice_sdk.tools.base import ToolBase
 
 __all__: list[str] = ["InsightsTool"]
 
@@ -20,7 +20,7 @@ class InsightsInput(BaseModel):
 class InsightsOutput(BaseModel):
     insights: List[str]
 
-class InsightsTool(AITool):
+class InsightsTool(ToolBase):
     name: str = "insights"
     description: str = (
         "Generate step-by-step actionable insights from a dataset summary."

@@ -1,8 +1,7 @@
 """Core data manipulation tools."""
 from ice_sdk.tools.core.csv_tool import CSVTool
-from ice_sdk.tools.core.base import DataTool
 
-__all__ = ["CSVTool", "DataTool"]
+__all__ = ["CSVTool"]
 
 # Auto-register core tools
 from ice_core.unified_registry import registry

@@ -22,9 +22,11 @@ This is the foundation for the **3-tier iceOS architecture**:
    - Keep layers loosely coupled
 
 3. **Unified Registry** (`unified_registry.py`)
+   - 🚀 **Enhanced with nested `NodeType` structure** for O(1) access patterns
    - Central registry for all components (nodes, tools, agents, chains)
    - Shared by all layers to maintain component catalog
    - Enables dynamic discovery and instantiation
+   - **Performance**: Type-based organization eliminates string parsing and enables instant filtering
 
 4. **Pure Utilities** (`utils/`)
    - No side effects or I/O

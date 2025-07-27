@@ -38,17 +38,30 @@ make dev
 
 The server will be available at `http://localhost:8000`
 
-### 4. Run Demos
+### 4. Run the Featured Demo
 
-In a new terminal:
+Experience the full power of iceOS with our production-ready Facebook Marketplace automation:
 
 ```bash
-# Basic comprehensive demo
-poetry run python examples/comprehensive_demo.py
+# Navigate to the enhanced demo
+cd use-cases/RivaRidge/FB_Marketplace_Seller
 
-# Advanced marketplace workflow demo
-poetry run python examples/marketplace_workflow_demo.py
+# Run the complete demonstration
+python enhanced_blueprint_demo.py
+
+# Or explore specific features
+python test_new_features.py        # Real HTTP APIs & activity simulation
+python detailed_verification.py    # Comprehensive testing & validation
 ```
+
+**What you'll see:**
+- 🤖 Real GPT-4o API calls enhancing 20 inventory items
+- 🌐 Actual HTTP requests to external APIs
+- 🧠 Memory-enabled agents learning and adapting
+- 🎭 Realistic marketplace ecosystem simulation
+- ⚡ Both MCP Blueprint (enterprise) and SDK WorkflowBuilder (developer) patterns
+
+**Results:** Complete end-to-end marketplace automation with ~$0.15-0.25 cost per run.
 
 ## Common Issues
 
@@ -82,6 +95,7 @@ lsof -i :8000
 
 ## Next Steps
 
-- Check out the [Architecture Guide](ARCHITECTURE.md)
-- Browse example workflows in `examples/`
+- **[Explore the Complete Demo Documentation](../use-cases/RivaRidge/FB_Marketplace_Seller/README.md)** - Deep dive into the enhanced marketplace automation
+- **[Architecture Notes](../use-cases/RivaRidge/FB_Marketplace_Seller/ARCHITECTURE_NOTES.md)** - Tools vs Agents decisions and memory architecture
+- Check out the [Project Architecture Guide](ARCHITECTURE.md)
 - Read about [Frosty and the Canvas](iceos-vision.md) 

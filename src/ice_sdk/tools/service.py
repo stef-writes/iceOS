@@ -20,7 +20,6 @@ class ToolService:
         import ice_sdk.tools.system
         import ice_sdk.tools.web
         import ice_sdk.tools.db
-        import ice_sdk.tools.marketplace
     
     def register_tool(self, name: str, tool_class: Type[ToolBase]) -> None:
         """Register a tool class in the unified registry.

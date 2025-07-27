@@ -9,4 +9,4 @@ To access context services, use ServiceLocator:
 """
 
 # This module is now empty - all context management is in orchestrator
-__all__ = []
+__all__: list[str] = []

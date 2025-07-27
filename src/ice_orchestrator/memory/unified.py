@@ -36,6 +36,12 @@ class UnifiedMemory:
     - episode:* -> Episodic memory  
     - fact:* -> Semantic memory
     - procedure:* -> Procedural memory
+    
+    Enhanced API provides direct access:
+    - memory.working.store(key, value)
+    - memory.episodic.search(query)
+    - memory.semantic.retrieve(key)
+    - memory.procedural.search(query)
     """
     
     def __init__(self, config: Optional[UnifiedMemoryConfig] = None):
@@ -70,6 +76,27 @@ class UnifiedMemory:
             self._memories["procedural"] = ProceduralMemory(
                 config.procedural_config or MemoryConfig(backend="file")
             )
+    
+    # Enhanced API: Direct access to memory subsystems
+    @property
+    def working(self) -> Optional[WorkingMemory]:
+        """Access working memory directly."""
+        return self._memories.get("working")
+    
+    @property 
+    def episodic(self) -> Optional[EpisodicMemory]:
+        """Access episodic memory directly."""
+        return self._memories.get("episodic")
+    
+    @property
+    def semantic(self) -> Optional[SemanticMemory]:
+        """Access semantic memory directly."""
+        return self._memories.get("semantic")
+    
+    @property
+    def procedural(self) -> Optional[ProceduralMemory]:
+        """Access procedural memory directly."""
+        return self._memories.get("procedural")
             
     async def initialize(self) -> None:
         """Initialize all memory subsystems."""

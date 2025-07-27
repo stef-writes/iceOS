@@ -62,13 +62,36 @@ class AIEnrichmentTool(ToolBase):
     async def _enhance_item_with_llm(self, item: Dict[str, Any], llm_service: Any, model_name: str) -> Dict[str, Any]:
         """Use LLM to enhance a single item."""
         
-        # Create LLM configuration
-        llm_config = LLMConfig(
-            provider=ModelProvider.OPENAI,
-            model=model_name,
-            temperature=0.7,
-            max_tokens=500
-        )
+        # Create LLM configuration with multiple provider support
+        if "claude" in model_name.lower():
+            llm_config = LLMConfig(
+                provider=ModelProvider.ANTHROPIC,
+                model=model_name,  # e.g., "claude-3-haiku-20240307"
+                temperature=0.7,
+                max_tokens=500
+            )
+        elif "gemini" in model_name.lower():
+            llm_config = LLMConfig(
+                provider=ModelProvider.GOOGLE,
+                model=model_name,  # e.g., "gemini-pro"
+                temperature=0.7,
+                max_tokens=500
+            )
+        elif "deepseek" in model_name.lower():
+            llm_config = LLMConfig(
+                provider=ModelProvider.DEEPSEEK,
+                model=model_name,  # e.g., "deepseek-chat"
+                temperature=0.7,
+                max_tokens=500
+            )
+        else:
+            # Default to OpenAI
+            llm_config = LLMConfig(
+                provider=ModelProvider.OPENAI,
+                model=model_name,  # e.g., "gpt-4o-mini"
+                temperature=0.7,
+                max_tokens=500
+            )
         
         # Create prompt for title and description optimization
         prompt = self._create_optimization_prompt(item)

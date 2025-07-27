@@ -104,7 +104,8 @@ async def test_tool_executor_placeholder(monkeypatch):
     
     # Clean up
     try:
-        del registry._instances[f"{NodeType.TOOL}:echo_tool"]
+        if NodeType.TOOL in registry._instances and "echo_tool" in registry._instances[NodeType.TOOL]:
+            del registry._instances[NodeType.TOOL]["echo_tool"]
     except KeyError:
         # Already cleaned up
         pass
@@ -152,7 +153,8 @@ async def test_agent_executor():
     
     # Clean up
     try:
-        del registry._instances[f"{NodeType.AGENT}:test_agent"]
+        if NodeType.AGENT in registry._instances and "test_agent" in registry._instances[NodeType.AGENT]:
+            del registry._instances[NodeType.AGENT]["test_agent"]
     except KeyError:
         pass
 
@@ -185,7 +187,8 @@ async def test_workflow_executor():
     
     # Clean up
     try:
-        del registry._instances[f"{NodeType.WORKFLOW}:sub_workflow"]
+        if NodeType.WORKFLOW in registry._instances and "sub_workflow" in registry._instances[NodeType.WORKFLOW]:
+            del registry._instances[NodeType.WORKFLOW]["sub_workflow"]
     except KeyError:
         pass
 

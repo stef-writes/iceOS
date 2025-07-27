@@ -271,7 +271,7 @@ class GraphAnalyzer:
         
     def _compute_levels(self) -> Dict[int, List[str]]:
         """Compute topological levels."""
-        levels = {}
+        levels: Dict[int, List[str]] = {}
         
         try:
             for node in nx.topological_sort(self.graph):

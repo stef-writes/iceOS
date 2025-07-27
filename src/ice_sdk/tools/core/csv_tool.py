@@ -9,12 +9,12 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import Field
 from ice_sdk.decorators import tool
-from ice_sdk.tools.core.base import DataTool
+from ice_sdk.tools.base import ToolBase
 from ice_sdk.utils.errors import ToolExecutionError
 
 
 @tool(name="csv")
-class CSVTool(DataTool):
+class CSVTool(ToolBase):
     """Unified CSV operations - read, write, append, update, and delete.
     
     This tool combines all CSV operations in a single interface while

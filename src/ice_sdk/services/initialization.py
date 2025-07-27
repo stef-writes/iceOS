@@ -24,7 +24,6 @@ def initialize_sdk() -> None:
         import ice_sdk.tools.system
         import ice_sdk.tools.web
         import ice_sdk.tools.db
-        import ice_sdk.tools.marketplace
     except ImportError:
         pass  # Best effort - some tool categories may not be available
     

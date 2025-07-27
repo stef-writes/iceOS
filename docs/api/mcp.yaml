@@ -93,13 +93,13 @@ components:
       additionalProperties: true
     Blueprint:
       type: object
-      required: [blueprint_id, version, nodes]
+      required: [blueprint_id, schema_version, nodes]
       properties:
         blueprint_id:
           type: string
-        version:
+        schema_version:
           type: string
-          example: "1.0.0"
+          example: "1.1.0"
         metadata:
           type: object
         nodes:
