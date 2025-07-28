@@ -177,6 +177,51 @@ async def agent_executor(chain, cfg, ctx):
     return NodeExecutionResult(...)
 ```
 
+### Recursive Executor
+
+**Protocol**: `IRecursiveNode` (implicit via RecursiveNodeConfig)  
+**Registry Lookup**: `NodeType.AGENT` or `NodeType.WORKFLOW` (delegated)  
+**Pattern**: Convergence-based iteration with context preservation
+
+```python
+async def recursive_executor(workflow, cfg, ctx):
+    # Safety check: max iterations
+    iteration = ctx.get("_recursive_iteration", 0)
+    if iteration >= cfg.max_iterations:
+        return NodeExecutionResult(success=True, output={
+            "converged": False, 
+            "reason": "max_iterations_reached"
+        })
+    
+    # Convergence check: evaluate condition
+    if cfg.convergence_condition:
+        converged = bool(eval(cfg.convergence_condition, ctx))
+        if converged:
+            return NodeExecutionResult(success=True, output={
+                "converged": True,
+                "reason": "condition_met"
+            })
+    
+    # Execute delegate (agent or workflow)
+    enhanced_ctx = ctx.copy()
+    enhanced_ctx["_recursive_iteration"] = iteration + 1
+    
+    if cfg.agent_package:
+        # Delegate to agent executor
+        agent_cfg = AgentNodeConfig(id=cfg.id, package=cfg.agent_package)
+        result = await agent_executor(workflow, agent_cfg, enhanced_ctx)
+    elif cfg.workflow_ref:
+        # Delegate to workflow executor  
+        wf_cfg = WorkflowNodeConfig(id=cfg.id, workflow_ref=cfg.workflow_ref)
+        result = await workflow_executor(workflow, wf_cfg, enhanced_ctx)
+    
+    # Add recursion metadata
+    result.output["_can_recurse"] = True
+    result.output["_recursive_iteration"] = iteration + 1
+    
+    return result
+```
+
 ## Component Registration
 
 ### Tools Registration

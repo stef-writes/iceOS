@@ -317,7 +317,7 @@ output.update(evaluate_condition())
                 duration=0,
                 error_type=type(e).__name__,
             ),
-            execution_time=duration
+            execution_time=0
         ) 
 
 # Legacy executors have been merged into the unified workflow executor
@@ -694,4 +694,168 @@ async def code_executor(
                 error_type=type(e).__name__,
             ),
             execution_time=0
+        ) 
+
+
+# Recursive executor for cyclic agent conversations
+@register_node("recursive")
+async def recursive_executor(
+    workflow: Workflow, cfg: Any, ctx: Dict[str, Any]
+) -> NodeExecutionResult:
+    """Execute recursive node with convergence detection.
+    
+    Enables agents to loop back and continue conversations until convergence.
+    Leverages existing infrastructure for safety and monitoring.
+    """
+    start_time = datetime.utcnow()
+    
+    try:
+        from ice_core.models import RecursiveNodeConfig, AgentNodeConfig, WorkflowNodeConfig, ConditionNodeConfig
+        
+        # Handle different configuration formats
+        if not isinstance(cfg, RecursiveNodeConfig):
+            # Convert generic config to RecursiveNodeConfig if needed
+            recursive_config = RecursiveNodeConfig(**cfg.__dict__)
+        else:
+            recursive_config = cfg
+        
+        # Get current iteration count from context
+        iteration = ctx.get("_recursive_iteration", 0)
+        context_key = recursive_config.context_key
+        
+        # Safety check using max_iterations
+        if iteration >= recursive_config.max_iterations:
+            end_time = datetime.utcnow()
+            duration = (end_time - start_time).total_seconds()
+            
+            return NodeExecutionResult(
+                success=True,
+                output={
+                    "converged": False, 
+                    "reason": "max_iterations_reached",
+                    "iterations": iteration,
+                    "final_context": ctx.get(context_key, {})
+                },
+                execution_time=duration,
+                metadata=NodeMetadata(
+                    node_id=recursive_config.id,
+                    node_type="recursive",
+                    name=recursive_config.name or "recursive_node",
+                    start_time=start_time,
+                    end_time=end_time,
+                    duration=duration,
+                )
+            )
+        
+        # Check convergence condition if specified
+        if recursive_config.convergence_condition:
+            try:
+                # Create a safe evaluation environment
+                safe_globals = {
+                    '__builtins__': {},
+                    'True': True,
+                    'False': False,
+                    'None': None,
+                    'and': lambda a, b: a and b,
+                    'or': lambda a, b: a or b,
+                    'not': lambda x: not x,
+                }
+                safe_globals.update(ctx)
+                
+                # Evaluate convergence condition
+                converged = bool(eval(recursive_config.convergence_condition, safe_globals))
+                
+                if converged:
+                    end_time = datetime.utcnow()
+                    duration = (end_time - start_time).total_seconds()
+                    
+                    return NodeExecutionResult(
+                        success=True,
+                        output={
+                            "converged": True, 
+                            "reason": "condition_met",
+                            "iterations": iteration,
+                            "final_context": ctx.get(context_key, {})
+                        },
+                        execution_time=duration,
+                        metadata=NodeMetadata(
+                            node_id=recursive_config.id,
+                            node_type="recursive",
+                            name=recursive_config.name or "recursive_node",
+                            start_time=start_time,
+                            end_time=end_time,
+                            duration=duration,
+                        )
+                    )
+            except Exception as e:
+                # If condition evaluation fails, log and continue
+                print(f"Warning: Convergence condition evaluation failed: {e}")
+        
+        # Prepare enhanced context for recursive execution
+        enhanced_ctx = ctx.copy()
+        enhanced_ctx["_recursive_iteration"] = iteration + 1
+        
+        # Preserve context across iterations if requested
+        if recursive_config.preserve_context:
+            if context_key not in enhanced_ctx:
+                enhanced_ctx[context_key] = {}
+            enhanced_ctx[context_key]["iteration"] = iteration + 1
+            enhanced_ctx[context_key]["node_id"] = recursive_config.id
+        
+        # Execute agent or workflow using existing infrastructure
+        if recursive_config.agent_package:
+            # Use existing agent executor
+            agent_cfg = AgentNodeConfig(
+                id=recursive_config.id,
+                type="agent",
+                package=recursive_config.agent_package,
+                max_iterations=10  # Inner agent iterations
+            )
+            result = await agent_executor(workflow, agent_cfg, enhanced_ctx)
+            
+        elif recursive_config.workflow_ref:
+            # Use existing workflow executor
+            wf_cfg = WorkflowNodeConfig(
+                id=recursive_config.id,
+                type="workflow",
+                workflow_ref=recursive_config.workflow_ref
+            )
+            result = await workflow_executor(workflow, wf_cfg, enhanced_ctx)
+        else:
+            raise ValueError(f"Recursive node {recursive_config.id} must specify either agent_package or workflow_ref")
+        
+        # Enhanced result with recursion metadata
+        if isinstance(result.output, dict):
+            result.output["_recursive_iteration"] = iteration + 1
+            result.output["_can_recurse"] = True
+            result.output["_recursive_node_id"] = recursive_config.id
+            
+            # Update context if preserving
+            if recursive_config.preserve_context:
+                result.output[context_key] = enhanced_ctx.get(context_key, {})
+        
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+        result.execution_time = duration
+        
+        return result
+        
+    except Exception as e:
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+        
+        return NodeExecutionResult(
+            success=False,
+            error=str(e),
+            output={"error": str(e)},
+            execution_time=duration,
+            metadata=NodeMetadata(
+                node_id=getattr(cfg, 'id', 'recursive_unknown'),
+                node_type="recursive",
+                name=getattr(cfg, 'name', 'recursive_node'),
+                start_time=start_time,
+                end_time=end_time,
+                duration=duration,
+                error_type=type(e).__name__,
+            )
         ) 

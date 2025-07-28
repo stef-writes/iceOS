@@ -476,6 +476,70 @@ class ParallelNodeConfig(BaseNodeConfig):
         description="Whether to merge outputs from all branches"
     )
 
+@mcp_tier("Blueprint for recursive agent conversations")
+@multi_granularity("chain")
+class RecursiveNodeConfig(BaseNodeConfig):
+    """Configuration for recursive/cyclic execution.
+    
+    WHY: Enables agents to loop back and continue conversations until convergence.
+    Leverages existing memory systems and state management for sophisticated
+    recursive workflows while maintaining safety through convergence conditions.
+    
+    Use this for: Agent negotiations, iterative refinement, multi-turn conversations
+    """
+
+    type: Literal["recursive"] = "recursive"
+
+    # Which nodes can loop back to this one (creates controlled cycles)
+    recursive_sources: List[str] = Field(
+        default_factory=list,
+        description="Node IDs that can trigger recursive execution back to this node"
+    )
+    
+    # Convergence conditions (leverages existing condition system)
+    convergence_condition: Optional[str] = Field(
+        None,
+        description="Expression that stops recursion when true (e.g. 'agreement_reached == True')"
+    )
+    max_iterations: int = Field(
+        default=50,
+        description="Safety limit to prevent infinite loops"
+    )
+    
+    # Agent/workflow configuration (one of these must be specified)
+    agent_package: Optional[str] = Field(
+        None,
+        description="Import path for agent to execute in recursive loop"
+    )
+    workflow_ref: Optional[str] = Field(
+        None,
+        description="Reference to workflow to execute in recursive loop"
+    )
+    
+    # Memory and context settings
+    preserve_context: bool = Field(
+        default=True,
+        description="Whether to preserve context across recursive iterations"
+    )
+    context_key: str = Field(
+        default="recursive_context",
+        description="Key for storing recursive context in state"
+    )
+
+    @model_validator(mode="after")
+    def _validate_recursive_config(self) -> "RecursiveNodeConfig":
+        """Validate recursive node configuration."""
+        if not self.agent_package and not self.workflow_ref:
+            raise ValueError("RecursiveNodeConfig must specify either agent_package or workflow_ref")
+        
+        if self.agent_package and self.workflow_ref:
+            raise ValueError("RecursiveNodeConfig cannot specify both agent_package and workflow_ref")
+        
+        if not self.recursive_sources:
+            raise ValueError("RecursiveNodeConfig must specify at least one recursive_source")
+        
+        return self
+
 @mcp_tier("Blueprint for code execution")
 class CodeNodeConfig(BaseNodeConfig):
     """Configuration for direct code execution.
@@ -514,6 +578,7 @@ NodeConfig = Annotated[
         WorkflowNodeConfig,
         LoopNodeConfig,
         ParallelNodeConfig,
+        RecursiveNodeConfig,
         CodeNodeConfig,
     ],
     Field(discriminator="type"),

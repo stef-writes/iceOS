@@ -139,10 +139,56 @@ from ice_sdk.services import ServiceLocator
 - Marketplace activity simulator (`activity_simulator.py`) with realistic ecosystem behavior
 - Complete workflow integration demonstrating production-ready patterns
 
+## Recursive Flows Documentation (Latest Update) ✅
+
+### Major Feature Enhancement
+**Recursive Workflows Implementation** - iceOS now matches LangGraph capabilities while maintaining enterprise features.
+
+#### New Documentation Created
+1. **docs/RECURSIVE_FLOWS_GUIDE.md** (New Complete Guide)
+   - Comprehensive 400+ line guide covering all aspects
+   - Core components, configuration options, use cases
+   - Implementation details, security considerations
+   - Migration guide and backward compatibility
+   - Complete working examples and code samples
+   - LangGraph comparison table
+
+#### Major Documentation Updates
+2. **docs/ARCHITECTURE.md** (Enhanced)
+   - Updated "9 Clean Node Types" (was 8, added RecursiveNodeConfig)
+   - New "Recursive Flows Architecture" section with enterprise benefits
+   - Enhanced workflow engine documentation
+   - Performance considerations for recursive optimization
+
+3. **docs/protocols.md** (Enhanced)
+   - New "Recursive Executor" protocol documentation
+   - Complete implementation pattern with code examples
+   - Context preservation and convergence detection protocols
+
+4. **docs/ENTERPRISE_REUSE_PATTERNS.md** (Enhanced)
+   - New "Recursive Workflow Patterns" section
+   - Multi-turn agent conversation patterns
+   - Iterative refinement workflow examples
+   - Enterprise benefits of recursive flows
+
+5. **docs/NETWORKX_GRAPH_INTELLIGENCE.md** (Enhanced)
+   - New "Recursive Flow Intelligence" section
+   - Smart cycle detection documentation
+   - Recursive flow metrics and optimization
+   - Breakthrough achievement comparison with LangGraph
+
+#### Key Documentation Features
+- **Complete Feature Coverage**: Every aspect of recursive flows documented
+- **Production Ready**: Enterprise security, monitoring, and safety features
+- **Developer Focused**: Clear examples, migration guides, and best practices
+- **Backward Compatible**: No breaking changes, gradual adoption path
+- **Performance Oriented**: Optimization tips and monitoring guidelines
+
 ## Next Steps
 
 1. ✅ Update all code examples in documentation
-2. Create migration script for user codebases
-3. Update integration test documentation
-4. Create ServiceLocator usage guide
-5. Document memory subsystem architecture in detail 
+2. ✅ Document new recursive flows feature completely
+3. Create migration script for user codebases
+4. Update integration test documentation
+5. Create ServiceLocator usage guide
+6. Document memory subsystem architecture in detail 

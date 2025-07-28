@@ -183,7 +183,59 @@ async def build_custom_product(required_components: List[str]):
         await import_and_register(registry_module)
 ```
 
-## 🛡️ **6. WASM Integration Benefits**
+## 🔄 **6. Recursive Workflow Patterns**
+
+### **Multi-Turn Agent Conversations**
+```python
+# Enterprise pattern for agent negotiations
+workflow = (WorkflowBuilder("Agent Negotiation")
+    .add_agent("buyer", "your_demo.buyer_agent")
+    .add_agent("seller", "your_demo.seller_agent")
+    
+    # NEW: Recursive conversations until convergence
+    .add_recursive(
+        "negotiation_loop",
+        agent_package="your_demo.coordinator_agent",
+        recursive_sources=["buyer", "seller"],
+        convergence_condition="deal_agreed == True",
+        max_iterations=15,
+        preserve_context=True
+    )
+    
+    .connect("buyer", "negotiation_loop")
+    .connect("seller", "negotiation_loop")
+    .build()
+)
+```
+
+### **Iterative Refinement Workflows**
+```python
+# Continuous improvement pattern
+workflow = (WorkflowBuilder("Document Refinement")
+    .add_agent("writer", "content.writer_agent")
+    .add_agent("reviewer", "content.reviewer_agent")
+    
+    .add_recursive(
+        "refinement_loop",
+        agent_package="content.coordinator_agent",
+        recursive_sources=["writer", "reviewer"],
+        convergence_condition="quality_score >= 0.95",
+        max_iterations=10,
+        preserve_context=True
+    )
+    
+    .build()
+)
+```
+
+### **Enterprise Benefits of Recursive Flows**
+- **Natural Conversations**: Agents can negotiate back-and-forth like humans
+- **Convergence Safety**: Built-in limits prevent infinite loops
+- **Context Preservation**: Enterprise-grade memory across iterations
+- **Full Observability**: Complete metrics and tracing for recursive flows
+- **Type Safety**: Strict validation with Pydantic models
+
+## 🛡️ **7. WASM Integration Benefits**
 
 ### **Security & Monitoring**
 ```python
@@ -198,6 +250,7 @@ async def build_custom_product(required_components: List[str]):
 # - wasm_executions_total{component="document_parser"}
 # - wasm_execution_duration{component="customer_service_agent"}
 # - wasm_memory_usage{component="ai_enrichment"}
+# - recursive_iterations_total{component="negotiation_loop"}
 ```
 
 ## 🎯 **Best Practices Summary**

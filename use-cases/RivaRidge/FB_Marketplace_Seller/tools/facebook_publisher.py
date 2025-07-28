@@ -125,18 +125,13 @@ class FacebookPublisherTool(ToolBase):
         return category_mapping.get(category.lower(), "Other")
     
     def _get_item_images(self, item: Dict[str, Any]) -> List[str]:
-        """Get or generate placeholder images for the item."""
+        """Get actual item images from listing data."""
         
-        # In a real implementation, this would handle actual image URLs
+        # Get actual image URLs from item data
         images = []
         
         # Check if item has image paths
         if "images" in item and item["images"]:
             images = item["images"]
-        else:
-            # Generate placeholder image URL based on category
-            category = item.get("category", "general")
-            placeholder_url = f"https://placeholder.images/{category.lower()}/600x400"
-            images = [placeholder_url]
         
         return images[:5]  # Facebook allows max 5 images 

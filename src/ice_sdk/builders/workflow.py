@@ -171,6 +171,36 @@ class WorkflowBuilder:
         ))
         return self
     
+    def add_recursive(
+        self,
+        node_id: str,
+        agent_package: Optional[str] = None,
+        workflow_ref: Optional[str] = None,
+        recursive_sources: Optional[List[str]] = None,
+        convergence_condition: Optional[str] = None,
+        max_iterations: int = 50,
+        preserve_context: bool = True,
+        **kwargs
+    ) -> "WorkflowBuilder":
+        """Add a recursive node for agent conversations until convergence."""
+        from ice_core.models import RecursiveNodeConfig
+        
+        if not recursive_sources:
+            recursive_sources = []
+            
+        self.nodes.append(RecursiveNodeConfig(
+            id=node_id,
+            type="recursive",
+            agent_package=agent_package,
+            workflow_ref=workflow_ref,
+            recursive_sources=recursive_sources,
+            convergence_condition=convergence_condition,
+            max_iterations=max_iterations,
+            preserve_context=preserve_context,
+            **kwargs
+        ))
+        return self
+    
     def connect(self, from_node: str, to_node: str) -> "WorkflowBuilder":
         """Connect two nodes."""
         self.edges.append((from_node, to_node))

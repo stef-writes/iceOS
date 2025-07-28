@@ -3,6 +3,7 @@
 import asyncio
 import aiohttp
 import json
+import os
 from typing import Dict, Any, List
 from ice_sdk.tools.base import ToolBase
 
@@ -25,7 +26,7 @@ class FacebookAPIClientTool(ToolBase):
         listings: List[Dict[str, Any]] = None,
         **kwargs
     ) -> Dict[str, Any]:
-        """Make real HTTP calls to Facebook Marketplace API (mock endpoint)."""
+        """Make real HTTP calls to Facebook Marketplace API."""
         
         listings = listings or []
         
@@ -76,7 +77,7 @@ class FacebookAPIClientTool(ToolBase):
                         headers={
                             "Content-Type": "application/json",
                             "User-Agent": "iceOS-Facebook-Marketplace/1.0",
-                            "X-FB-Access-Token": "fake_token_for_demo"
+                            "X-FB-Access-Token": os.environ.get("FB_ACCESS_TOKEN", "")
                         },
                         timeout=aiohttp.ClientTimeout(total=10)
                     ) as response:
@@ -153,36 +154,14 @@ class FacebookAPIClientTool(ToolBase):
                     
                     print(f"📨 HTTP {response.status}: Retrieved messages")
                     
-                    # Simulate realistic customer messages
-                    mock_messages = [
-                        {
-                            "message_id": "msg_001",
-                            "customer_id": "customer_123",
-                            "inquiry": "Hi! Is the Dell laptop still available? What's the condition?",
-                            "timestamp": "2025-07-27T12:30:00Z",
-                            "item_sku": "LAPTOP-001"
-                        },
-                        {
-                            "message_id": "msg_002", 
-                            "customer_id": "customer_456",
-                            "inquiry": "Can you deliver to downtown Seattle? How much for shipping?",
-                            "timestamp": "2025-07-27T12:45:00Z",
-                            "item_sku": "TOOLS-003"
-                        },
-                        {
-                            "message_id": "msg_003",
-                            "customer_id": "customer_789", 
-                            "inquiry": "Would you accept $250 for the cordless drill set?",
-                            "timestamp": "2025-07-27T13:00:00Z",
-                            "item_sku": "TOOLS-003"
-                        }
-                    ]
+                    # Parse actual messages from API response
+                    messages = data.get("messages", [])
                     
                     return {
                         "success": True,
                         "action": "get_messages",
-                        "messages": mock_messages,
-                        "total_messages": len(mock_messages),
+                        "messages": messages,
+                        "total_messages": len(messages),
                         "http_status": response.status,
                         "api_response": data,
                         "api_endpoint": api_url

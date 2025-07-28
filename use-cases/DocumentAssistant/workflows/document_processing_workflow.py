@@ -1,7 +1,7 @@
-"""Document processing workflow showcasing iceOS orchestration capabilities."""
+"""Document processing workflow using simple iceOS patterns."""
 
 from typing import Dict, Any, List
-from ice_core.models.workflow import WorkflowConfig
+from ice_orchestrator.workflow import Workflow
 from ice_core.models.node_models import (
     ToolNodeConfig, 
     LLMOperatorConfig,
@@ -9,22 +9,10 @@ from ice_core.models.node_models import (
     ConditionNodeConfig,
     LoopNodeConfig
 )
-from ice_core.models.llm import LLMConfig, ModelProvider
 
 
-class DocumentProcessingWorkflow:
-    """Sophisticated workflow demonstrating iceOS's orchestration capabilities.
-    
-    This workflow showcases:
-    - Conditional nodes: Check document validity and processing requirements
-    - Loop nodes: Process multiple documents efficiently 
-    - Code nodes: Custom logic for embedding storage and memory management
-    - Tool orchestration: Chain document parser, chunker, embedder tools
-    """
-    
-    @classmethod
-    def create_workflow_config(cls) -> WorkflowConfig:
-        """Create workflow configuration with conditional, loop, and code nodes."""
+def create_document_processing_workflow() -> Workflow:
+        """Create document processing workflow using simple iceOS pattern."""
         
         # 1. CONDITIONAL NODE: Check if documents are valid for processing
         document_validation = ConditionNodeConfig(
@@ -209,78 +197,30 @@ return {
             description="Activate document chatbot with processed knowledge"
         )
         
-        # Create workflow configuration
-        workflow_config = WorkflowConfig(
-            id="document_processing_workflow",
-            name="Document Processing with Control Flow",
-            description="Sophisticated document processing showcasing conditional, loop, and code nodes",
-            nodes=[
-                document_validation,
-                document_parser,
-                parsing_check,
-                document_loop,
-                chunking_tool,
-                embedding_storage,
-                embedding_check,
-                processing_summary,
-                agent_setup
-            ],
-            edges=[
-                # Main processing flow
-                {"from": "validate_documents", "to": "parse_documents", "condition": "true"},
-                {"from": "parse_documents", "to": "check_parsing_success"},
-                {"from": "check_parsing_success", "to": "process_each_document", "condition": "true"},
-                
-                # Loop processing
-                {"from": "process_each_document", "to": "chunk_document", "context": "loop"},
-                {"from": "chunk_document", "to": "embed_and_store", "context": "loop"},
-                {"from": "embed_and_store", "to": "check_embedding_success", "context": "loop"},
-                
-                # Final processing
-                {"from": "check_embedding_success", "to": "generate_summary", "condition": "true"},
-                {"from": "generate_summary", "to": "activate_chatbot"},
-                
-                # Error paths
-                {"from": "validate_documents", "to": "generate_error_message", "condition": "false"},
-                {"from": "check_parsing_success", "to": "generate_error_message", "condition": "false"},
-                {"from": "check_embedding_success", "to": "generate_error_message", "condition": "false"}
-            ],
-            input_schema={
-                "type": "object",
-                "properties": {
-                    "uploaded_files": {
-                        "type": "array", 
-                        "items": {"type": "string"},
-                        "description": "List of uploaded file paths"
-                    },
-                    "session_id": {
-                        "type": "string",
-                        "default": "default",
-                        "description": "User session identifier"
-                    },
-                    "document_collection": {
-                        "type": "string", 
-                        "default": "default",
-                        "description": "Document collection name"
-                    }
-                },
-                "required": ["uploaded_files"]
-            },
-            output_schema={
-                "type": "object",
-                "properties": {
-                    "chatbot_status": {"type": "string"},
-                    "agent_config": {"type": "object"},
-                    "processing_summary": {"type": "string"},
-                    "ready_message": {"type": "string"}
-                }
-            }
+        # Create workflow with proper iceOS pattern
+        nodes = [
+            document_validation,
+            document_parser, 
+            parsing_check,
+            document_loop,
+            chunking_tool,
+            embedding_storage,
+            embedding_check,
+            processing_summary,
+            agent_setup
+        ]
+        
+        workflow = Workflow(
+            nodes=nodes,
+            name="document_processing",
+            version="1.0.0",
+            max_parallel=3,
+            failure_policy="continue_possible"
         )
         
-        return workflow_config
+        return workflow
     
-    @classmethod
-    def create_simple_chat_workflow(cls) -> WorkflowConfig:
+def create_simple_chat_workflow() -> Workflow:
         """Create simpler workflow for ongoing chat interactions."""
         
         # 1. TOOL NODE: Search relevant chunks
@@ -326,13 +266,12 @@ Provide a helpful, accurate answer based on the document content. If the documen
             )
         )
         
-        return WorkflowConfig(
-            id="document_chat_workflow",
-            name="Document Chat Interaction",
-            description="Handle user questions with document context",
-            nodes=[semantic_search, content_check, contextual_response],
-            edges=[
-                {"from": "search_documents", "to": "check_content_found"},
-                {"from": "check_content_found", "to": "generate_response", "condition": "true"}
-            ]
-        ) 
+        nodes = [semantic_search, content_check, contextual_response]
+        
+        workflow = Workflow(
+            nodes=nodes,
+            name="document_chat",
+            version="1.0.0"
+        )
+        
+        return workflow 

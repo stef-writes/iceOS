@@ -34,4 +34,5 @@ class NodeType(str, Enum):
     WORKFLOW = "workflow"  # embed sub-workflows (merged unit/nested_chain)
     LOOP = "loop"  # iteration over collections
     PARALLEL = "parallel"  # concurrent execution branches
+    RECURSIVE = "recursive"  # cyclic agent conversations until convergence
     CODE = "code"  # direct code execution

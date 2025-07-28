@@ -105,16 +105,8 @@ class DependencyGraph:
                 
                 self.graph.add_edge(dep, node.id, **edge_attrs)
         
-        # Check for cycles
-        try:
-            cycles = list(nx.simple_cycles(self.graph))
-            if cycles:
-                cycle_str = " -> ".join(cycles[0])
-                raise CircularDependencyError(
-                    f"Circular dependency detected: {cycle_str}"
-                )
-        except nx.NetworkXNoCycle:
-            pass
+        # Check for cycles - now supports controlled cycles for recursive nodes
+        self._check_cycles_with_recursive_support(nodes)
 
         # Enhanced analysis after graph construction
         self._compute_advanced_metrics()
@@ -499,24 +491,61 @@ class DependencyGraph:
         }
 
     def _assign_levels(self, nodes: List[Any]) -> None:
+        """Assign execution levels to nodes, handling cycles for recursive nodes."""
+        
+        # Get all recursive node IDs  
+        recursive_nodes = {
+            node.id for node in nodes 
+            if hasattr(node, 'type') and node.type == 'recursive'
+        }
+        
+        # Create a temporary graph without recursive edges for level assignment
+        temp_graph = self.graph.copy()
+        recursive_edges = []
+        
+        # Remove edges that create cycles involving recursive nodes
+        for edge in list(temp_graph.edges()):
+            from_node, to_node = edge
+            if from_node in recursive_nodes or to_node in recursive_nodes:
+                # Check if this edge creates a cycle
+                temp_graph.remove_edge(from_node, to_node)
+                if nx.has_path(temp_graph, to_node, from_node):
+                    # This edge creates a cycle, keep it removed for level assignment
+                    recursive_edges.append((from_node, to_node))
+                else:
+                    # This edge doesn't create a cycle, add it back
+                    temp_graph.add_edge(from_node, to_node)
+        
+        # Now assign levels using the cycle-free temporary graph
         node_map = {node.id: node for node in nodes}
-        for node_id in nx.topological_sort(self.graph):
-            node = node_map[node_id]
-            node.level = (
-                max(
-                    (
-                        node_map[dep].level
-                        for dep in (
-                            getattr(node, "dependencies", [])
-                            if isinstance(getattr(node, "dependencies", []), list)
-                            else [getattr(node, "dependencies", [])]
-                        )
-                    ),
-                    default=-1,
+        
+        try:
+            for node_id in nx.topological_sort(temp_graph):
+                node = node_map[node_id]
+                node.level = (
+                    max(
+                        (
+                            node_map[dep].level
+                            for dep in (
+                                getattr(node, "dependencies", [])
+                                if isinstance(getattr(node, "dependencies", []), list)
+                                else [getattr(node, "dependencies", [])]
+                            )
+                            # Filter out dependencies that create cycles
+                            if dep not in {e[0] for e in recursive_edges if e[1] == node_id}
+                        ),
+                        default=-1,
+                    )
+                    + 1
                 )
-                + 1
-            )
-            self.node_levels[node_id] = node.level
+        except nx.NetworkXUnfeasible:
+            # Fallback: assign levels manually for remaining cycles
+            remaining_nodes = [n for n in nodes if not hasattr(n, 'level')]
+            for i, node in enumerate(remaining_nodes):
+                node.level = i + 1
+            
+        # Store the level mapping for quick lookup
+        self.node_levels = {node.id: node.level for node in nodes}
 
     def get_level_nodes(self) -> Dict[int, List[str]]:
         """Return mapping of *level → node_ids*.
@@ -650,3 +679,44 @@ class DependencyGraph:
             f"edges={self.graph.number_of_edges()} "
             f"levels={len(self.node_levels)}>"
         )
+
+    def _check_cycles_with_recursive_support(self, nodes: List[Any]) -> None:
+        """Allow controlled cycles for recursive nodes, block unintended cycles."""
+        
+        # Get all recursive node IDs and their configuration
+        recursive_nodes = {}
+        for node in nodes:
+            if hasattr(node, 'type') and node.type == 'recursive':
+                recursive_nodes[node.id] = node
+        
+        cycles = list(nx.simple_cycles(self.graph))
+        if cycles:
+            for cycle in cycles:
+                # Check if cycle involves only recursive nodes and their declared sources
+                if not self._is_valid_recursive_cycle(cycle, recursive_nodes):
+                    cycle_str = " -> ".join(cycle)
+                    raise CircularDependencyError(
+                        f"Invalid cycle detected: {cycle_str}. "
+                        f"Only recursive nodes with properly declared recursive_sources may form cycles."
+                    )
+    
+    def _is_valid_recursive_cycle(self, cycle: List[str], recursive_nodes: Dict[str, Any]) -> bool:
+        """Validate that cycles are intentional and properly configured."""
+        # Must contain at least one recursive node
+        recursive_in_cycle = [node_id for node_id in cycle if node_id in recursive_nodes]
+        if not recursive_in_cycle:
+            return False
+        
+        # Check that recursive sources are properly declared
+        for recursive_node_id in recursive_in_cycle:
+            recursive_node = recursive_nodes[recursive_node_id]
+            recursive_sources = getattr(recursive_node, 'recursive_sources', [])
+            
+            # All other nodes in the cycle should be declared as recursive sources
+            other_nodes_in_cycle = [n for n in cycle if n != recursive_node_id]
+            
+            # Check if at least one of the other nodes is a declared source
+            if not any(source in recursive_sources for source in other_nodes_in_cycle):
+                return False
+                
+        return True

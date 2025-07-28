@@ -466,7 +466,94 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                         error_type="GatherPayloadError",
                     ),
                 )
+        
+        # NEW: Handle recursive flows
+        await self._handle_recursive_flows(level_results, accumulated_results)
+        
         return level_results
+
+    async def _handle_recursive_flows(
+        self, 
+        level_results: Dict[str, NodeExecutionResult], 
+        accumulated_results: Dict[str, NodeExecutionResult]
+    ) -> None:
+        """Handle recursive flows by scheduling recursive execution when needed."""
+        
+        recursive_executions = []
+        
+        for node_id, result in level_results.items():
+            node = self.nodes.get(node_id)
+            
+            # Check if this is a recursive node that needs to continue
+            if (node and hasattr(node, 'type') and node.type == 'recursive' and
+                isinstance(result.output, dict) and 
+                result.output.get("_can_recurse", False) and 
+                not result.output.get("converged", False)):
+                
+                # Get recursive sources from the node configuration
+                recursive_sources = getattr(node, 'recursive_sources', [])
+                
+                # Schedule recursive execution for each source
+                for source_id in recursive_sources:
+                    if source_id in self.nodes:
+                        recursive_executions.append((source_id, result.output))
+        
+        # Execute recursive flows
+        for source_id, recursive_context in recursive_executions:
+            await self._execute_recursive_node(source_id, recursive_context, accumulated_results)
+    
+    async def _execute_recursive_node(
+        self, 
+        node_id: str, 
+        recursive_context: Dict[str, Any], 
+        accumulated_results: Dict[str, NodeExecutionResult]
+    ) -> None:
+        """Execute a single node in a recursive context."""
+        
+        try:
+            node = self.nodes[node_id]
+            
+            # Build enhanced context for recursive execution
+            base_context = self._build_node_context(node, accumulated_results)
+            
+            # Merge recursive context
+            enhanced_context = {**base_context, **recursive_context}
+            
+            # Execute the node with recursive context
+            result = await self.execute_node(node_id, enhanced_context)
+            
+            # Update accumulated results for next iteration
+            accumulated_results[node_id] = result
+            
+            # If this node can also recurse, handle it
+            if (hasattr(node, 'type') and node.type == 'recursive' and
+                isinstance(result.output, dict) and 
+                result.output.get("_can_recurse", False) and 
+                not result.output.get("converged", False)):
+                
+                # Continue the recursive chain
+                await self._handle_recursive_flows({node_id: result}, accumulated_results)
+                
+        except Exception as e:
+            logger.error(f"Error in recursive execution for node {node_id}: {e}")
+            # Create error result
+            from datetime import datetime
+            from ice_core.models.node_models import NodeExecutionResult, NodeMetadata
+            
+            error_result = NodeExecutionResult(
+                success=False,
+                error=str(e),
+                metadata=NodeMetadata(
+                    node_id=node_id,
+                    node_type="recursive",
+                    name=node_id,
+                    start_time=datetime.utcnow(),
+                    end_time=datetime.utcnow(),
+                    duration=0.0,
+                    error_type=type(e).__name__,
+                )
+            )
+            accumulated_results[node_id] = error_result
 
     def _build_node_context(
         self,

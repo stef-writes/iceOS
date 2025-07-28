@@ -20,6 +20,9 @@ class ToolService:
         import ice_sdk.tools.system
         import ice_sdk.tools.web
         import ice_sdk.tools.db
+        
+        # 🚀 NEW: Import built-in tools (they are optional and configurable)
+        import ice_sdk.tools.builtin
     
     def register_tool(self, name: str, tool_class: Type[ToolBase]) -> None:
         """Register a tool class in the unified registry.
@@ -56,6 +59,22 @@ class ToolService:
     def available_tools(self) -> List[str]:
         """Get available tool names - alias for list_tools() for API compatibility."""
         return self.list_tools()
+    
+    def get_builtin_tools(self) -> List[str]:
+        """Get list of built-in tools that are auto-registered.
+        
+        Returns:
+            List of built-in tool names
+        """
+        builtin_tools = [
+            "post_execution_mermaid",
+            "workflow_analyzer", 
+            "execution_summarizer",
+            "performance_profiler"
+        ]
+        
+        # Return only those that are actually registered
+        return [tool for tool in builtin_tools if registry.has_tool(tool)]
     
     def get_tool_metadata(self, name: str) -> Optional[Dict[str, any]]:
         """Get metadata for a tool.

@@ -4,6 +4,12 @@ These workflows showcase iceOS's orchestration capabilities with
 conditional nodes, loop nodes, and code nodes.
 """
 
-from .document_processing_workflow import DocumentProcessingWorkflow
+from .document_processing_workflow import (
+    create_document_processing_workflow,
+    create_simple_chat_workflow
+)
 
-__all__ = ["DocumentProcessingWorkflow"] 
+__all__ = [
+    "create_document_processing_workflow",
+    "create_simple_chat_workflow"
+] 
