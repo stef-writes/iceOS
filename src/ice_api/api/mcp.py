@@ -79,26 +79,26 @@ def _partial_bp_key(bp_id: str) -> str:
 async def create_blueprint(bp: Blueprint) -> BlueprintAck:
     """Register (or upsert) a *Blueprint*."""
 
-    # Validate nodes before persisting – convert & run runtime_validate()
+    # Validate blueprint comprehensively ---------------------------------
+    from ice_orchestrator.validation.schema_validator import validate_blueprint
+
     validation_context = {"validation_errors": [], "warnings": []}
-    
+
     try:
+        # Design-time (schema version, dependency graph, tool parameter match)
+        await validate_blueprint(bp)  # Raises on failure
+
+        # Runtime-convert to ensure NodeSpecs are materially valid
         bp.validate_runtime()
         from ice_core.utils.node_conversion import convert_node_specs
 
         cfgs = convert_node_specs(bp.nodes)
-        # Run runtime validation so schema presence & literals are enforced
         for cfg in cfgs:
-            try:
-                if hasattr(cfg, "runtime_validate"):
-                    cfg.runtime_validate()
-            except ValueError as ve:
-                logger.error("Validation failed for node %s: %s", cfg.id, str(ve))
-                validation_context["validation_errors"].append(f"Node {cfg.id}: {str(ve)}")
-                raise
+            if hasattr(cfg, "runtime_validate"):
+                cfg.runtime_validate()  # type: ignore[attr-defined]
     except Exception as exc:
         validation_context["validation_errors"].append(str(exc))
-        raise HTTPException(400, detail=str(exc))  # Now surfaces exact node+error
+        raise HTTPException(400, detail=str(exc))
 
     # Generate blueprint visualization if tool is available
     visualization_data = None
@@ -305,18 +305,20 @@ async def start_run(req: RunRequest) -> RunAck:
     if bp is None:
         raise HTTPException(status_code=404, detail="blueprint_id not found")
 
-    # Validate (and implicitly convert) the blueprint -------------------------
+    from ice_orchestrator.validation.schema_validator import validate_blueprint
+
     try:
+        await validate_blueprint(bp)
+
         bp.validate_runtime()
         from ice_core.utils.node_conversion import convert_node_specs
 
         conv_nodes = convert_node_specs(bp.nodes)
-        # Enforce runtime validation before execution
         for cfg in conv_nodes:
             if hasattr(cfg, "runtime_validate"):
                 cfg.runtime_validate()  # type: ignore[attr-defined]
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid node spec: {exc}")
+        raise HTTPException(status_code=400, detail=f"Invalid blueprint: {exc}")
 
     run_id = f"run_{uuid.uuid4().hex[:8]}"
     start_ts = _dt.datetime.utcnow()

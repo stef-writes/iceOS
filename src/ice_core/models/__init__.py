@@ -49,6 +49,11 @@ __all__: list[str] = [
     "IEmbedder",
     "IWorkflow",
     # Base implementations removed - they're in ice_core.base
+    # new execution-control node configs
+    "SwarmNodeConfig",
+    "HumanNodeConfig",
+    "MonitorNodeConfig",
+    "AgentSpec",
 ]
 
 # AppConfig removed - runtime config doesn't belong in core layer
@@ -81,6 +86,10 @@ from .node_models import (
     NodeIO,
     ToolConfig,
     UsageMetadata,
+    SwarmNodeConfig,
+    HumanNodeConfig,
+    MonitorNodeConfig,
+    AgentSpec,
 )
 
 # Import protocols from ice_core.protocols

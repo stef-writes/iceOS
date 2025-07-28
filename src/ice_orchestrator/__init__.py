@@ -50,3 +50,20 @@ def initialize_orchestrator() -> None:
     # Import executor modules to register them with the execution system
     import ice_orchestrator.execution.executors.unified  # noqa: F401
     import ice_orchestrator.execution.executors  # noqa: F401
+
+    # ------------------------------------------------------------------
+    # ALWAYS-ON built-in tools & agents (core library) ------------------
+    # ------------------------------------------------------------------
+
+    # Importing these modules registers their tools via @tool decorators
+    # or explicit registry calls.  Keep this at the end so that the
+    # ServiceLocator and registry infrastructure is already ready.
+    try:
+        import ice_sdk.tools.core  # noqa: F401
+        import ice_sdk.tools.system  # noqa: F401
+        import ice_sdk.tools.ai  # noqa: F401
+        import ice_sdk.tools.web  # noqa: F401
+        import ice_sdk.tools.db  # noqa: F401
+    except ImportError:
+        # If a category is missing we simply skip it.
+        pass

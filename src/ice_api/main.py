@@ -17,6 +17,14 @@ from ice_api.dependencies import get_tool_service
 from ice_api.api.direct_execution import router as direct_router
 from ice_api.ws_gateway import router as ws_router
 from ice_core.utils.logging import setup_logger
+# New startup helpers
+from ice_api.startup_utils import (
+    print_startup_banner,
+    timed_import,
+    summarise_demo_load,
+    validate_registered_components,
+    READY_FLAG,
+)
 from ice_sdk import ToolService
 # Note: API layer uses ServiceLocator for orchestrator services
 from ice_sdk.services import ServiceLocator
@@ -42,56 +50,42 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     initialize_sdk()
     initialize_orchestrator()
 
-    # Load custom demo components if available
-    try:
-        import sys
-        import os
-        from pathlib import Path
-        
-        # Add use_cases to path if available
-        project_root = Path(__file__).parent.parent.parent
-        use_cases_path = project_root / "use_cases"
-        
-        if str(use_cases_path) not in sys.path:
-            sys.path.insert(0, str(use_cases_path))
-        
-        # Load DocumentAssistant components
-        try:
-            from DocumentAssistant import initialize_all as init_document_assistant
-            success = init_document_assistant("mcp")
-            if success:
-                logger.info("✅ DocumentAssistant components loaded successfully")
-            else:
-                logger.warning("⚠️ DocumentAssistant components failed to load")
-        except Exception as e:
-            logger.info(f"DocumentAssistant demo not available: {e}")
-        
-        # Load BCIInvestmentLab components
-        try:
-            from BCIInvestmentLab import initialize_all as init_bci_lab
-            success = init_bci_lab("mcp")
-            if success:
-                logger.info("✅ BCIInvestmentLab components loaded successfully")
-            else:
-                logger.warning("⚠️ BCIInvestmentLab components failed to load")
-        except Exception as e:
-            logger.info(f"BCIInvestmentLab demo not available: {e}")
-        
-        # Load FB Marketplace components if available
-        fb_marketplace_path = use_cases_path / "RivaRidge" / "FB_Marketplace_Seller"
-        if fb_marketplace_path.exists():
-            logger.info("Loading FB Marketplace Seller demo components...")
-            
-            # Import and initialize FB Marketplace Seller components
-            from RivaRidge.FB_Marketplace_Seller.initialization import initialize_all
-            success = initialize_all("mcp")
-            
-            if success:
-                logger.info("✅ FB Marketplace Seller components loaded successfully")
-            else:
-                logger.warning("⚠️ FB Marketplace Seller components failed to load")
-    except Exception as e:
-        logger.info(f"Demo components not available: {e}")
+    # ------------------------------------------------------------------
+    # Progressive demo loader with timing --------------------------------
+    # ------------------------------------------------------------------
+
+    import sys
+    project_root = Path(__file__).parent.parent.parent
+    use_cases_path = project_root / "use_cases"
+
+    if str(use_cases_path) not in sys.path:
+        sys.path.insert(0, str(use_cases_path))
+
+    env_packs = os.getenv("ICEOS_OPTIONAL_PACKS")
+    if env_packs:
+        raw_paths = [p.strip() for p in env_packs.split(",") if p.strip()]
+        demo_modules = [(module_path.split(".")[-1], module_path) for module_path in raw_paths]
+    else:
+        # Default demos in dev profile
+        demo_modules = [
+            ("DocumentAssistant", "DocumentAssistant"),
+            ("BCI Investment Lab", "BCIInvestmentLab"),
+        ]
+
+    for label, module_path in demo_modules:
+        seconds, mod, exc = timed_import(module_path)
+        if mod is not None:
+            # Call initialize_all if present
+            ok = True
+            if hasattr(mod, "initialize_all"):
+                try:
+                    ok = bool(mod.initialize_all("mcp"))  # type: ignore[attr-defined]
+                except Exception as ie:
+                    ok = False
+                    exc = ie
+            summarise_demo_load(label, seconds, ok, "" if ok else str(exc))
+        else:
+            summarise_demo_load(label, seconds, False, str(exc))
 
     app.state.context_manager = ServiceLocator.get("context_manager")  # type: ignore[attr-defined]
     
@@ -119,6 +113,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     redis = await get_redis()
     await redis.ping()
     logger.info("Redis connection established")
+
+    # ------------------------------------------------------------------
+    # Component validation ---------------------------------------------
+    # ------------------------------------------------------------------
+
+    validation_summary = validate_registered_components()
+    if validation_summary["tool_failures"]:
+        logger.warning("⚠️  Some tools failed validation: %s", validation_summary["tool_failures"])
+
+    # Print startup banner last so it appears after early logs ---------
+    git_sha = os.getenv("GIT_COMMIT_SHA")
+    print_startup_banner(app.version, git_sha)
+
+    # Mark application as ready
+    import ice_api.startup_utils as su
+    su.READY_FLAG = True
 
     yield
 
@@ -149,6 +159,28 @@ add_exception_handlers(app)
 app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
 app.include_router(direct_router, tags=["direct"])
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
+
+# ------------------------------------------------------------------
+# Readiness & meta routes ------------------------------------------
+# ------------------------------------------------------------------
+
+@app.get("/ready", tags=["health"], response_model=Dict[str, str])
+async def ready_check() -> Dict[str, str]:
+    """Readiness probe – returns 200 only after full startup."""
+    import ice_api.startup_utils as su
+    return {"status": "ready" if su.READY_FLAG else "starting"}
+
+
+@app.get("/api/v1/meta/components", tags=["discovery"], response_model=Dict[str, Any])
+async def meta_components() -> Dict[str, Any]:
+    """Return counts of registered components for dashboards."""
+    from ice_core.unified_registry import registry, global_agent_registry
+    from ice_core.models.enums import NodeType
+    return {
+        "tools": [n for _, n in registry.list_nodes(NodeType.TOOL)],
+        "agents": [n for n, _ in global_agent_registry.available_agents()],
+        "workflows": [n for _, n in registry.list_nodes(NodeType.WORKFLOW)],
+    }
 
 # Add real MCP JSON-RPC 2.0 endpoint
 from ice_api.api.mcp_jsonrpc import router as mcp_jsonrpc_router

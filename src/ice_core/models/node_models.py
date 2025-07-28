@@ -695,3 +695,98 @@ class ChainSpec(BaseModel):
             ]
         },
     )
+
+# ---------------------------------------------------------------------------
+# Phase-2 execution-control node configs (Swarm / Human / Monitor)
+# ---------------------------------------------------------------------------
+
+class AgentSpec(BaseModel):
+    """Specification for an agent inside a swarm."""
+
+    package: str
+    role: str
+    config_overrides: Dict[str, Any] = Field(default_factory=dict)
+
+    model_config = ConfigDict(extra="forbid")
+
+
+@mcp_tier("Multi-agent swarm coordination")
+@multi_granularity("chain")
+class SwarmNodeConfig(BaseNodeConfig):
+    """Configuration for a multi-agent swarm node."""
+
+    type: Literal["swarm"] = "swarm"
+
+    agents: List[AgentSpec] = Field(..., min_items=2)
+    coordination_strategy: Literal["consensus", "hierarchical", "marketplace"] = "consensus"
+    max_rounds: int = Field(10, ge=1)
+    consensus_threshold: float = Field(0.75, ge=0.5, le=1.0)
+
+    def runtime_validate(self) -> None:  # noqa: D401 – override
+        super().runtime_validate()
+
+        if len(self.agents) < 2:
+            raise ValueError("Swarm requires at least 2 agents")
+
+        # ensure non-empty packages and unique roles
+        roles = []
+        for agent in self.agents:
+            if not agent.package.strip():
+                raise ValueError("Agent package cannot be empty")
+            if not agent.role.strip():
+                raise ValueError("Agent role cannot be empty")
+            roles.append(agent.role)
+        if len(set(roles)) != len(roles):
+            raise ValueError("Swarm agents must have unique roles")
+
+
+@mcp_tier("Human-in-the-loop workflows")
+@multi_granularity("node")
+class HumanNodeConfig(BaseNodeConfig):
+    """Human approval / input node."""
+
+    type: Literal["human"] = "human"
+
+    prompt_message: str = Field(..., min_length=1)
+    approval_type: Literal["approve_reject", "choice"] = "approve_reject"
+    timeout_seconds: Optional[int] = Field(None, ge=1)
+    auto_approve_after: Optional[int] = Field(None, ge=1)
+    choices: Optional[List[str]] = None
+
+    def runtime_validate(self) -> None:
+        super().runtime_validate()
+        if not self.prompt_message.strip():
+            raise ValueError("Human node requires non-empty prompt_message")
+        if self.approval_type == "choice" and (not self.choices or len(self.choices) < 2):
+            raise ValueError("Choice approval type requires at least 2 choices")
+        if self.auto_approve_after and not self.timeout_seconds:
+            raise ValueError("auto_approve_after requires timeout_seconds")
+        if self.auto_approve_after and self.timeout_seconds and self.auto_approve_after >= self.timeout_seconds:
+            raise ValueError("auto_approve_after must be less than timeout_seconds")
+
+
+@mcp_tier("Real-time workflow monitoring")
+@multi_granularity("node")
+class MonitorNodeConfig(BaseNodeConfig):
+    """Monitor node that watches a metric expression and triggers actions."""
+
+    type: Literal["monitor"] = "monitor"
+
+    metric_expression: str = Field(..., min_length=1)
+    action_on_trigger: Literal["alert_only", "pause", "abort"] = "alert_only"
+    alert_channels: List[str] = Field(default_factory=list)
+    check_interval_seconds: int = Field(5, ge=1)
+
+    def runtime_validate(self) -> None:
+        super().runtime_validate()
+        if not self.metric_expression.strip():
+            raise ValueError("Monitor node requires non-empty metric_expression")
+        # basic expression syntax check
+        try:
+            compile(self.metric_expression, "<monitor>", "eval")
+        except SyntaxError as e:
+            raise ValueError(f"Invalid metric expression syntax: {e}")
+        valid_channels = {"email", "slack", "webhook", "sms", "dashboard"}
+        invalid = set(self.alert_channels) - valid_channels
+        if invalid:
+            raise ValueError(f"Invalid alert channels: {invalid}")

@@ -19,10 +19,19 @@ class ToolService:
         import ice_sdk.tools.ai
         import ice_sdk.tools.system
         import ice_sdk.tools.web
-        import ice_sdk.tools.db
-        
-        # 🚀 NEW: Import built-in tools (they are optional and configurable)
-        import ice_sdk.tools.builtin
+
+        # Optional categories -------------------------------------------------
+        try:
+            import ice_sdk.tools.db  # noqa: F401
+        except ModuleNotFoundError:
+            # DB tool package is optional; ignore if removed from codebase
+            pass
+
+        # 🚀 NEW: Import built-in tools (optional)
+        try:
+            import ice_sdk.tools.builtin  # noqa: F401
+        except ModuleNotFoundError:
+            pass
     
     def register_tool(self, name: str, tool_class: Type[ToolBase]) -> None:
         """Register a tool class in the unified registry.

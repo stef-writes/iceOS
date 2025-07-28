@@ -17,15 +17,19 @@ def initialize_sdk() -> None:
     All runtime services (workflow execution, tool execution, context management)
     are handled by the orchestrator layer.
     """
-    # Import tool packages to trigger registration
-    try:
-        import ice_sdk.tools.core
-        import ice_sdk.tools.ai
-        import ice_sdk.tools.system
-        import ice_sdk.tools.web
-        import ice_sdk.tools.db
-    except ImportError:
-        pass  # Best effort - some tool categories may not be available
+    import os
+    profile = os.getenv("ICEOS_PROFILE", "dev")
+
+    if profile == "dev":
+        # In dev mode import all SDK tool packages for convenience
+        try:
+            import ice_sdk.tools.core
+            import ice_sdk.tools.ai
+            import ice_sdk.tools.system
+            import ice_sdk.tools.web
+            import ice_sdk.tools.db
+        except ImportError:
+            pass  # Best effort
     
     # Import agent utilities to ensure they're available
     try:
