@@ -58,7 +58,7 @@ async def run_marketplace_automation_blueprint() -> dict:
     workflow = create_marketplace_automation_workflow()
     
     # Real inventory file - no mocking
-    inventory_file = "use_cases/RivaRidge/FB_Marketplace_Seller/inventory.csv"
+    inventory_file = "use-cases/RivaRidge/FB_Marketplace_Seller/inventory.csv"
     
     # Verify inventory file exists
     if not Path(inventory_file).exists():

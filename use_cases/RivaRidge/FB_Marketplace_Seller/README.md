@@ -86,7 +86,7 @@ This demo represents one of the most comprehensive AI workflow automation exampl
 
 ### **Run the Complete Demo**
 ```bash
-cd use_cases/RivaRidge/FB_Marketplace_Seller
+cd use-cases/RivaRidge/FB_Marketplace_Seller
 python enhanced_blueprint_demo.py
 ```
 
