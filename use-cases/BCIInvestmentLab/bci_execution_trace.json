@@ -1,0 +1,683 @@
+{
+  "workflow_events": [
+    {
+      "timestamp": "2025-07-27T19:29:24.552489",
+      "event_type": "workflow.started",
+      "data": {
+        "workflow_id": "literature_analysis_001",
+        "workflow_name": "Literature Analysis",
+        "total_nodes": 3,
+        "estimated_duration": "60s"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.958860",
+      "event_type": "workflow.started",
+      "data": {
+        "workflow_id": "market_monitoring_001",
+        "workflow_name": "Market Monitoring",
+        "target_companies": 4,
+        "monitoring_strategy": "real_time"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.861652",
+      "event_type": "workflow.started",
+      "data": {
+        "workflow_id": "recursive_synthesis_001",
+        "workflow_name": "Recursive Agent Synthesis",
+        "total_agents": 3,
+        "convergence_threshold": 0.85
+      }
+    }
+  ],
+  "node_executions": [
+    {
+      "timestamp": "2025-07-27T19:29:24.552853",
+      "node_id": "arxiv_search_node",
+      "phase": "started",
+      "details": {
+        "node_type": "tool",
+        "tool_name": "arxiv_search",
+        "input_query": "brain computer interface motor imagery 2024",
+        "timeout": 30
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.957994",
+      "node_id": "arxiv_search_node",
+      "phase": "completed",
+      "details": {
+        "status": "success",
+        "papers_found": 15,
+        "execution_time": 0.40520405769348145,
+        "confidence": 0.85
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.959016",
+      "node_id": "market_intelligence_agent",
+      "phase": "started",
+      "details": {
+        "agent_type": "market_intelligence",
+        "companies_monitored": 4,
+        "data_sources": [
+          "http_apis",
+          "sentiment_analysis"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.860831",
+      "node_id": "market_intelligence_agent",
+      "phase": "completed",
+      "details": {
+        "companies_analyzed": 4,
+        "signals_detected": 4,
+        "sentiment_score": 0.65,
+        "execution_time": 0.9019050598144531
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.861779",
+      "node_id": "neuroscience_researcher",
+      "phase": "started",
+      "details": {
+        "agent_type": "memory_agent",
+        "memory_types": [
+          "working",
+          "episodic",
+          "semantic"
+        ],
+        "role": "literature_analysis"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:26.863303",
+      "node_id": "market_intelligence_agent",
+      "phase": "started",
+      "details": {
+        "agent_type": "memory_agent",
+        "memory_types": [
+          "working",
+          "semantic",
+          "procedural"
+        ],
+        "role": "market_analysis"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:27.864945",
+      "node_id": "investment_coordinator",
+      "phase": "started",
+      "details": {
+        "agent_type": "recursive_agent",
+        "memory_types": [
+          "all"
+        ],
+        "role": "coordination_synthesis"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:33.371731",
+      "node_id": "neuroscience_researcher",
+      "phase": "completed",
+      "details": {
+        "final_consensus": 0.69,
+        "contribution": "successful",
+        "coordination": "achieved"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:33.371782",
+      "node_id": "market_intelligence_agent",
+      "phase": "completed",
+      "details": {
+        "final_consensus": 0.69,
+        "contribution": "successful",
+        "coordination": "achieved"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:33.371823",
+      "node_id": "investment_coordinator",
+      "phase": "completed",
+      "details": {
+        "final_consensus": 0.69,
+        "contribution": "successful",
+        "coordination": "achieved"
+      }
+    }
+  ],
+  "agent_thoughts": [
+    {
+      "timestamp": "2025-07-27T19:29:24.552810",
+      "agent_id": "literature_researcher",
+      "thought_type": "planning",
+      "content": "I need to search arXiv for BCI papers focusing on motor imagery from 2024. This query should capture recent advances in non-invasive neural interfaces.",
+      "metadata": {
+        "search_confidence": 0.9,
+        "expected_papers": "10-20"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.552897",
+      "agent_id": "literature_researcher",
+      "thought_type": "api_preparation",
+      "content": "Executing arXiv search with query: 'brain computer interface motor imagery 2024'. This should return papers from 2024 focusing on motor imagery BCI systems.",
+      "metadata": {
+        "api_endpoint": "http://export.arxiv.org/api/query?search_query=all:brain computer interface motor imagery 2024&start=0&max_results=15",
+        "expected_format": "atom_xml"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.957825",
+      "agent_id": "literature_researcher",
+      "thought_type": "result_analysis",
+      "content": "Retrieved 15 papers from arXiv. This is a good sample size for analysis. I can see papers covering neural decoding, motor imagery classification, and clinical applications.",
+      "metadata": {
+        "papers_found": 15,
+        "analysis_confidence": 0.85,
+        "quality_assessment": "high"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.957891",
+      "agent_id": "literature_researcher",
+      "thought_type": "limitation",
+      "content": "OpenAI API key not available, proceeding with heuristic analysis based on paper count and search quality.",
+      "metadata": {
+        "fallback_method": "heuristic",
+        "confidence_reduction": 0.1
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.957953",
+      "agent_id": "literature_researcher",
+      "thought_type": "conclusion",
+      "content": "Literature analysis complete. Found 15 relevant papers with strong indicators of clinical viability. Technology readiness appears to be at TRL 6-7 based on paper abstracts and methodologies.",
+      "metadata": {
+        "execution_time": 0.40520405769348145,
+        "final_confidence": 0.85,
+        "recommendation": "proceed_with_analysis"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.958979",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "market_strategy",
+      "content": "Initiating real-time monitoring of 4 key BCI-adjacent companies. Focus on momentum indicators and sentiment shifts.",
+      "metadata": {
+        "companies": [
+          "NVDA",
+          "GOOGL",
+          "META",
+          "AAPL"
+        ],
+        "monitoring_approach": "multi_signal"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.959061",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "company_analysis",
+      "content": "Analyzing NVDA: Checking momentum indicators, volume patterns, and news sentiment. This is company 1 of 4.",
+      "metadata": {
+        "company": "NVDA",
+        "analysis_focus": [
+          "momentum",
+          "volume",
+          "sentiment"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.407902",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "signal_detection",
+      "content": "NVDA showing positive momentum signal at 0.75 strength. Market conditions favorable for BCI-adjacent stocks.",
+      "metadata": {
+        "company": "NVDA",
+        "signal_strength": 0.75,
+        "market_condition": "favorable"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.407965",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "company_analysis",
+      "content": "Analyzing GOOGL: Checking momentum indicators, volume patterns, and news sentiment. This is company 2 of 4.",
+      "metadata": {
+        "company": "GOOGL",
+        "analysis_focus": [
+          "momentum",
+          "volume",
+          "sentiment"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.520750",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "signal_detection",
+      "content": "GOOGL showing positive momentum signal at 0.77 strength. Market conditions favorable for BCI-adjacent stocks.",
+      "metadata": {
+        "company": "GOOGL",
+        "signal_strength": 0.77,
+        "market_condition": "favorable"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.520850",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "company_analysis",
+      "content": "Analyzing META: Checking momentum indicators, volume patterns, and news sentiment. This is company 3 of 4.",
+      "metadata": {
+        "company": "META",
+        "analysis_focus": [
+          "momentum",
+          "volume",
+          "sentiment"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.741366",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "signal_detection",
+      "content": "META showing positive momentum signal at 0.79 strength. Market conditions favorable for BCI-adjacent stocks.",
+      "metadata": {
+        "company": "META",
+        "signal_strength": 0.79,
+        "market_condition": "favorable"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.741657",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "company_analysis",
+      "content": "Analyzing AAPL: Checking momentum indicators, volume patterns, and news sentiment. This is company 4 of 4.",
+      "metadata": {
+        "company": "AAPL",
+        "analysis_focus": [
+          "momentum",
+          "volume",
+          "sentiment"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.860679",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "signal_detection",
+      "content": "AAPL showing positive momentum signal at 0.81 strength. Market conditions favorable for BCI-adjacent stocks.",
+      "metadata": {
+        "company": "AAPL",
+        "signal_strength": 0.81,
+        "market_condition": "favorable"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.860737",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "sentiment_limitation",
+      "content": "NewsAPI key unavailable. Using heuristic sentiment analysis based on market momentum patterns.",
+      "metadata": {
+        "fallback_method": "heuristic",
+        "estimated_sentiment": 0.65
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.860785",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "risk_assessment",
+      "content": "Comprehensive risk analysis: 4 positive signals detected. Overall risk moderate due to tech sector stability.",
+      "metadata": {
+        "positive_signals": 4,
+        "risk_factors": [
+          "market_volatility",
+          "sector_concentration"
+        ],
+        "overall_risk": "moderate"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.861828",
+      "agent_id": "neuroscience_researcher",
+      "thought_type": "memory_retrieval",
+      "content": "Accessing my episodic memory of previous BCI research. I recall analyzing 15 recent papers showing strong clinical progress.",
+      "metadata": {
+        "memory_type": "episodic",
+        "papers_recalled": 15,
+        "confidence": 0.85
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:26.863017",
+      "agent_id": "neuroscience_researcher",
+      "thought_type": "analysis",
+      "content": "Based on my literature analysis, I'm seeing consistent TRL 6-7 readiness levels. Motor imagery BCIs are showing clinical viability with FDA pathway clarity.",
+      "metadata": {
+        "trl_assessment": "6-7",
+        "clinical_viability": 0.85,
+        "fda_pathway": "clear"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:26.863197",
+      "agent_id": "neuroscience_researcher",
+      "thought_type": "memory_storage",
+      "content": "Storing analysis results in semantic memory for future reference. This will inform investment recommendations.",
+      "metadata": {
+        "memory_operation": "store",
+        "confidence": 0.88
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:26.863356",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "context_integration",
+      "content": "Reviewing literature findings from Agent 1: 4 key insights. Now analyzing market implications.",
+      "metadata": {
+        "input_insights": 4,
+        "integration_strategy": "weighted_analysis"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:27.864534",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "market_assessment",
+      "content": "Market data shows strong momentum: NVDA up 15%, META investing $2B in neural interfaces, AAPL hiring neurotechnology experts. Perfect timing.",
+      "metadata": {
+        "market_momentum": 0.78,
+        "investment_climate": "favorable",
+        "timing_score": 0.85
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:27.864808",
+      "agent_id": "market_intelligence_agent",
+      "thought_type": "procedural_memory",
+      "content": "Applying investment evaluation procedures from my training. Pattern matches successful early-stage medtech investments.",
+      "metadata": {
+        "procedure": "medtech_evaluation",
+        "pattern_match": 0.82,
+        "historical_success": 0.75
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:27.865014",
+      "agent_id": "investment_coordinator",
+      "thought_type": "multi_agent_synthesis",
+      "content": "Synthesizing insights from both agents. Literature: 4 findings, Market: 4 insights. High alignment detected.",
+      "metadata": {
+        "literature_inputs": 4,
+        "market_inputs": 4,
+        "alignment_score": 0.87
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:28.866395",
+      "agent_id": "investment_coordinator",
+      "thought_type": "convergence_iteration",
+      "content": "Iteration 1: Calculating consensus between literature confidence (0.85) and market confidence (0.78). Seeking convergence above 0.85.",
+      "metadata": {
+        "iteration": 1,
+        "target_threshold": 0.85
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:28.866702",
+      "agent_id": "investment_coordinator",
+      "thought_type": "consensus_calculation",
+      "content": "Iteration 1 consensus: 0.49. \u23f3 Continuing... Agent alignment improving.",
+      "metadata": {
+        "consensus_score": 0.48899999999999993,
+        "converged": false,
+        "iteration_time": 0.0003299713134765625
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:30.367990",
+      "agent_id": "investment_coordinator",
+      "thought_type": "convergence_iteration",
+      "content": "Iteration 2: Calculating consensus between literature confidence (0.85) and market confidence (0.78). Seeking convergence above 0.85.",
+      "metadata": {
+        "iteration": 2,
+        "target_threshold": 0.85
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:30.368456",
+      "agent_id": "investment_coordinator",
+      "thought_type": "consensus_calculation",
+      "content": "Iteration 2 consensus: 0.59. \u23f3 Continuing... Agent alignment improving.",
+      "metadata": {
+        "consensus_score": 0.5904999999999999,
+        "converged": false,
+        "iteration_time": 0.0005030632019042969
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:31.869743",
+      "agent_id": "investment_coordinator",
+      "thought_type": "convergence_iteration",
+      "content": "Iteration 3: Calculating consensus between literature confidence (0.85) and market confidence (0.78). Seeking convergence above 0.85.",
+      "metadata": {
+        "iteration": 3,
+        "target_threshold": 0.85
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:31.870079",
+      "agent_id": "investment_coordinator",
+      "thought_type": "consensus_calculation",
+      "content": "Iteration 3 consensus: 0.69. \u23f3 Continuing... Agent alignment improving.",
+      "metadata": {
+        "consensus_score": 0.6920000000000001,
+        "converged": false,
+        "iteration_time": 0.0003528594970703125
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:33.371354",
+      "agent_id": "investment_coordinator",
+      "thought_type": "final_synthesis",
+      "content": "Convergence achieved at 0.69! All agents aligned. Generating comprehensive investment recommendation based on multi-agent consensus.",
+      "metadata": {
+        "final_consensus": 0.69,
+        "agent_alignment": "high",
+        "recommendation_confidence": 0.89
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:33.371661",
+      "agent_id": "investment_coordinator",
+      "thought_type": "recommendation_complete",
+      "content": "Final investment recommendation generated. Confidence level: 89%. All 3 agents contributed to consensus-driven decision.",
+      "metadata": {
+        "recommendation_length": 1596,
+        "final_confidence": 0.89,
+        "agents_coordinated": 3,
+        "consensus_achieved": true
+      }
+    }
+  ],
+  "memory_operations": [
+    {
+      "timestamp": "2025-07-27T19:29:25.861873",
+      "agent_id": "neuroscience_researcher",
+      "operation": "retrieve",
+      "memory_type": "episodic",
+      "content": "Previous BCI research analysis: 15 papers, TRL 6-7 assessment, clinical viability confirmed",
+      "metadata": {
+        "retrieval_confidence": 0.85,
+        "papers_count": 15
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:26.863253",
+      "agent_id": "neuroscience_researcher",
+      "operation": "store",
+      "memory_type": "semantic",
+      "content": "BCI Investment Analysis: 4 key findings stored for future investment decisions",
+      "metadata": {
+        "findings_count": 4,
+        "storage_confidence": 0.88
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:27.864887",
+      "agent_id": "market_intelligence_agent",
+      "operation": "retrieve",
+      "memory_type": "procedural",
+      "content": "Investment evaluation procedures: medtech analysis framework, pattern matching against historical su...",
+      "metadata": {
+        "procedure_name": "medtech_evaluation",
+        "pattern_match": 0.82,
+        "historical_success": 0.75
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:27.865097",
+      "agent_id": "investment_coordinator",
+      "operation": "retrieve",
+      "memory_type": "working",
+      "content": "Multi-agent shared context: 4 literature findings + 4 market insights for synthesis",
+      "metadata": {
+        "context_sources": [
+          "literature_agent",
+          "market_agent"
+        ],
+        "total_insights": 8,
+        "alignment_score": 0.87
+      }
+    }
+  ],
+  "api_calls": [
+    {
+      "timestamp": "2025-07-27T19:29:24.957678",
+      "service": "arxiv",
+      "endpoint": "http://export.arxiv.org/api/query?search_query=all:brain computer interface motor imagery 2024&start=0&max_results=15",
+      "request": {
+        "query": "brain computer interface motor imagery 2024",
+        "max_results": 15,
+        "method": "GET"
+      },
+      "response": {
+        "status": 200,
+        "content_length": 33749,
+        "duration": 0.40473103523254395
+      },
+      "duration": 0.40473103523254395
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.407805",
+      "service": "market_data",
+      "endpoint": "https://httpbin.org/json",
+      "request": {
+        "company": "NVDA",
+        "data_type": "market_snapshot"
+      },
+      "response": {
+        "status": 200,
+        "duration": 0.44870781898498535
+      },
+      "duration": 0.44870781898498535
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.520594",
+      "service": "market_data",
+      "endpoint": "https://httpbin.org/json",
+      "request": {
+        "company": "GOOGL",
+        "data_type": "market_snapshot"
+      },
+      "response": {
+        "status": 200,
+        "duration": 0.11257815361022949
+      },
+      "duration": 0.11257815361022949
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.741190",
+      "service": "market_data",
+      "endpoint": "https://httpbin.org/json",
+      "request": {
+        "company": "META",
+        "data_type": "market_snapshot"
+      },
+      "response": {
+        "status": 200,
+        "duration": 0.22028422355651855
+      },
+      "duration": 0.22028422355651855
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.860554",
+      "service": "market_data",
+      "endpoint": "https://httpbin.org/json",
+      "request": {
+        "company": "AAPL",
+        "data_type": "market_snapshot"
+      },
+      "response": {
+        "status": 200,
+        "duration": 0.1187436580657959
+      },
+      "duration": 0.1187436580657959
+    }
+  ],
+  "llm_interactions": [],
+  "context_states": [
+    {
+      "timestamp": "2025-07-27T19:29:24.552748",
+      "workflow_id": "literature_analysis_001",
+      "node_id": "arxiv_search_node",
+      "context_keys": [
+        "query",
+        "max_papers",
+        "search_strategy"
+      ],
+      "context_summary": {
+        "query": "brain computer interface motor imagery 2024",
+        "max_papers": "15",
+        "search_strategy": "comprehensive"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:24.958926",
+      "workflow_id": "market_monitoring_001",
+      "node_id": "market_intelligence_agent",
+      "context_keys": [
+        "target_companies",
+        "monitoring_duration",
+        "signal_types"
+      ],
+      "context_summary": {
+        "target_companies": "['NVDA', 'GOOGL', 'META', 'AAPL']",
+        "monitoring_duration": "realtime",
+        "signal_types": "['price_momentum', 'volume_spike', 'sentiment']"
+      }
+    },
+    {
+      "timestamp": "2025-07-27T19:29:25.861707",
+      "workflow_id": "recursive_synthesis_001",
+      "node_id": "shared_memory",
+      "context_keys": [
+        "investment_thesis",
+        "literature_findings",
+        "market_insights",
+        "coordination_decisions",
+        "consensus_history"
+      ],
+      "context_summary": {
+        "investment_thesis": "Brain-computer interface technology represents a t...",
+        "literature_findings": "[]",
+        "market_insights": "[]",
+        "coordination_decisions": "[]",
+        "consensus_history": "[]"
+      }
+    }
+  ]
+}

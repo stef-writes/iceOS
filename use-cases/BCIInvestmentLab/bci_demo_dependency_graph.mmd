@@ -1,0 +1,12 @@
+graph LR
+    literature_analysis[Literature Analysis]
+    market_monitoring[Market Monitoring]
+    recursive_synthesis[Recursive Synthesis]
+    literature_analysis --> market_monitoring
+    market_monitoring --> recursive_synthesis
+    final_result[📊 Investment Recommendation]
+    recursive_synthesis --> final_result
+    classDef workflow fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef result fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    class literature_analysis,market_monitoring,recursive_synthesis workflow
+    class final_result result

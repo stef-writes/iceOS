@@ -57,38 +57,71 @@ class ContentAnalyzer(ToolBase):
         return {"analysis": result.text}
 ```
 
-## Building Workflows
+## Building Workflows with Fluent API
+
+### Modern WorkflowBuilder Pattern
 
 ```python
-from ice_sdk.builders.workflow import WorkflowBuilder
-from ice_sdk.builders.agent import AgentBuilder, create_agent
+from ice_sdk.builders import WorkflowBuilder
+from ice_orchestrator.execution.executor import WorkflowExecutor
 
-# Build a workflow
-builder = WorkflowBuilder("my_workflow")
-
-# Add tool nodes
-builder.add_tool(
-    "fetch", 
-    tool_name="http_request",
-    url="https://api.example.com/data"
+# Modern fluent API approach
+workflow = (WorkflowBuilder("Data Analysis Pipeline")
+    # Tools for external operations
+    .add_tool("fetch", "http_request", url="https://api.example.com/data")
+    .add_tool("process", "csv_processor", delimiter=",")
+    
+    # LLM for analysis
+    .add_llm("analyze", "gpt-4", 
+             prompt="Analyze this data: {{process.output}}")
+    
+    # Agent with memory capabilities
+    .add_agent("insights", "insights_agent",
+               tools=["trend_analyzer", "pattern_finder"],
+               memory={
+                   "enable_semantic": True,
+                   "enable_procedural": True
+               })
+    
+    # Connect the pipeline
+    .connect("fetch", "process")
+    .connect("process", "analyze")
+    .connect("analyze", "insights")
+    .build()
 )
 
-# Create agent configuration
-agent_config = create_agent(
-    name="analyzer",
-    model="gpt-4",
-    tools=["web_search", "calculator"],
-    system_prompt="You are a data analyst"
+# Execute immediately
+result = await WorkflowExecutor().execute(workflow, {"source": "quarterly_data"})
+```
+
+### All Node Types
+
+| Method | Purpose | Example Usage |
+|--------|---------|---------------|
+| `add_tool()` | External operations | `.add_tool("parse", "pdf_parser", file="docs.pdf")` |
+| `add_llm()` | Language models | `.add_llm("summarize", "gpt-4", "Summarize: {{input}}")` |
+| `add_agent()` | Intelligent agents | `.add_agent("chat", "customer_agent", memory={...})` |
+| `add_code()` | Python execution | `.add_code("calc", "result = x * 2", sandbox=True)` |
+| `add_condition()` | Conditional flow | `.add_condition("check", "{{price}} > 100", [...])` |
+| `add_loop()` | Batch processing | `.add_loop("each", "{{items}}", [...])` |
+| `add_parallel()` | Concurrent tasks | `.add_parallel("multi", [[...], [...]])` |
+| `add_recursive()` | Agent negotiation | `.add_recursive("negotiate", agent_package="pricing")` |
+
+### Memory-Enabled Agents
+
+```python
+# Agent with full cognitive memory system
+workflow = (WorkflowBuilder("Customer Service")
+    .add_agent("service", "customer_service_agent",
+               tools=["inquiry_responder", "order_lookup"],
+               memory={
+                   "enable_working": True,    # Active session state
+                   "enable_episodic": True,   # Customer interaction history
+                   "enable_semantic": True,   # Product knowledge base
+                   "enable_procedural": True  # Successful response patterns
+               })
+    .build()
 )
-
-# Add agent to workflow
-builder.add_agent("analyze", agent_config)
-
-# Connect nodes
-builder.connect("fetch", "analyze")
-
-# Get workflow config
-workflow_config = builder.build()
 ```
 
 ## Package Layout

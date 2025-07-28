@@ -1,0 +1,15 @@
+flowchart TD
+    arxiv_search_node["arxiv_search_node"]
+    arxiv_search_node_result["arxiv_search"]
+    market_intelligence_agent["market_intelligence_agent"]
+    neuroscience_researcher["neuroscience_researcher"]
+    market_intelligence_agent["market_intelligence_agent"]
+    investment_coordinator["investment_coordinator"]
+    literature_researcher --> market_intelligence_agent
+    market_intelligence_agent --> neuroscience_researcher
+    neuroscience_researcher --> market_intelligence_agent
+    market_intelligence_agent --> investment_coordinator
+    classDef toolNode fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef agentNode fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef recursiveNode fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef errorNode fill:#ffebee,stroke:#c62828,stroke-width:2px

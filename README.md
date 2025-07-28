@@ -1,28 +1,93 @@
 # iceOS - AI Workflow Orchestration System
 
-A clean, layered architecture for building and executing AI workflows with enterprise-grade security and strict separation of concerns.
+**Transform natural language into executable AI workflows with enterprise-grade security and cognitive memory.**
 
-## 🎯 Vision
+## 🎯 **What You Can Build**
 
-Transform natural language requests into executable AI workflows:
+```python
+# Real-world example: Document processing with intelligent memory
+workflow = (WorkflowBuilder("Document Assistant")
+    .add_tool("parse", "document_parser", file_path="docs/")
+    .add_tool("chunk", "intelligent_chunker", strategy="semantic")
+    .add_agent("chat", "document_chat_agent", 
+               memory={"enable_episodic": True, "enable_semantic": True})
+    .connect("parse", "chunk")
+    .connect("chunk", "chat")
+    .build()
+)
 
+# Execute with real data
+result = await WorkflowExecutor().execute(workflow, {
+    "user_query": "What are the key insights from these financial reports?"
+})
 ```
-User: "Analyze sales data and generate insights"
-    ↓
-Workflow: Tool → LLM → Agent → Results
+
+## 🧠 **Cognitive Memory System**
+
+Unlike other AI frameworks that just vectorize conversations, iceOS implements **human-like memory**:
+
+- **🔧 Working Memory**: Active conversation state (expires in minutes)
+- **📚 Episodic Memory**: "Remember when customer X negotiated and bought for $420"
+- **🎯 Semantic Memory**: "iPhone 13 market price is $580, demand is high" 
+- **⚙️ Procedural Memory**: "Use strategy Y for electronics - 85% success rate"
+
+```python
+# Agents learn and improve over time
+customer_history = await agent.memory.episodic.search(f"customer:{customer_id}")
+best_strategy = await agent.memory.procedural.get_best_strategy("pricing")
+market_data = await agent.memory.semantic.get_facts_for_entity("iPhone_13")
 ```
 
-## 🛡️ **Security-First Design**
+## 🚀 **Real-World Demos**
 
-User code execution runs in **WASM sandboxes** with resource limits:
-- CPU/memory monitoring and enforcement
-- Import restrictions and network isolation  
-- Timeout protection and audit logging
-- OpenTelemetry observability integration
+### **📚 Document Assistant** - Enterprise Document Processing
+- **Real PDF/Word parsing** with intelligent chunking
+- **Semantic search** across document collections  
+- **Memory-powered chat** that remembers document context
+- **Run**: `python use-cases/DocumentAssistant/run_blueprint.py`
 
-## 🏗️ Architecture Overview
+### **🛒 Facebook Marketplace Seller** - E-commerce Automation  
+- **Real CSV inventory** processing and AI enhancement
+- **Customer service agent** with conversation memory
+- **Dynamic pricing agent** using market intelligence
+- **Run**: `python use-cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py`
 
-iceOS follows a strict 4-layer architecture where each layer has a specific purpose:
+### **🧠 BCI Investment Intelligence** - Financial Research AI
+- **Real arXiv paper** analysis for investment research
+- **Multi-agent collaboration** with recursive communication
+- **All 9 node types** demonstrated in one sophisticated workflow
+- **Run**: `python use-cases/BCIInvestmentLab/run_blueprint.py`
+
+## ✨ **Why iceOS?**
+
+### **🎨 Simplified Developer Experience**
+```python
+# Fluent API - describe what you want, not how to wire it
+workflow = (WorkflowBuilder("Sales Analysis")
+    .add_tool("read_csv", "csv_reader", file="sales.csv")
+    .add_llm("analyze", "gpt-4", "Analyze this sales data: {{read_csv.output}}")
+    .add_agent("insights", "insights_agent", tools=["trend_analyzer"])
+    .connect("read_csv", "analyze")
+    .connect("analyze", "insights")
+    .build()
+)
+```
+
+### **🛡️ Enterprise Security**
+- **WASM sandboxes** for user code execution
+- **Resource limits** with CPU/memory monitoring
+- **Network isolation** and import restrictions
+- **Audit logging** with OpenTelemetry integration
+
+### **🧠 Intelligent Agents**
+- **Learn from experience** with 4-tier memory system
+- **Improve strategies** based on success metrics
+- **Context awareness** across conversations
+- **Domain expertise** through organized knowledge
+
+## 🏗️ **Architecture**
+
+iceOS follows a clean 4-layer architecture with strict boundaries:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -40,176 +105,71 @@ iceOS follows a strict 4-layer architecture where each layer has a specific purp
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Layer Responsibilities
+### **Layer Responsibilities**
+- **ice_core**: Shared models, protocols, unified registry
+- **ice_sdk**: Developer tools, workflow builders, fluent APIs  
+- **ice_orchestrator**: Runtime execution, cognitive memory, security
+- **ice_api**: HTTP/WebSocket interfaces, blueprint validation
 
-- **ice_core**: Shared models, protocols, and unified registry
-- **ice_sdk**: Tool development, workflow builders, service locator  
-- **ice_orchestrator**: Runtime execution, agents, memory, LLM services, WASM security
-- **ice_api**: External HTTP/WebSocket interfaces, MCP blueprint API
+## 🚀 **Quick Start**
 
-### 🏆 **Enterprise Features**
-
-- **🔐 WASM Sandboxing**: User code execution in secure WebAssembly containers
-- **🧠 Unified Memory**: Working/Episodic/Semantic/Procedural agent memory
-- **⚡ Plugin System**: Protocol-based with 20+ production tools
-- **📊 Observability**: OpenTelemetry tracing, structured logging, metrics
-- **🔄 Reusable Components**: Enterprise patterns for tool/agent sharing
-
-## 🚀 Quick Start
-
-### Installation
-
+### **Installation**
 ```bash
-# Clone the repository
+# Clone and install
 git clone https://github.com/your-org/iceos.git
 cd iceos
-
-# Install dependencies with Poetry
 poetry install
 
-# Run tests
-make test
-
-# Start the API server
-uvicorn ice_api.main:app --reload
+# Run a real demo
+python use-cases/DocumentAssistant/run_blueprint.py
 ```
 
-### Build Your First Tool
-
-```python
-from ice_sdk.decorators import tool
-from ice_sdk.tools.base import ToolBase
-
-@tool  # Auto-registers as "data_analyzer"
-class DataAnalyzer(ToolBase):
-    """Analyze data and return insights."""
-    
-    name = "data_analyzer"
-    description = "Analyzes data and returns insights"
-    
-    async def _execute_impl(self, **kwargs):
-        data = kwargs["data"]
-        # Your analysis logic here
-        return {"insights": ["insight1", "insight2"]}
-```
-
-### Create a Workflow
-
+### **Your First Workflow**
 ```python
 from ice_sdk.builders import WorkflowBuilder
+from ice_orchestrator.execution.executor import WorkflowExecutor
 
-# Build workflow
-builder = WorkflowBuilder("analysis_workflow")
-
-# Add nodes
-builder.add_tool("fetch", tool_name="http_request", url="https://api.example.com")
-builder.add_tool("analyze", tool_name="data_analyzer")
-
-# Connect nodes
-builder.connect("fetch", "analyze")
-
-# Execute via API
-workflow_config = builder.build()
-```
-
-### Execute an Agent
-
-```python
-from ice_sdk.builders import create_agent
-
-# Configure agent
-agent_config = create_agent(
-    name="assistant",
-    model="gpt-4",
-    tools=["web_search", "calculator"],
-    system_prompt="You are a helpful assistant"
+# Create workflow
+workflow = (WorkflowBuilder("Hello iceOS")
+    .add_tool("fetch", "http_request", url="https://api.github.com/users/octocat")
+    .add_llm("summarize", "gpt-4", "Summarize this profile: {{fetch.output}}")
+    .connect("fetch", "summarize")
+    .build()
 )
 
-# Agent execution happens in orchestrator runtime
+# Execute
+result = await WorkflowExecutor().execute(workflow, {})
+print(result.outputs["summarize"].content)
 ```
 
-## 🎯 Featured Demo: Facebook Marketplace Automation
-
-**Experience the full power of iceOS with our production-ready marketplace automation system:**
-
-```bash
-cd use-cases/RivaRidge/FB_Marketplace_Seller
-python enhanced_blueprint_demo.py
-```
-
-**What makes this demo exceptional:**
-- 🤖 **Real LLM Integration**: 40+ actual GPT-4o API calls
-- 🌐 **Live HTTP Requests**: Real network calls to external APIs  
-- 🧠 **Memory-Enabled Agents**: Customer service and pricing optimization
-- 🎭 **Ecosystem Simulation**: Realistic customer interactions and market dynamics
-- ⚡ **Two Execution Patterns**: MCP Blueprint (enterprise) + SDK WorkflowBuilder (developer)
-
-**Results**: Complete marketplace automation from CSV inventory → AI enhancement → publishing → customer service → dynamic pricing, with comprehensive testing and verification.
-
-➡️ **[View Complete Demo Documentation](use-cases/RivaRidge/FB_Marketplace_Seller/README.md)**
-
-## 📋 Recent Architectural Migration
-
-We've completed major architectural refactoring with significant improvements:
-
-### What Changed
-
-1. **Runtime → Orchestrator**: Agent execution, memory subsystem, LLM providers, and context management moved from SDK to orchestrator
-2. **Registry → Core**: Unified registry moved from SDK to core for shared access
-3. **Service Pattern**: SDK now uses ServiceLocator to access orchestrator services
-4. **Clear Boundaries**: Each layer now has distinct responsibilities
-5. **🚀 Nested Architecture Upgrade**: Transformed all major subsystems with nested `NodeType`-based organization for massive performance gains
-
-### 🚀 Performance Revolution
-
-Our latest nested architecture upgrade delivers:
-- **🎯 O(1) domain-specific queries** instead of O(n) scanning
-- **📊 Built-in analytics and monitoring capabilities**
-- **⚡ 10-100x performance improvements** for large datasets
-- **🔍 Organized data access patterns** by node type across memory, metrics, and context systems
-
-➡️ **[View Complete Performance Details](docs/NESTED_ARCHITECTURE_UPGRADE.md)**
-
-### Migration Guide
-
+### **Create Your First Tool**
 ```python
-# Old imports (incorrect)
-from ice_sdk.agents import AgentNode
-from ice_sdk.memory import WorkingMemory
-from ice_sdk.providers.llm_service import LLMService
+from ice_sdk.tools.base import ToolBase
+from ice_sdk.decorators import tool
 
-# New imports (correct)
-from ice_orchestrator.agent import AgentNode
-from ice_orchestrator.memory import WorkingMemory
-from ice_sdk.services import ServiceLocator
-
-# Access LLM service via ServiceLocator
-llm_service = ServiceLocator.get("llm_service")
+@tool  # Auto-registers as "weather_checker"
+class WeatherChecker(ToolBase):
+    """Check weather for a city."""
+    
+    async def _execute_impl(self, city: str) -> dict:
+        # Your weather API logic here
+        return {"weather": f"Sunny in {city}", "temp": 72}
 ```
 
-## 🛠️ Key Components
+## 📊 **Performance & Security**
 
-### Tools (SDK)
-- CSV, JSON, file operations
-- AI-powered tools (insights, summarization)
-- Web tools (HTTP, search, webhooks)
-- Database optimization tools
+### **🚀 O(1) Memory Access**
+```python
+# Get domain-specific data instantly
+marketplace_entities = memory.semantic.get_entities_by_domain('marketplace')
+pricing_strategies = memory.procedural.get_procedures_by_category('pricing')
+```
 
-### Agents (Orchestrator)
-- Autonomous agents with tool access
-- Memory-enabled agents
-- Custom reasoning loops
-
-### Memory (Orchestrator)
-- Working memory (short-term)
-- Episodic memory (conversations)
-- Semantic memory (knowledge)
-- Procedural memory (learned patterns)
-
-### LLM Services (Orchestrator)
-- OpenAI, Anthropic, Gemini, DeepSeek
-- Unified interface
-- Cost tracking
+### **🛡️ WASM Sandboxing**
+- User code runs in **WebAssembly containers**
+- **CPU/memory limits** enforced
+- **Network isolation** and import restrictions
+- **Audit trails** for compliance
 
 ## 📚 Documentation
 
