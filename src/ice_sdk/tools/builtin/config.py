@@ -36,6 +36,7 @@ class BuiltinToolsConfig:
     enable_mermaid_generation: bool = False
     enable_performance_analysis: bool = False
     enable_executive_summaries: bool = False
+    enable_blueprint_visualization: bool = False
     
     def __post_init__(self):
         if self.enabled_tools is None:
@@ -112,8 +113,9 @@ def enable_everything() -> None:
     _config.enable_mermaid_generation = True
     _config.enable_performance_analysis = True
     _config.enable_executive_summaries = True
-    _config.enabled_tools = {"post_execution_mermaid", "workflow_analyzer", "execution_summarizer", "performance_profiler"}
-    _config.enabled_hooks = {"mermaid_generation", "execution_summary", "performance_analysis", "comprehensive_profiling"}
+    _config.enable_blueprint_visualization = True
+    _config.enabled_tools = {"post_execution_mermaid", "workflow_analyzer", "execution_summarizer", "performance_profiler", "blueprint_visualization"}
+    _config.enabled_hooks = {"execution_summary", "performance_analysis", "comprehensive_profiling"}  # Removed mermaid_generation hook
     
     # Trigger registration if not already done
     _register_enabled_tools()
@@ -121,16 +123,14 @@ def enable_everything() -> None:
 
 
 def enable_mermaid_only() -> None:
-    """🎨 Enable only Mermaid diagram generation (minimal setup)."""
+    """🎨 Enable only Mermaid generation via blueprint visualization (minimal setup)."""
     global _config
     _config.auto_register_tools = True
-    _config.auto_execute_hooks = True
     _config.enable_mermaid_generation = True
-    _config.enabled_tools.add("post_execution_mermaid")
-    _config.enabled_hooks.add("mermaid_generation")
+    _config.enable_blueprint_visualization = True
+    _config.enabled_tools.add("blueprint_visualization")
     
     _register_enabled_tools()
-    _register_enabled_hooks()
 
 
 def enable_performance_suite() -> None:
@@ -171,11 +171,12 @@ def enable_specific_tools(tool_names: List[str], auto_execute: bool = True) -> N
         "post_execution_mermaid": "mermaid_generation",
         "workflow_analyzer": "performance_analysis", 
         "execution_summarizer": "execution_summary",
-        "performance_profiler": "comprehensive_profiling"
+        "performance_profiler": "comprehensive_profiling",
+        "blueprint_visualization": None  # No hook - runs during MCP validation
     }
     
     for tool in tool_names:
-        if tool in tool_to_hook:
+        if tool in tool_to_hook and tool_to_hook[tool] is not None:
             _config.enabled_hooks.add(tool_to_hook[tool])
     
     _register_enabled_tools()
@@ -238,6 +239,7 @@ def _register_enabled_tools() -> None:
         "workflow_analyzer": lambda: __import__("ice_sdk.tools.builtin.workflow_analyzer", fromlist=["WorkflowAnalyzerTool"]).WorkflowAnalyzerTool(),
         "execution_summarizer": lambda: __import__("ice_sdk.tools.builtin.execution_summarizer", fromlist=["ExecutionSummarizerTool"]).ExecutionSummarizerTool(),
         "performance_profiler": lambda: __import__("ice_sdk.tools.builtin.performance_profiler", fromlist=["PerformanceProfilerTool"]).PerformanceProfilerTool(),
+        "blueprint_visualization": lambda: __import__("ice_sdk.tools.builtin.blueprint_visualization_tool", fromlist=["BlueprintVisualizationTool"]).BlueprintVisualizationTool(),
     }
     
     for tool_name in _config.enabled_tools:

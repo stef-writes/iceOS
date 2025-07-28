@@ -205,29 +205,48 @@ async def llm_executor(
         except KeyError as e:
             raise Exception(f"Missing template variable in prompt: {str(e)}")
         
-        # Prepare LLM request
-        llm_request = {
-            "prompt": prompt,
-            "model": cfg.model,
-            "max_tokens": cfg.max_tokens,
-            "temperature": cfg.temperature,
-        }
+        # Create LLM config
+        from ice_core.models.llm import LLMConfig
+        llm_config = LLMConfig(
+            provider=cfg.llm_config.provider if hasattr(cfg, 'llm_config') and cfg.llm_config else "openai",
+            model=cfg.model,
+            max_tokens=cfg.max_tokens,
+            temperature=cfg.temperature,
+        )
         
-        # Add response format if specified
-        if hasattr(cfg, 'response_format') and cfg.response_format:
-            llm_request["response_format"] = cfg.response_format
-        
-        # Make LLM API call
-        response = await llm_service.generate(llm_request)
+        # Make LLM API call - returns tuple (text, usage, error)
+        text, usage, error = await llm_service.generate(
+            llm_config=llm_config,
+            prompt=prompt,
+            context=ctx
+        )
         
         end_time = datetime.utcnow()
+        
+        # Handle error case
+        if error:
+            return NodeExecutionResult(
+                success=False,
+                error=error,
+                output={},
+                metadata=NodeMetadata(
+                    node_id=cfg.id,
+                    node_type="llm",
+                    name=f"llm_{cfg.model}",
+                    sandboxed=False,
+                    start_time=start_time,
+                    end_time=end_time,
+                    duration=(end_time - start_time).total_seconds()
+                )
+            )
+        
         return NodeExecutionResult(
             success=True,
             output={
-                "response": response.get("content", ""),
+                "response": text,
                 "prompt": prompt,
                 "model": cfg.model,
-                "llm_metadata": response.get("metadata", {})
+                "usage": usage or {}
             },
             metadata=NodeMetadata(
                 node_id=cfg.id,

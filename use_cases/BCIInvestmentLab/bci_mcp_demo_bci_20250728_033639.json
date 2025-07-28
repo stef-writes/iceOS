@@ -1,0 +1,51 @@
+{
+  "session_id": "bci_20250728_033639",
+  "demo_type": "modular_mcp_blueprints",
+  "architecture": "blueprints \u2192 MCP API \u2192 ice_orchestrator",
+  "total_workflows": 3,
+  "node_types_demonstrated": [
+    "tool",
+    "condition",
+    "llm",
+    "loop",
+    "parallel",
+    "agent",
+    "workflow",
+    "recursive"
+  ],
+  "complexity_levels": [
+    "basic",
+    "intermediate",
+    "advanced"
+  ],
+  "results": [
+    {
+      "workflow": "Literature Analysis",
+      "blueprint_id": "literature_analysis_6042",
+      "submission_result": {
+        "run_id": "run_ac1030e3",
+        "status_endpoint": "/api/v1/mcp/runs/run_ac1030e3",
+        "events_endpoint": "/api/v1/mcp/runs/run_ac1030e3/events"
+      },
+      "timestamp": "2025-07-28T03:37:08.515767"
+    },
+    {
+      "workflow": "Market Monitoring",
+      "blueprint_id": "market_monitoring_3_662",
+      "submission_result": {
+        "run_id": "run_bfee8fce",
+        "status_endpoint": "/api/v1/mcp/runs/run_bfee8fce",
+        "events_endpoint": "/api/v1/mcp/runs/run_bfee8fce/events"
+      },
+      "timestamp": "2025-07-28T03:37:31.672265"
+    },
+    {
+      "workflow": "Recursive Synthesis",
+      "blueprint_id": "recursive_synthesis_4129",
+      "submission_result": {
+        "error": "HTTPConnectionPool(host='localhost', port=8000): Read timed out. (read timeout=30.0)"
+      },
+      "timestamp": "2025-07-28T03:38:02.678247"
+    }
+  ]
+}

@@ -48,15 +48,39 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         import os
         from pathlib import Path
         
-        # Add use-cases to path if FB Marketplace demo exists
+        # Add use_cases to path if available
         project_root = Path(__file__).parent.parent.parent
-        use_cases_path = project_root / "use-cases"
-        fb_marketplace_path = use_cases_path / "RivaRidge" / "FB_Marketplace_Seller"
+        use_cases_path = project_root / "use_cases"
         
+        if str(use_cases_path) not in sys.path:
+            sys.path.insert(0, str(use_cases_path))
+        
+        # Load DocumentAssistant components
+        try:
+            from DocumentAssistant import initialize_all as init_document_assistant
+            success = init_document_assistant("mcp")
+            if success:
+                logger.info("✅ DocumentAssistant components loaded successfully")
+            else:
+                logger.warning("⚠️ DocumentAssistant components failed to load")
+        except Exception as e:
+            logger.info(f"DocumentAssistant demo not available: {e}")
+        
+        # Load BCIInvestmentLab components
+        try:
+            from BCIInvestmentLab import initialize_all as init_bci_lab
+            success = init_bci_lab("mcp")
+            if success:
+                logger.info("✅ BCIInvestmentLab components loaded successfully")
+            else:
+                logger.warning("⚠️ BCIInvestmentLab components failed to load")
+        except Exception as e:
+            logger.info(f"BCIInvestmentLab demo not available: {e}")
+        
+        # Load FB Marketplace components if available
+        fb_marketplace_path = use_cases_path / "RivaRidge" / "FB_Marketplace_Seller"
         if fb_marketplace_path.exists():
             logger.info("Loading FB Marketplace Seller demo components...")
-            if str(use_cases_path) not in sys.path:
-                sys.path.insert(0, str(use_cases_path))
             
             # Import and initialize FB Marketplace Seller components
             from RivaRidge.FB_Marketplace_Seller.initialization import initialize_all
@@ -67,7 +91,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             else:
                 logger.warning("⚠️ FB Marketplace Seller components failed to load")
     except Exception as e:
-        logger.info(f"FB Marketplace demo not available: {e}")
+        logger.info(f"Demo components not available: {e}")
 
     app.state.context_manager = ServiceLocator.get("context_manager")  # type: ignore[attr-defined]
     

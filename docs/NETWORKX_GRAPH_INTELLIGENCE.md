@@ -54,7 +54,7 @@ Intelligent analysis using NetworkX algorithms:
 Both **FB Marketplace** and **DocumentAssistant** demos have been enhanced to showcase these capabilities:
 
 ### **FB Marketplace Enhanced Demo** 
-`use-cases/RivaRidge/FB_Marketplace_Seller/graph_analytics_demo.py`
+`use_cases/RivaRidge/FB_Marketplace_Seller/graph_analytics_demo.py`
 
 **Features Demonstrated:**
 - **Pre-execution Analysis**: Critical path and complexity distribution
@@ -83,7 +83,7 @@ Both **FB Marketplace** and **DocumentAssistant** demos have been enhanced to sh
 ```
 
 ### **DocumentAssistant Enhanced Demo**
-`use-cases/DocumentAssistant/graph_insights_demo.py`
+`use_cases/DocumentAssistant/graph_insights_demo.py`
 
 **Features Demonstrated:**
 - **Workflow Architecture Analysis**: Complexity and depth metrics
@@ -326,13 +326,13 @@ print(f"Total cost: ${cost_breakdown['estimated_total_cost']:.3f}")
 
 ### **FB Marketplace with Automatic Analytics**
 ```bash
-cd use-cases/RivaRidge/FB_Marketplace_Seller
+cd use_cases/RivaRidge/FB_Marketplace_Seller
 python enhanced_blueprint_demo.py
 ```
 
 ### **DocumentAssistant with Natural Insights**
 ```bash
-cd use-cases/DocumentAssistant  
+cd use_cases/DocumentAssistant  
 python run_interactive_demo.py
 ```
 

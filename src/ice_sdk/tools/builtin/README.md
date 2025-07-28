@@ -11,11 +11,11 @@ enable_everything()
 # 🎉 Done! All tools and post-execution analysis now active
 ```
 
-### **Option 2: Enable Just Mermaid Diagrams**
+### **Option 2: Enable Just Blueprint Visualization (MCP API)**
 ```python
-from ice_sdk.tools.builtin import enable_mermaid_only
-enable_mermaid_only()
-# 🎨 Automatic Mermaid diagrams after every workflow
+from ice_sdk.tools.builtin import enable_blueprint_visualization
+enable_blueprint_visualization()
+# 🎨 Automatic Mermaid diagrams during blueprint validation
 ```
 
 ### **Option 3: Enable Performance Analysis**
@@ -36,7 +36,7 @@ enable_executive_suite()
 ```bash
 export ICEOS_AUTO_REGISTER_BUILTIN_TOOLS=true
 export ICEOS_AUTO_EXECUTE_HOOKS=true
-export ICEOS_ENABLE_MERMAID=true
+export ICEOS_ENABLE_BLUEPRINT_VISUALIZATION=true
 # Tools automatically enabled on startup
 ```
 
@@ -44,7 +44,8 @@ export ICEOS_ENABLE_MERMAID=true
 
 | Tool | Description | Enable Function |
 |------|-------------|-----------------|
-| **🎨 PostExecutionMermaidTool** | Generates flowcharts, sequence diagrams, Gantt charts | `enable_mermaid_only()` |
+| **🎨 BlueprintVisualizationTool** | Generates diagrams from blueprint structure during MCP validation | `enable_blueprint_visualization()` |
+| **📊 PostExecutionMermaidTool** | Generates flowcharts, sequence diagrams, Gantt charts from execution | `enable_specific_tools(["post_execution_mermaid"])` |
 | **📊 WorkflowAnalyzerTool** | Performance analysis, bottleneck detection | `enable_performance_suite()` |
 | **📝 ExecutionSummarizerTool** | Executive summaries, business reports | `enable_executive_suite()` |
 | **⚡ PerformanceProfilerTool** | Deep profiling, performance scoring | `enable_performance_suite()` |
@@ -139,11 +140,30 @@ async def automatic_post_analysis(execution_trace, workflow_result):
 
 ## 🚀 Usage Examples
 
-### **Basic Usage (Manual)**
+### **Blueprint Visualization (MCP API Integration)**
 ```python
-from ice_sdk.tools.builtin import PostExecutionMermaidTool
+from ice_sdk.tools.builtin import enable_blueprint_visualization
 
-# Use tools directly
+# Enable blueprint visualization
+enable_blueprint_visualization()
+
+# Now blueprints will automatically get visualized during validation
+# Access via: GET /blueprints/{blueprint_id}/visualization
+```
+
+### **Direct Tool Usage**
+```python
+from ice_sdk.tools.builtin import BlueprintVisualizationTool
+
+# Use blueprint visualization directly
+viz_tool = BlueprintVisualizationTool()
+diagrams = await viz_tool.execute(
+    blueprint=blueprint_obj,
+    diagram_types=["dependency_graph", "workflow_flowchart"]
+)
+
+# Or use post-execution mermaid
+from ice_sdk.tools.builtin import PostExecutionMermaidTool
 tool = PostExecutionMermaidTool()
 diagrams = await tool.execute(
     execution_trace=trace_data,

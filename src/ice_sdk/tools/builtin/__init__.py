@@ -63,6 +63,7 @@ from .post_execution_mermaid import PostExecutionMermaidTool
 from .workflow_analyzer import WorkflowAnalyzerTool
 from .execution_summarizer import ExecutionSummarizerTool
 from .performance_profiler import PerformanceProfilerTool
+from .blueprint_visualization_tool import BlueprintVisualizationTool
 
 # Import auto-workflow functionality
 from .auto_workflow_hooks import (
@@ -78,6 +79,7 @@ __all__ = [
     "enable_mermaid_only",
     "enable_performance_suite", 
     "enable_executive_suite",
+    "enable_blueprint_visualization",
     "enable_specific_tools",
     "disable_everything",
     
@@ -93,6 +95,7 @@ __all__ = [
     "WorkflowAnalyzerTool",
     "ExecutionSummarizerTool", 
     "PerformanceProfilerTool",
+    "BlueprintVisualizationTool",
     
     # Auto-workflow functions
     "execute_post_workflow_analysis",

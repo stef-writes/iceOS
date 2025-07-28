@@ -108,7 +108,7 @@ from ice_sdk.services import ServiceLocator
 ### Facebook Marketplace Seller Automation (Major Enhancement)
 
 #### Comprehensive Documentation Rewrite
-1. **use-cases/RivaRidge/FB_Marketplace_Seller/README.md** (Complete Rewrite)
+1. **use_cases/RivaRidge/FB_Marketplace_Seller/README.md** (Complete Rewrite)
    - Production-ready architecture overview
    - Advanced features documentation (40+ LLM calls, real HTTP APIs)
    - Memory systems explanation (4-tier architecture)
@@ -126,7 +126,7 @@ from ice_sdk.services import ServiceLocator
 
 3. **Project Integration**
    - Main README.md updated with featured demo section
-   - use-cases/RivaRidge/__init__.py enhanced with comprehensive description
+   - use_cases/RivaRidge/__init__.py enhanced with comprehensive description
    - Links and cross-references updated throughout
 
 #### Demo Cleanup

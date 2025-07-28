@@ -102,24 +102,8 @@ class WorkflowHook:
         raise NotImplementedError
 
 
-class MermaidGenerationHook(WorkflowHook):
-    """Hook that automatically generates Mermaid diagrams."""
-    
-    def __init__(self, priority: int = 100):
-        super().__init__("mermaid_generation", priority)
-    
-    async def execute(self, execution_trace: Dict, workflow_result: Dict) -> Dict[str, Any]:
-        """Generate Mermaid diagrams automatically."""
-        from ice_sdk.tools.builtin.post_execution_mermaid import PostExecutionMermaidTool
-        
-        tool = PostExecutionMermaidTool()
-        return await tool.execute(
-            execution_trace=execution_trace,
-            workflow_result=workflow_result,
-            diagram_types=["flowchart", "sequence", "gantt"],
-            include_timing=True,
-            include_resources=True
-        )
+# Removed MermaidGenerationHook - mermaid generation now happens during blueprint validation
+# via the BlueprintVisualizationTool instead of post-execution
 
 
 class ExecutionSummaryHook(WorkflowHook):

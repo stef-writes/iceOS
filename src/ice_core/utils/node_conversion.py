@@ -18,6 +18,7 @@ from ice_core.models import (
     WorkflowNodeConfig,
     LoopNodeConfig,
     ParallelNodeConfig,
+    RecursiveNodeConfig,
     CodeNodeConfig,
 )
 
@@ -41,6 +42,7 @@ _NODE_TYPE_MAP: Dict[str, Type[NodeConfig]] = {
     "condition": ConditionNodeConfig,
     "loop": LoopNodeConfig,
     "parallel": ParallelNodeConfig,
+    "recursive": RecursiveNodeConfig,
 
     # Composition node
     "workflow": WorkflowNodeConfig,

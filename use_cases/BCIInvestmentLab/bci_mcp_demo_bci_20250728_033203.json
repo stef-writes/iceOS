@@ -1,0 +1,47 @@
+{
+  "session_id": "bci_20250728_033203",
+  "demo_type": "modular_mcp_blueprints",
+  "architecture": "blueprints \u2192 MCP API \u2192 ice_orchestrator",
+  "total_workflows": 3,
+  "node_types_demonstrated": [
+    "tool",
+    "condition",
+    "llm",
+    "loop",
+    "parallel",
+    "agent",
+    "workflow",
+    "recursive"
+  ],
+  "complexity_levels": [
+    "basic",
+    "intermediate",
+    "advanced"
+  ],
+  "results": [
+    {
+      "workflow": "Literature Analysis",
+      "blueprint_id": "literature_analysis_3685",
+      "submission_result": {
+        "error": 400
+      },
+      "timestamp": "2025-07-28T03:32:03.096406"
+    },
+    {
+      "workflow": "Market Monitoring",
+      "blueprint_id": "market_monitoring_3_5790",
+      "submission_result": {
+        "error": 400
+      },
+      "timestamp": "2025-07-28T03:32:04.108578"
+    },
+    {
+      "workflow": "Recursive Synthesis",
+      "blueprint_id": "recursive_synthesis_1989",
+      "submission_result": {
+        "error": 400
+      },
+      "timestamp": "2025-07-28T03:32:05.115263"
+    }
+  ]
+}

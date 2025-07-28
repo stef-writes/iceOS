@@ -68,7 +68,7 @@ Our vision is validated through **three production-ready demonstrations**:
 
 ### **📚 Document Assistant** - Enterprise Document Intelligence
 ```bash
-python use-cases/DocumentAssistant/run_blueprint.py
+python use_cases/DocumentAssistant/run_blueprint.py
 ```
 - **Real PDF/Word parsing** with intelligent semantic chunking
 - **Memory-powered Q&A** that learns context across documents
@@ -76,7 +76,7 @@ python use-cases/DocumentAssistant/run_blueprint.py
 
 ### **🛒 Facebook Marketplace Seller** - E-commerce Automation
 ```bash
-python use-cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
+python use_cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
 ```
 - **Real CSV inventory** processing with OpenAI enhancement
 - **Customer service agent** with episodic conversation memory
@@ -85,7 +85,7 @@ python use-cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
 
 ### **🧠 BCI Investment Intelligence** - Financial Research AI
 ```bash
-python use-cases/BCIInvestmentLab/run_blueprint.py
+python use_cases/BCIInvestmentLab/run_blueprint.py
 ```
 - **Real arXiv paper** analysis for investment research
 - **Multi-agent recursive communication** until convergence

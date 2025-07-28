@@ -149,7 +149,7 @@ def create_document_processing_workflow() -> Workflow:
 
 #### **📚 Document Assistant Blueprint**
 ```bash
-python use-cases/DocumentAssistant/run_blueprint.py
+python use_cases/DocumentAssistant/run_blueprint.py
 ```
 - **Real PDF/Word parsing** with intelligent chunking
 - **Memory-powered Q&A** that learns from interactions
@@ -157,7 +157,7 @@ python use-cases/DocumentAssistant/run_blueprint.py
 
 #### **🛒 Facebook Marketplace Blueprint** 
 ```bash
-python use-cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
+python use_cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
 ```
 - **Real CSV inventory** processing with AI enhancement
 - **Customer service agent** with episodic memory
@@ -165,7 +165,7 @@ python use-cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
 
 #### **🧠 BCI Investment Blueprint**
 ```bash
-python use-cases/BCIInvestmentLab/run_blueprint.py
+python use_cases/BCIInvestmentLab/run_blueprint.py
 ```
 - **Real arXiv paper** analysis and synthesis
 - **Multi-agent coordination** with recursive communication

@@ -80,6 +80,8 @@ async def create_blueprint(bp: Blueprint) -> BlueprintAck:
     """Register (or upsert) a *Blueprint*."""
 
     # Validate nodes before persisting – convert & run runtime_validate()
+    validation_context = {"validation_errors": [], "warnings": []}
+    
     try:
         bp.validate_runtime()
         from ice_core.utils.node_conversion import convert_node_specs
@@ -92,25 +94,110 @@ async def create_blueprint(bp: Blueprint) -> BlueprintAck:
                     cfg.runtime_validate()
             except ValueError as ve:
                 logger.error("Validation failed for node %s: %s", cfg.id, str(ve))
+                validation_context["validation_errors"].append(f"Node {cfg.id}: {str(ve)}")
                 raise
     except Exception as exc:
+        validation_context["validation_errors"].append(str(exc))
         raise HTTPException(400, detail=str(exc))  # Now surfaces exact node+error
 
+    # Generate blueprint visualization if tool is available
+    visualization_data = None
+    try:
+        from ice_sdk.tools.builtin.blueprint_visualization_tool import BlueprintVisualizationTool
+        from ice_sdk.tools.builtin.config import is_tool_enabled
+        
+        if is_tool_enabled("blueprint_visualization"):
+            viz_tool = BlueprintVisualizationTool()
+            visualization_result = await viz_tool.execute(
+                blueprint=bp,
+                diagram_types=["dependency_graph", "workflow_flowchart", "validation_diagram"],
+                validation_context=validation_context
+            )
+            
+            if visualization_result.get("status") == "success":
+                visualization_data = visualization_result
+                logger.info("Generated blueprint visualization for %s", bp.blueprint_id)
+    except Exception as ve:
+        # Don't fail blueprint creation if visualization fails
+        logger.warning("Failed to generate blueprint visualization: %s", str(ve))
+        validation_context["warnings"].append(f"Visualization generation failed: {str(ve)}")
+
     redis = get_redis()
-    await redis.hset(_bp_key(bp.blueprint_id), mapping={"json": bp.model_dump_json()})
+    blueprint_data = {"json": bp.model_dump_json()}
+    
+    # Store visualization data if available
+    if visualization_data:
+        blueprint_data["visualization"] = json.dumps(visualization_data)
+    
+    await redis.hset(_bp_key(bp.blueprint_id), mapping=blueprint_data)
     return BlueprintAck(blueprint_id=bp.blueprint_id, status="accepted")
 
 @router.get("/blueprints/{blueprint_id}")
 async def get_blueprint(blueprint_id: str) -> Dict[str, Any]:
     """Retrieve a registered blueprint by ID."""
     redis = get_redis()
-    raw_json = await redis.hget(_bp_key(blueprint_id), "json")
+    blueprint_data = await redis.hgetall(_bp_key(blueprint_id))
     
-    if not raw_json:
+    if not blueprint_data or "json" not in blueprint_data:
         raise HTTPException(404, detail=f"Blueprint {blueprint_id} not found")
     
-    blueprint = Blueprint.model_validate_json(raw_json)
-    return blueprint.model_dump()
+    blueprint = Blueprint.model_validate_json(blueprint_data["json"])
+    result = blueprint.model_dump()
+    
+    # Include visualization data if available
+    if "visualization" in blueprint_data:
+        try:
+            result["visualization"] = json.loads(blueprint_data["visualization"])
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("Failed to parse visualization data for blueprint %s", blueprint_id)
+    
+    return result
+
+@router.get("/blueprints/{blueprint_id}/visualization")
+async def get_blueprint_visualization(blueprint_id: str) -> Dict[str, Any]:
+    """Get visualization data for a blueprint."""
+    redis = get_redis()
+    blueprint_data = await redis.hgetall(_bp_key(blueprint_id))
+    
+    if not blueprint_data or "json" not in blueprint_data:
+        raise HTTPException(404, detail=f"Blueprint {blueprint_id} not found")
+    
+    # If visualization data exists, return it
+    if "visualization" in blueprint_data:
+        try:
+            return json.loads(blueprint_data["visualization"])
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("Failed to parse visualization data for blueprint %s", blueprint_id)
+            raise HTTPException(500, detail="Invalid visualization data")
+    
+    # Generate visualization on-demand if not cached
+    try:
+        blueprint = Blueprint.model_validate_json(blueprint_data["json"])
+        
+        from ice_sdk.tools.builtin.blueprint_visualization_tool import BlueprintVisualizationTool
+        from ice_sdk.tools.builtin.config import is_tool_enabled
+        
+        if not is_tool_enabled("blueprint_visualization"):
+            raise HTTPException(503, detail="Blueprint visualization tool is not enabled")
+        
+        viz_tool = BlueprintVisualizationTool()
+        visualization_result = await viz_tool.execute(
+            blueprint=blueprint,
+            diagram_types=["dependency_graph", "workflow_flowchart", "config_overview", "validation_diagram"]
+        )
+        
+        if visualization_result.get("status") == "success":
+            # Cache the result for future requests
+            await redis.hset(_bp_key(blueprint_id), "visualization", json.dumps(visualization_result))
+            return visualization_result
+        else:
+            raise HTTPException(500, detail=f"Visualization generation failed: {visualization_result.get('error', 'Unknown error')}")
+            
+    except ImportError:
+        raise HTTPException(503, detail="Blueprint visualization tool is not available")
+    except Exception as e:
+        logger.error("Failed to generate visualization for blueprint %s: %s", blueprint_id, str(e))
+        raise HTTPException(500, detail=f"Visualization generation failed: {str(e)}")
 
 # ---------------------------------------------------------------------------
 # Partial Blueprint Routes (Incremental Construction) -----------------------

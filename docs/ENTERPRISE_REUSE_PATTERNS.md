@@ -7,7 +7,7 @@ This document outlines the enterprise-grade patterns for maximum component reusa
 ## 📐 **Architecture Pattern**
 
 ```
-use-cases/
+use_cases/
 ├── YourDemo/
 │   ├── __init__.py          # Export main components
 │   ├── registry.py          # Centralized registration system  

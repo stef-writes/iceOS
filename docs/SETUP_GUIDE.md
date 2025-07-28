@@ -81,7 +81,7 @@ Experience the full power of iceOS with our production-ready Facebook Marketplac
 
 ```bash
 # Navigate to the enhanced demo
-cd use-cases/RivaRidge/FB_Marketplace_Seller
+cd use_cases/RivaRidge/FB_Marketplace_Seller
 
 # Run the complete demonstration
 python enhanced_blueprint_demo.py
@@ -132,7 +132,7 @@ lsof -i :8000
 
 ## Next Steps
 
-- **[Explore the Complete Demo Documentation](../use-cases/RivaRidge/FB_Marketplace_Seller/README.md)** - Deep dive into the enhanced marketplace automation
-- **[Architecture Notes](../use-cases/RivaRidge/FB_Marketplace_Seller/ARCHITECTURE_NOTES.md)** - Tools vs Agents decisions and memory architecture
+- **[Explore the Complete Demo Documentation](../use_cases/RivaRidge/FB_Marketplace_Seller/README.md)** - Deep dive into the enhanced marketplace automation
+- **[Architecture Notes](../use_cases/RivaRidge/FB_Marketplace_Seller/ARCHITECTURE_NOTES.md)** - Tools vs Agents decisions and memory architecture
 - Check out the [Project Architecture Guide](ARCHITECTURE.md)
 - Read about [Frosty and the Canvas](iceos-vision.md) 
