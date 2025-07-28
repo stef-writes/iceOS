@@ -1,0 +1,58 @@
+[
+  {
+    "old": "src/ice_orchestrator/nodes/agent.py",
+    "new": "src/ice_orchestrator/execution/executors/unified.py#agent_executor",
+    "reason": "Consolidated into unified executor pattern",
+    "archived_to": "_archive/20250728_141034/src/ice_orchestrator/nodes/agent.py",
+    "date": "2025-07-28T14:10:34.185662"
+  },
+  {
+    "old": "src/ice_orchestrator/nodes/code.py",
+    "new": "src/ice_orchestrator/execution/executors/unified.py#code_executor",
+    "reason": "Consolidated into unified executor pattern",
+    "archived_to": "_archive/20250728_141034/src/ice_orchestrator/nodes/code.py",
+    "date": "2025-07-28T14:10:34.185963"
+  },
+  {
+    "old": "src/ice_orchestrator/nodes/condition.py",
+    "new": "src/ice_orchestrator/execution/executors/unified.py#condition_executor",
+    "reason": "Consolidated into unified executor pattern",
+    "archived_to": "_archive/20250728_141034/src/ice_orchestrator/nodes/condition.py",
+    "date": "2025-07-28T14:10:34.186230"
+  },
+  {
+    "old": "src/ice_orchestrator/nodes/loop.py",
+    "new": "src/ice_orchestrator/execution/executors/unified.py#loop_executor",
+    "reason": "Consolidated into unified executor pattern",
+    "archived_to": "_archive/20250728_141034/src/ice_orchestrator/nodes/loop.py",
+    "date": "2025-07-28T14:10:34.186461"
+  },
+  {
+    "old": "src/ice_orchestrator/nodes/parallel.py",
+    "new": "src/ice_orchestrator/execution/executors/unified.py#parallel_executor",
+    "reason": "Consolidated into unified executor pattern",
+    "archived_to": "_archive/20250728_141034/src/ice_orchestrator/nodes/parallel.py",
+    "date": "2025-07-28T14:10:34.186709"
+  },
+  {
+    "old": "src/ice_orchestrator/nodes/workflow.py",
+    "new": "src/ice_orchestrator/execution/executors/unified.py#workflow_executor",
+    "reason": "Consolidated into unified executor pattern",
+    "archived_to": "_archive/20250728_141034/src/ice_orchestrator/nodes/workflow.py",
+    "date": "2025-07-28T14:10:34.186927"
+  },
+  {
+    "old": "src/ice_core/registry.py",
+    "new": "src/ice_core/unified_registry.py",
+    "reason": "Replaced with unified registry pattern",
+    "archived_to": "_archive/20250728_141034/src/ice_core/registry.py",
+    "date": "2025-07-28T14:10:34.187190"
+  },
+  {
+    "old": "src/ice_orchestrator/context/memory.py",
+    "new": "src/ice_orchestrator/memory/base.py",
+    "reason": "Memory system consolidated in memory/ directory",
+    "archived_to": "_archive/20250728_141034/src/ice_orchestrator/context/memory.py",
+    "date": "2025-07-28T14:10:34.187491"
+  }
+]
