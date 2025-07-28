@@ -38,7 +38,44 @@ make dev
 
 The server will be available at `http://localhost:8000`
 
-### 4. Run the Featured Demo
+### 4. MCP Server Setup (Optional)
+
+iceOS can run as a **Model Context Protocol (MCP) server**, making it accessible to any MCP-compatible client (Claude Desktop, Continue, etc.).
+
+#### HTTP MCP Server
+```bash
+# Start as HTTP MCP server
+uvicorn ice_api.main:app --host 0.0.0.0 --port 8000
+
+# MCP endpoint: http://localhost:8000/mcp/
+# Health check: http://localhost:8000/health
+```
+
+#### Stdio MCP Server
+```bash
+# Start as stdio MCP server (for Claude Desktop integration)
+python src/ice_api/mcp_stdio_server.py
+```
+
+#### Claude Desktop Integration
+Add to your Claude Desktop `claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "iceOS": {
+      "command": "python",
+      "args": ["/path/to/iceOS/src/ice_api/mcp_stdio_server.py"],
+      "env": {
+        "OPENAI_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+👉 **[Complete MCP Documentation](MCP_IMPLEMENTATION.md)**
+
+### 5. Run the Featured Demo
 
 Experience the full power of iceOS with our production-ready Facebook Marketplace automation:
 

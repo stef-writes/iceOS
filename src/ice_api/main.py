@@ -126,6 +126,10 @@ app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
 app.include_router(direct_router, tags=["direct"])
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
 
+# Add real MCP JSON-RPC 2.0 endpoint
+from ice_api.api.mcp_jsonrpc import router as mcp_jsonrpc_router
+app.include_router(mcp_jsonrpc_router, tags=["mcp-jsonrpc"])
+
 # Root endpoint
 @app.get("/", response_model=Dict[str, str])
 async def root() -> Dict[str, str]:

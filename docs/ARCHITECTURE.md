@@ -22,6 +22,31 @@ Orchestrator: Executes with retries, monitoring, guarantees
 | **MCP API** | Compiler | Validation, optimization | Catch errors before execution |
 | **Orchestrator** | Runtime | DAG execution engine | Deterministic, observable runs |
 
+### 🔌 **Model Context Protocol (MCP) Integration**
+
+iceOS exposes its complete orchestration capabilities through **industry-standard MCP interfaces**:
+
+```python
+# Traditional MCP servers expose simple tools:
+await mcp_client.call_tool("get_weather", {"location": "NYC"})
+
+# iceOS MCP exposes enterprise orchestration:
+await mcp_client.call_tool("workflow:document_assistant", {
+    "documents": ["financial_report.pdf", "market_analysis.docx"],
+    "question": "What are the key investment risks?"
+})
+```
+
+**MCP Capabilities Available:**
+- **Tools**: Individual tools, agents, and complete workflows
+- **Resources**: Blueprint templates and documentation
+- **Prompts**: Pre-configured workflow creation templates
+- **Transport**: HTTP JSON-RPC + stdio for Claude Desktop integration
+
+**Endpoints:**
+- `http://localhost:8000/mcp/` - HTTP JSON-RPC 2.0 endpoint
+- `python src/ice_api/mcp_stdio_server.py` - stdio transport for direct integration
+
 ### 🎨 Multi-Granularity Translation
 
 Frosty understands requests at different levels:

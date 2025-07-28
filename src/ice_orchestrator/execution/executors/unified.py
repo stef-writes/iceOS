@@ -60,6 +60,72 @@ def _flatten_dependency_outputs(merged_inputs: Dict[str, Any], tool: Any) -> Dic
         # If introspection fails, fallback to original behavior
         return merged_inputs
 
+def _resolve_jinja_templates(data: Any, context: Dict[str, Any]) -> Any:
+    """Recursively resolve Jinja2 templates in data structures.
+    
+    Resolves {{variable}} syntax in strings using the provided context.
+    Works recursively on dicts, lists, and other data structures.
+    """
+    try:
+        import importlib
+        jinja2 = importlib.import_module("jinja2")
+        env = jinja2.Environment(autoescape=False)  # Don't escape for data processing
+        
+        def resolve_value(value: Any) -> Any:
+            if isinstance(value, str):
+                # Check if it looks like a Jinja template
+                if "{{" in value and "}}" in value:
+                    try:
+                        # Extract the variable name from the template
+                        var_name = value.strip('{}').strip()
+                        
+                        # Handle dotted references like 'parse_documents.documents'
+                        if '.' in var_name:
+                            parts = var_name.split('.')
+                            result = context
+                            for part in parts:
+                                if isinstance(result, dict) and part in result:
+                                    result = result[part]
+                                else:
+                                    # If dotted path fails, fall back to Jinja
+                                    template = env.from_string(value)
+                                    result = template.render(**context)
+                                    break
+                            # print(f"🔧 Template resolved (dotted): '{value}' -> {type(result)} with {len(result) if hasattr(result, '__len__') else 'N/A'} items")
+                            return result
+                        
+                        # If the context value is not a string, return it directly
+                        # This preserves lists, dicts, and other data structures
+                        elif var_name in context and not isinstance(context[var_name], str):
+                            result = context[var_name]
+                            # print(f"🔧 Template resolved (direct): '{value}' -> {type(result)} with {len(result) if hasattr(result, '__len__') else 'N/A'} items")
+                            return result
+                        
+                        # For string values, use Jinja template rendering
+                        else:
+                            template = env.from_string(value)
+                            result = template.render(**context)
+                            # print(f"🔧 Template resolved (jinja): '{value}' -> {type(result)}")
+                            return result
+                        
+                    except Exception as e:
+                        print(f"❌ Template resolution failed for '{value}': {e}")
+                        # If template rendering fails, return original value
+                        return value
+                return value
+            elif isinstance(value, dict):
+                return {k: resolve_value(v) for k, v in value.items()}
+            elif isinstance(value, list):
+                return [resolve_value(item) for item in value]
+            else:
+                return value
+        
+        return resolve_value(data)
+        
+    except (ModuleNotFoundError, Exception):
+        # If jinja2 is not available or any error, return original data
+        return data
+
 # Tool executor - RESTORED to direct execution (WASM was too restrictive)
 @register_node("tool")
 async def tool_executor(
@@ -73,8 +139,11 @@ async def tool_executor(
         # Get tool instance from registry using ITool protocol
         tool = registry.get_instance(NodeType.TOOL, cfg.tool_name)
         
+        # Resolve Jinja templates in tool_args using the full context
+        resolved_tool_args = _resolve_jinja_templates(cfg.tool_args, ctx)
+        
         # Smart parameter flattening for the "easy way"
-        merged_inputs = {**cfg.tool_args, **ctx}
+        merged_inputs = {**resolved_tool_args, **ctx}
         flattened_inputs = _flatten_dependency_outputs(merged_inputs, tool)
         
         # Direct execution - tools need file I/O, network access, imports

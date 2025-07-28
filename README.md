@@ -2,6 +2,26 @@
 
 **Transform natural language into executable AI workflows with enterprise-grade security and cognitive memory.**
 
+## 🔌 **Model Context Protocol (MCP) Server**
+
+**iceOS is now the most sophisticated MCP server available**, exposing entire enterprise workflow orchestration capabilities through standard MCP interfaces.
+
+```bash
+# Start iceOS as MCP server
+uvicorn ice_api.main:app --host 0.0.0.0 --port 8000
+
+# Available at: http://localhost:8000/mcp/
+# MCP capabilities: tools, resources, prompts, notifications
+```
+
+**What makes iceOS MCP unique:**
+- ✅ **Enterprise Workflows**: Execute complete multi-step AI workflows, not just simple tools
+- ✅ **Memory-Enabled Agents**: Agents with persistent episodic, semantic, and procedural memory
+- ✅ **Real Integrations**: arXiv search, Yahoo Finance, Reddit sentiment, CSV processing, and more
+- ✅ **Multiple Transports**: HTTP JSON-RPC + stdio support for any MCP client
+
+👉 **[Complete MCP Documentation](docs/MCP_IMPLEMENTATION.md)**
+
 ## 🎯 **What You Can Build**
 
 ```python

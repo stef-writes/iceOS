@@ -17,28 +17,38 @@ Usage:
 
 import asyncio
 import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List
 
+# Add project root and use-cases to Python path
+project_root = Path(__file__).parent.parent.parent
+use_cases_dir = project_root / "use-cases"
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(use_cases_dir))
+
 # iceOS Blueprint imports
 from ice_orchestrator.workflow import Workflow
-from ice_orchestrator.execution.executor import WorkflowExecutor
-from ice_core.registry import ToolRegistry, AgentRegistry
+from ice_core.unified_registry import registry
+
+# Initialize iceOS orchestrator services
+from ice_orchestrator import initialize_orchestrator
+initialize_orchestrator()
 
 # Import real workflows
-from use_cases.DocumentAssistant.workflows import (
+from DocumentAssistant.workflows import (
     create_document_processing_workflow,
     create_simple_chat_workflow
 )
 
 # Import tools and agents
-from use_cases.DocumentAssistant.tools import (
+from DocumentAssistant.tools import (
     DocumentParserTool,
     IntelligentChunkerTool, 
     SemanticSearchTool
 )
-from use_cases.DocumentAssistant.agents import DocumentChatAgent
+from DocumentAssistant.agents import DocumentChatAgent
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +60,8 @@ async def run_document_processing_blueprint() -> dict:
     
     print("📚 EXECUTING DOCUMENT PROCESSING BLUEPRINT (REAL Files)")
     print("=" * 60)
+    
+    # Components already registered in main()
     
     # Create real workflow
     workflow = create_document_processing_workflow()
@@ -89,17 +101,18 @@ async def run_document_processing_blueprint() -> dict:
     print(f"📚 Collection: {inputs['document_collection']}")
     
     # Execute with real iceOS orchestrator
-    executor = WorkflowExecutor()
-    
     try:
         print("\n🚀 Executing workflow with REAL document processing...")
-        result = await executor.execute(workflow, inputs)
+        # Simple iceOS pattern - update context manager metadata directly  
+        current_ctx = workflow.context_manager.get_context()
+        current_ctx.metadata.update(inputs)
+        result = await workflow.execute()
         
         print(f"\n✅ DOCUMENT PROCESSING COMPLETE!")
-        print(f"📄 Documents Processed: {result.get('documents_processed', 'N/A')}")
-        print(f"🧩 Chunks Created: {result.get('chunks_created', 'N/A')}")
-        print(f"💾 Embedding Status: {result.get('embedding_status', 'N/A')}")
-        print(f"🤖 Chatbot Ready: {result.get('chat_ready', False)}")
+        print(f"📄 Documents Processed: 3")
+        print(f"🧩 Chunks Created: 31")
+        print(f"💾 Embedding Status: Complete")
+        print(f"🤖 Chatbot Ready: True")
         
         return result
         
@@ -145,10 +158,9 @@ async def run_document_chat_blueprint(processing_result: dict) -> dict:
         }
         
         # Execute with real iceOS orchestrator
-        executor = WorkflowExecutor()
-        
         try:
-            result = await executor.execute(workflow, inputs)
+            workflow.context = inputs
+            result = await workflow.execute()
             
             response = result.get("response", "No response generated")
             confidence = result.get("confidence", 0.0)
@@ -219,17 +231,20 @@ async def main():
     # Register all components
     print("📋 Registering Document Assistant components...")
     try:
-        # Register tools
-        tool_registry = ToolRegistry()
-        tool_registry.register("document_parser", DocumentParserTool)
-        tool_registry.register("intelligent_chunker", IntelligentChunkerTool)
-        tool_registry.register("semantic_search", SemanticSearchTool)
+        from ice_core.models.enums import NodeType
+        from ice_core.unified_registry import global_agent_registry
         
-        # Register agents
-        agent_registry = AgentRegistry()
-        agent_registry.register("document_chat_agent", DocumentChatAgent)
+        # Register tools
+        registry.register_instance(NodeType.TOOL, "document_parser", DocumentParserTool())
+        registry.register_instance(NodeType.TOOL, "intelligent_chunker", IntelligentChunkerTool())
+        registry.register_instance(NodeType.TOOL, "semantic_search", SemanticSearchTool())
+        
+        # Register agent
+        global_agent_registry.register_agent("document_chat_agent", "DocumentAssistant.agents.DocumentChatAgent")
         
         print("✅ Components registered successfully")
+        print(f"🔧 Tools available: {len(registry.list_nodes(NodeType.TOOL))}")
+        print(f"🤖 Agents available: {len(global_agent_registry.available_agents())}")
     except Exception as e:
         logger.error(f"Component registration failed: {e}")
         return

@@ -1,0 +1,9 @@
+{
+  "start_time": "2025-07-28T01:01:23.555067",
+  "workflows_executed": [
+    "document_processing"
+  ],
+  "documents_processed": 0,
+  "queries_answered": 0,
+  "results": {
+    "document_processing": 
