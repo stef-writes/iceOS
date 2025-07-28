@@ -70,6 +70,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         demo_modules = [
             ("DocumentAssistant", "DocumentAssistant"),
             ("BCI Investment Lab", "BCIInvestmentLab"),
+            ("FB Marketplace Seller", "RivaRidge.FB_Marketplace_Seller.workflows"),
         ]
 
     for label, module_path in demo_modules:
