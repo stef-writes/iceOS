@@ -55,5 +55,9 @@ python use_cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
 
   > “Clone → write JSON → import builders → run” will be the shortest path from idea to a live, orchestrated multi-workflow system.
 
+* **Manifest-Driven Registry – Milestone A** *(+3 days)* — Define `plugins.v0` schema, implement loader, and add `--no-dynamic` flag for deterministic runtime.
+* **Manifest-Driven Registry – Milestone B** *(+1 week)* — CLI commands `ice plugins export|lint`, CI gate, and autodiscovery helper.
+* **Manifest-Driven Registry – Milestone C** *(ongoing)* — Marketplace backend with signed bundles, search UI, and billing hooks.
+
 ---
 MIT License · © iceOS Contributors 
