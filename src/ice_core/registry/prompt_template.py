@@ -4,9 +4,8 @@ This module provides a registry system for managing prompt templates,
 enabling dynamic prompt selection and composition at runtime.
 """
 
-from typing import Dict, Optional, Callable, Any
+from typing import Dict, Optional, Callable
 from ice_core.models.llm import MessageTemplate
-from ice_core.exceptions import RegistryError
 
 
 class PromptTemplateRegistry:

@@ -1,7 +1,7 @@
 """Market research tool for competitive pricing analysis."""
 
 import random
-from typing import Dict, Any, List
+from typing import Dict, Any
 from ice_sdk.tools.base import ToolBase
 
 
@@ -226,7 +226,7 @@ class MarketResearchTool(ToolBase):
             "demand_adjustment": demand_adjustment,
             "confidence_score": random.uniform(0.7, 0.9),
             "action_items": [
-                f"Monitor competitor prices weekly",
+                "Monitor competitor prices weekly",
                 f"Adjust for {demand_level} demand conditions",
                 f"Consider {positioning} positioning strategy"
             ]

@@ -4,13 +4,11 @@ Tests the new recursive node type that enables agent conversations until converg
 """
 
 import pytest
-from unittest.mock import AsyncMock, Mock, patch
-from ice_core.models import RecursiveNodeConfig, AgentNodeConfig, NodeExecutionResult, NodeMetadata
-from ice_core.models.enums import NodeType
+from unittest.mock import Mock, patch
+from ice_core.models import RecursiveNodeConfig, NodeExecutionResult, NodeMetadata
 from ice_orchestrator.execution.executors.unified import recursive_executor
 from ice_orchestrator.workflow import Workflow
 from ice_sdk.builders.workflow import WorkflowBuilder
-from datetime import datetime
 
 
 @pytest.fixture

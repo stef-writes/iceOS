@@ -21,7 +21,7 @@ from __future__ import annotations
 import re
 import inspect
 from typing import Any, Dict, List, Tuple, Type
-from pydantic import BaseModel, Field, conint # Imported locally in _validate_schema_value
+from pydantic import BaseModel # Imported locally in _validate_schema_value
 
 _SCALAR_MAP: Dict[str, Type[Any]] = {
     "str": str,

@@ -19,17 +19,14 @@ import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List
 
 # iceOS Blueprint imports
-from ice_orchestrator.workflow import Workflow
 from ice_orchestrator.execution.executor import WorkflowExecutor
 from ice_core.registry import ToolRegistry, AgentRegistry
 
 # Import real workflows
 from use_cases.RivaRidge.FB_Marketplace_Seller.workflows import (
-    create_marketplace_automation_workflow,
-    create_simple_listing_workflow
+    create_marketplace_automation_workflow
 )
 
 # Import tools and agents
@@ -93,7 +90,7 @@ async def run_marketplace_automation_blueprint() -> dict:
         print("\n🚀 Executing workflow with REAL marketplace automation...")
         result = await executor.execute(workflow, inputs)
         
-        print(f"\n✅ MARKETPLACE AUTOMATION COMPLETE!")
+        print("\n✅ MARKETPLACE AUTOMATION COMPLETE!")
         print(f"📦 Items Processed: {result.get('items_processed', 'N/A')}")
         print(f"🚀 Items Published: {result.get('items_published', 'N/A')}")
         print(f"💬 Customer Messages: {result.get('customer_messages', 'N/A')}")
@@ -235,7 +232,7 @@ async def run_pricing_optimization_simulation() -> dict:
         performance = result.get("performance_analysis", {})
         confidence = result.get("confidence", 0.0)
         
-        print(f"\n✅ PRICING OPTIMIZATION COMPLETE!")
+        print("\n✅ PRICING OPTIMIZATION COMPLETE!")
         print(f"📈 Price Adjustments: {result.get('prices_updated', 0)}")
         print(f"📊 Performance: {performance.get('price_performance', 'N/A')}")
         print(f"🎯 Confidence: {confidence:.2f}")
@@ -319,12 +316,12 @@ async def main():
     execution_results["end_time"] = datetime.now().isoformat()
     
     # Final summary
-    print(f"\n🎉 FACEBOOK MARKETPLACE BLUEPRINT EXECUTION COMPLETE!")
+    print("\n🎉 FACEBOOK MARKETPLACE BLUEPRINT EXECUTION COMPLETE!")
     print(f"📊 Workflows Executed: {len(execution_results['workflows_executed'])}")
     print(f"📦 Items Processed: {execution_results['items_processed']}")
     print(f"🤖 Customer Interactions: {execution_results['customer_interactions']}")
     print(f"💰 Pricing Optimizations: {execution_results['pricing_optimizations']}")
-    print(f"⚡ All Real Operations - Zero Mocking")
+    print("⚡ All Real Operations - Zero Mocking")
     
     # Save results
     results_file = Path("facebook_marketplace_blueprint_results.json")

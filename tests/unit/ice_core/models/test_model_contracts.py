@@ -12,7 +12,6 @@ from pydantic import ValidationError
 
 from ice_core.models import (
     LLMOperatorConfig,
-    ToolNodeConfig,
     AgentNodeConfig,
     ModelProvider
 )

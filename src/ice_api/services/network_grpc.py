@@ -16,6 +16,12 @@ else:  # Fallback so mypy/tests succeed without generated stubs
     network_pb2.CreateNetworkSpecResponse = type("CreateNetworkSpecResponse", (), {})
     network_pb2.ListNetworkSpecsResponse = type("ListNetworkSpecsResponse", (), {})
     network_pb2.GetNetworkSpecResponse = type("GetNetworkSpecResponse", (), {})
+    class _DynResp:  # noqa: D401 – simple stub
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+
+    network_pb2.ExecuteNetworkResponse = _DynResp
 
     network_pb2_grpc = types.ModuleType("network_pb2_grpc")
     network_pb2_grpc.NetworkServiceServicer = object  # type: ignore[assignment]
@@ -62,3 +68,14 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(str(exc))
             return network_pb2.GetNetworkSpecResponse()  # type: ignore[attr-defined]
+
+    async def ExecuteNetwork(self, request, context):  # noqa: N802 – gRPC naming
+        """Execute a network manifest located at *request.manifest_path*."""
+
+        try:
+            await self._service.execute(request.manifest_path)  # type: ignore[attr-defined]
+            return network_pb2.ExecuteNetworkResponse(success=True)  # type: ignore[attr-defined]
+        except Exception as exc:  # pragma: no cover
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(exc))
+            return network_pb2.ExecuteNetworkResponse(success=False)  # type: ignore[attr-defined]

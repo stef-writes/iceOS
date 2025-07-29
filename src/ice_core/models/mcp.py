@@ -133,43 +133,71 @@ class PartialBlueprint(BaseModel):
         self._validate_incremental()
     
     def _validate_incremental(self) -> None:
-        """Validate what we have so far, populate errors/suggestions."""
-        self.validation_errors.clear()
-        self.next_suggestions.clear()
+        """Incrementally validate the partial blueprint."""
+        self.validation_errors = []
+        self.is_complete = False
         
-        # Check for unconnected dependencies
-        node_ids = {n.id for n in self.nodes}
+        if not self.nodes:
+            self.validation_errors.append("No nodes added yet")
+            return
+            
+        # Check each node's dependencies
+        node_ids = {node.id for node in self.nodes}
         for node in self.nodes:
             for dep in node.dependencies:
                 if dep not in node_ids:
                     self.validation_errors.append(
-                        f"Node {node.id} references missing dependency {dep}"
+                        f"Node {node.id} depends on non-existent node {dep}"
                     )
         
-        # Check for pending connections
-        has_pending = any(
-            isinstance(n, PartialNodeSpec) and (n.pending_inputs or n.pending_outputs)
-            for n in self.nodes
-        )
+        # Check for unresolved inputs/outputs
+        for node in self.nodes:
+            if isinstance(node, PartialNodeSpec):
+                if node.pending_inputs:
+                    self.validation_errors.append(
+                        f"Node {node.id} has unconnected inputs: {node.pending_inputs}"
+                    )
         
-        # Mark complete if no errors and no pending connections
-        self.is_complete = len(self.validation_errors) == 0 and not has_pending
+        # Check if referenced components exist
+        from ice_core.unified_registry import registry, global_agent_registry
+        from ice_core.models import NodeType
+        
+        for node in self.nodes:
+            if node.type == "tool" and hasattr(node, 'tool_name'):
+                if not registry.has_tool(node.tool_name):
+                    self.validation_errors.append(
+                        f"Tool '{node.tool_name}' not found in registry"
+                    )
+                    self.next_suggestions.append(
+                        f"Use /components/validate to validate and register tool '{node.tool_name}'"
+                    )
+            elif node.type == "agent" and hasattr(node, 'package'):
+                agent_names = [name for name, _ in global_agent_registry.available_agents()]
+                if node.package not in agent_names:
+                    self.validation_errors.append(
+                        f"Agent '{node.package}' not found in registry"
+                    )
+                    self.next_suggestions.append(
+                        f"Use /components/validate to validate and register agent '{node.package}'"
+                    )
+            elif node.type == "workflow" and hasattr(node, 'workflow_ref'):
+                try:
+                    registry.get_instance(NodeType.WORKFLOW, node.workflow_ref)
+                except Exception:
+                    self.validation_errors.append(
+                        f"Workflow '{node.workflow_ref}' not found in registry"
+                    )
+                    self.next_suggestions.append(
+                        f"Use /components/validate to validate and register workflow '{node.workflow_ref}'"
+                    )
         
         # Generate suggestions based on current state
-        if self.nodes:
-            last_node = self.nodes[-1]
-            if last_node.type == "tool" and hasattr(last_node, "output_schema"):
-                self.next_suggestions.append({
-                    "type": "llm",
-                    "reason": "Process tool output with LLM",
-                    "suggested_connection": last_node.id
-                })
-            elif last_node.type == "llm":
-                self.next_suggestions.append({
-                    "type": "tool", 
-                    "reason": "Execute action based on LLM output",
-                    "suggested_connection": last_node.id
-                })
+        if not self.validation_errors:
+            self.is_complete = len(self.nodes) > 0
+            if self.is_complete:
+                self.next_suggestions.append("Blueprint is valid! Use to_blueprint() to finalize")
+            else:
+                self.next_suggestions.append("Add nodes to start building your workflow")
     
     def to_blueprint(self) -> Blueprint:
         """Convert to executable blueprint (raises if not complete)."""
@@ -198,12 +226,125 @@ class PartialBlueprint(BaseModel):
         )
 
 class PartialBlueprintUpdate(BaseModel):
-    """Request to update a partial blueprint."""
+    """Update operation for partial blueprints."""
     
     action: Literal["add_node", "remove_node", "update_node", "suggest"]
-    node: Optional[Union[NodeSpec, PartialNodeSpec]] = None
+    node: Optional[PartialNodeSpec] = None
     node_id: Optional[str] = None
     updates: Optional[Dict[str, Any]] = None
+
+# ---------------------------------------------------------------------------
+# Component Definition and Validation Support --------------------------------
+# ---------------------------------------------------------------------------
+
+class ComponentDefinition(BaseModel):
+    """Definition for a new component to validate and potentially register.
+    
+    This enables validating tool/agent/workflow definitions BEFORE registration,
+    ensuring only valid components enter the registry.
+    """
+    type: Literal["tool", "agent", "workflow"]
+    name: str = Field(..., description="Unique component name")
+    description: str = Field(..., description="Component description")
+    
+    # For tools - Python code or config
+    tool_class_code: Optional[str] = Field(
+        None, 
+        description="Python code defining the tool class (must inherit from ToolBase)"
+    )
+    tool_input_schema: Optional[Dict[str, Any]] = Field(
+        None,
+        description="JSON schema for tool inputs"
+    )
+    tool_output_schema: Optional[Dict[str, Any]] = Field(
+        None,
+        description="JSON schema for tool outputs"
+    )
+    
+    # For agents
+    agent_system_prompt: Optional[str] = Field(None, description="Agent system prompt")
+    agent_tools: Optional[List[str]] = Field(
+        None,
+        description="List of tool names this agent can use"
+    )
+    agent_llm_config: Optional[Dict[str, Any]] = Field(
+        None,
+        description="LLM configuration for the agent"
+    )
+    
+    # For workflows
+    workflow_nodes: Optional[List[NodeSpec]] = Field(
+        None,
+        description="Nodes that make up the workflow"
+    )
+    
+    # Registration options
+    auto_register: bool = Field(
+        True,
+        description="Automatically register if validation passes"
+    )
+    validate_only: bool = Field(
+        False,
+        description="Only validate, never register (overrides auto_register)"
+    )
+    
+    # Metadata
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_type_specific_fields(self) -> "ComponentDefinition":
+        """Ensure type-specific fields are provided."""
+        if self.type == "tool":
+            if not self.tool_class_code and not self.tool_input_schema:
+                raise ValueError("Tool definition requires either tool_class_code or schemas")
+        elif self.type == "agent":
+            if not self.agent_system_prompt and not self.agent_tools:
+                raise ValueError("Agent definition requires system_prompt or tools")
+        elif self.type == "workflow":
+            if not self.workflow_nodes:
+                raise ValueError("Workflow definition requires nodes")
+        return self
+
+
+class ComponentValidationResult(BaseModel):
+    """Result of component definition validation."""
+    
+    valid: bool = Field(..., description="Whether the component is valid")
+    errors: List[str] = Field(
+        default_factory=list,
+        description="Validation errors that must be fixed"
+    )
+    warnings: List[str] = Field(
+        default_factory=list,
+        description="Warnings that should be addressed"
+    )
+    suggestions: List[str] = Field(
+        default_factory=list,
+        description="AI suggestions for improvement"
+    )
+    
+    # Registration status
+    registered: bool = Field(
+        False,
+        description="Whether the component was registered"
+    )
+    registry_name: Optional[str] = Field(
+        None,
+        description="Name used in registry (may differ from definition.name)"
+    )
+    
+    # Component metadata
+    component_type: Optional[str] = None
+    component_id: Optional[str] = Field(
+        None,
+        description="Unique ID assigned to the component"
+    )
+    
+    # For debugging
+    validation_details: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Detailed validation information"
+    )
 
 # ---------------------------------------------------------------------------
 # Run helpers ----------------------------------------------------------------

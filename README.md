@@ -1,51 +1,59 @@
-# iceOS v1(A) - AI Agent Operating System
+# iceOS v1 (A) – Intelligent Orchestration Platform
 
+iceOS is an open-source platform that turns natural-language requests into validated, cost-aware, and executable workflows.
 
-iceOS is the Ai-Native OS designed to bridge AI worklfows and AI agents int
+```mermaid
+flowchart LR
+    subgraph "Interpreter – Frosty"
+        U([User]) --> F[Frosty]
+    end
+    F --> C[MCP API – Compiler]
+    C --> R[Orchestrator – Runtime]
+    R -->|Events| F
+    R -->|Results| U
+```
 
+## Key Layers
+| Layer | Repository Path | Purpose |
+|-------|-----------------|---------|
+| Frosty *(Interpreter)* | `src/frosty/` | NL intent → PartialBlueprints, memory-aware reasoning |
+| MCP API *(Compiler)* | `src/ice_api/` | Blueprint validation, budget checks, event streaming |
+| Orchestrator *(Runtime)* | `src/ice_orchestrator/` | DAG execution, agents, memory, metrics |
+| Core Models | `src/ice_core/` | Pydantic configs, protocols, unified registry |
+| Developer SDK | `src/ice_sdk/` | Tool & workflow builders, client helpers |
 
-**iceOS** is a complete AI agent operating system featuring **modular MCP API architecture**, **real-time workflow orchestration**, and **production-ready multi-agent coordination**. Built for enterprise applications with **zero monolithic code** and **clean separation of concerns**.
+## Current Capabilities
+* 8 first-class node types (`tool`, `llm`, `agent`, `condition`, `loop`, `parallel`, `recursive`, `workflow`) – see `ice_core.models.node_models`.
+* Unified memory system – Working, Episodic (Redis), Semantic (vector/SQLite), Procedural.
+* Incremental blueprint construction (`PartialBlueprint`) with live MCP validation.
+* NetworkX-powered graph analysis for critical-path and optimization insights.
+* Network manifests (`network.v0`) for orchestrating multiple workflows with dependency graphs & shared global config.
+* Plugin registry with 20+ production tools across AI, web, DB, and system domains (`src/ice_sdk/tools`).
+* Selective WASM sandboxing for untrusted code nodes.
+* Structured logging & OpenTelemetry tracing out-of-the-box.
+* Draft → Blueprint → Workflow compiler pipeline with instant validation feedback (see docs).
 
+## Quick Start
+```bash
+# Install (requires Poetry)
+make install
+# Run API server
+poetry run uvicorn ice_api.main:app --reload
+# Execute a demo workflow
+python use_cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
+```
 
-### ✅ **Production-Ready Architecture**
-- **🏗️ Modular MCP API** - Clean blueprint → ice_orchestrator flow
-- **📦 Zero Monoliths** - Every component is focused and reusable
-- **🔧 Real Integrations** - No mocks, production API calls
-- **📊 Full Observability** - Live execution tracking + Mermaid visualization
-- **⚡ Auto-Registration** - Tools and agents discovered automatically
+## Project Status
+* Foundation complete (Core, Orchestrator, API, SDK).
+* Frosty scaffold added (perception, reasoning, memory, synthesis, metacognition).
+* Canvas UI in progress (not in this repo).
+* See `docs/Looking_Forward/iceos-comprehensive_vision_roadmap.md` for future work.
 
-**Key Benefits:**
-- **🎯 No Debugging** - Submit blueprints, let ice_orchestrator handle execution
-- **📦 Modular Design** - Each blueprint is focused and reusable
-- **🔄 Real APIs** - Production integrations with error handling
-- **📊 Live Monitoring** - Full execution visibility and Mermaid diagrams
+## 🗓️ Upcoming Milestones
+
+* **Git-clone to JSON** *(target: tomorrow)* — Major DX milestone: after `git clone` and `poetry install`, a developer needs only the JSON schemas (Blueprints & ComponentDefinitions) plus the fluent-API builders to create tools, agents (including recursive & swarm variants), and full workflows.  Spin up the JSON specs first to design, then wire them together in Python with the fluent API — no Frosty required.
+
+  > “Clone → write JSON → import builders → run” will be the shortest path from idea to a live, orchestrated multi-workflow system.
+
 ---
-
-## 🔧 **Core Features**
-
-### **MCP API Server** (`ice_api/`)
-- ✅ **JSON-RPC 2.0** compliant
-- ✅ **Blueprint validation** with detailed error messages
-- ✅ **Auto-registration** of DocumentAssistant + BCI components
-- ✅ **Real-time execution** tracking
-
-### **Node Types** (`ice_core/`)  
-- ✅ **8/8 types implemented** and tested in production
-- ✅ **Schema validation** for all configurations
-- ✅ **Recursive nodes** added to core conversion *(recent fix)*
-- ✅ **Tool abstractions** with proper `_execute_impl` pattern
-
-
-## 🎉 **Success Story**
-
-**From Concept to Production in One Sprint:**
-
-1. **✅ Identified Issues** - Tool abstractions, schema validation, recursive nodes
-2. **✅ Fixed Core Systems** - Added missing node type support, proper abstractions
-3. **✅ Built Modular Architecture** - Clean blueprints → MCP API → ice_orchestrator
-4. **✅ Demonstrated All Features** - 8/8 node types working in real workflows
-5. **✅ Production Deployment** - Live demos with real API integrations
-
-**Result:** Complete AI agent operating system with modular MCP architecture and full node type coverage.
-
-*iceOS v1(A) - Built for production AI agent coordination* 
+MIT License · © iceOS Contributors 

@@ -1,5 +1,5 @@
 """Swarm node - multi-agent coordination."""
-from typing import Dict, Any, List
+from typing import Dict, Any
 from ice_core.base_node import BaseNode
 from ice_core.models.node_models import SwarmNodeConfig
 

@@ -2,7 +2,7 @@
 
 import asyncio
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, List
 from ice_sdk.tools.base import ToolBase
 
@@ -305,7 +305,7 @@ class ActivitySimulatorTool(ToolBase):
             "market_changes": market_result
         }
         
-        print(f"\n🎯 ECOSYSTEM SIMULATION COMPLETE:")
+        print("\n🎯 ECOSYSTEM SIMULATION COMPLETE:")
         print(f"   📱 {total_activity['summary']['total_messages']} customer messages")
         print(f"   💰 {total_activity['summary']['total_sales']} sales (${total_activity['summary']['total_revenue']:.2f})")
         print(f"   📈 {total_activity['summary']['market_events']} market events")

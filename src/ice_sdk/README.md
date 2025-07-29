@@ -8,7 +8,7 @@
 * **Service Locator**: Cross-layer dependency injection pattern
 * **Development Utilities**: Type coercion, error handling, and developer conveniences
 
-> **Layer Boundaries**: SDK depends only on `ice_core`. It does NOT import from `ice_orchestrator` or `ice_api`. Cross-layer dependencies use ServiceLocator.
+> **Layer Boundaries**: SDK depends only on `ice_core` and does **not** import from `ice_orchestrator` or `ice_api`. Cross-layer calls use ServiceLocator.
 
 ## Quick Start: Building Tools
 
@@ -59,7 +59,7 @@ class ContentAnalyzer(ToolBase):
 
 ## Building Workflows with Fluent API
 
-### Modern WorkflowBuilder Pattern
+### Modern WorkflowBuilder Pattern (Example)
 
 ```python
 from ice_sdk.builders import WorkflowBuilder

@@ -2,11 +2,9 @@
 
 from typing import Any, Dict, Optional
 import asyncio
-import inspect
 from ice_core.base_tool import ToolBase
 from ice_core.unified_registry import registry
 from ice_core.models import NodeType
-from ice_sdk.services import ServiceLocator
 
 
 class ToolExecutionService:

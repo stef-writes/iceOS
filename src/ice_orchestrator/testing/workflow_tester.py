@@ -13,7 +13,6 @@ Typical usage
 """
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 from types import MethodType
 from typing import Any, Dict, Optional

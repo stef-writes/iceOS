@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import pytest
 import time
-from typing import List, Dict, Any
+from typing import Dict, Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -31,7 +31,7 @@ def run_memory_tests(verbose: bool = True, coverage: bool = True) -> Dict[str, A
     # Filter existing files
     existing_tests = [f for f in test_files if os.path.exists(f)]
     
-    print(f"\n🧠 Running Memory System Tests")
+    print("\n🧠 Running Memory System Tests")
     print(f"{'=' * 60}")
     print(f"Found {len(existing_tests)} test files")
     
@@ -79,7 +79,7 @@ async def run_performance_tests():
     print(f"{'=' * 60}")
     
     from ice_orchestrator.memory import (
-        EpisodicMemory, SemanticMemory, ProceduralMemory, UnifiedMemory, UnifiedMemoryConfig
+        EpisodicMemory, SemanticMemory
     )
     from ice_orchestrator.memory import MemoryConfig
     
@@ -174,7 +174,7 @@ async def run_stress_tests():
     
     # Memory usage test
     print("\n💾 Memory Usage Test:")
-    print(f"  Total items stored: 1000")
+    print("  Total items stored: 1000")
     
     # Search across all memories
     print("\n🔎 Cross-Memory Search Test:")

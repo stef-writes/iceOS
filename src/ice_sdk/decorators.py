@@ -1,6 +1,5 @@
 """Decorators for the new node system."""
-import functools
-from typing import Any, Callable, Optional, Type, Dict
+from typing import Callable, Optional, Type
 
 from ice_core.base_tool import ToolBase
 from ice_core.unified_registry import registry
@@ -10,12 +9,14 @@ from ice_core.models.enums import NodeType
 def tool(
     name: Optional[str] = None,
     auto_register: bool = True,
+    validate: bool = True,
 ) -> Callable[[Type[ToolBase]], Type[ToolBase]]:
     """Simple decorator for tool classes with auto-registration.
     
     Args:
         name: Tool name for registry (defaults to class name in snake_case)
         auto_register: Automatically register in unified registry
+        validate: Whether to validate before registration (default: True)
         
     Example:
         @tool
@@ -24,6 +25,11 @@ def tool(
             
             async def _execute_impl(self, **kwargs):
                 # ... implementation
+                
+        # Skip validation for testing
+        @tool(validate=False)
+        class TestTool(ToolBase):
+            '''Test tool that might not pass validation.'''
     """
     def decorator(cls: Type[ToolBase]) -> Type[ToolBase]:
         # Validate it's a proper tool
@@ -43,7 +49,7 @@ def tool(
         if auto_register:
             # Create an instance for registration
             tool_instance = cls()
-            registry.register_instance(NodeType.TOOL, tool_name, tool_instance)
+            registry.register_instance(NodeType.TOOL, tool_name, tool_instance, validate=validate)
             
         return cls
         

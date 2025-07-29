@@ -4,7 +4,6 @@ This module ensures the SDK is properly initialized with minimal setup.
 All runtime services are handled by the orchestrator.
 """
 
-from ice_sdk.services.locator import ServiceLocator
 
 
 def initialize_sdk() -> None:

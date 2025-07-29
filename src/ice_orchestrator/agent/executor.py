@@ -3,7 +3,6 @@
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 import structlog
 
-from ice_core.models import NodeExecutionResult
 from ice_sdk.services import ServiceLocator
 
 if TYPE_CHECKING:

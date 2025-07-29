@@ -29,11 +29,11 @@ _FILE_GLOBS: List[str] = [
 #   – a quoted string without nested braces or source_node_id
 #   – a bare number / boolean / null
 _PATTERN = re.compile(
-    r"input_mappings"  # the key
-    r"\s*:\s*{[^}]*?"  # opening brace and non-greedy content
-    r"\"[^"]+\"\s*:\s*"  # mapping key "xxx":
-    r"(?!{[^}]*\"source_node_id\")"  # negative look-ahead: not a dict with source_node_id
-    r"(?:\"[^\"{}]*\"|[-]?[0-9]+(?:\.[0-9]+)?|true|false|null)"  # literal value
+    r'input_mappings'  # the key
+    r'\s*:\s*{[^}]*?'  # opening brace and non-greedy content
+    r'"[^"]+"\s*:\s*'  # mapping key "xxx":
+    r'(?!{[^}]*"source_node_id")'  # negative look-ahead: not a dict with source_node_id
+    r'(?:"[^"{}]*"|[-]?[0-9]+(?:\.[0-9]+)?|true|false|null)'  # literal value
     ,
     re.IGNORECASE | re.DOTALL,
 )

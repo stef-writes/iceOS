@@ -23,7 +23,8 @@ from ice_api.api.mcp_jsonrpc import (
     handle_resources_list,
     handle_resources_read, 
     handle_prompts_list,
-    handle_prompts_get
+    handle_prompts_get,
+    handle_components_validate
 )
 
 
@@ -56,6 +57,8 @@ class StdioMCPServer:
                 result = await handle_prompts_list()
             elif method == "prompts/get":
                 result = await handle_prompts_get(params)
+            elif method == "components/validate":
+                result = await handle_components_validate(params)
             else:
                 return {
                     "jsonrpc": "2.0",

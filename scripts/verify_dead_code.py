@@ -10,10 +10,9 @@ This script performs multiple checks:
 """
 
 import ast
-import os
 import re
 from pathlib import Path
-from typing import Set, Dict, List, Tuple
+from typing import Dict, List
 import json
 
 class DeadCodeVerifier:
@@ -108,7 +107,7 @@ class DeadCodeVerifier:
                         if attr_name == "_agent_cache":
                             self._record_usage(attr_name, str(py_file), f"Attribute access: {attr_name}")
                             
-            except Exception as e:
+            except Exception:
                 pass  # Skip files we can't parse
     
     def _check_string_references(self):
@@ -260,7 +259,7 @@ class DeadCodeVerifier:
                 print(f"  - {item}")
                 info = self.dead_candidates[item]
                 if info["type"] == "module":
-                    print(f"    Type: Module import")
+                    print("    Type: Module import")
                     if "items" in info:
                         print(f"    Items: {', '.join(info['items'])}")
                 else:

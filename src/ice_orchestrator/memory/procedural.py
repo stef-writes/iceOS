@@ -1,10 +1,9 @@
 """Procedural memory for storing action patterns and strategies."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 import json
 from datetime import datetime
 from collections import defaultdict
-import statistics
 from .base import BaseMemory, MemoryConfig, MemoryEntry
 
 

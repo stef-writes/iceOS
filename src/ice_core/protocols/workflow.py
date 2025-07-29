@@ -1,7 +1,6 @@
 """Workflow protocol definitions."""
 from __future__ import annotations
-from abc import abstractmethod
-from typing import Any, Dict, Protocol
+from typing import Any, Protocol
 
 class IWorkflow(Protocol):
     """Workflow protocol for execution engines."""

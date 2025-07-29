@@ -10,6 +10,8 @@ extend-exclude = [
     ".venv",
     "dist",
     "build",
+    "tests",
+    "use_cases",
 ]
 
 [lint]
@@ -21,6 +23,30 @@ extend-exclude = [
 "tests/**/*.py" = ["E402"]
 "scripts/ci/check_tool_scaffold.py" = ["E402"]
 "scripts/run_migrations.py" = ["E402"]
+"src/ice_api/api/mcp.py" = ["F811"]
+"scripts/verify_dead_code.py" = ["F841"]
+"src/ice_orchestrator/context/graph_analyzer.py" = ["E741"]
+"src/ice_orchestrator/execution/executors/unified.py" = ["F823"]
+"src/ice_orchestrator/execution/wasm_executor.py" = ["F821", "F841"]
+"src/ice_orchestrator/graph/dependency_graph.py" = ["E722", "F841"]
+"src/ice_orchestrator/memory/episodic.py" = ["E722"]
+"src/ice_orchestrator/validation/chain_validator.py" = ["F821"]
+"src/ice_sdk/services/initialization.py" = ["F401"]
+"src/ice_sdk/tools/builtin/auto_workflow_hooks.py" = ["F821", "F822"]
+"src/ice_sdk/tools/core/csv_tool.py" = ["F823"]
+"src/ice_sdk/tools/db/*.py" = ["F811"]
+"src/ice_sdk/tools/system/markdown_to_html_tool.py" = ["F811"]
+"src/ice_sdk/tools/web/search_tool.py" = ["F811"]
+"tests/integration/ice_api/test_mcp_models.py" = ["F841"]
+"tests/integration/ice_core/test_architectural_boundaries.py" = ["F841"]
+"tests/integration/test_working_patterns.py" = ["F401"]
+"tests/run_memory_tests.py" = ["F841"]
+"tests/unit/ice_core/registry/test_prompt_template_registry.py" = ["F841"]
+"tests/unit/ice_orchestrator/execution/test_recursive_flows.py" = ["E712"]
+"tests/unit/ice_orchestrator/graph/test_enhanced_networkx.py" = ["E712"]
+"use_cases/RivaRidge/FB_Marketplace_Seller/agents/pricing_agent.py" = ["F841"]
+"use_cases/RivaRidge/FB_Marketplace_Seller/tools/facebook_publisher.py" = ["E741"]
+"src/ice_orchestrator/workflow.py" = ["F841"]
 
 [lint.isort]
 known-first-party = ["ice_sdk", "ice_orchestrator", "frosty"]

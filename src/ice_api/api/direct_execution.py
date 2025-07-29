@@ -12,7 +12,7 @@ import asyncio
 import uuid
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from ice_core.models.mcp import Blueprint, RunRequest, NodeSpec

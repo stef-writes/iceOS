@@ -1,27 +1,11 @@
 """iceOS command-line interface (pure *Click* implementation).
 
-The public executable is registered in *pyproject.toml* as::
-
-    [tool.poetry.scripts]
-    ice = "ice_cli.cli:cli"
-
-Currently only a **doctor** command is implemented because it is required by
-``make doctor`` (and related CI pipelines).  Additional sub-commands can be
-added incrementally without breaking existing automation.
 """
 
 from __future__ import annotations
 
 """iceOS command-line interface (pure *Click* implementation).
 
-The public executable is registered in *pyproject.toml* as::
-
-    [tool.poetry.scripts]
-    ice = "ice_cli.cli:cli"
-
-Currently only a **doctor** command is implemented because it is required by
-``make doctor`` (and related CI pipelines).  Additional sub-commands can be
-added incrementally without breaking existing automation.
 """
 
 import subprocess
@@ -29,6 +13,41 @@ import sys
 from typing import List
 
 import click
+import json
+from pathlib import Path
+
+import asyncio
+
+# ---------------------------------------------------------------------------
+# Async helper ---------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+def _safe_run(coro):  # noqa: ANN001 – generic coroutine
+    """Run *coro* regardless of whether an event loop is already running.
+
+    If running inside an existing loop (e.g., Jupyter) we schedule the coroutine
+    and block until completion using ``loop.run_until_complete`` after applying
+    ``nest_asyncio`` to enable nested loops.
+    """
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    # Already inside a loop ---------------------------------------------------
+    try:
+        import nest_asyncio  # type: ignore
+
+        nest_asyncio.apply()
+    except Exception:
+        pass  # Optional dependency – if missing we still attempt but may error
+
+    return loop.run_until_complete(coro)
+
+# NOTE: All runtime execution now lives in *ice_orchestrator.cli* to respect
+# clean layer boundaries.  We forward commands via *subprocess* instead of
+# importing the orchestrator layer directly.
 
 # ---------------------------------------------------------------------------
 # Doctor implementation ------------------------------------------------------
@@ -72,6 +91,31 @@ def doctor(category: str) -> None:  # – imperative mood
 
     click.echo("[doctor] All checks passed ✔")
 
-# Allow ``python -m ice_cli.cli doctor`` invocation --------------------------
+# ---------------------------------------------------------------------------
+# Network commands -----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@cli.group()
+def network() -> None:
+    """Convenience wrapper that forwards to *ice_orchestrator.cli*."""
+
+
+@network.command("run")
+@click.argument("manifest_path", type=click.Path(exists=True, dir_okay=False))
+@click.option("--scheduled", is_flag=True, help="Respect cron schedules and watch forever.")
+def network_run(manifest_path: str, scheduled: bool) -> None:  # noqa: D401
+    """Execute *MANIFEST_PATH* via the runtime CLI without importing it."""
+
+    cmd = [sys.executable, "-m", "ice_orchestrator.cli", "network", "run", manifest_path]
+    if scheduled:
+        cmd.append("--scheduled")
+
+    subprocess.run(cmd, check=True)
+
+# Alias for Poetry entrypoint -------------------------------------------------
+app = cli  # For backward compatibility with pyproject.toml script entry
+
+# Allow "python -m ice_cli.cli ..." invocation ------------------------------
 if __name__ == "__main__":  # pragma: no cover
     cli()

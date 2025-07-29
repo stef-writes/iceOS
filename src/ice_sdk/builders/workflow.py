@@ -1,9 +1,7 @@
 """Fluent API for building workflows."""
 from typing import List, Dict, Any, Optional
 from ice_core.models import (
-    NodeConfig, NodeType,
-    ToolNodeConfig, LLMOperatorConfig,
-    AgentNodeConfig, ConditionNodeConfig,
+    NodeConfig, ToolNodeConfig, LLMOperatorConfig,
     LLMConfig, ModelProvider
 )
 # All node types now have config classes
@@ -227,18 +225,23 @@ class WorkflowBuilder:
                         node.dependencies.append(from_node)
     
     def build(self):
-        """Build the final workflow."""
-        # Process edges to update node dependencies
+        """Return an MCP Blueprint ready for validation/compilation."""
+
+        # Update node dependencies according to the recorded edges
         self._apply_connections()
-        
-        # Import Workflow class (avoid circular imports)
-        from ice_orchestrator.workflow import Workflow
-        
-        # Create and return workflow instance
-        return Workflow(
-            nodes=self.nodes,
-            name=self.name
-        )
+
+        # Convert NodeConfig objects to plain NodeSpec dictionaries so the
+        # compiler tier ( 0ice_api 0) can accept them without importing
+        # runtime classes.  We rely on Pydantic's ".model_dump" for a JSON-safe
+        # representation.
+        from ice_core.models.mcp import Blueprint, NodeSpec
+
+        node_specs = [
+            NodeSpec.model_validate(node.model_dump())  # type: ignore[arg-type]
+            for node in self.nodes
+        ]
+
+        return Blueprint(nodes=node_specs, metadata={"draft_name": self.name})
     
     def to_workflow(self):
         """Convert to Workflow instance using ServiceLocator.

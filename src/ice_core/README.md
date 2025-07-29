@@ -47,4 +47,4 @@ The models support Frosty's 4-level translation:
 - **Separate Config from Runtime**: Enables progressive validation
 - **Central Registry**: Single source of truth for all components
 
-See [iceOS Vision](../../docs/iceos-vision.md) for the complete platform vision. 
+See `docs/Looking_Forward/iceos-comprehensive_vision_roadmap.md` for future vision and research frontiers. 

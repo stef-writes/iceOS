@@ -2,7 +2,7 @@
 
 import csv
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any
 from ice_sdk.tools.base import ToolBase
 
 

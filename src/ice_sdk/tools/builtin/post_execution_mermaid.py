@@ -12,9 +12,8 @@ Creates comprehensive visualizations showing:
 - Memory operations
 """
 
-import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 from ice_sdk.tools.base import ToolBase
 
 

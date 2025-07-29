@@ -4,7 +4,7 @@ This module provides graph intelligence that leverages the powerful NetworkX
 infrastructure already in place but underutilized across iceOS layers.
 """
 
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List
 import networkx as nx
 from dataclasses import dataclass
 
@@ -152,7 +152,7 @@ class GraphAnalyzer:
             suggestions.append({
                 "type": "bottleneck",
                 "priority": "medium", 
-                "description": f"Nodes with high fan-out may cause execution delays",
+                "description": "Nodes with high fan-out may cause execution delays",
                 "affected_nodes": metrics.bottleneck_nodes
             })
             

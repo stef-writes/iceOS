@@ -13,8 +13,7 @@ import json
 from typing import Any, Dict, List, Tuple, Type, Optional, Union
 from pydantic import BaseModel
 
-import jsonschema
-from jsonschema import Draft7Validator, ValidationError as JSONSchemaError
+from jsonschema import Draft7Validator
 
 
 __all__ = [

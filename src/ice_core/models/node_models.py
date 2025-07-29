@@ -20,7 +20,6 @@ from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
-    Callable,
     Dict,
     List,
     Literal,

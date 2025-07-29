@@ -4,15 +4,11 @@ These tests validate the core functionality that powers our enhanced
 Facebook Marketplace automation demo.
 """
 import pytest
-import asyncio
-from pathlib import Path
-from typing import Dict, Any
 
 from ice_core.unified_registry import registry, global_agent_registry
 from ice_core.models.node_models import ToolConfig
 from ice_core.models.enums import NodeType
 from ice_orchestrator.memory.unified import UnifiedMemory, UnifiedMemoryConfig, MemoryConfig
-from ice_orchestrator.agent.memory import MemoryAgent, MemoryAgentConfig
 from ice_sdk.builders.workflow import WorkflowBuilder
 
 

@@ -5,18 +5,17 @@ protocol to retrieve and delegate to tools/services rather than manually
 instantiating node wrapper classes.
 """
 from datetime import datetime
-from typing import Any, Dict, TypeAlias, List, Optional
+from typing import Any, Dict, TypeAlias, List
 import asyncio
 
 from ice_core.models import (
     NodeExecutionResult, NodeType,
     ToolNodeConfig, LLMOperatorConfig as LLMNodeConfig,
-    AgentNodeConfig, ConditionNodeConfig, WorkflowNodeConfig
+    AgentNodeConfig, ConditionNodeConfig
 )
 from ice_core.models.node_metadata import NodeMetadata
 from ice_core.protocols.workflow import WorkflowLike
 from ice_core.unified_registry import register_node, registry
-from ice_sdk.services.locator import ServiceLocator
 
 Workflow: TypeAlias = WorkflowLike
 
@@ -501,7 +500,6 @@ async def loop_executor(
     workflow: Workflow, cfg: Any, ctx: Dict[str, Any]
 ) -> NodeExecutionResult:
     """Execute a loop over a collection with WASM sandboxing for iteration logic."""
-    from ice_orchestrator.execution.wasm_executor import execute_node_with_wasm
     
     try:
         from ice_core.models import LoopNodeConfig
@@ -798,7 +796,7 @@ async def recursive_executor(
     start_time = datetime.utcnow()
     
     try:
-        from ice_core.models import RecursiveNodeConfig, AgentNodeConfig, WorkflowNodeConfig, ConditionNodeConfig
+        from ice_core.models import RecursiveNodeConfig, AgentNodeConfig, WorkflowNodeConfig
         
         # Handle different configuration formats
         if not isinstance(cfg, RecursiveNodeConfig):

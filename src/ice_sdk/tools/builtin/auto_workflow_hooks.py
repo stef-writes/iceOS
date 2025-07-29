@@ -13,9 +13,8 @@ Key Features:
 - Results aggregation
 """
 
-from typing import Any, Dict, List, Optional, Callable, Awaitable
+from typing import Any, Dict, List
 from datetime import datetime
-import asyncio
 import logging
 
 logger = logging.getLogger(__name__)

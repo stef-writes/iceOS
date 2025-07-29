@@ -212,7 +212,7 @@ class PricingAgent(MemoryAgent):
                     "pricing_strategy:recent",
                     strategy_data
                 )
-                print(f"💾 Stored pricing strategy in procedural memory")
+                print("💾 Stored pricing strategy in procedural memory")
             except Exception as e:
                 print(f"⚠️  Failed to store pricing strategy: {e}")
         
@@ -231,7 +231,7 @@ class PricingAgent(MemoryAgent):
                     "market_analysis:latest",
                     market_insight
                 )
-                print(f"🧠 Stored market analysis in semantic memory")
+                print("🧠 Stored market analysis in semantic memory")
             except Exception as e:
                 print(f"⚠️  Failed to store market analysis: {e}")
 

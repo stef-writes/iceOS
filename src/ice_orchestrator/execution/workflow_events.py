@@ -11,7 +11,6 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from enum import Enum
 
-from ice_core.models import NodeExecutionResult
 
 
 class EventType(Enum):

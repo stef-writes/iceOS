@@ -1,7 +1,7 @@
 """Agent builder utilities for developers."""
 
 from typing import Dict, List, Optional, Any
-from ice_core.models import LLMConfig, ModelProvider
+from ice_core.models import ModelProvider
 
 
 class AgentBuilder:

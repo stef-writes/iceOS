@@ -1,7 +1,7 @@
 """Registry protocol definition."""
 from __future__ import annotations
 from abc import abstractmethod
-from typing import Any, Dict, List, Optional, Protocol, Type
+from typing import Any, List, Optional, Protocol, Type
 from ice_core.models.enums import NodeType
 
 class IRegistry(Protocol):

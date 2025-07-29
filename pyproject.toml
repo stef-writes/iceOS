@@ -16,7 +16,8 @@ packages = [
   { include = "ice_orchestrator", from = "src" },
   { include = "ice_cli", from = "src" },
   { include = "ice_api", from = "src" },
-  { include = "ice_core", from = "src" }
+  { include = "ice_core", from = "src" },
+  { include = "frosty", from = "src" }
 ]
 
 # Include non-Python assets (JSON templates & default context store)
@@ -66,6 +67,7 @@ addopts = """
     --cov=ice_sdk
     --cov=ice_orchestrator
     --cov=ice_api
+    --cov=frosty
     --cov-report=html
     --cov-report=term-missing
     --cov-fail-under=0
@@ -107,6 +109,7 @@ httpx = "<0.25.0,>=0.24.0"
 jmespath = "^1.0.1"
 pypdf = "^3.17.0"
 networkx = "^3.1"
+croniter = "^2.0.0"
 openai = "1.14.1"
 opentelemetry-api = "^1.23.0"
 opentelemetry-sdk = "^1.23.0"
@@ -136,6 +139,7 @@ wasmtime = "^24.0.0"
 # Ensure build tooling is on a safe version (PYSEC-2025-49)
 python-multipart = "^0.0.18"
 rich = "^13.6.0"
+nest_asyncio = "^1.6.0"
 jinja2 = "^3.1.3"
 sse-starlette = {version = "^1.6.1", optional = true}
 
@@ -184,6 +188,7 @@ pre-commit = "4.2.0"
 pip = ">=23.3"
 setuptools = ">=78.1.1"
 sqlalchemy = "^2.0.23"
+vulture = "^2.14"
 
 [tool.poetry.scripts]
 ice = "ice_cli.cli:app"

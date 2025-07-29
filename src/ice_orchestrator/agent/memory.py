@@ -123,7 +123,7 @@ class MemoryAgent(AgentNode):
         # Store in working memory for immediate use
         if "working" in self.memory._memories:
             await self.memory.store(
-                f"work:last_interaction",
+                "work:last_interaction",
                 {
                     "inputs": inputs,
                     "result": result,

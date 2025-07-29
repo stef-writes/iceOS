@@ -23,9 +23,7 @@ from ice_api.startup_utils import (
     timed_import,
     summarise_demo_load,
     validate_registered_components,
-    READY_FLAG,
 )
-from ice_sdk import ToolService
 # Note: API layer uses ServiceLocator for orchestrator services
 from ice_sdk.services import ServiceLocator
 from ice_api.errors import add_exception_handlers

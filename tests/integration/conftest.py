@@ -4,7 +4,6 @@ Provides fixtures for Redis integration testing using Docker containers.
 """
 
 import asyncio
-import os
 from typing import AsyncGenerator
 
 import pytest

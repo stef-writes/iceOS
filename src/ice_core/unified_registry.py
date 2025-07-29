@@ -43,8 +43,35 @@ class Registry(BaseModel):
             raise RegistryError(f"Node {node_type.value}:{name} already registered")
         self._nodes[node_type][name] = implementation
     
-    def register_instance(self, node_type: NodeType, name: str, instance: INode) -> None:
-        """Register a node instance (for singletons like tools)."""
+    def register_instance(self, node_type: NodeType, name: str, instance: INode, validate: bool = True) -> None:
+        """Register a node instance (for singletons like tools).
+        
+        Args:
+            node_type: Type of node (TOOL, AGENT, etc.)
+            name: Unique name for the instance
+            instance: The instance to register
+            validate: Whether to validate before registration (default: True)
+                     Set to False for testing or internal use
+        """
+        # Validate before registration if requested
+        if validate and node_type == NodeType.TOOL:
+            # Basic validation - check if instance has required methods
+            if not hasattr(instance, '_execute_impl'):
+                raise RegistryError(
+                    f"Tool '{name}' must implement _execute_impl method"
+                )
+            
+            # Check for required attributes
+            if not hasattr(instance, 'name'):
+                raise RegistryError(
+                    f"Tool '{name}' must have a 'name' attribute"
+                )
+            
+            # For now, do synchronous validation
+            # Full async validation happens through MCP endpoints
+            # This is a compromise to avoid breaking existing sync code
+        
+        # Original registration logic
         if node_type not in self._instances:
             self._instances[node_type] = {}
         if name in self._instances[node_type]:

@@ -36,7 +36,6 @@ from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-fo
 from ice_core.models import (
     ChainExecutionResult,
     ConditionNodeConfig,
-    LLMOperatorConfig,
     WorkflowNodeConfig,
     NodeConfig,
     NodeExecutionResult,
@@ -50,7 +49,7 @@ from ice_orchestrator.execution.metrics import ChainMetrics
 from ice_orchestrator.execution.workflow_state import WorkflowExecutionState, ExecutionPhase
 from ice_orchestrator.execution.workflow_events import (
     WorkflowEventHandler, WorkflowStarted, WorkflowCompleted,
-    NodeStarted, NodeCompleted, NodeFailed, EventType
+    NodeStarted, NodeCompleted, NodeFailed
 )
 from ice_orchestrator.execution.cost_estimator import WorkflowCostEstimator
 from ice_orchestrator.graph.dependency_graph import DependencyGraph

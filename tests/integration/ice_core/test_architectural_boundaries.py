@@ -9,7 +9,6 @@ These tests validate that the iceOS layer architecture is respected:
 
 import pytest
 import ast
-import importlib.util
 from pathlib import Path
 from typing import Set, List, Dict
 

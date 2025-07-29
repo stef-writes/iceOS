@@ -22,6 +22,24 @@ Orchestrator: Executes with retries, monitoring, guarantees
 | **MCP API** | Compiler | Validation, optimization | Catch errors before execution |
 | **Orchestrator** | Runtime | DAG execution engine | Deterministic, observable runs |
 
+## 📐 Draft → Blueprint → Workflow Pipeline
+
+iceOS treats workflow creation like a modern compiler:
+
+| Stage | Artefact | Purpose | Visible To |
+|-------|----------|---------|------------|
+| **Design** | **Draft** (`DesignDraft`) | Lo-fi object created by Frosty or the Canvas. May include placeholders and NL comments. Often visualised as Mermaid. | Frosty & User |
+| **Compile** | **Blueprint** (`ice_core.models.mcp.Blueprint`) | Fully-typed spec sent to the MCP API. Validated for schema, registry availability, cost limits, governance. | MCP API |
+| **Run-time** | **Workflow** (`ice_orchestrator.workflow.Workflow`) | Concrete Python objects scheduled by the orchestrator. | Runtime only |
+
+Validation loop:
+1. Draft is converted to Blueprint.
+2. POST `/api/v1/mcp/blueprints` with body `{ ..., "validate_only": true }`.
+3. MCP returns `400` with structured errors OR `BlueprintAck`.
+4. Frosty refines the Draft until validation passes; then submits without `validate_only` or starts a Run.
+
+This guarantees the user gets immediate feedback in the IDE/canvas and that the orchestrator only ever sees validated graphs.
+
 ### 🔌 **Model Context Protocol (MCP) Integration**
 
 iceOS exposes its complete orchestration capabilities through **industry-standard MCP interfaces**:
@@ -57,6 +75,35 @@ Frosty understands requests at different levels:
 "If error, retry" → Chain  # Connected sequence
 "Daily reports" → Workflow # Complete system
 ```
+
+## 🌐 Network Manifests – Multi-Workflow Coordination
+
+A **Network manifest** lets you orchestrate *multiple* validated workflows in a single declarative file. The manifest specifies a version, a name, optional `global` config injected into every workflow’s context, and an ordered list of workflow entries.
+
+```yaml
+api_version: network.v0
+name: nightly_analytics
+global:
+  budget_usd: 5
+  memory_backend: redis://localhost:6379/3
+workflows:
+  - id: etl
+    ref: pipelines.etl:create_workflow
+  - id: train
+    ref: pipelines.training:create_workflow
+    after: etl
+```
+
+| Interface | How to run |
+|-----------|------------|
+| SDK       | `await NetworkCoordinator.execute("nightly.yml")` |
+| CLI       | `ice network run nightly.yml` |
+| MCP JSON-RPC | `network.execute` method |
+| gRPC      | `ExecuteNetwork` on `NetworkService` |
+
+The MVP executes workflows sequentially once their `after` prerequisites finish. Upcoming enhancements include parallel branch execution, cron scheduling, and richer telemetry aggregation.
+
+---
 
 ## 📋 **Blueprint Execution Pattern**
 

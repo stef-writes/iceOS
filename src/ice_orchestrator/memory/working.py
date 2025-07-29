@@ -1,7 +1,7 @@
 """Working memory implementation for short-term agent state."""
 
 from typing import Any, Dict, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 import asyncio
 from collections import OrderedDict
 

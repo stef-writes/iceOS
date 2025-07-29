@@ -2,7 +2,6 @@
 
 from typing import Dict, Any, List
 from ice_orchestrator.agent.memory import MemoryAgent, MemoryAgentConfig
-from ice_sdk.tools.base import ToolBase
 
 
 class CustomerServiceAgent(MemoryAgent):
@@ -211,7 +210,7 @@ class CustomerServiceAgent(MemoryAgent):
                     f"customer:{customer_id}:interaction",
                     interaction_data
                 )
-                print(f"💾 Stored interaction in episodic memory")
+                print("💾 Stored interaction in episodic memory")
             except Exception as e:
                 print(f"⚠️  Failed to store in episodic memory: {e}")
         
@@ -228,7 +227,7 @@ class CustomerServiceAgent(MemoryAgent):
                     f"pattern:{strategy['type']}",
                     pattern_data
                 )
-                print(f"🧠 Stored successful pattern in semantic memory")
+                print("🧠 Stored successful pattern in semantic memory")
             except Exception as e:
                 print(f"⚠️  Failed to store in semantic memory: {e}")
 

@@ -2,7 +2,6 @@
 
 import asyncio
 import aiohttp
-import json
 import os
 from typing import Dict, Any, List
 from ice_sdk.tools.base import ToolBase
@@ -42,7 +41,7 @@ class FacebookAPIClientTool(ToolBase):
     async def _create_listings_with_http(self, listings: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Create listings using real HTTP calls."""
         
-        print(f"🌐 Making real HTTP calls to Facebook Marketplace API...")
+        print("🌐 Making real HTTP calls to Facebook Marketplace API...")
         
         # Use a real webhook service for demo purposes
         webhook_url = "https://httpbin.org/post"  # httpbin.org for realistic HTTP demo
@@ -142,7 +141,7 @@ class FacebookAPIClientTool(ToolBase):
     async def _get_messages_with_http(self) -> Dict[str, Any]:
         """Get customer messages using real HTTP calls."""
         
-        print(f"🌐 Fetching customer messages via HTTP...")
+        print("🌐 Fetching customer messages via HTTP...")
         
         # Use httpbin.org for realistic HTTP demo
         api_url = "https://httpbin.org/json"

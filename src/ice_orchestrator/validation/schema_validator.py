@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 from collections import defaultdict, deque
-from typing import List, Set
+from typing import List
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models.node_models import NodeConfig
@@ -140,7 +140,6 @@ async def validate_blueprint(blueprint: "Blueprint") -> None:  # type: ignore[FW
     """
 
     # Lazy import to avoid cross-layer dependency at module import time
-    from ice_core.models.mcp import Blueprint  # noqa: WPS433  – runtime import
 
     if blueprint.schema_version != "1.1.0":  # Hardcoded until next minor bump
         raise InvalidSchemaVersionError(

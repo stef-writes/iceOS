@@ -13,62 +13,12 @@
 * **Node Execution** – Built-in executors for all node types (tool, LLM, agent, etc.)
 * **Error Handling** – Resilient execution with configurable failure policies
 
-## Quick Start
-
-### Execute a Workflow
-```python
-from ice_orchestrator.workflow import Workflow
-from ice_core.models import LLMOperatorConfig, ToolNodeConfig
-
-# Define workflow nodes
-nodes = [
-    ToolNodeConfig(
-        id="fetch_data",
-        type="tool",
-        tool_name="http_request",
-        tool_args={"url": "https://api.example.com/data"},
-        output_schema={"data": "dict"}
-    ),
-    LLMOperatorConfig(
-        id="analyze",
-        type="llm",
-        model="gpt-4",
-        prompt="Analyze this data: {data}",
-        dependencies=["fetch_data"],
-        output_schema={"analysis": "str"}
-    )
-]
-
-# Create and execute workflow
-workflow = Workflow(nodes=nodes, name="analysis_workflow")
-result = await workflow.execute(context={})
-print(result.node_outputs["analyze"]["analysis"])
-```
-
-### Execute an Agent
-```python
-from ice_orchestrator.agent import AgentNode, AgentNodeConfig
-from ice_core.models.llm import LLMConfig, ModelProvider
-
-# Configure agent with memory
-config = AgentNodeConfig(
-    id="assistant",
-    type="agent",
-    llm_config=LLMConfig(
-        provider=ModelProvider.OPENAI,
-        model="gpt-4",
-        temperature=0.7
-    ),
-    system_prompt="You are a helpful assistant with memory.",
-    tools=["web_search", "calculator"],
-    enable_memory=True
-)
-
-# Execute agent
-agent = AgentNode(config=config)
-result = await agent.execute({
-    "user_query": "What's the weather in NYC?"
-})
+## Quick Start (Local)
+```bash
+# Run tests to ensure orchestrator is healthy
+make test
+# Execute demo workflow via Makefile helper
+python use_cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
 ```
 
 ## Architecture

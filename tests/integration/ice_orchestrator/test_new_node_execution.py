@@ -1,8 +1,7 @@
 """Integration tests for new Phase 2 node executors."""
 
 import pytest
-from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 from ice_core.models import SwarmNodeConfig, HumanNodeConfig, MonitorNodeConfig, AgentSpec
 from ice_orchestrator.execution.executors.unified import (

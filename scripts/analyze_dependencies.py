@@ -8,10 +8,9 @@ This script helps identify:
 """
 
 import ast
-import os
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set
 import json
 
 class DependencyAnalyzer:

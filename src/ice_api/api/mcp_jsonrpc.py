@@ -26,13 +26,13 @@ import traceback
 import uuid
 from typing import Any, Dict, List, Optional, Union, Literal
 
-from fastapi import APIRouter, HTTPException, Request, Depends
-from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Request
+from pydantic import BaseModel, field_validator
 
 from ice_core.unified_registry import registry, global_agent_registry
 from ice_sdk.services.locator import ServiceLocator
 from ice_core.models import NodeType
-from ice_core.models.mcp import Blueprint, RunRequest, NodeSpec, RunResult
+from ice_core.models.mcp import Blueprint, RunRequest, NodeSpec
 from .mcp import start_run, get_result
 
 # Setup logging
@@ -60,7 +60,8 @@ class MCPRequest(BaseModel):
         valid_methods = {
             'initialize', 'initialized', 'ping', 'tools/list', 'tools/call',
             'resources/list', 'resources/read', 'resources/subscribe', 'resources/unsubscribe',
-            'prompts/list', 'prompts/get', 'logging/setLevel'
+            'prompts/list', 'prompts/get', 'logging/setLevel',
+            'network.execute'
         }
         if v not in valid_methods:
             logger.warning(f"Unknown MCP method: {v}")
@@ -240,6 +241,10 @@ async def mcp_jsonrpc_handler(request: Request) -> Union[MCPResponse, Dict[str, 
                 result = await handle_prompts_get(mcp_request.params or {})
             elif mcp_request.method == "ping":
                 result = await handle_ping()
+            elif mcp_request.method == "components/validate":
+                result = await handle_components_validate(mcp_request.params or {})
+            elif mcp_request.method == "network.execute":
+                result = await handle_network_execute(mcp_request.params or {})
             else:
                 logger.warning(f"Unknown method: {mcp_request.method}")
                 return {
@@ -324,6 +329,67 @@ async def handle_initialize(params: Dict[str, Any]) -> Dict[str, Any]:
         "capabilities": MCP_CAPABILITIES,
         "serverInfo": MCP_SERVER_INFO
     }
+
+async def handle_components_validate(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate a component definition via MCP.
+    
+    This enables the Frosty workflow where components are validated before use.
+    """
+    definition_data = params.get("definition", {})
+    
+    if not definition_data:
+        raise ValueError("Component definition is required")
+    
+    # Convert to ComponentDefinition
+    from ice_core.models.mcp import ComponentDefinition
+    try:
+        definition = ComponentDefinition(**definition_data)
+    except Exception as e:
+        raise ValueError(f"Invalid component definition: {str(e)}")
+    
+    # Use the REST endpoint logic
+    from ice_api.api.mcp import validate_component_definition
+    result = await validate_component_definition(definition)
+    
+    return result.dict()
+
+async def handle_network_execute(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Run a network manifest on the server.
+
+    Expected params::
+
+        {
+            "manifestPath": "/path/to/file.yml",
+            "scheduled": false
+        }
+    """
+
+    manifest_path = params.get("manifestPath")
+    scheduled = params.get("scheduled", False)
+
+    if not manifest_path:
+        raise ValueError("'manifestPath' parameter is required")
+
+    logger.info("[MCP] network.execute", extra={"manifest": manifest_path, "scheduled": scheduled})
+
+    # Lazy import to avoid circular deps at module import time
+    from ice_sdk.services.network_service import NetworkService
+
+    svc = NetworkService()
+    if scheduled:
+        # Use NetworkTaskManager for lifecycle management
+        task_manager = ServiceLocator.get("network_task_manager")
+        if task_manager is None:
+            raise RuntimeError("NetworkTaskManager not registered – orchestrator not initialized?")
+
+        network_id = f"net_{uuid.uuid4().hex[:8]}"
+        await task_manager.start(network_id, svc.execute(manifest_path, scheduled=True, loop_forever=True))
+        return {"status": "scheduled", "network_id": network_id}
+
+    results = await svc.execute(manifest_path)
+    # Only return high-level success map to keep payload small
+    return {"status": "completed", "results": {k: getattr(v, "success", None) for k, v in results.items()}}
+
 
 async def handle_tools_list() -> Dict[str, Any]:
     """List all available tools (tools + agents + workflows + chains)."""

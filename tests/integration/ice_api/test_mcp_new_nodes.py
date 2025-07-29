@@ -1,10 +1,8 @@
 """MCP integration tests for new Phase 2 node types."""
 
 import pytest
-import json
 from fastapi.testclient import TestClient
 
-from ice_core.models.mcp import Blueprint, NodeSpec
 from ice_api.main import app
 
 pytestmark = [pytest.mark.integration]

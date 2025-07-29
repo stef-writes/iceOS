@@ -111,7 +111,7 @@ class PriceUpdaterTool(ToolBase):
                 "reason": reason
             }
             
-            print(f"✅ Price updated successfully")
+            print("✅ Price updated successfully")
             
         else:
             # Failed update

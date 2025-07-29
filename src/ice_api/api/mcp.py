@@ -29,6 +29,7 @@ import json
 import logging
 import uuid
 from typing import Any, Dict, List, Optional
+import inspect
 
 from fastapi import APIRouter, HTTPException, status
 import asyncio
@@ -39,10 +40,14 @@ logger = logging.getLogger(__name__)
 from ice_api.redis_client import get_redis
 from ice_core.models.mcp import (
     Blueprint, BlueprintAck, RunAck, RunRequest, RunResult,
-    PartialBlueprint, PartialNodeSpec, PartialBlueprintUpdate
+    PartialBlueprint, PartialNodeSpec, PartialBlueprintUpdate,
+    ComponentDefinition, ComponentValidationResult
 )
 from ice_core.services.contracts import IWorkflowService
 from ice_sdk.services.locator import ServiceLocator
+from ice_core.base_tool import ToolBase
+from ice_core.unified_registry import registry, global_agent_registry
+from ice_core.models import NodeType
 
 # Fetch service lazily to avoid bootstrap order problems --------------------
 def _get_workflow_service() -> IWorkflowService:
@@ -547,3 +552,209 @@ async def create_partial_blueprint():
     blueprint_id = await workflow_service.create_partial_blueprint()
     
     return {"blueprint_id": blueprint_id, "status": "created"}
+
+# ---------------------------------------------------------------------------
+# Component Validation and Registration -------------------------------------
+# ---------------------------------------------------------------------------
+
+@router.post("/components/validate", response_model=ComponentValidationResult)
+async def validate_component_definition(
+    definition: ComponentDefinition
+) -> ComponentValidationResult:
+    """Validate a component definition and optionally auto-register if valid.
+    
+    This enables the Frosty/Canvas workflow where components are validated
+    BEFORE registration, ensuring only valid components enter the registry.
+    
+    Flow:
+    1. Submit component definition (tool/agent/workflow)
+    2. Validate structure, dependencies, conflicts
+    3. If valid and auto_register=true, register the component
+    4. Return validation results with suggestions
+    """
+    from ice_orchestrator.validation.component_validator import validate_component
+    
+    # Validate the component
+    result = await validate_component(definition)
+    
+    # Auto-register if requested and valid
+    if result.valid and definition.auto_register and not definition.validate_only:
+        try:
+            if definition.type == "tool":
+                # For tools, we need to create a dynamic tool instance
+                # This is a simplified version - in production you'd want more sophisticated
+                # dynamic class creation
+                if definition.tool_class_code:
+                    # Execute the code to create the tool class
+                    namespace = {}
+                    exec(definition.tool_class_code, namespace)
+                    
+                    # Find the tool class in namespace
+                    tool_class = None
+                    for name, obj in namespace.items():
+                        if inspect.isclass(obj) and issubclass(obj, ToolBase):
+                            tool_class = obj
+                            break
+                    
+                    if tool_class:
+                        tool_instance = tool_class()
+                        registry.register_instance(NodeType.TOOL, definition.name, tool_instance)
+                        result.registered = True
+                        result.registry_name = definition.name
+                else:
+                    # Schema-only tool registration would go here
+                    result.warnings.append("Tool registration without code not yet implemented")
+                    
+            elif definition.type == "agent":
+                # For agents, register the configuration
+                # In a real implementation, you'd create an agent factory
+                global_agent_registry.register_agent(
+                    definition.name, 
+                    f"dynamic.agents.{definition.name}"
+                )
+                result.registered = True
+                result.registry_name = definition.name
+                
+            elif definition.type == "workflow":
+                # For workflows, create from nodes
+                if definition.workflow_nodes:
+                    from ice_orchestrator.workflow import Workflow
+                    workflow = Workflow(
+                        nodes=definition.workflow_nodes,
+                        name=definition.name
+                    )
+                    registry.register_instance(NodeType.WORKFLOW, definition.name, workflow)
+                    result.registered = True
+                    result.registry_name = definition.name
+                    
+        except Exception as e:
+            result.warnings.append(f"Validation passed but registration failed: {str(e)}")
+            result.registered = False
+            logger.warning(f"Failed to register {definition.type} '{definition.name}': {e}")
+    
+    return result
+
+
+@router.get("/components/{component_type}")
+async def list_components(component_type: str) -> Dict[str, Any]:
+    """List all registered components of a given type."""
+    valid_types = ["tool", "agent", "workflow"]
+    if component_type not in valid_types:
+        raise HTTPException(400, f"Invalid component type. Must be one of: {valid_types}")
+    
+    if component_type == "tool":
+        return {"components": registry.list_tools()}
+    elif component_type == "agent":
+        return {"components": [name for name, _ in global_agent_registry.available_agents()]}
+    elif component_type == "workflow":
+        return {"components": [name for _, name in registry.list_nodes(NodeType.WORKFLOW)]}
+
+
+# ---------------------------------------------------------------------------
+# Design Session Support (For Frosty/Canvas) --------------------------------
+# ---------------------------------------------------------------------------
+
+@router.post("/blueprints/design-session")
+async def create_design_session() -> Dict[str, Any]:
+    """Create a new design session for incremental blueprint building.
+    
+    This supports the Frosty/Canvas workflow where:
+    1. User starts a design session
+    2. Validates and registers components as needed
+    3. Incrementally builds blueprint with PartialBlueprint
+    4. Gets real-time validation and suggestions
+    5. Finalizes when ready
+    """
+    session_id = f"design_{uuid.uuid4().hex[:8]}"
+    
+    # Create partial blueprint for the session
+    partial = PartialBlueprint()
+    
+    # Store session data
+    redis = get_redis()
+    session_data = {
+        "partial_blueprint_id": partial.blueprint_id,
+        "created_at": _dt.datetime.utcnow().isoformat(),
+        "validated_components": json.dumps([]),  # Track what we've validated
+        "registered_components": json.dumps([])  # Track what we've registered
+    }
+    
+    await redis.hset(f"design_session:{session_id}", mapping=session_data)
+    
+    # Also store the partial blueprint
+    await redis.hset(
+        _partial_bp_key(partial.blueprint_id),
+        mapping={"json": partial.model_dump_json()}
+    )
+    
+    return {
+        "session_id": session_id,
+        "partial_blueprint_id": partial.blueprint_id,
+        "status": "active",
+        "next_actions": [
+            "Validate new components with /components/validate",
+            "Add nodes to blueprint with /blueprints/partial/{id}",
+            "Connect nodes to define flow",
+            "Get suggestions for next steps",
+            "Finalize blueprint when ready"
+        ],
+        "tips": {
+            "validate_first": "Always validate components before using them",
+            "incremental": "Build incrementally - MCP will guide you",
+            "auto_register": "Valid components can auto-register",
+            "suggestions": "MCP provides AI suggestions at each step"
+        }
+    }
+
+
+@router.get("/blueprints/design-session/{session_id}")
+async def get_design_session(session_id: str) -> Dict[str, Any]:
+    """Get current state of a design session."""
+    redis = get_redis()
+    session_data = await redis.hgetall(f"design_session:{session_id}")
+    
+    if not session_data:
+        raise HTTPException(404, f"Design session {session_id} not found")
+    
+    # Get the partial blueprint
+    partial_id = session_data.get("partial_blueprint_id")
+    if partial_id:
+        partial_json = await redis.hget(_partial_bp_key(partial_id), "json")
+        if partial_json:
+            partial = PartialBlueprint.model_validate_json(partial_json)
+            session_data["partial_blueprint"] = partial.model_dump()
+    
+    # Parse JSON fields
+    session_data["validated_components"] = json.loads(
+        session_data.get("validated_components", "[]")
+    )
+    session_data["registered_components"] = json.loads(
+        session_data.get("registered_components", "[]")
+    )
+    
+    return session_data
+
+
+@router.post("/blueprints/design-session/{session_id}/register-component")
+async def register_session_component(
+    session_id: str,
+    component_id: str
+) -> Dict[str, Any]:
+    """Track that a component was registered in this design session."""
+    redis = get_redis()
+    session_data = await redis.hgetall(f"design_session:{session_id}")
+    
+    if not session_data:
+        raise HTTPException(404, f"Design session {session_id} not found")
+    
+    # Update registered components list
+    registered = json.loads(session_data.get("registered_components", "[]"))
+    if component_id not in registered:
+        registered.append(component_id)
+        await redis.hset(
+            f"design_session:{session_id}",
+            "registered_components",
+            json.dumps(registered)
+        )
+    
+    return {"status": "component tracked", "total_registered": len(registered)}

@@ -6,10 +6,8 @@ instead of in-memory stubs.
 
 import asyncio
 import json
-from typing import Any, Dict
 
 import pytest
-import pytest_asyncio
 from fastapi.testclient import TestClient
 
 from ice_api.main import app

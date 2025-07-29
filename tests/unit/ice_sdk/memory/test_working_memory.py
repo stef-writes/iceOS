@@ -2,9 +2,8 @@
 
 import asyncio
 import pytest
-from datetime import datetime, timedelta
 
-from ice_orchestrator.memory import WorkingMemory, MemoryConfig, MemoryEntry
+from ice_orchestrator.memory import WorkingMemory, MemoryConfig
 
 
 @pytest.mark.asyncio

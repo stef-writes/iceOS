@@ -9,10 +9,8 @@ for the FastAPI application lifecycle.
 import importlib
 import logging
 import platform
-import sys
 import time
 from datetime import datetime
-from pathlib import Path
 from types import ModuleType
 from typing import Any, Dict, Tuple
 

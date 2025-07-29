@@ -1,4 +1,3 @@
-import types
 from typing import Any, Dict, Optional
 from unittest.mock import Mock, AsyncMock
 
@@ -7,19 +6,15 @@ import pytest
 from ice_core.models.node_models import (
     LLMOperatorConfig,
     ToolNodeConfig,
-    ConditionNodeConfig,
     LLMConfig,
     AgentNodeConfig,
     WorkflowNodeConfig,
-    LoopNodeConfig,
     ParallelNodeConfig,
     CodeNodeConfig,
 )
 from ice_core.models.enums import ModelProvider
 from ice_orchestrator.execution.executors.unified import (
-    llm_executor, tool_executor, condition_executor,
-    agent_executor, workflow_executor, loop_executor,
-    parallel_executor, code_executor
+    llm_executor, tool_executor, agent_executor, workflow_executor, parallel_executor, code_executor
 )
 
 pytestmark = [pytest.mark.unit]

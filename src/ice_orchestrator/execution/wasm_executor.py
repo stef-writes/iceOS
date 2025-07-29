@@ -258,7 +258,7 @@ class WasmExecutor:
         try:
             # For now, compile a simple WASM module that can run Python
             # This is a simplified approach - production would use Pyodide
-            wasm_wat = f'''
+            wasm_wat = '''
             (module
                 (import "env" "memory" (memory 1))
                 (func $execute (result i32)

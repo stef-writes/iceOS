@@ -7,15 +7,17 @@
 * **MCP Protocol** – Model Context Protocol for blueprint management and execution
 * **Direct Execution** – Quick endpoints for single tool/agent/workflow execution
 * **Event Streaming** – Real-time execution events via SSE
-* **Blueprint Management** – Register and execute workflows
+* **Blueprint Management** – Register and execute workflows (Frosty will consume these endpoints)
 * **Redis Integration** – Event streaming and blueprint persistence
 
 Routes live under `ice_api.api.*` and are versioned (`/api/v1/...`).
 
-## Quick-start (dev server)
+### FastAPI Dev Server
 ```bash
-uvicorn ice_api.main:app --reload
+poetry run uvicorn ice_api.main:app --reload
 ```
+
+Below are the most commonly used MCP endpoints (full OpenAPI spec at `/docs`).
 
 ### Direct Execution Endpoints
 For quick testing and experimentation, use these direct execution endpoints:

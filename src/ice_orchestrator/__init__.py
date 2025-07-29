@@ -26,6 +26,8 @@ def initialize_orchestrator() -> None:
     from ice_orchestrator.services.workflow_service import WorkflowService
     from ice_orchestrator.services.workflow_execution_service import WorkflowExecutionService
     from ice_orchestrator.services.tool_execution_service import ToolExecutionService
+    from ice_orchestrator.services.network_coordinator import NetworkCoordinator
+    from ice_orchestrator.services.task_manager import NetworkTaskManager
     from ice_orchestrator.context import GraphContextManager
     from ice_orchestrator.providers import LLMService
     
@@ -36,6 +38,9 @@ def initialize_orchestrator() -> None:
     ServiceLocator.register("tool_execution_service", ToolExecutionService())
     ServiceLocator.register("llm_service", LLMService())
     ServiceLocator.register("llm_service_impl", LLMService())  # For SDK adapter compatibility
+    # Register network coordinator class for SDK-level NetworkService
+    ServiceLocator.register("network_coordinator_cls", NetworkCoordinator)
+    ServiceLocator.register("network_task_manager", NetworkTaskManager())
     
     # Register context manager with a default project root
     import os

@@ -1,6 +1,5 @@
 """Unit tests for JSON Schema validation utilities."""
 
-import pytest
 from pydantic import BaseModel
 
 from ice_core.utils.json_schema import (

@@ -1,6 +1,6 @@
 import pytest
 
-from ice_core.services.contracts import NodeService, ServiceContract, load_current
+from ice_core.services.contracts import NodeService, ServiceContract
 
 pytestmark = [pytest.mark.unit]
 

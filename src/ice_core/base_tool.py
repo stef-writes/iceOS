@@ -1,7 +1,7 @@
 """Base tool implementation."""
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from pydantic import BaseModel, ConfigDict
 
 class ToolBase(BaseModel, ABC):
@@ -43,7 +43,7 @@ class ToolBase(BaseModel, ABC):
             
             return result
             
-        except Exception as e:
+        except Exception:
             # Tools should handle their own errors appropriately
             raise
     
