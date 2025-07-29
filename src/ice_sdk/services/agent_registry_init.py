@@ -1,4 +1,4 @@
-"""Agent registry initialization."""
+1"""Agent registry initialization."""
 
 from ice_core.unified_registry import global_agent_registry
 

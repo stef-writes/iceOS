@@ -121,71 +121,6 @@ workflow = (WorkflowBuilder("Customer Service")
                    "enable_procedural": True  # Successful response patterns
                })
     .build()
-)
-```
-
-## Package Layout
-
-```
-ice_sdk/
-├── tools/              # Tool implementations
-│   ├── base.py        # Base tool classes
-│   ├── core/          # CSV, JSON operations
-│   ├── ai/            # AI-powered tools (insights, summarizer)
-│   ├── system/        # System tools (sleep, jinja)
-│   ├── web/           # HTTP, search, webhooks
-│   ├── db/            # Database tools
-│   └── marketplace/   # Domain-specific tools
-├── builders/          # Workflow and agent builders
-│   ├── workflow.py    # WorkflowBuilder
-│   └── agent.py       # AgentBuilder, create_agent
-├── services/          # Service layer
-│   ├── locator.py     # ServiceLocator pattern
-│   ├── initialization.py # Service setup
-│   └── llm_adapter.py # LLM service adapter
-├── context/           # SDK context utilities
-│   ├── formatter.py   # Context formatting
-│   ├── types.py       # ToolContext type
-│   └── type_manager.py # Type management
-├── utils/             # Developer utilities
-│   ├── coercion.py    # Type coercion
-│   ├── errors.py      # Error handling
-│   └── retry.py       # Retry logic
-├── agents/            # Agent utilities (NOT runtime)
-│   └── utils.py       # JSON extraction, parsing
-├── config.py          # SDK configuration
-├── decorators.py      # @tool decorator
-└── exceptions.py      # SDK exceptions
-```
-
-## Service Locator Pattern
-
-The SDK uses ServiceLocator to access orchestrator services without direct imports:
-
-```python
-from ice_sdk.services import ServiceLocator
-
-# In tool implementation
-async def execute(self, **kwargs):
-    # Get services from orchestrator layer
-    llm_service = ServiceLocator.get("llm_service")
-    context_manager = ServiceLocator.get("context_manager")
-    
-    # Use services without importing from orchestrator
-    result = await llm_service.generate(config, prompt)
-```
-
-## What Moved to Orchestrator
-
-The following components now live in `ice_orchestrator` for proper separation of concerns:
-
-- **Agent Runtime**: `AgentNode`, `MemoryAgent`, `AgentExecutor`
-- **Memory Subsystem**: All memory implementations (working, episodic, semantic, etc.)
-- **LLM Providers**: OpenAI, Anthropic, Gemini handlers and `LLMService`
-- **Context Management**: `GraphContextManager`, workflow context, stores
-- **LLM Operators**: Insights, summarizer, line item generator operators
-
-## Development Patterns
 
 ### Creating Tools
 1. Inherit from `ToolBase` (simplified 2-level hierarchy)
@@ -198,27 +133,6 @@ The following components now live in `ice_orchestrator` for proper separation of
 2. Agent runtime execution happens in orchestrator layer
 3. SDK provides configuration builders, not runtime
 
-### Type Safety
-```python
-from ice_sdk.utils.coercion import safe_cast
-
-# Coerce types safely
-value = safe_cast(user_input, int, default=0)
-```
-
-## Testing
-```bash
-make test   # Run SDK tests
-make type   # Type check with mypy --strict
-```
-
-## Key Design Principles
-
-1. **Developer-Focused**: SDK provides tools for developers, not runtime
-2. **Layer Boundaries**: Never import from orchestrator or API layers
-3. **Service Pattern**: Use ServiceLocator for cross-layer dependencies
-4. **Tool-Centric**: Primary focus is enabling tool development
-5. **Type Safety**: Pydantic models and type hints throughout
 
 ## Migration Notes
 
