@@ -116,7 +116,7 @@ def get_redis() -> Redis:  # – singleton, *sync* accessor
 
     global _redis_client
 
-        import sys
+    import sys
     use_fake = os.getenv("USE_FAKE_REDIS", "0") == "1" or "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules
 
     if _redis_client is None:
