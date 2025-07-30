@@ -21,15 +21,14 @@ from datetime import datetime
 from pathlib import Path
 
 # iceOS Blueprint imports
-from ice_orchestrator.execution.executor import WorkflowExecutor
-from ice_core.registry import ToolRegistry, AgentRegistry
+from ice_orchestrator import initialize_orchestrator
 
-# Import real workflows
-from use_cases.RivaRidge.FB_Marketplace_Seller.workflows import (
-    create_marketplace_automation_workflow
-)
+# Bootstrap orchestrator services for standalone execution
+initialize_orchestrator()
 
-# Import tools and agents
+# ---------------------------------------------------------------------------
+# Load domain tools & agents first so registration sees them
+# ---------------------------------------------------------------------------
 from use_cases.RivaRidge.FB_Marketplace_Seller.tools import (
     ReadInventoryCSVTool, DedupeItemsTool, AIEnrichmentTool,
     FacebookPublisherTool, FacebookAPIClientTool, ActivitySimulatorTool,
@@ -39,6 +38,46 @@ from use_cases.RivaRidge.FB_Marketplace_Seller.tools import (
 from use_cases.RivaRidge.FB_Marketplace_Seller.agents import (
     CustomerServiceAgent, PricingAgent
 )
+from ice_core.unified_registry import registry as global_registry
+from ice_core.models.enums import NodeType
+
+def register_components() -> None:
+    """Register tools and agents exactly like production."""
+    for name, tool_cls in [
+        ("read_inventory_csv", ReadInventoryCSVTool),
+        ("dedupe_items", DedupeItemsTool),
+        ("ai_enrichment", AIEnrichmentTool),
+        ("facebook_publisher", FacebookPublisherTool),
+        ("facebook_api_client", FacebookAPIClientTool),
+        ("activity_simulator", ActivitySimulatorTool),
+        ("inquiry_responder", InquiryResponderTool),
+        ("market_research", MarketResearchTool),
+        ("price_updater", PriceUpdaterTool),
+        ("facebook_messenger", FacebookMessengerTool),
+    ]:
+        if not global_registry.has_tool(name):  # idempotent
+            global_registry.register_class(NodeType.TOOL, name, tool_cls)
+
+    global_registry.register_agent(
+        "customer_service_agent",
+        f"{CustomerServiceAgent.__module__}:{CustomerServiceAgent.__name__}",
+    )
+    global_registry.register_agent(
+        "pricing_agent",
+        f"{PricingAgent.__module__}:{PricingAgent.__name__}",
+    )
+
+# Register immediately so subsequent workflow construction works
+register_components()
+
+from ice_orchestrator.workflow import Workflow
+
+# Import real workflows
+from use_cases.RivaRidge.FB_Marketplace_Seller.workflows import (
+    create_marketplace_automation_workflow
+)
+
+from ice_orchestrator.agent.memory import MemoryAgentConfig
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -51,11 +90,11 @@ async def run_marketplace_automation_blueprint() -> dict:
     print("🛒 EXECUTING MARKETPLACE AUTOMATION BLUEPRINT (REAL Data)")
     print("=" * 60)
     
-    # Create real workflow
+    # Build workflow (components already registered)
     workflow = create_marketplace_automation_workflow()
     
     # Real inventory file - no mocking
-    inventory_file = "use-cases/RivaRidge/FB_Marketplace_Seller/inventory.csv"
+    inventory_file = "use_cases/RivaRidge/FB_Marketplace_Seller/inventory.csv"
     
     # Verify inventory file exists
     if not Path(inventory_file).exists():
@@ -83,12 +122,13 @@ async def run_marketplace_automation_blueprint() -> dict:
     print(f"📍 Location: {inputs['marketplace_settings']['location']}")
     print(f"⏱️  Duration: {inputs['automation_duration']} minutes")
     
-    # Execute with real iceOS orchestrator
-    executor = WorkflowExecutor()
-    
     try:
         print("\n🚀 Executing workflow with REAL marketplace automation...")
-        result = await executor.execute(workflow, inputs)
+        from ice_orchestrator.services.workflow_execution_service import WorkflowExecutionService
+        result = await WorkflowExecutionService().execute_workflow(
+            workflow.to_dict(),
+            inputs=inputs,
+        )
         
         print("\n✅ MARKETPLACE AUTOMATION COMPLETE!")
         print(f"📦 Items Processed: {result.get('items_processed', 'N/A')}")
@@ -139,8 +179,15 @@ async def run_customer_service_simulation() -> dict:
         }
     ]
     
-    # Initialize customer service agent with real memory
-    agent = CustomerServiceAgent()
+    # Initialize customer service agent with real config
+    cs_config = MemoryAgentConfig(
+        id="customer_service_agent",
+        type="agent",
+        package="use_cases.RivaRidge.FB_Marketplace_Seller.agents.customer_service_agent",
+        agent_attr="CustomerServiceAgent",
+        agent_config={"enable_memory": True},
+    )
+    agent = CustomerServiceAgent(config=cs_config)
     
     interaction_results = []
     
@@ -216,8 +263,15 @@ async def run_pricing_optimization_simulation() -> dict:
     print(f"💰 Analyzing {len(completed_sales)} completed sales")
     print(f"📊 Optimizing {len(current_listings)} active listings")
     
-    # Initialize pricing agent with real memory
-    agent = PricingAgent()
+    # Initialize pricing agent with real config
+    pr_config = MemoryAgentConfig(
+        id="pricing_agent",
+        type="agent",
+        package="use_cases.RivaRidge.FB_Marketplace_Seller.agents.pricing_agent",
+        agent_attr="PricingAgent",
+        agent_config={"enable_memory": True},
+    )
+    agent = PricingAgent(config=pr_config)
     
     try:
         # Real agent execution - no mocking
@@ -252,31 +306,7 @@ async def main():
     print("🚫 ZERO MOCKING - ALL REAL Inventory, APIs, LLMs, and Agents")
     print("=" * 80)
     
-    # Register all components
-    print("📋 Registering Facebook Marketplace components...")
-    try:
-        # Register tools
-        tool_registry = ToolRegistry()
-        tool_registry.register("read_inventory_csv", ReadInventoryCSVTool)
-        tool_registry.register("dedupe_items", DedupeItemsTool)
-        tool_registry.register("ai_enrichment", AIEnrichmentTool)
-        tool_registry.register("facebook_publisher", FacebookPublisherTool)
-        tool_registry.register("facebook_api_client", FacebookAPIClientTool)
-        tool_registry.register("activity_simulator", ActivitySimulatorTool)
-        tool_registry.register("inquiry_responder", InquiryResponderTool)
-        tool_registry.register("market_research", MarketResearchTool)
-        tool_registry.register("price_updater", PriceUpdaterTool)
-        tool_registry.register("facebook_messenger", FacebookMessengerTool)
-        
-        # Register agents
-        agent_registry = AgentRegistry()
-        agent_registry.register("customer_service_agent", CustomerServiceAgent)
-        agent_registry.register("pricing_agent", PricingAgent)
-        
-        print("✅ Components registered successfully")
-    except Exception as e:
-        logger.error(f"Component registration failed: {e}")
-        return
+    # Components already registered at module import – skip
     
     # Track execution results
     execution_results = {

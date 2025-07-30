@@ -86,20 +86,22 @@ class ServiceLocator:
             cls._services[name] = service
     
     @classmethod
-    def get(cls, name: str) -> Optional[Any]:
-        """Retrieve a registered service by name.
-        
-        Args:
-            name: The service identifier used during registration
-            
-        Returns:
-            The registered service instance/class, or None if not found
-            
-        Example:
-            >>> tool_service = ServiceLocator.get("tool_service")
-            >>> if tool_service:
-            ...     tools = tool_service.available_tools()
+    def get(cls, name: str) -> Any:
+        """Return **registered** service or raise *KeyError*.
+
+        This keeps failures explicit and allows callers like
+        :class:`ice_orchestrator.base_workflow.BaseWorkflow` to fall back by
+        catching ``KeyError`` and instantiating their own default service.
         """
+        with cls._lock:
+            if name not in cls._services:
+                raise KeyError(name)
+            return cls._services[name]
+
+    # Optional helper when silent failure is actually desired -----------------
+    @classmethod
+    def try_get(cls, name: str) -> Optional[Any]:
+        """Return service or *None* without raising."""
         with cls._lock:
             return cls._services.get(name)
     

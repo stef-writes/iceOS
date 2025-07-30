@@ -25,8 +25,12 @@ class WorkflowExecutionService:
         # Create workflow from spec
         workflow = Workflow.from_dict(workflow_spec)
         
+        # Set initial context if inputs provided
+        if inputs:
+            workflow.initial_context = {"inputs": inputs}
+        
         # Execute workflow
-        return await workflow.execute(context=inputs or {})
+        return await workflow.execute()
     
     async def execute_workflow_builder(
         self,

@@ -31,6 +31,12 @@ def initialize_orchestrator() -> None:
     from ice_orchestrator.context import GraphContextManager
     from ice_orchestrator.providers import LLMService
     
+    # Register context manager first – other services depend on it
+    import os
+    from pathlib import Path
+    project_root = Path(os.getcwd())
+    ServiceLocator.register("context_manager", GraphContextManager(project_root=project_root))
+    
     # Register core services
     ServiceLocator.register("workflow_proto", Workflow)
     ServiceLocator.register("workflow_service", WorkflowService())
@@ -41,12 +47,6 @@ def initialize_orchestrator() -> None:
     # Register network coordinator class for SDK-level NetworkService
     ServiceLocator.register("network_coordinator_cls", NetworkCoordinator)
     ServiceLocator.register("network_task_manager", NetworkTaskManager())
-    
-    # Register context manager with a default project root
-    import os
-    from pathlib import Path
-    project_root = Path(os.getcwd())
-    ServiceLocator.register("context_manager", GraphContextManager(project_root=project_root))
     
     # Register tool service wrapper
     from ice_sdk.tools.service import ToolService

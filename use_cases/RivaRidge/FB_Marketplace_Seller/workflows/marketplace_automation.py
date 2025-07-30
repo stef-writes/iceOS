@@ -4,7 +4,8 @@ from ice_orchestrator.workflow import Workflow
 from ice_core.models.node_models import (
     ToolNodeConfig, 
     AgentNodeConfig,
-    LLMOperatorConfig
+    LLMOperatorConfig,
+    LLMConfig
 )
 
 
@@ -23,8 +24,7 @@ def create_marketplace_automation_workflow() -> Workflow:
             tool_name="read_inventory_csv",
             tool_args={
                 "csv_file": "{{inputs.inventory_file}}"
-            },
-            description="Read inventory from CSV file"
+            }
         ),
         
         # 2. Remove duplicates 
@@ -36,8 +36,7 @@ def create_marketplace_automation_workflow() -> Workflow:
                 "clean_items": "{{read_inventory.items}}",
                 "strategy": "keep_first"
             },
-            dependencies=["read_inventory"],
-            description="Remove duplicate items from inventory"
+            dependencies=["read_inventory"]
         ),
         
         # 3. AI enhancement for better listings
@@ -49,8 +48,7 @@ def create_marketplace_automation_workflow() -> Workflow:
                 "clean_items": "{{dedupe_items.clean_items}}",
                 "model_name": "gpt-4o-mini"
             },
-            dependencies=["dedupe_items"],
-            description="AI-powered product enhancement"
+            dependencies=["dedupe_items"]
         ),
         
         # 4. Publish to marketplace
@@ -61,8 +59,7 @@ def create_marketplace_automation_workflow() -> Workflow:
             tool_args={
                 "enhanced_items": "{{ai_enhance.enhanced_items}}"
             },
-            dependencies=["ai_enhance"],
-            description="Publish items to Facebook Marketplace"
+            dependencies=["ai_enhance"]
         ),
         
         # 5. Simulate marketplace activity
@@ -75,8 +72,7 @@ def create_marketplace_automation_workflow() -> Workflow:
                 "duration_minutes": 5,
                 "listings": "{{publish_listings.published_items}}"
             },
-            dependencies=["publish_listings"],
-            description="Simulate realistic marketplace activities"
+            dependencies=["publish_listings"]
         ),
         
         # 6. Customer service agent handles inquiries
@@ -88,8 +84,7 @@ def create_marketplace_automation_workflow() -> Workflow:
             agent_config={
                 "enable_memory": True
             },
-            dependencies=["simulate_activity"],
-            description="Handle customer inquiries with memory"
+            dependencies=["simulate_activity"]
         ),
         
         # 7. Pricing optimization agent
@@ -101,16 +96,15 @@ def create_marketplace_automation_workflow() -> Workflow:
             agent_config={
                 "enable_memory": True
             },
-            dependencies=["customer_service"],
-            description="Optimize pricing based on market data"
+            dependencies=["customer_service"]
         ),
         
         # 8. Final summary
         LLMOperatorConfig(
             id="generate_summary",
             type="llm",
-            model="claude-3-5-sonnet-20241022",
-            prompt_template="""Generate marketplace automation summary:
+            model="gpt-4o",
+            prompt="""Generate marketplace automation summary:
 
 Inventory Processed: {{read_inventory.total_items}} items
 Items Published: {{publish_listings.published_count}} listings
@@ -119,9 +113,11 @@ Sales Generated: {{simulate_activity.summary.total_sales}}
 Pricing Adjustments: {{pricing_optimization.prices_updated}}
 
 Provide a comprehensive summary of the automation results.""",
-            temperature=0.3,
-            dependencies=["pricing_optimization"],
-            description="Generate automation summary"
+            llm_config=LLMConfig(
+                model="gpt-4o",
+                temperature=0.3
+            ),
+            dependencies=["pricing_optimization"]
         )
     ]
     
@@ -152,8 +148,7 @@ def create_simple_listing_workflow() -> Workflow:
             tool_name="read_inventory_csv",
             tool_args={
                 "csv_file": "{{inputs.inventory_file}}"
-            },
-            description="Read inventory CSV"
+            }
         ),
         
         # Basic enhancement
@@ -165,8 +160,7 @@ def create_simple_listing_workflow() -> Workflow:
                 "clean_items": "{{read_csv.items}}",
                 "model_name": "gpt-4o-mini"
             },
-            dependencies=["read_csv"],
-            description="Enhance product listings"
+            dependencies=["read_csv"]
         ),
         
         # Publish listings
@@ -177,8 +171,7 @@ def create_simple_listing_workflow() -> Workflow:
             tool_args={
                 "enhanced_items": "{{enhance_items.enhanced_items}}"
             },
-            dependencies=["enhance_items"],
-            description="Publish to marketplace"
+            dependencies=["enhance_items"]
         )
     ]
     
