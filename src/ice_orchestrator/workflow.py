@@ -1394,7 +1394,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
     def to_dict(self) -> dict:
         """Implements WorkflowProto.to_dict()"""
         return {
-            "nodes": [n.dict() for n in self.nodes],
+            "nodes": [n.dict() for n in self.nodes.values()],
             "name": self.name,
             "version": self.version,
             "chain_id": self.chain_id,

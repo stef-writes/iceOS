@@ -124,11 +124,12 @@ async def run_marketplace_automation_blueprint() -> dict:
     
     try:
         print("\n🚀 Executing workflow with REAL marketplace automation...")
-        from ice_orchestrator.services.workflow_execution_service import WorkflowExecutionService
-        result = await WorkflowExecutionService().execute_workflow(
-            workflow.to_dict(),
-            inputs=inputs,
-        )
+                # Inject initial inputs into workflow context
+        ctx = workflow.context_manager.get_context(session_id="auto")
+        if ctx:
+            ctx.metadata["inputs"] = inputs
+        # Direct execution without service indirection
+        result = await workflow.execute()
         
         print("\n✅ MARKETPLACE AUTOMATION COMPLETE!")
         print(f"📦 Items Processed: {result.get('items_processed', 'N/A')}")

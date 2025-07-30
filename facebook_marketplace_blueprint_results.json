@@ -1,5 +1,5 @@
 {
-  "start_time": "2025-07-30T16:06:50.107453",
+  "start_time": "2025-07-30T17:29:48.522673",
   "workflows_executed": [
     "marketplace_automation",
     "customer_service",
@@ -10,7 +10,7 @@
   "pricing_optimizations": 5,
   "results": {
     "marketplace_automation": {
-      "error": "'str' object has no attribute 'dict'"
+      "error": "'str' object has no attribute 'name'"
     },
     "customer_service": {
       "total_inquiries": 5,
@@ -134,5 +134,5 @@
       ]
     }
   },
-  "end_time": "2025-07-30T16:06:50.110197"
+  "end_time": "2025-07-30T17:29:48.570076"
 }

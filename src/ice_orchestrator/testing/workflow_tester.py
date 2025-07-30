@@ -64,7 +64,7 @@ class WorkflowTester:  # pylint: disable=too-few-public-methods
             if isinstance(workflow, Workflow):
                 wf = workflow
             else:
-                wf = await Workflow.from_dict(workflow)  # type: ignore[arg-type]
+                wf = Workflow.from_dict(workflow)  # type: ignore[arg-type]
 
             result = await wf.execute()
             return result  # type: ignore[return-value]
