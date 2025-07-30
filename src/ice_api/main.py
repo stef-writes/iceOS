@@ -183,7 +183,7 @@ async def meta_components() -> Dict[str, Any]:
 
 # Add real MCP JSON-RPC 2.0 endpoint
 from ice_api.api.mcp_jsonrpc import router as mcp_jsonrpc_router
-app.include_router(mcp_jsonrpc_router, tags=["mcp-jsonrpc"])
+app.include_router(mcp_jsonrpc_router, prefix="/api/mcp", tags=["mcp-jsonrpc"])
 
 # Root endpoint
 @app.get("/", response_model=Dict[str, str])

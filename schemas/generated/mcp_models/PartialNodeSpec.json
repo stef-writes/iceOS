@@ -1,0 +1,78 @@
+{
+  "additionalProperties": true,
+  "description": "Node spec that allows pending connections.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "type": {
+      "title": "Type",
+      "type": "string"
+    },
+    "dependencies": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "pending_inputs": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Input fields awaiting connection",
+      "title": "Pending Inputs"
+    },
+    "pending_outputs": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Output fields that could connect to other nodes",
+      "title": "Pending Outputs"
+    },
+    "suggestions": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Suggested next node types",
+      "title": "Suggestions"
+    }
+  },
+  "required": [
+    "id",
+    "type"
+  ],
+  "title": "PartialNodeSpec",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/PartialNodeSpec.json",
+  "$comment": "Generated from ice_core.models.mcp.PartialNodeSpec",
+  "x-iceos-version": "1.0.0"
+}

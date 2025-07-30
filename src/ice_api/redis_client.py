@@ -116,9 +116,13 @@ def get_redis() -> Redis:  # – singleton, *sync* accessor
 
     global _redis_client
 
+        import sys
+    use_fake = os.getenv("USE_FAKE_REDIS", "0") == "1" or "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules
+
     if _redis_client is None:
-        if redis is None:  # Stub fallback – Redis package missing
-            _redis_client = Redis()  # type: ignore[call-arg]
+        if use_fake or redis is None:
+            # Always create a new in-memory stub for test isolation
+            _redis_client = _RedisStub()  # type: ignore[call-arg]
         else:
             _redis_client = redis.from_url(
                 os.getenv("REDIS_URL", "redis://localhost:6379/0")

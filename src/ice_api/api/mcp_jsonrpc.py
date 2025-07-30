@@ -532,6 +532,25 @@ async def handle_tools_list() -> Dict[str, Any]:
         except Exception as e:
             logger.error(f"Failed to get chains: {e}")
         
+        # Add new node types (human, monitor, swarm)
+        tools.extend([
+            MCPTool(
+                name="human:approval",
+                description="Human approval interaction",
+                inputSchema={"type": "object", "properties": {"prompt": {"type": "string"}}}
+            ).dict(),
+            MCPTool(
+                name="monitor:metrics",
+                description="Monitor metrics and trigger actions",
+                inputSchema={"type": "object", "properties": {"metric_expression": {"type": "string"}}}
+            ).dict(),
+            MCPTool(
+                name="swarm:consensus",
+                description="Coordinate multi-agent swarm with consensus",
+                inputSchema={"type": "object", "properties": {"agents": {"type": "array"}}}
+            ).dict(),
+        ])
+
         logger.info(f"Successfully listed {len(tools)} total MCP tools")
         return {"tools": tools}
         
@@ -562,7 +581,7 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError(f"Empty tool name for type: {tool_type}")
     
     # Validate tool type
-    valid_types = {"tool", "agent", "workflow", "chain"}
+    valid_types = {"tool", "agent", "workflow", "chain", "human", "monitor", "swarm"}
     if tool_type not in valid_types:
         raise ValueError(f"Unsupported tool type: {tool_type}. Valid types: {valid_types}")
     
@@ -612,6 +631,34 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
                 input_schema={"inputs": "dict"},
                 output_schema={"outputs": "dict"},
                 **arguments.get("config", {})
+            )
+        elif tool_type == "human":
+            node_spec = NodeSpec(
+                id=node_id,
+                type="human",
+                prompt_message=arguments.get("prompt"),
+                approval_type=arguments.get("approval_type", "approve_reject"),
+                input_schema={"prompt": "string"},
+                output_schema={"approved": "bool"},
+            )
+        elif tool_type == "monitor":
+            node_spec = NodeSpec(
+                id=node_id,
+                type="monitor",
+                metric_expression=arguments.get("metric_expression"),
+                action_on_trigger=arguments.get("action", "alert_only"),
+                alert_channels=arguments.get("alert_channels", []),
+                input_schema={"context": "dict"},
+                output_schema={"triggered": "bool"},
+            )
+        elif tool_type == "swarm":
+            node_spec = NodeSpec(
+                id=node_id,
+                type="swarm",
+                agents=arguments.get("agents", []),
+                coordination_strategy=arguments.get("strategy", "consensus"),
+                input_schema={"context": "dict"},
+                output_schema={"result": "dict"},
             )
         else:
             raise ValueError(f"Unsupported tool type: {tool_type}")
@@ -686,6 +733,10 @@ async def validate_tool_exists(tool_type: str, name: str) -> None:
     elif tool_type == "chain":
         # TODO: Add chain validation when chain registry is available
         pass
+    elif tool_type in {"human", "monitor", "swarm"}:
+        # New node types – currently always available
+        return
+
 
 async def handle_resources_list() -> Dict[str, Any]:
     """List available resources (blueprints, templates, docs)."""

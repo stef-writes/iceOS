@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "description": "Specification for an agent inside a swarm.",
+  "properties": {
+    "package": {
+      "title": "Package",
+      "type": "string"
+    },
+    "role": {
+      "title": "Role",
+      "type": "string"
+    },
+    "config_overrides": {
+      "additionalProperties": true,
+      "title": "Config Overrides",
+      "type": "object"
+    }
+  },
+  "required": [
+    "package",
+    "role"
+  ],
+  "title": "AgentSpec",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/AgentSpec.json",
+  "$comment": "Generated from ice_core.models.node_models.AgentSpec",
+  "x-iceos-version": "1.0.0"
+}

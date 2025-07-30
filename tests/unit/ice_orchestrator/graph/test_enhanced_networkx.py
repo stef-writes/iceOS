@@ -12,6 +12,7 @@ from typing import Any, List
 from datetime import datetime
 
 from ice_core.models.node_models import ToolNodeConfig, LLMOperatorConfig, AgentNodeConfig
+from ice_core.models.llm import LLMConfig
 from ice_core.models.node_metadata import NodeMetadata
 from ice_orchestrator.graph.dependency_graph import DependencyGraph
 
@@ -38,6 +39,7 @@ class TestEnhancedNetworkXUtilization:
                 type="llm",
                 model="gpt-4",
                 prompt="Analyze this data",
+                llm_config=LLMConfig(),
                 dependencies=["csv_reader"],
                 metadata=NodeMetadata(
                     node_id="analyzer",
@@ -353,7 +355,7 @@ class TestEnhancedNetworkXUtilization:
             ToolNodeConfig(id="input2", type="tool", tool_name="reader2", dependencies=[]),
             ToolNodeConfig(id="processor1", type="tool", tool_name="proc1", dependencies=["input1"]),
             ToolNodeConfig(id="processor2", type="tool", tool_name="proc2", dependencies=["input2"]),
-            LLMOperatorConfig(id="analyzer", type="llm", model="gpt-4", prompt="analyze", 
+            LLMOperatorConfig(id="analyzer", type="llm", model="gpt-4", prompt="analyze", llm_config=LLMConfig(), 
                             dependencies=["processor1", "processor2"]),
             AgentNodeConfig(id="agent", type="agent", package="test", dependencies=["analyzer"]),
             ToolNodeConfig(id="output", type="tool", tool_name="writer", 

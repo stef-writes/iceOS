@@ -1,0 +1,192 @@
+{
+  "$defs": {
+    "ModelProvider": {
+      "description": "Supported LLM providers.",
+      "enum": [
+        "openai",
+        "anthropic",
+        "google",
+        "deepseek",
+        "custom"
+      ],
+      "title": "ModelProvider",
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "description": "Provider-specific configuration for LLM calls.",
+  "properties": {
+    "provider": {
+      "$ref": "#/$defs/ModelProvider",
+      "default": "openai"
+    },
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "temperature": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Temperature"
+    },
+    "max_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Tokens"
+    },
+    "max_context_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Context Tokens"
+    },
+    "api_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Api Key"
+    },
+    "base_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Base Url"
+    },
+    "timeout": {
+      "default": 30,
+      "title": "Timeout",
+      "type": "integer"
+    },
+    "max_retries": {
+      "default": 3,
+      "title": "Max Retries",
+      "type": "integer"
+    },
+    "top_p": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Top P"
+    },
+    "frequency_penalty": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Frequency Penalty"
+    },
+    "presence_penalty": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Presence Penalty"
+    },
+    "stop_sequences": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stop Sequences"
+    },
+    "openai_api_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Openai Api Version"
+    },
+    "anthropic_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Anthropic Version"
+    },
+    "custom_parameters": {
+      "additionalProperties": true,
+      "description": "Provider-specific parameters",
+      "title": "Custom Parameters",
+      "type": "object"
+    }
+  },
+  "title": "LLMConfig",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/LLMConfig.json",
+  "$comment": "Generated from ice_core.models.llm.LLMConfig",
+  "x-iceos-version": "1.0.0"
+}

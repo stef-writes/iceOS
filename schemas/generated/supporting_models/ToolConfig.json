@@ -1,0 +1,43 @@
+{
+  "additionalProperties": false,
+  "description": "Declarative description of a tool made available to an LLM agent.",
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "parameters": {
+      "additionalProperties": true,
+      "title": "Parameters",
+      "type": "object"
+    },
+    "required": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Required",
+      "type": "array"
+    }
+  },
+  "required": [
+    "name",
+    "parameters"
+  ],
+  "title": "ToolConfig",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/ToolConfig.json",
+  "$comment": "Generated from ice_core.models.node_models.ToolConfig",
+  "x-iceos-version": "1.0.0"
+}

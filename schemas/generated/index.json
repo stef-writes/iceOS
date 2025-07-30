@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://iceos.ai/schemas/index.json",
+  "title": "iceOS Schema Index",
+  "description": "Index of all available iceOS schemas",
+  "x-iceos-version": "1.0.0",
+  "categories": {
+    "node_configs": [
+      "node_configs/ToolNodeConfig.json",
+      "node_configs/LLMOperatorConfig.json",
+      "node_configs/AgentNodeConfig.json",
+      "node_configs/ConditionNodeConfig.json",
+      "node_configs/WorkflowNodeConfig.json",
+      "node_configs/LoopNodeConfig.json",
+      "node_configs/ParallelNodeConfig.json",
+      "node_configs/RecursiveNodeConfig.json",
+      "node_configs/CodeNodeConfig.json",
+      "node_configs/SwarmNodeConfig.json",
+      "node_configs/HumanNodeConfig.json",
+      "node_configs/MonitorNodeConfig.json"
+    ],
+    "mcp_models": [
+      "mcp_models/Blueprint.json",
+      "mcp_models/BlueprintAck.json",
+      "mcp_models/ComponentDefinition.json",
+      "mcp_models/NodeSpec.json",
+      "mcp_models/PartialBlueprint.json",
+      "mcp_models/PartialNodeSpec.json"
+    ],
+    "supporting_models": [
+      "supporting_models/BaseNodeConfig.json",
+      "supporting_models/LLMConfig.json",
+      "supporting_models/NodeMetadata.json",
+      "supporting_models/RetryPolicy.json",
+      "supporting_models/ContextRule.json",
+      "supporting_models/InputMapping.json",
+      "supporting_models/ToolConfig.json",
+      "supporting_models/AgentSpec.json"
+    ],
+    "execution_results": [
+      "execution_results/NodeExecutionResult.json",
+      "execution_results/ChainExecutionResult.json"
+    ]
+  },
+  "total_schemas": 28
+}

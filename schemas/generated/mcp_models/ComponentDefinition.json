@@ -1,0 +1,180 @@
+{
+  "$defs": {
+    "NodeSpec": {
+      "additionalProperties": true,
+      "description": "JSON-friendly node description (same keys as NodeConfig).",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "dependencies": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "NodeSpec",
+      "type": "object"
+    }
+  },
+  "description": "Definition for a new component to validate and potentially register.\n\nThis enables validating tool/agent/workflow definitions BEFORE registration,\nensuring only valid components enter the registry.",
+  "properties": {
+    "type": {
+      "enum": [
+        "tool",
+        "agent",
+        "workflow"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "name": {
+      "description": "Unique component name",
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "description": "Component description",
+      "title": "Description",
+      "type": "string"
+    },
+    "tool_class_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Python code defining the tool class (must inherit from ToolBase)",
+      "title": "Tool Class Code"
+    },
+    "tool_input_schema": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "JSON schema for tool inputs",
+      "title": "Tool Input Schema"
+    },
+    "tool_output_schema": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "JSON schema for tool outputs",
+      "title": "Tool Output Schema"
+    },
+    "agent_system_prompt": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Agent system prompt",
+      "title": "Agent System Prompt"
+    },
+    "agent_tools": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "List of tool names this agent can use",
+      "title": "Agent Tools"
+    },
+    "agent_llm_config": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "LLM configuration for the agent",
+      "title": "Agent Llm Config"
+    },
+    "workflow_nodes": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/NodeSpec"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Nodes that make up the workflow",
+      "title": "Workflow Nodes"
+    },
+    "auto_register": {
+      "default": true,
+      "description": "Automatically register if validation passes",
+      "title": "Auto Register",
+      "type": "boolean"
+    },
+    "validate_only": {
+      "default": false,
+      "description": "Only validate, never register (overrides auto_register)",
+      "title": "Validate Only",
+      "type": "boolean"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    }
+  },
+  "required": [
+    "type",
+    "name",
+    "description"
+  ],
+  "title": "ComponentDefinition",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/ComponentDefinition.json",
+  "$comment": "Generated from ice_core.models.mcp.ComponentDefinition",
+  "x-iceos-version": "1.0.0"
+}

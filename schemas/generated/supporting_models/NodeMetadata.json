@@ -1,0 +1,203 @@
+{
+  "$defs": {
+    "ModelProvider": {
+      "description": "Supported LLM providers.",
+      "enum": [
+        "openai",
+        "anthropic",
+        "google",
+        "deepseek",
+        "custom"
+      ],
+      "title": "ModelProvider",
+      "type": "string"
+    }
+  },
+  "description": "Metadata model for node versioning and ownership.\n\nThis is a near verbatim copy of the former *ice_sdk.models.node_models.NodeMetadata*\nto kick-off the migration.  Once downstream code switches to this definition\nthe legacy one will be deprecated and removed.",
+  "properties": {
+    "node_id": {
+      "description": "Unique node identifier",
+      "title": "Node Id",
+      "type": "string"
+    },
+    "node_type": {
+      "description": "Type of node (tool, llm, agent, etc.)",
+      "title": "Node Type",
+      "type": "string"
+    },
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Name"
+    },
+    "version": {
+      "default": "1.0.0",
+      "description": "Semantic version of node configuration",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "title": "Version",
+      "type": "string"
+    },
+    "owner": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Node owner/maintainer",
+      "title": "Owner"
+    },
+    "created_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Created At"
+    },
+    "modified_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Modified At"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Description of the node",
+      "title": "Description"
+    },
+    "error_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Type of error if execution failed",
+      "title": "Error Type"
+    },
+    "timestamp": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Timestamp"
+    },
+    "start_time": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Execution start time",
+      "title": "Start Time"
+    },
+    "end_time": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Execution end time",
+      "title": "End Time"
+    },
+    "duration": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Execution duration in seconds",
+      "title": "Duration"
+    },
+    "tags": {
+      "description": "Categorisation tags for the node (e.g. 'safety', 'experimental')",
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
+    "provider": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ModelProvider"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "LLM provider used for execution"
+    },
+    "retry_count": {
+      "default": 0,
+      "description": "Number of retry attempts performed during node execution",
+      "minimum": 0,
+      "title": "Retry Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "node_id",
+    "node_type"
+  ],
+  "title": "NodeMetadata",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/NodeMetadata.json",
+  "$comment": "Generated from ice_core.models.node_metadata.NodeMetadata",
+  "x-iceos-version": "1.0.0"
+}

@@ -116,6 +116,103 @@ def network_run(manifest_path: str, scheduled: bool) -> None:  # noqa: D401
 # Alias for Poetry entrypoint -------------------------------------------------
 app = cli  # For backward compatibility with pyproject.toml script entry
 
+# ---------------------------------------------------------------------------
+# Schema commands -----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@cli.group()
+def schemas() -> None:
+    """Schema generation and validation commands."""
+
+@schemas.command("export")
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False, writable=True),
+    default="schemas/generated",
+    help="Directory to write JSON schema files (default: schemas/generated)"
+)
+@click.option(
+    "--format",
+    type=click.Choice(["json", "yaml"], case_sensitive=False),
+    default="json",
+    help="Output format for schema files"
+)
+def schemas_export(output_dir: str, format: str) -> None:
+    """Export JSON schemas for all node types and MCP models."""
+    from ice_cli.commands.export_schemas import export_all_schemas
+    
+    click.echo(f"🔧 Exporting schemas to {output_dir} in {format} format...")
+    exported_count = export_all_schemas(output_dir, format)
+    click.echo(f"✅ Exported {exported_count} schemas successfully!")
+
+@schemas.command("import")
+@click.argument("file_path", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--type",
+    type=click.Choice(["blueprint", "component"], case_sensitive=False),
+    default="blueprint",
+    help="Type of file to import"
+)
+def schemas_import(file_path: str, type: str) -> None:
+    """Import a Blueprint or ComponentDefinition JSON/YAML file for testing."""
+    import json, pathlib, yaml
+    from pydantic import ValidationError
+
+    from ice_core.models.mcp import Blueprint, ComponentDefinition
+    from ice_orchestrator.validation.schema_validator import validate_blueprint  # async
+
+    click.echo(f"📥 Importing {type} file: {file_path}")
+
+    path = pathlib.Path(file_path)
+    try:
+        raw_text = path.read_text()
+        if path.suffix.lower() in {'.yaml', '.yml'}:
+            data = yaml.safe_load(raw_text)
+        else:
+            data = json.loads(raw_text)
+
+        if type == "blueprint":
+            blueprint = Blueprint(**data)  # Pydantic validation
+
+            # Design-time & runtime validation (same as MCP route)
+            try:
+                _safe_run(validate_blueprint(blueprint))  # uses existing validator
+                blueprint.validate_runtime()
+            except Exception as exc:
+                raise ValueError(str(exc)) from exc
+
+            click.echo(f"✅ Imported Blueprint with {len(blueprint.nodes)} nodes!")
+            click.echo(f"   Blueprint ID: {blueprint.blueprint_id}")
+            click.echo(f"   Schema Version: {blueprint.schema_version}")
+            click.echo("\n💡 Next steps:")
+            click.echo("   - POST /api/v1/mcp/blueprints to register")
+            click.echo("   - POST /api/v1/mcp/runs to execute directly")
+        else:  # component
+            component = ComponentDefinition(**data)
+            click.echo("✅ Imported ComponentDefinition!")
+            click.echo(f"   Type: {component.type}")
+            click.echo(f"   Name: {component.name}")
+            click.echo("\n💡 Use the MCP API to register this component.")
+    except (json.JSONDecodeError, yaml.YAMLError) as parse_err:
+        click.echo(f"❌ Failed to parse file: {parse_err}", err=True)
+        ctx = click.get_current_context()
+        ctx.exit(1)
+    except ValidationError as ve:
+        click.echo("❌ Pydantic validation errors:", err=True)
+        for err in ve.errors():
+            click.echo(f"  {err['loc']}: {err['msg']}", err=True)
+        ctx = click.get_current_context()
+        ctx.exit(1)
+    except Exception as exc:
+        click.echo(f"❌ Import failed: {exc}", err=True)
+        ctx = click.get_current_context()
+        ctx.exit(1)
+
+# Plugins group import (must come before cli.add_command)
+from ice_cli.commands.plugins import plugins
+
+cli.add_command(plugins)  # type: ignore[arg-type]
+
 # Allow "python -m ice_cli.cli ..." invocation ------------------------------
 if __name__ == "__main__":  # pragma: no cover
     cli()

@@ -49,6 +49,11 @@ class Blueprint(BaseModel):
         description="Arbitrary metadata for documentation"
     )
 
+    @property
+    def name(self) -> str:
+        """Return user-facing name for blueprint (draft_name metadata fallback)."""
+        return self.metadata.get("draft_name", self.blueprint_id)
+
     @model_validator(mode='after')
     def validate_dependencies(cls, values: Any) -> Any:
         """Ensure no circular dependencies and valid node references"""

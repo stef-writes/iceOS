@@ -20,6 +20,9 @@ from ice_core.models import (
     ParallelNodeConfig,
     RecursiveNodeConfig,
     CodeNodeConfig,
+    HumanNodeConfig,
+    MonitorNodeConfig,
+    SwarmNodeConfig,
 )
 
 __all__: list[str] = [
@@ -46,6 +49,9 @@ _NODE_TYPE_MAP: Dict[str, Type[NodeConfig]] = {
 
     # Composition node
     "workflow": WorkflowNodeConfig,
+    "human": HumanNodeConfig,
+    "monitor": MonitorNodeConfig,
+    "swarm": SwarmNodeConfig,
 }
 
 # ---------------------------------------------------------------------------

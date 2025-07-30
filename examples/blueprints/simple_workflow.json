@@ -1,0 +1,44 @@
+{
+  "blueprint_id": "example_workflow_001",
+  "schema_version": "1.1.0",
+  "nodes": [
+    {
+      "id": "read_data",
+      "type": "tool",
+      "tool_name": "csv_reader",
+      "tool_args": {
+        "file_path": "data/sales.csv"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "analyze",
+      "type": "llm",
+      "model": "gpt-4",
+      "prompt": "Analyze this sales data and provide key insights: {{read_data.output}}",
+      "llm_config": {
+        "provider": "openai",
+        "model": "gpt-4",
+        "temperature": 0.7,
+        "max_tokens": 1000
+      },
+      "dependencies": ["read_data"]
+    },
+    {
+      "id": "save_results",
+      "type": "tool", 
+      "tool_name": "file_writer",
+      "tool_args": {
+        "file_path": "output/analysis.txt",
+        "content": "{{analyze.output}}"
+      },
+      "dependencies": ["analyze"]
+    }
+  ],
+  "metadata": {
+    "name": "Sales Analysis Workflow",
+    "description": "Reads CSV data, analyzes with GPT-4, and saves results",
+    "author": "iceOS Team",
+    "version": "1.0.0"
+  }
+} 

@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "ContextFormat": {
+      "enum": [
+        "text",
+        "json",
+        "markdown",
+        "code",
+        "custom"
+      ],
+      "title": "ContextFormat",
+      "type": "string"
+    }
+  },
+  "description": "Rule for handling context in a node.",
+  "properties": {
+    "include": {
+      "default": true,
+      "description": "Whether to include this context",
+      "title": "Include",
+      "type": "boolean"
+    },
+    "format": {
+      "$ref": "#/$defs/ContextFormat",
+      "default": "text",
+      "description": "Format of the context"
+    },
+    "required": {
+      "default": false,
+      "description": "Whether this context is required",
+      "title": "Required",
+      "type": "boolean"
+    },
+    "max_tokens": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Maximum tokens allowed for this context",
+      "title": "Max Tokens"
+    },
+    "truncate": {
+      "default": true,
+      "description": "Whether to truncate if context exceeds max_tokens",
+      "title": "Truncate",
+      "type": "boolean"
+    }
+  },
+  "title": "ContextRule",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/ContextRule.json",
+  "$comment": "Generated from ice_core.models.node_models.ContextRule",
+  "x-iceos-version": "1.0.0"
+}

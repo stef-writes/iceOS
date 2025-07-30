@@ -1,0 +1,30 @@
+{
+  "description": "Mapping configuration for node inputs.",
+  "properties": {
+    "source_node_id": {
+      "description": "Source node ID (UUID of the dependency)",
+      "title": "Source Node Id",
+      "type": "string"
+    },
+    "source_output_key": {
+      "description": "Key from the source node's output object to use (e.g. 'text', 'result', 'data.items.0')",
+      "title": "Source Output Key",
+      "type": "string"
+    },
+    "rules": {
+      "additionalProperties": true,
+      "description": "Optional transformation rules (e.g. 'truncate', 'format')",
+      "title": "Rules",
+      "type": "object"
+    }
+  },
+  "required": [
+    "source_node_id",
+    "source_output_key"
+  ],
+  "title": "InputMapping",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/InputMapping.json",
+  "$comment": "Generated from ice_core.models.node_models.InputMapping",
+  "x-iceos-version": "1.0.0"
+}

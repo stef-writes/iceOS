@@ -4,6 +4,7 @@ from ice_core.models import (
     NodeConfig, ToolNodeConfig, LLMOperatorConfig,
     LLMConfig, ModelProvider
 )
+from ice_core.models.enums import NodeType
 # All node types now have config classes
 
 class WorkflowBuilder:
@@ -23,7 +24,7 @@ class WorkflowBuilder:
         """Add a tool node."""
         self.nodes.append(ToolNodeConfig(
             id=node_id,
-            type="tool",  # Use string literal as ToolNodeConfig expects
+            type=NodeType.TOOL,  # Enum subclass of str keeps JSON value
             tool_name=tool_name,  # Changed from tool_ref to tool_name
             tool_args=kwargs
         ))

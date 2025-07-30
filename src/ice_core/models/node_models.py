@@ -268,7 +268,7 @@ class BaseNodeConfig(BaseModel):
             return  # No further checks for input_schema – prompts often vary.
 
         # Node types that don't require schema validation
-        schema_optional_types = {"workflow", "loop", "parallel", "code"}
+        schema_optional_types = {"workflow", "loop", "parallel", "code", "human", "monitor", "swarm"}
         
         if node_type in schema_optional_types:
             return
@@ -747,7 +747,7 @@ class HumanNodeConfig(BaseNodeConfig):
     type: Literal["human"] = "human"
 
     prompt_message: str = Field(..., min_length=1)
-    approval_type: Literal["approve_reject", "choice"] = "approve_reject"
+    approval_type: Literal["approve_reject", "input_required", "choice"] = "approve_reject"
     timeout_seconds: Optional[int] = Field(None, ge=1)
     auto_approve_after: Optional[int] = Field(None, ge=1)
     choices: Optional[List[str]] = None

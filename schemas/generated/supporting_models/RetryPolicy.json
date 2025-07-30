@@ -1,0 +1,32 @@
+{
+  "description": "Declarative retry policy attached to any node.\n\nAttributes\n----------\nmax_attempts : int\n    Maximum number of attempts (including the first one).  Value **must** be\n    ≥ 1.\nbackoff_strategy : Literal[\"fixed\", \"linear\", \"exponential\"]\n    Algorithm used to calculate the wait time before the next retry.\nbackoff_seconds : float\n    Base seconds used by the strategy.  For *fixed* the wait time is\n    exactly *backoff_seconds*, for *linear* it is `backoff_seconds * n`, and\n    for *exponential* it is `backoff_seconds * 2**n` where *n* is the\n    current attempt index (starting at 0).",
+  "properties": {
+    "max_attempts": {
+      "default": 3,
+      "minimum": 1,
+      "title": "Max Attempts",
+      "type": "integer"
+    },
+    "backoff_strategy": {
+      "default": "exponential",
+      "enum": [
+        "fixed",
+        "linear",
+        "exponential"
+      ],
+      "title": "Backoff Strategy",
+      "type": "string"
+    },
+    "backoff_seconds": {
+      "default": 1.0,
+      "minimum": 0.0,
+      "title": "Backoff Seconds",
+      "type": "number"
+    }
+  },
+  "title": "RetryPolicy",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/RetryPolicy.json",
+  "$comment": "Generated from ice_core.models.node_models.RetryPolicy",
+  "x-iceos-version": "1.0.0"
+}

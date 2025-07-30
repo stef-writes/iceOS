@@ -1,0 +1,22 @@
+{
+  "description": "Acknowledgement for blueprint registration.",
+  "properties": {
+    "blueprint_id": {
+      "title": "Blueprint Id",
+      "type": "string"
+    },
+    "status": {
+      "default": "accepted",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "blueprint_id"
+  ],
+  "title": "BlueprintAck",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/BlueprintAck.json",
+  "$comment": "Generated from ice_core.models.mcp.BlueprintAck",
+  "x-iceos-version": "1.0.0"
+}

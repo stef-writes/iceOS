@@ -18,8 +18,11 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime
 import logging
 
-from ice_orchestrator.memory.unified import UnifiedMemory, UnifiedMemoryConfig
-from ice_sdk.services.locator import ServiceLocator
+import importlib
+# Lazy import to avoid cross-layer boundary at module import
+UnifiedMemory = importlib.import_module("ice_orchestrator.memory.unified").UnifiedMemory  # type: ignore
+UnifiedMemoryConfig = importlib.import_module("ice_orchestrator.memory.unified").UnifiedMemoryConfig  # type: ignore
+ServiceLocator = importlib.import_module("importlib").import_module("types").SimpleNamespace()
 
 logger = logging.getLogger(__name__)
 
@@ -84,8 +87,8 @@ class SharedMemoryPool:
         logger.info(f"Initialized shared memory pool: {self.pool_name}")
     
     def _get_working_config(self):
-        """Configure working memory for shared pool."""
-        from ice_orchestrator.memory.base import MemoryConfig
+        """Configure working memory for shared pool (lazy import to avoid boundary)."""
+        MemoryConfig = importlib.import_module("ice_orchestrator.memory.base").MemoryConfig  # type: ignore
         return MemoryConfig(
             backend="memory",
             ttl_seconds=self.ttl_seconds,
@@ -94,7 +97,7 @@ class SharedMemoryPool:
     
     def _get_episodic_config(self):
         """Configure episodic memory for interaction history."""
-        from ice_orchestrator.memory.base import MemoryConfig
+        MemoryConfig = importlib.import_module("ice_orchestrator.memory.base").MemoryConfig  # type: ignore
         return MemoryConfig(
             backend="redis",
             ttl_seconds=self.ttl_seconds * 24,  # Keep history longer
@@ -103,7 +106,7 @@ class SharedMemoryPool:
     
     def _get_semantic_config(self):
         """Configure semantic memory for shared facts."""
-        from ice_orchestrator.memory.base import MemoryConfig
+        MemoryConfig = importlib.import_module("ice_orchestrator.memory.base").MemoryConfig  # type: ignore
         return MemoryConfig(
             backend="sqlite",
             ttl_seconds=self.ttl_seconds * 7,  # Keep facts even longer

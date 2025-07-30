@@ -36,3 +36,6 @@ class NodeType(str, Enum):
     PARALLEL = "parallel"  # concurrent execution branches
     RECURSIVE = "recursive"  # cyclic agent conversations until convergence
     CODE = "code"  # direct code execution
+    HUMAN = "human"  # human-in-the-loop approval/input
+    MONITOR = "monitor"  # monitoring node for metrics
+    SWARM = "swarm"  # multi-agent coordination

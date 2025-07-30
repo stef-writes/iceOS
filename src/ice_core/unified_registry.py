@@ -1,6 +1,7 @@
 """Unified registry for all node implementations."""
 from __future__ import annotations
 from typing import Dict, Type, Any, Optional, List, Tuple, Callable, Awaitable, TypeAlias, TypeVar, Protocol
+import logging
 from pydantic import BaseModel, PrivateAttr
 from ice_core.models import INode, NodeConfig, NodeExecutionResult
 from ice_core.models.enums import NodeType
@@ -24,6 +25,14 @@ class NodeExecutor(Protocol):
         cfg: NodeConfig,
         ctx: Dict[str, Any],
     ) -> NodeExecutionResult: ...
+
+class _ComponentStub:
+    """Lightweight placeholder for components when --no-dynamic is used."""
+
+    def __init__(self, node_type: str, import_path: str):
+        self.node_type = node_type
+        self.import_path = import_path
+
 
 class Registry(BaseModel):
     """Single registry for all node types, tools, chains, and executors."""
@@ -194,6 +203,105 @@ class Registry(BaseModel):
     def available_chains(self) -> List[Tuple[str, Any]]:
         """List all registered chains with their instances."""
         return [(name, chain) for name, chain in sorted(self._chains.items())]
+
+    # ------------------------------------------------------------------
+    # Manifest loader (plugins.v0) --------------------------------------
+    # ------------------------------------------------------------------
+
+    def load_plugins(self, manifest_path: str | "pathlib.Path", allow_dynamic: bool = True) -> int:  # noqa: D401
+        """Load components from a *plugins.v0* manifest.
+
+        Args
+        ----
+        manifest_path:
+            Path to a JSON or YAML manifest file.
+        allow_dynamic:
+            If *False* (`--no-dynamic` flag) the loader registers *metadata only*:
+            tools and workflows are not imported, agents are registered with their
+            import path.  If *True* (default) the loader attempts to import the
+            component immediately and registers the concrete implementation.
+
+        Returns
+        -------
+        int
+            Number of components registered (metadata-only counts when
+            *allow_dynamic* is *False*).
+        """
+
+        import json, pathlib, importlib, importlib.util
+
+        logger = logging.getLogger(__name__)
+
+        from ice_core.models.plugins import PluginsManifest
+
+        path = pathlib.Path(manifest_path)
+        if not path.exists():
+            raise RegistryError(f"Manifest not found: {path}")
+
+        raw = path.read_text()
+        if path.suffix.lower() in {".yaml", ".yml"}:
+            import yaml  # lazy import
+            data = yaml.safe_load(raw)
+        else:
+            data = json.loads(raw)
+
+        manifest = PluginsManifest(**data)
+
+        count = 0
+        for comp in manifest.components:
+            node_type = comp.node_type
+            name = comp.name
+            imp_path = comp.import_path
+
+            if node_type == "tool":
+                if allow_dynamic:
+                    try:
+                        module_str, attr = imp_path.split(":", 1)
+                        module = importlib.import_module(module_str)
+                        obj = getattr(module, attr)
+                        # Register class or instance accordingly
+                        from ice_core.base_tool import ToolBase
+                        if isinstance(obj, type):
+                            if not issubclass(obj, ToolBase):
+                                raise RegistryError(f"Tool class {imp_path} is not a subclass of ToolBase")
+                            self.register_class(NodeType.TOOL, name, obj)
+                        else:
+                            if not isinstance(obj, ToolBase):
+                                raise RegistryError(f"Tool instance {imp_path} does not inherit ToolBase")
+                            self.register_instance(NodeType.TOOL, name, obj, validate=False)
+                    except Exception as exc:
+                        raise RegistryError(f"Failed to import tool {name}: {exc}") from exc
+                else:
+                    # Metadata placeholder – no dynamic import
+                    stub = _ComponentStub("tool", imp_path)
+                    self._instances.setdefault(NodeType.TOOL, {})[name] = stub  # type: ignore[assignment]
+
+            elif node_type == "agent":
+                # Agent registry only stores import path; import happens later
+                self.register_agent(name, imp_path)
+
+            elif node_type == "workflow":
+                if allow_dynamic:
+                    try:
+                        module_str, attr = imp_path.split(":", 1)
+                        module = importlib.import_module(module_str)
+                        chain = getattr(module, attr)
+                        self.register_chain(name, chain)
+                    except Exception as exc:
+                        raise RegistryError(f"Failed to import workflow {name}: {exc}") from exc
+                else:
+                    self._chains[name] = _ComponentStub("workflow", imp_path)  # type: ignore[assignment]
+
+            else:
+                raise RegistryError(f"Unknown node_type in manifest: {node_type}")
+
+            logger.debug("pluginRegistered", extra={"name": name, "type": node_type, "dynamic": allow_dynamic})
+            count += 1
+
+        if manifest.signature is not None:
+            logger.warning("pluginsManifest.signature present – verification not implemented yet")
+
+        return count
     
     # NOTE: Unit methods removed - use workflow registration instead
     

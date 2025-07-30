@@ -1,0 +1,528 @@
+{
+  "$defs": {
+    "ContextFormat": {
+      "enum": [
+        "text",
+        "json",
+        "markdown",
+        "code",
+        "custom"
+      ],
+      "title": "ContextFormat",
+      "type": "string"
+    },
+    "ContextRule": {
+      "description": "Rule for handling context in a node.",
+      "properties": {
+        "include": {
+          "default": true,
+          "description": "Whether to include this context",
+          "title": "Include",
+          "type": "boolean"
+        },
+        "format": {
+          "$ref": "#/$defs/ContextFormat",
+          "default": "text",
+          "description": "Format of the context"
+        },
+        "required": {
+          "default": false,
+          "description": "Whether this context is required",
+          "title": "Required",
+          "type": "boolean"
+        },
+        "max_tokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum tokens allowed for this context",
+          "title": "Max Tokens"
+        },
+        "truncate": {
+          "default": true,
+          "description": "Whether to truncate if context exceeds max_tokens",
+          "title": "Truncate",
+          "type": "boolean"
+        }
+      },
+      "title": "ContextRule",
+      "type": "object"
+    },
+    "InputMapping": {
+      "description": "Mapping configuration for node inputs.",
+      "properties": {
+        "source_node_id": {
+          "description": "Source node ID (UUID of the dependency)",
+          "title": "Source Node Id",
+          "type": "string"
+        },
+        "source_output_key": {
+          "description": "Key from the source node's output object to use (e.g. 'text', 'result', 'data.items.0')",
+          "title": "Source Output Key",
+          "type": "string"
+        },
+        "rules": {
+          "additionalProperties": true,
+          "description": "Optional transformation rules (e.g. 'truncate', 'format')",
+          "title": "Rules",
+          "type": "object"
+        }
+      },
+      "required": [
+        "source_node_id",
+        "source_output_key"
+      ],
+      "title": "InputMapping",
+      "type": "object"
+    },
+    "ModelProvider": {
+      "description": "Supported LLM providers.",
+      "enum": [
+        "openai",
+        "anthropic",
+        "google",
+        "deepseek",
+        "custom"
+      ],
+      "title": "ModelProvider",
+      "type": "string"
+    },
+    "NodeMetadata": {
+      "description": "Metadata model for node versioning and ownership.\n\nThis is a near verbatim copy of the former *ice_sdk.models.node_models.NodeMetadata*\nto kick-off the migration.  Once downstream code switches to this definition\nthe legacy one will be deprecated and removed.",
+      "properties": {
+        "node_id": {
+          "description": "Unique node identifier",
+          "title": "Node Id",
+          "type": "string"
+        },
+        "node_type": {
+          "description": "Type of node (tool, llm, agent, etc.)",
+          "title": "Node Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "version": {
+          "default": "1.0.0",
+          "description": "Semantic version of node configuration",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "title": "Version",
+          "type": "string"
+        },
+        "owner": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Node owner/maintainer",
+          "title": "Owner"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created At"
+        },
+        "modified_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Modified At"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Description of the node",
+          "title": "Description"
+        },
+        "error_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Type of error if execution failed",
+          "title": "Error Type"
+        },
+        "timestamp": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamp"
+        },
+        "start_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution start time",
+          "title": "Start Time"
+        },
+        "end_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution end time",
+          "title": "End Time"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Execution duration in seconds",
+          "title": "Duration"
+        },
+        "tags": {
+          "description": "Categorisation tags for the node (e.g. 'safety', 'experimental')",
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelProvider"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "LLM provider used for execution"
+        },
+        "retry_count": {
+          "default": 0,
+          "description": "Number of retry attempts performed during node execution",
+          "minimum": 0,
+          "title": "Retry Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "node_id",
+        "node_type"
+      ],
+      "title": "NodeMetadata",
+      "type": "object"
+    },
+    "RetryPolicy": {
+      "description": "Declarative retry policy attached to any node.\n\nAttributes\n----------\nmax_attempts : int\n    Maximum number of attempts (including the first one).  Value **must** be\n    ≥ 1.\nbackoff_strategy : Literal[\"fixed\", \"linear\", \"exponential\"]\n    Algorithm used to calculate the wait time before the next retry.\nbackoff_seconds : float\n    Base seconds used by the strategy.  For *fixed* the wait time is\n    exactly *backoff_seconds*, for *linear* it is `backoff_seconds * n`, and\n    for *exponential* it is `backoff_seconds * 2**n` where *n* is the\n    current attempt index (starting at 0).",
+      "properties": {
+        "max_attempts": {
+          "default": 3,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "backoff_strategy": {
+          "default": "exponential",
+          "enum": [
+            "fixed",
+            "linear",
+            "exponential"
+          ],
+          "title": "Backoff Strategy",
+          "type": "string"
+        },
+        "backoff_seconds": {
+          "default": 1.0,
+          "minimum": 0.0,
+          "title": "Backoff Seconds",
+          "type": "number"
+        }
+      },
+      "title": "RetryPolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Configuration for parallel execution branches.\n\nWHY: Enables concurrent execution of independent branches.\n\nUse this for: Independent operations, performance optimization",
+  "properties": {
+    "id": {
+      "description": "Unique identifier for the node",
+      "title": "Id",
+      "type": "string"
+    },
+    "type": {
+      "const": "parallel",
+      "default": "parallel",
+      "title": "Type",
+      "type": "string"
+    },
+    "name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Human-readable name",
+      "title": "Name"
+    },
+    "dependencies": {
+      "description": "IDs of prerequisite nodes",
+      "items": {
+        "type": "string"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "level": {
+      "default": 0,
+      "description": "Execution level for parallelism",
+      "title": "Level",
+      "type": "integer"
+    },
+    "metadata": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NodeMetadata"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "provider": {
+      "$ref": "#/$defs/ModelProvider",
+      "default": "openai",
+      "description": "Model provider for the node"
+    },
+    "timeout_seconds": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Hard timeout for node execution in seconds (None = no timeout)",
+      "title": "Timeout Seconds"
+    },
+    "retries": {
+      "default": 0,
+      "description": "Maximum number of retries if the node execution fails",
+      "minimum": 0,
+      "title": "Retries",
+      "type": "integer"
+    },
+    "backoff_seconds": {
+      "default": 0.0,
+      "description": "Base backoff seconds for exponential retry backoff (0 disables)",
+      "minimum": 0.0,
+      "title": "Backoff Seconds",
+      "type": "number"
+    },
+    "retry_policy": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RetryPolicy"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Structured retry policy (overrides 'retries' & 'backoff_seconds' when provided)"
+    },
+    "input_schema": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {}
+      ],
+      "title": "Input Schema"
+    },
+    "output_schema": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {}
+      ],
+      "title": "Output Schema"
+    },
+    "input_mappings": {
+      "additionalProperties": {
+        "$ref": "#/$defs/InputMapping"
+      },
+      "title": "Input Mappings",
+      "type": "object"
+    },
+    "output_mappings": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Output Mappings",
+      "type": "object"
+    },
+    "use_cache": {
+      "default": true,
+      "description": "Whether the orchestrator should reuse cached results when the context & config are unchanged.",
+      "title": "Use Cache",
+      "type": "boolean"
+    },
+    "input_selection": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "List of input keys to include (None = all)",
+      "title": "Input Selection"
+    },
+    "output_selection": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "List of output keys to include (None = all)",
+      "title": "Output Selection"
+    },
+    "context_rules": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ContextRule"
+      },
+      "title": "Context Rules",
+      "type": "object"
+    },
+    "branches": {
+      "description": "List of branches, each containing node IDs to execute",
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Branches",
+      "type": "array"
+    },
+    "max_concurrency": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Maximum concurrent branches (None = unlimited)",
+      "title": "Max Concurrency"
+    },
+    "merge_outputs": {
+      "default": true,
+      "description": "Whether to merge outputs from all branches",
+      "title": "Merge Outputs",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "branches"
+  ],
+  "title": "ParallelNodeConfig",
+  "type": "object",
+  "$id": "https://iceos.ai/schemas/ParallelNodeConfig.json",
+  "$comment": "Generated from ice_core.models.node_models.ParallelNodeConfig",
+  "x-iceos-version": "1.0.0"
+}
