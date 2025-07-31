@@ -1,12 +1,13 @@
 # 🧠 iceOS Memory System Architecture
 
-## 🚀 **Enhanced Nested Structure (v2.0)**
+## 🚀 **Improved Architecture (v3.0)**
 
-The iceOS memory system now uses a **high-performance nested architecture** that provides:
-- **🎯 O(1) domain-specific queries** instead of O(n) scanning
+The iceOS memory system has been moved to the **core layer** and enhanced with:
+- **🎯 Simplified configuration** with smart defaults
+- **💉 Dependency injection** pattern for better testability
 - **📊 Built-in analytics and monitoring capabilities**
-- **🔗 Organized relationship and context management**
-- **⚡ Massive performance improvements for large datasets**
+- **🧠 Clear separation** between memory and context
+- **⚡ Performance optimizations** for large datasets
 
 ## 📋 **Memory Types**
 
@@ -45,6 +46,45 @@ _category_index: Dict[str, Dict[str, List[str]]]  # category -> type -> [procedu
 - Usage analytics: `memory.get_usage_stats_for_domain('pricing')` - **O(1)**
 
 ## 🎯 **Usage Examples**
+
+### Simplified Configuration
+```python
+# OLD: Complex nested configuration
+config = UnifiedMemoryConfig(
+    working_config=MemoryConfig(backend="memory"),
+    episodic_config=MemoryConfig(backend="redis"),
+    semantic_config=MemoryConfig(backend="sqlite"),
+    procedural_config=MemoryConfig(backend="file")
+)
+
+# NEW: Simple configuration with smart defaults
+config = UnifiedMemoryConfig(
+    backend="redis",
+    enable_vector_search=True,
+    domains=["marketplace", "pricing", "inventory"]
+)
+```
+
+### Dependency Injection
+```python
+# Create memory instance
+memory = UnifiedMemory(UnifiedMemoryConfig())
+
+# Inject into agent
+agent = MemoryAgent(config, memory=memory)
+```
+
+### Analytics Capabilities
+```python
+# Get usage statistics
+stats = await memory.get_usage_stats()
+
+# Get domain analytics
+analytics = await memory.get_domain_analytics()
+
+# Get performance metrics
+metrics = await memory.get_performance_metrics()
+```
 
 ### High-Performance Queries
 ```python

@@ -52,10 +52,11 @@ from ice_orchestrator.execution.workflow_events import (
     NodeStarted, NodeCompleted, NodeFailed
 )
 from ice_orchestrator.execution.cost_estimator import WorkflowCostEstimator
-from ice_orchestrator.graph.dependency_graph import DependencyGraph
-from ice_orchestrator.graph.level_resolver import BranchGatingResolver
+from ice_core.graph.dependency_graph import DependencyGraph
+from ice_core.graph.level_resolver import BranchGatingResolver
 from ice_orchestrator.utils.context_builder import ContextBuilder
-from ice_orchestrator.validation import ChainValidator, SafetyValidator, SchemaValidator
+from ice_orchestrator.validation.chain_validator import ChainValidator
+from ice_core.validation import SafetyValidator, SchemaValidator
 from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 
 # NOTE: use AgentNode from SDK to avoid core dependency

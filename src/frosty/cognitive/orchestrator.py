@@ -6,7 +6,7 @@ Dependencies: All cognitive modules, state machine, async coordination
 
 # FROSTY <-> iceOS INTEGRATION OVERVIEW:
 #
-# 1. MEMORY SYSTEM (ice_orchestrator.memory.unified.UnifiedMemory)
+# 1. MEMORY SYSTEM (ice_core.memory.unified.UnifiedMemory)
 #    - Working: Active conversation, partial blueprints (TTL-managed)
 #    - Episodic: User interaction history, past sessions (Redis-backed)
 #    - Semantic: Tool relationships, domain knowledge (Vector/SQLite)

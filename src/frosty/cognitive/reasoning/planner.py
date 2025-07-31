@@ -5,7 +5,7 @@ Dependencies: Topological sort, resource estimation, parallel opportunity detect
 """
 
 # LEVERAGE iceOS:
-# - Use ice_orchestrator.graph.dependency_graph.DependencyGraph for DAG construction
+# - Use ice_core.graph.dependency_graph.DependencyGraph for DAG construction
 # - Use ice_orchestrator.context.graph_analyzer.GraphAnalyzer for optimization insights
 # - NetworkX algorithms for:
 #   * Topological sorting to determine execution order

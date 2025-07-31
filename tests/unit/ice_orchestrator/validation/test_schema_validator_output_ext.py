@@ -1,6 +1,6 @@
 import pytest
 
-from ice_orchestrator.validation.schema_validator import SchemaValidator
+from ice_core.validation.schema_validator import SchemaValidator
 from ice_core.models.node_models import ToolNodeConfig
 
 pytestmark = [pytest.mark.unit]

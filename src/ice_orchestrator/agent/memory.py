@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import Field, model_validator, PrivateAttr
 from .base import AgentNode
 from ice_core.models.node_models import AgentNodeConfig  
-from ice_orchestrator.memory import UnifiedMemory, UnifiedMemoryConfig
+from ice_core.memory import UnifiedMemory, UnifiedMemoryConfig
 
 
 class MemoryAgentConfig(AgentNodeConfig):
@@ -34,13 +34,19 @@ class MemoryAgent(AgentNode):
     memory: Optional[UnifiedMemory] = Field(default=None, description="Memory instance")
     _memory_initialized: bool = PrivateAttr(default=False)
     
-    @model_validator(mode='after')
-    def initialize_memory(self) -> 'MemoryAgent':
-        """Initialize memory if enabled."""
-        if self.config.enable_memory:
-            memory_config = self.config.memory_config or UnifiedMemoryConfig()
+    def __init__(self, config: MemoryAgentConfig, memory: Optional[UnifiedMemory] = None):
+        """Initialize memory agent with dependency injection.
+        
+        Args:
+            config: Agent configuration
+            memory: Memory instance (injected dependency)
+        """
+        super().__init__(config)
+        if memory is not None:
+            self.memory = memory
+        elif config.enable_memory:
+            memory_config = config.memory_config or UnifiedMemoryConfig()
             self.memory = UnifiedMemory(memory_config)
-        return self
             
     async def _execute_agent_cycle(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute agent cycle with memory integration."""

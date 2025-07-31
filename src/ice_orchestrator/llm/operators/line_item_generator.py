@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Literal
 from pydantic import BaseModel, Field, field_validator
 
 from ice_orchestrator.llm.operators.base import LLMOperator, LLMOperatorConfig
-from ice_orchestrator.providers.llm_service import LLMService
+from ice_core.llm.service import LLMService
 
 __all__: list[str] = [
     "LineItemGeneratorOperator",

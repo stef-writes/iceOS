@@ -10,7 +10,7 @@ import ast
 from ice_core.models.mcp import ComponentDefinition, ComponentValidationResult
 from ice_core.unified_registry import registry, global_agent_registry
 from ice_core.models import NodeType
-from ice_orchestrator.validation.schema_validator import validate_blueprint
+from ice_core.validation.schema_validator import validate_blueprint
 from ice_core.models.mcp import Blueprint
 
 

@@ -18,7 +18,7 @@ __all__: list[str] = [
 # Core providers – required deps (fail loud) --------------------------------
 # ----------------------------------------
 
-OpenAIHandler = cast(Any, import_module("ice_orchestrator.providers.llm_providers.openai_handler").OpenAIHandler)
+OpenAIHandler = cast(Any, import_module("ice_core.llm.providers.openai_handler").OpenAIHandler)
 
 # ----------------------------------------
 # Optional providers – swallow *ImportError* so missing extras don't break   
@@ -43,11 +43,11 @@ def _safe_import(module_path: str, class_name: str) -> Any | None:  # pragma: no
         # validation error or fallback gracefully.
         return None
 
-AnthropicHandler = _safe_import("ice_orchestrator.providers.llm_providers.anthropic_handler", "AnthropicHandler")
+AnthropicHandler = _safe_import("ice_core.llm.providers.anthropic_handler", "AnthropicHandler")
 GoogleGeminiHandler = _safe_import(
-    "ice_orchestrator.providers.llm_providers.google_gemini_handler", "GoogleGeminiHandler"
+    "ice_core.llm.providers.google_gemini_handler", "GoogleGeminiHandler"
 )
-DeepSeekHandler = _safe_import("ice_orchestrator.providers.llm_providers.deepseek_handler", "DeepSeekHandler")
+DeepSeekHandler = _safe_import("ice_core.llm.providers.deepseek_handler", "DeepSeekHandler")
 
 # Maintain *__all__* dynamically to expose only successfully imported symbols.
 __all__ = [

@@ -9,19 +9,29 @@ from .procedural import ProceduralMemory
 
 
 class UnifiedMemoryConfig(MemoryConfig):
-    """Configuration for unified memory system."""
+    """Simplified configuration for unified memory system.
     
-    # Sub-memory configurations
-    working_config: Optional[MemoryConfig] = None
-    episodic_config: Optional[MemoryConfig] = None
-    semantic_config: Optional[MemoryConfig] = None
-    procedural_config: Optional[MemoryConfig] = None
+    This provides sensible defaults while allowing customization when needed.
+    """
     
-    # Which memory types to enable
+    # Simplified configuration with smart defaults
+    backend: str = "redis"
+    enable_vector_search: bool = True
+    
+    # Memory type enablement (all enabled by default)
     enable_working: bool = True
     enable_episodic: bool = True
     enable_semantic: bool = True
     enable_procedural: bool = True
+    
+    # Domain-specific configuration
+    domains: List[str] = ["general", "marketplace", "pricing", "inventory"]
+    
+    # Advanced configuration (optional)
+    working_config: Optional[MemoryConfig] = None
+    episodic_config: Optional[MemoryConfig] = None
+    semantic_config: Optional[MemoryConfig] = None
+    procedural_config: Optional[MemoryConfig] = None
 
 
 class UnifiedMemory:
@@ -56,26 +66,34 @@ class UnifiedMemory:
         self.config = config
         self._memories: Dict[str, BaseMemory] = {}
         
-        # Initialize enabled memory types
+        # Initialize enabled memory types with smart defaults
         if config.enable_working:
-            self._memories["working"] = WorkingMemory(
-                config.working_config or MemoryConfig(backend="memory")
+            working_config = config.working_config or MemoryConfig(
+                backend="memory",
+                enable_vector_search=config.enable_vector_search
             )
+            self._memories["working"] = WorkingMemory(working_config)
             
         if config.enable_episodic:
-            self._memories["episodic"] = EpisodicMemory(
-                config.episodic_config or MemoryConfig(backend="redis")
+            episodic_config = config.episodic_config or MemoryConfig(
+                backend=config.backend,
+                enable_vector_search=config.enable_vector_search
             )
+            self._memories["episodic"] = EpisodicMemory(episodic_config)
             
         if config.enable_semantic:
-            self._memories["semantic"] = SemanticMemory(
-                config.semantic_config or MemoryConfig(backend="sqlite")
+            semantic_config = config.semantic_config or MemoryConfig(
+                backend=config.backend,
+                enable_vector_search=config.enable_vector_search
             )
+            self._memories["semantic"] = SemanticMemory(semantic_config)
             
         if config.enable_procedural:
-            self._memories["procedural"] = ProceduralMemory(
-                config.procedural_config or MemoryConfig(backend="file")
+            procedural_config = config.procedural_config or MemoryConfig(
+                backend=config.backend,
+                enable_vector_search=config.enable_vector_search
             )
+            self._memories["procedural"] = ProceduralMemory(procedural_config)
     
     # Enhanced API: Direct access to memory subsystems
     @property
@@ -242,4 +260,90 @@ class UnifiedMemory:
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
         for memory in self._memories.values():
-            await memory.__aexit__(exc_type, exc_val, exc_tb) 
+            await memory.__aexit__(exc_type, exc_val, exc_tb)
+    
+    # Analytics and monitoring methods
+    
+    async def get_usage_stats(self) -> Dict[str, Any]:
+        """Get usage statistics for all memory types.
+        
+        Returns:
+            Dictionary with usage statistics per memory type
+        """
+        stats = {}
+        for mem_type, memory in self._memories.items():
+            try:
+                keys = await memory.list_keys()
+                stats[mem_type] = {
+                    "entry_count": len(keys),
+                    "memory_type": type(memory).__name__,
+                    "backend": memory.config.backend
+                }
+            except Exception as e:
+                stats[mem_type] = {"error": str(e)}
+        return stats
+    
+    async def get_domain_analytics(self) -> Dict[str, Any]:
+        """Get analytics for domain-specific memory usage.
+        
+        Returns:
+            Dictionary with domain analytics
+        """
+        analytics = {
+            "domains": self.config.domains,
+            "domain_usage": {}
+        }
+        
+        for domain in self.config.domains:
+            domain_stats = {}
+            for mem_type, memory in self._memories.items():
+                try:
+                    # Search for domain-specific entries
+                    domain_entries = await memory.search(domain, limit=100)
+                    domain_stats[mem_type] = len(domain_entries)
+                except Exception as e:
+                    domain_stats[mem_type] = {"error": str(e)}
+            analytics["domain_usage"][domain] = domain_stats
+            
+        return analytics
+    
+    async def get_performance_metrics(self) -> Dict[str, Any]:
+        """Get performance metrics for memory operations.
+        
+        Returns:
+            Dictionary with performance metrics
+        """
+        import time
+        
+        metrics = {}
+        for mem_type, memory in self._memories.items():
+            try:
+                # Test write performance
+                start = time.time()
+                test_key = f"perf_test_{mem_type}_{int(start)}"
+                await memory.store(test_key, "test_data")
+                write_time = time.time() - start
+                
+                # Test read performance
+                start = time.time()
+                await memory.retrieve(test_key)
+                read_time = time.time() - start
+                
+                # Test search performance
+                start = time.time()
+                await memory.search("test", limit=5)
+                search_time = time.time() - start
+                
+                # Cleanup
+                await memory.delete(test_key)
+                
+                metrics[mem_type] = {
+                    "write_time_ms": round(write_time * 1000, 2),
+                    "read_time_ms": round(read_time * 1000, 2),
+                    "search_time_ms": round(search_time * 1000, 2),
+                    "backend": memory.config.backend
+                }
+            except Exception as e:
+                metrics[mem_type] = {"error": str(e)}
+                
+        return metrics 

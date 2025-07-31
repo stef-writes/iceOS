@@ -61,7 +61,7 @@ async def test_llm_executor_stubbed(monkeypatch):
     )
 
     # Monkey-patch LLMService inside executor module
-    monkeypatch.setattr("ice_orchestrator.providers.llm_service.LLMService", _StubLLMService)
+    monkeypatch.setattr("ice_core.llm.service.LLMService", _StubLLMService)
 
     result = await llm_executor(_StubChain(), cfg, {})  # type: ignore[arg-type]
 

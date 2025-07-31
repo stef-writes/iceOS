@@ -159,7 +159,7 @@ def schemas_import(file_path: str, type: str) -> None:
     from pydantic import ValidationError
 
     from ice_core.models.mcp import Blueprint, ComponentDefinition
-    from ice_orchestrator.validation.schema_validator import validate_blueprint  # async
+    from ice_core.validation.schema_validator import validate_blueprint  # async
 
     click.echo(f"📥 Importing {type} file: {file_path}")
 

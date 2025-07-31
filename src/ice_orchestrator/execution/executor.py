@@ -304,7 +304,7 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
 
                     # Optional output validation ------------------------
                     if chain.validate_outputs and getattr(node, "output_schema", None):
-                        from ice_orchestrator.validation import SchemaValidator
+                        from ice_core.validation import SchemaValidator
 
                         if not SchemaValidator().is_output_valid(
                             node, processed_output

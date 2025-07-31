@@ -87,7 +87,7 @@ async def create_blueprint(bp: Blueprint) -> BlueprintAck:
     """Register (or upsert) a *Blueprint*."""
 
     # Validate blueprint comprehensively ---------------------------------
-    from ice_orchestrator.validation.schema_validator import validate_blueprint
+    from ice_core.validation.schema_validator import validate_blueprint
 
     validation_context = {"validation_errors": [], "warnings": []}
 
@@ -312,7 +312,7 @@ async def start_run(req: RunRequest) -> RunAck:
     if bp is None:
         raise HTTPException(status_code=404, detail="blueprint_id not found")
 
-    from ice_orchestrator.validation.schema_validator import validate_blueprint
+    from ice_core.validation.schema_validator import validate_blueprint
 
     try:
         await validate_blueprint(bp)
@@ -574,7 +574,7 @@ async def validate_component_definition(
     3. If valid and auto_register=true, register the component
     4. Return validation results with suggestions
     """
-    from ice_orchestrator.validation.component_validator import validate_component
+    from ice_core.validation.component_validator import validate_component
     
     # Validate the component
     result = await validate_component(definition)

@@ -138,7 +138,7 @@ workflow = (WorkflowBuilder("Customer Service")
 
 If upgrading from previous versions:
 - Import agents from `ice_orchestrator.agent` instead of `ice_sdk.agents`
-- Import memory from `ice_orchestrator.memory` instead of `ice_sdk.memory`
+- Import memory from `ice_core.memory` instead of `ice_sdk.memory`
 - Use ServiceLocator.get("llm_service") instead of importing LLMService
 - Unified registry is now in `ice_core.unified_registry`
 

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from ice_core.models.llm import ModelProvider
 from ice_orchestrator.llm.operators.base import LLMOperator, LLMOperatorConfig
-from ice_orchestrator.providers.llm_service import LLMService
+from ice_core.llm.service import LLMService
 
 __all__: list[str] = ["InsightsOperator"]
 

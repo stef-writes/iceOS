@@ -528,7 +528,7 @@ Complete runtime execution environment:
   - `MemoryAgent`: Agent with integrated memory
   - `AgentExecutor`: Tool coordination and LLM reasoning
   
-- **Memory Subsystem** (`memory/`): Comprehensive memory
+- **Memory Subsystem** (via `ice_core.memory`): Comprehensive memory
   - `WorkingMemory`: Short-term task context
   - `EpisodicMemory`: Conversation history
   - `SemanticMemory`: Long-term knowledge
@@ -626,8 +626,8 @@ The architectural migration has been successfully completed:
    - AgentNode, MemoryAgent, AgentExecutor now in `ice_orchestrator/agent/`
    - SDK only provides builders and utilities
 
-2. **Memory Subsystem** → ✅ Moved to Orchestrator  
-   - All memory implementations in `ice_orchestrator/memory/`
+2. **Memory Subsystem** → ✅ Moved to Core  
+   - All memory implementations in `ice_core/memory/`
    - Working, episodic, semantic, procedural memory
 
 3. **LLM Services** → ✅ Moved to Orchestrator
@@ -715,7 +715,7 @@ from ice_sdk.tools.core.base import DataTool
 
 # New (correct)
 from ice_orchestrator.agent import AgentNode
-from ice_orchestrator.memory import WorkingMemory
+from ice_core.memory import WorkingMemory
 from ice_sdk.services import ServiceLocator
 from ice_sdk.tools.base import ToolBase  # All tools inherit from ToolBase
 
@@ -759,7 +759,7 @@ class MyTool(ToolBase):
 
 ```python
 from ice_orchestrator.agent import AgentNode, AgentNodeConfig
-from ice_orchestrator.memory import UnifiedMemory
+from ice_core.memory import UnifiedMemory
 
 class CustomAgent(AgentNode):
     def __init__(self, config: AgentNodeConfig):

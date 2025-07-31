@@ -1,7 +1,7 @@
 from typing import Any
 from fastapi import Request
 
-from ice_sdk.tools.service import ToolService
+from ice_sdk.services.tool_service import ToolService
 
 def get_tool_service(request: Request) -> ToolService:
     """Return the application-wide ToolService stored in `app.state`."""

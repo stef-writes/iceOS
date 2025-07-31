@@ -11,7 +11,7 @@ Frosty is the **Interpreter layer** of iceOS.  It turns user messages into valid
 | `models/`    | Pydantic models for intent & cognitive state |
 | `prompts/`   | Prompt templates for cognitive subsystems |
 
-The cognitive subsystem follows a **Plan-Observe-Iterate** loop and uses **ice_orchestrator.memory.UnifiedMemory** for working, episodic, semantic, and procedural memory.
+The cognitive subsystem follows a **Plan-Observe-Iterate** loop and uses **ice_core.memory.UnifiedMemory** for working, episodic, semantic, and procedural memory.
 
 ## Current Status
 * Directory scaffold and detailed docstrings are in place (no runtime code yet).

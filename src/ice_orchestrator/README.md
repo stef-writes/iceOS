@@ -51,13 +51,8 @@ ice_orchestrator/
 │   ├── memory.py      # MemoryAgent implementation
 │   ├── executor.py    # AgentExecutor for tool coordination
 │   └── utils.py       # Agent utilities
-├── memory/            # Memory subsystem
-│   ├── base.py       # Base memory interfaces
-│   ├── working.py    # Short-term working memory
-│   ├── episodic.py   # Conversation history
-│   ├── semantic.py   # Long-term knowledge
-│   ├── procedural.py # Learned procedures
-│   └── unified.py    # Unified memory interface
+├── (memory provided by ice_core.memory)
+
 ├── providers/         # LLM provider integrations
 │   ├── llm_service.py # Main LLM service
 │   └── llm_providers/ # Provider implementations
@@ -98,7 +93,7 @@ The complete agent implementation including:
 - `MemoryAgent`: Agent with integrated memory subsystems
 - `AgentExecutor`: Coordinates tool calls and LLM reasoning
 
-### Memory Subsystem
+### Memory Subsystem (powered by ice_core.memory)
 🚀 **Enhanced with nested architecture for massive performance gains:**
 - **Working Memory**: Short-term task context
 - **Episodic Memory**: Conversation and interaction history  
@@ -111,7 +106,7 @@ The complete agent implementation including:
 - **⚡ 10-100x faster** for large datasets with organized data structures
 - **🔍 Relationship filtering**: `get_relationships_by_type('belongs_to')` - O(1) organization
 
-➡️ **[Memory Architecture Details](memory/README.md)**
+➡️ **[Memory Architecture Details](../ice_core/memory/README.md)**
 
 ### LLM Services
 Unified interface for multiple LLM providers:

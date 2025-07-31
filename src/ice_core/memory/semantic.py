@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional, Tuple
 import json
-import numpy as np
+
 from datetime import datetime
 import hashlib
 from collections import defaultdict
@@ -26,7 +26,7 @@ class SemanticMemory(BaseMemory):
         """Initialize semantic memory."""
         super().__init__(config)
         self._facts_store: Dict[str, MemoryEntry] = {}
-        self._embeddings: Dict[str, np.ndarray[Any, Any]] = {}
+        self._embeddings: Dict[str, List[float]] = {}
         
         # 🚀 NESTED STRUCTURE: Much better performance!
         self._relationships: Dict[str, Dict[str, List[Tuple[str, str]]]] = defaultdict(lambda: defaultdict(list))
@@ -114,19 +114,16 @@ class SemanticMemory(BaseMemory):
             embedding = await self._generate_embedding(content)
             self._embeddings[key] = embedding
             
-    async def _generate_embedding(self, content: Any) -> np.ndarray[Any, Any]:
+    async def _generate_embedding(self, content: Any) -> List[float]:
         """Generate embedding for content."""
         # Simple hash-based embedding for demonstration
         # In production, would use actual embedding model
         content_str = json.dumps(content) if not isinstance(content, str) else content
         hash_obj = hashlib.sha384(content_str.encode())
         hash_bytes = hash_obj.digest()
-        
-        # Convert to normalized vector
-        embedding = np.frombuffer(hash_bytes, dtype=np.uint8).astype(np.float32)
-        embedding = embedding / np.linalg.norm(embedding)
-        
-        return embedding
+        vector = [byte / 255.0 for byte in hash_bytes[: self._embedding_dim]]
+        norm = (sum(x * x for x in vector) ** 0.5) or 1.0
+        return [x / norm for x in vector]
         
     async def retrieve(self, key: str) -> Optional[MemoryEntry]:
         """Retrieve a specific fact."""
@@ -171,7 +168,7 @@ class SemanticMemory(BaseMemory):
         
     async def _vector_search(
         self,
-        query_embedding: np.ndarray[Any, Any],
+        query_embedding: List[float],
         limit: int,
         filters: Dict[str, Any]
     ) -> List[MemoryEntry]:
@@ -183,8 +180,8 @@ class SemanticMemory(BaseMemory):
             if not entry or not self._match_filters(entry, filters):
                 continue
                 
-            # Cosine similarity
-            similarity = np.dot(query_embedding, embedding)
+            # Cosine similarity (dot product since vectors are normalized)
+            similarity = sum(q * e for q, e in zip(query_embedding, embedding))
             similarities.append((similarity, entry))
             
         # Sort by similarity

@@ -88,7 +88,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.context_manager = ServiceLocator.get("context_manager")  # type: ignore[attr-defined]
     
     # Initialize tool service to bridge unified registry to API endpoints
-    from ice_sdk.tools.service import ToolService
+    from ice_sdk.services.tool_service import ToolService
     app.state.tool_service = ToolService()  # type: ignore[attr-defined]
 
     # Load API keys from environment

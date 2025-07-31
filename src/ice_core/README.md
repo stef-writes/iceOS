@@ -28,7 +28,11 @@ This is the foundation for the **3-tier iceOS architecture**:
    - Enables dynamic discovery and instantiation
    - **Performance**: Type-based organization eliminates string parsing and enables instant filtering
 
-4. **Pure Utilities** (`utils/`)
+4. **Memory Subsystem** (`memory/`)
+   - `UnifiedMemory` plus Working, Episodic, Semantic, Procedural stores
+   - Pure Python, side-effect-free domain layer
+
+5. **Pure Utilities** (`utils/`)
    - No side effects or I/O
    - Shared by all layers above
 

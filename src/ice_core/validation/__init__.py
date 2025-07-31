@@ -1,5 +1,6 @@
 from .chain_validator import ChainValidator
-from ice_core.validation import SafetyValidator, SchemaValidator
+from .safety_validator import SafetyValidator
+from .schema_validator import SchemaValidator
 
 __all__ = [
     "ChainValidator",

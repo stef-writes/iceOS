@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Any
 
 from ice_core.models import NodeConfig, LLMOperatorConfig, ToolNodeConfig
-from ice_orchestrator.providers.costs import TokenCostCalculator
+from ice_core.costs import TokenCostCalculator
 
 
 @dataclass

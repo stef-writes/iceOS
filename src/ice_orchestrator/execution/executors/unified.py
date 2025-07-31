@@ -202,7 +202,7 @@ async def llm_executor(
     
     try:
         # Get LLM service for making API calls
-        from ice_orchestrator.providers.llm_service import LLMService
+        from ice_core.llm.service import LLMService
         llm_service = LLMService()
         
         # Safely render prompt template

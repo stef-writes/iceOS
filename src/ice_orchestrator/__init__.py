@@ -29,7 +29,7 @@ def initialize_orchestrator() -> None:
     from ice_orchestrator.services.network_coordinator import NetworkCoordinator
     from ice_orchestrator.services.task_manager import NetworkTaskManager
     from ice_orchestrator.context import GraphContextManager
-    from ice_orchestrator.providers import LLMService
+    from ice_core.llm.service import LLMService
     
     # Register context manager first – other services depend on it
     import os
@@ -49,7 +49,7 @@ def initialize_orchestrator() -> None:
     ServiceLocator.register("network_task_manager", NetworkTaskManager())
     
     # Register tool service wrapper
-    from ice_sdk.tools.service import ToolService
+    from ice_sdk.services.tool_service import ToolService
     ServiceLocator.register("tool_service", ToolService())
     
     # Import executor modules to register them with the execution system

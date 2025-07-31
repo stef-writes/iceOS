@@ -1,10 +1,11 @@
-"""Lightweight in-process memory adapters.
+"""Lightweight in-process memory adapters for context management.
 
 This module provides a *minimal* `BaseMemory` interface plus a no-op
 `NullMemory` implementation suitable for most stateless workflows.
 
-All previous vector-store logic and external dependencies have been
-removed until a fully-fledged design is required.
+This is specifically for context management (short-term execution state),
+not for long-term memory persistence. For long-term memory, use the
+core memory system from `ice_core.memory`.
 """
 
 from __future__ import annotations

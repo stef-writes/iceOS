@@ -14,7 +14,7 @@ from datetime import datetime
 from ice_core.models.node_models import ToolNodeConfig, LLMOperatorConfig, AgentNodeConfig
 from ice_core.models.llm import LLMConfig
 from ice_core.models.node_metadata import NodeMetadata
-from ice_orchestrator.graph.dependency_graph import DependencyGraph
+from ice_core.graph.dependency_graph import DependencyGraph
 
 
 class TestEnhancedNetworkXUtilization:

@@ -18,12 +18,12 @@ flowchart LR
 |-------|-----------------|---------|
 | Frosty *(Interpreter)* | `src/frosty/` | NL intent → PartialBlueprints, memory-aware reasoning |
 | MCP API *(Compiler)* | `src/ice_api/` | Blueprint validation, budget checks, event streaming |
-| Orchestrator *(Runtime)* | `src/ice_orchestrator/` | DAG execution, agents, memory, metrics |
+| Orchestrator *(Runtime)* | `src/ice_orchestrator/` | DAG execution, agents, runtime services, metrics |
 | Core Models | `src/ice_core/` | Pydantic configs, protocols, unified registry |
 | Developer SDK | `src/ice_sdk/` | Tool & workflow builders, client helpers |
 
 ## Current Capabilities
-* 8 first-class node types (`tool`, `llm`, `agent`, `condition`, `loop`, `parallel`, `recursive`, `workflow`) – see `ice_core.models.node_models`.
+* 11 first-class node types (`tool`, `llm`, `agent`, `code`, `condition`, `loop`, `parallel`, `recursive`, `human`, `monitor`, `workflow`) – see `ice_core.models.node_models`.
 * Unified memory system – Working, Episodic (Redis), Semantic (vector/SQLite), Procedural.
 * Incremental blueprint construction (`PartialBlueprint`) with live MCP validation.
 * NetworkX-powered graph analysis for critical-path and optimization insights.
