@@ -275,10 +275,12 @@ class DependencyGraph:
     def get_critical_path(self) -> List[str]:
         """Get the critical path using NetworkX longest path algorithm."""
         try:
-            return nx.dag_longest_path(self.graph, weight='avg_execution_time')
+            path = nx.dag_longest_path(self.graph, weight='avg_execution_time')
+            return list(path) if path else []
         except:
             try:
-                return nx.dag_longest_path(self.graph, weight='complexity_score')
+                path = nx.dag_longest_path(self.graph, weight='complexity_score')
+                return list(path) if path else []
             except:
                 return []
 
@@ -286,7 +288,7 @@ class DependencyGraph:
         """Identify bottleneck nodes using betweenness centrality."""
         try:
             centrality = nx.betweenness_centrality(self.graph)
-            return [node for node, score in centrality.items() if score > 0.3]
+            return [str(node) for node, score in centrality.items() if score > 0.3]
         except:
             return []
 

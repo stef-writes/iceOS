@@ -9,7 +9,7 @@ request is received).
 
 import asyncio
 import logging
-from typing import Dict
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class NetworkTaskManager:
     # Public API                                                         
     # ------------------------------------------------------------------
 
-    async def start(self, network_id: str, coro) -> None:  # noqa: ANN001 – generic coro
+    async def start(self, network_id: str, coro: Any) -> None:  # noqa: ANN001 – generic coro
         """Start *coro* as background task under *network_id* key."""
         async with self._lock:
             await self._cancel_unlocked(network_id)
@@ -60,7 +60,7 @@ class NetworkTaskManager:
             return True
         return False
 
-    async def _wrap_coro(self, network_id: str, coro) -> None:  # noqa: ANN001
+    async def _wrap_coro(self, network_id: str, coro: Any) -> None:  # noqa: ANN001
         try:
             await coro
         except asyncio.CancelledError:

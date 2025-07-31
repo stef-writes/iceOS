@@ -10,7 +10,7 @@ layer boundaries.
 """
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from ice_sdk.services.locator import ServiceLocator
 
@@ -62,23 +62,26 @@ class NetworkService:
         cancelled).  Otherwise, it executes any due schedules **once**.
         """
         self._ensure_initialized()
+        if self._coordinator_cls is None:
+            raise RuntimeError("NetworkCoordinator not registered")
         coord = self._coordinator_cls.from_file(Path(manifest_path))
         if scheduled:
             # Respect schedules
             await coord.execute_scheduled(loop_forever=loop_forever)
             return {}
         # One-off execution
-        return await coord.execute() 
+        result = await coord.execute()
+        return result if isinstance(result, dict) else {} 
 
     # ------------------------------------------------------------------
     # Legacy spec CRUD stubs – no-op for now                            
     # ------------------------------------------------------------------
 
-    async def create_network_spec(self, spec: dict) -> str:  # pragma: no cover
+    async def create_network_spec(self, spec: Dict[str, Any]) -> str:  # pragma: no cover
         """Stub to satisfy older API layers – returns fake ID."""
         import uuid
 
         return str(uuid.uuid4())
 
-    async def list_network_specs(self, filter: str = "") -> list[dict]:  # pragma: no cover
+    async def list_network_specs(self, filter: str = "") -> List[Dict[str, Any]]:  # pragma: no cover
         return [] 

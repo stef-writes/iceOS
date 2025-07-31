@@ -4,8 +4,8 @@ This module implements the proper architecture where executors use the registry
 protocol to retrieve and delegate to tools/services rather than manually 
 instantiating node wrapper classes.
 """
-from datetime import datetime
-from typing import Any, Dict, TypeAlias, List
+from datetime import datetime, timezone
+from typing import Any, Dict, TypeAlias, List, Set, Optional, cast
 import asyncio
 
 from ice_core.models import (
@@ -158,12 +158,15 @@ async def tool_executor(
             output=result,
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="tool",
+                node_type=cfg.type,
                 name=cfg.tool_name,
-                sandboxed=False,  # Direct execution
+                version="1.0.0",
+                owner="system",
+                provider=cfg.provider,
                 start_time=start_time,
                 end_time=end_time,
-                duration=(end_time - start_time).total_seconds()
+                duration=(end_time - start_time).total_seconds(),
+                description=f"Tool execution: {cfg.tool_name}"
             )
         )
         
@@ -175,12 +178,16 @@ async def tool_executor(
             output={},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="tool",
+                node_type=cfg.type,
                 name=cfg.tool_name,
+                version="1.0.0",
+                owner="system",
                 error_type=type(e).__name__,
+                provider=cfg.provider,
                 start_time=start_time,
                 end_time=end_time,
-                duration=(end_time - start_time).total_seconds()
+                duration=(end_time - start_time).total_seconds(),
+                description=f"Tool execution failed: {cfg.tool_name}"
             )
         )
 
@@ -206,8 +213,19 @@ async def llm_executor(
         
         # Create LLM config
         from ice_core.models.llm import LLMConfig
+        from ice_core.models.enums import ModelProvider
+        
+        # Get provider, defaulting to OpenAI
+        provider = cfg.llm_config.provider if hasattr(cfg, 'llm_config') and cfg.llm_config else ModelProvider.OPENAI
+        if isinstance(provider, str):
+            # Convert string to enum
+            try:
+                provider = ModelProvider(provider)
+            except ValueError:
+                provider = ModelProvider.OPENAI
+        
         llm_config = LLMConfig(
-            provider=cfg.llm_config.provider if hasattr(cfg, 'llm_config') and cfg.llm_config else "openai",
+            provider=provider,
             model=cfg.model,
             max_tokens=cfg.max_tokens,
             temperature=cfg.temperature,
@@ -230,12 +248,16 @@ async def llm_executor(
                 output={},
                 metadata=NodeMetadata(
                     node_id=cfg.id,
-                    node_type="llm",
+                    node_type=cfg.type,
                     name=f"llm_{cfg.model}",
-                    sandboxed=False,
+                    version="1.0.0",
+                    owner="system",
+                    error_type="LLMError",
+                    provider=cfg.provider,
                     start_time=start_time,
                     end_time=end_time,
-                    duration=(end_time - start_time).total_seconds()
+                    duration=(end_time - start_time).total_seconds(),
+                    description=f"LLM execution failed: {cfg.model}"
                 )
             )
         
@@ -249,12 +271,15 @@ async def llm_executor(
             },
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="llm",
+                node_type=cfg.type,
                 name=f"llm_{cfg.model}",
-                sandboxed=False,  # Direct execution for API access
+                version="1.0.0",
+                owner="system",
+                provider=cfg.provider,
                 start_time=start_time,
                 end_time=end_time,
-                duration=(end_time - start_time).total_seconds()
+                duration=(end_time - start_time).total_seconds(),
+                description=f"LLM execution: {cfg.model}"
             )
         )
         
@@ -266,12 +291,16 @@ async def llm_executor(
             output={},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="llm",
+                node_type=cfg.type,
                 name=f"llm_{getattr(cfg, 'model', 'unknown')}",
+                version="1.0.0",
+                owner="system",
                 error_type=type(e).__name__,
+                provider=cfg.provider,
                 start_time=start_time,
                 end_time=end_time,
-                duration=(end_time - start_time).total_seconds()
+                duration=(end_time - start_time).total_seconds(),
+                description=f"LLM execution failed: {getattr(cfg, 'model', 'unknown')}"
             )
         )
 
@@ -305,12 +334,15 @@ async def agent_executor(
             output=result,
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="agent",
+                node_type=cfg.type,
                 name=cfg.package,
-                sandboxed=False,  # Direct execution
+                version="1.0.0",
+                owner="system",
+                provider=cfg.provider,
                 start_time=start_time,
                 end_time=end_time,
-                duration=(end_time - start_time).total_seconds()
+                duration=(end_time - start_time).total_seconds(),
+                description=f"Agent execution: {cfg.package}"
             )
         )
         
@@ -322,12 +354,16 @@ async def agent_executor(
             output={},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="agent",
+                node_type=cfg.type,
                 name=cfg.package,
+                version="1.0.0",
+                owner="system",
                 error_type=type(e).__name__,
+                provider=cfg.provider,
                 start_time=start_time,
                 end_time=end_time,
-                duration=(end_time - start_time).total_seconds()
+                duration=(end_time - start_time).total_seconds(),
+                description=f"Agent execution failed: {cfg.package}"
             )
         )
 
@@ -397,12 +433,16 @@ output.update(evaluate_condition())
             output={},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="condition",
+                node_type=cfg.type,
                 name=cfg.name,
+                version="1.0.0",
+                owner="system",
                 start_time=start_time,
                 end_time=end_time,
                 duration=0,
                 error_type=type(e).__name__,
+                provider=cfg.provider,
+                description=f"Condition evaluation failed: {cfg.expression}"
             ),
             execution_time=0
         ) 
@@ -437,7 +477,7 @@ async def workflow_executor(
             merged_ctx.update(cfg.config_overrides)
         
         # Execute sub-workflow
-        result = await sub_workflow.execute(context=merged_ctx)
+        result = await sub_workflow.execute(merged_ctx)
         
         # Handle exposed outputs
         output = result
@@ -464,11 +504,15 @@ async def workflow_executor(
             output=output,
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="workflow",
+                node_type=cfg.type,
                 name=cfg.name,
+                version="1.0.0",
+                owner="system",
+                provider=cfg.provider,
                 start_time=start_time,
                 end_time=end_time,
                 duration=duration,
+                description=f"Workflow execution: {workflow_ref}"
             ),
             execution_time=duration
         )
@@ -483,12 +527,16 @@ async def workflow_executor(
             output={},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="workflow",
+                node_type=cfg.type,
                 name=cfg.name,
+                version="1.0.0",
+                owner="system",
                 start_time=start_time,
                 end_time=end_time,
                 duration=duration,
                 error_type=type(e).__name__,
+                provider=cfg.provider,
+                description=f"Workflow execution failed: {workflow_ref}"
             ),
             execution_time=duration
         )
@@ -508,13 +556,11 @@ async def loop_executor(
         if isinstance(cfg, LoopNodeConfig):
             iterator_path = cfg.items_source
             max_iterations = cfg.max_iterations
-            condition = cfg.condition
-            body_ref = cfg.body
+            body_nodes = cfg.body_nodes
         else:
             iterator_path = getattr(cfg, 'iterator_path', None)
             max_iterations = getattr(cfg, 'max_iterations', 100)
-            condition = getattr(cfg, 'condition', None)
-            body_ref = getattr(cfg, 'body', None)
+            body_nodes = getattr(cfg, 'body_nodes', [])
         
         if not iterator_path:
             raise ValueError(f"Loop node {cfg.id} missing iterator_path")
@@ -529,16 +575,10 @@ async def loop_executor(
             # Execute body with item context
             item_ctx = {**ctx, "item": item, "index": i}
             
-            # Check condition if specified
-            if condition:
-                # Simple condition evaluation (could be enhanced)
-                if not eval(condition, {}, item_ctx):
-                    continue
-            
-            # Execute body workflow
-            if body_ref:
-                # This would need to execute a sub-workflow
-                result = {"item": item, "processed": True}
+            # Execute body nodes if specified
+            if body_nodes:
+                # This would need to execute the body nodes
+                result = {"item": item, "processed": True, "body_nodes": body_nodes}
             else:
                 result = {"item": item, "processed": True}
             
@@ -549,9 +589,13 @@ async def loop_executor(
             output={"results": results, "count": len(results)},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="loop",
+                node_type=cfg.type,
+                version="1.0.0",
+                owner="system",
+                provider=cfg.provider,
                 start_time=datetime.utcnow(),
-                end_time=datetime.utcnow()
+                end_time=datetime.utcnow(),
+                description=f"Loop execution: {iterator_path}"
             )
         )
         
@@ -567,12 +611,16 @@ async def loop_executor(
             output={},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="loop",
+                node_type=cfg.type,
                 name=getattr(cfg, 'name', 'loop_node'),
+                version="1.0.0",
+                owner="system",
                 start_time=start_time,
                 end_time=end_time,
                 duration=duration,
                 error_type=type(e).__name__,
+                provider=cfg.provider,
+                description=f"Loop execution failed: {iterator_path}"
             ),
             execution_time=duration
         )
@@ -687,11 +735,15 @@ async def parallel_executor(
             output=output,
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="parallel",
+                node_type=cfg.type,
                 name=cfg.name,
+                version="1.0.0",
+                owner="system",
+                provider=cfg.provider,
                 start_time=start_time,
                 end_time=end_time,
                 duration=duration,
+                description=f"Parallel execution: {len(branches)} branches"
             ),
             execution_time=duration
         )
@@ -706,12 +758,16 @@ async def parallel_executor(
             output={},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="parallel",
+                node_type=cfg.type,
                 name=cfg.name,
+                version="1.0.0",
+                owner="system",
                 start_time=start_time,
                 end_time=end_time,
                 duration=duration,
                 error_type=type(e).__name__,
+                provider=cfg.provider,
+                description=f"Parallel execution failed: {len(branches)} branches"
             ),
             execution_time=duration
         )
@@ -772,12 +828,16 @@ async def code_executor(
             output={},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="code",
+                node_type=cfg.type,
                 name=getattr(cfg, 'name', 'code_node'),
+                version="1.0.0",
+                owner="system",
                 start_time=start_time,
                 end_time=end_time,
                 duration=0,
                 error_type=type(e).__name__,
+                provider=cfg.provider,
+                description=f"Code execution failed: {language}"
             ),
             execution_time=0
         ) 
@@ -825,11 +885,15 @@ async def recursive_executor(
                 execution_time=duration,
                 metadata=NodeMetadata(
                     node_id=recursive_config.id,
-                    node_type="recursive",
+                    node_type=recursive_config.type,
                     name=recursive_config.name or "recursive_node",
+                    version="1.0.0",
+                    owner="system",
+                    provider=recursive_config.provider,
                     start_time=start_time,
                     end_time=end_time,
                     duration=duration,
+                    description=f"Recursive execution: max iterations reached ({iteration})"
                 )
             )
         
@@ -866,11 +930,15 @@ async def recursive_executor(
                         execution_time=duration,
                         metadata=NodeMetadata(
                             node_id=recursive_config.id,
-                            node_type="recursive",
+                            node_type=recursive_config.type,
                             name=recursive_config.name or "recursive_node",
+                            version="1.0.0",
+                            owner="system",
+                            provider=recursive_config.provider,
                             start_time=start_time,
                             end_time=end_time,
                             duration=duration,
+                            description=f"Recursive execution: converged after {iteration} iterations"
                         )
                     )
             except Exception as e:
@@ -974,11 +1042,15 @@ async def human_executor(workflow: Workflow, cfg: HumanNodeConfig, ctx: Dict[str
         output=response,
         metadata=NodeMetadata(
             node_id=cfg.id,
-            node_type="human",
+            node_type=cfg.type,
             name="human_approval",
+            version="1.0.0",
+            owner="system",
+            provider=cfg.provider,
             start_time=start,
             end_time=end,
             duration=(end - start).total_seconds(),
+            description="Human approval node execution"
         ),
     )
 
@@ -1013,11 +1085,15 @@ async def monitor_executor(workflow: Workflow, cfg: MonitorNodeConfig, ctx: Dict
         output=output,
         metadata=NodeMetadata(
             node_id=cfg.id,
-            node_type="monitor",
+            node_type=cfg.type,
             name="monitor_node",
+            version="1.0.0",
+            owner="system",
+            provider=cfg.provider,
             start_time=start,
             end_time=end,
             duration=(end - start).total_seconds(),
+            description=f"Monitor execution: {cfg.metric_expression}"
         ),
     )
 
@@ -1048,11 +1124,15 @@ async def swarm_executor(workflow: Workflow, cfg: SwarmNodeConfig, ctx: Dict[str
             output={},
             metadata=NodeMetadata(
                 node_id=cfg.id,
-                node_type="swarm",
+                node_type=cfg.type,
                 name="swarm_node",
+                version="1.0.0",
+                owner="system",
+                provider=cfg.provider,
                 start_time=start,
                 end_time=end,
                 duration=(end - start).total_seconds(),
+                description=f"Swarm execution failed: missing agents {missing}"
             ),
         )
 
@@ -1063,10 +1143,14 @@ async def swarm_executor(workflow: Workflow, cfg: SwarmNodeConfig, ctx: Dict[str
         output={"swarm": "executed", "agents": [a.role for a in cfg.agents]},
         metadata=NodeMetadata(
             node_id=cfg.id,
-            node_type="swarm",
+            node_type=cfg.type,
             name="swarm_node",
+            version="1.0.0",
+            owner="system",
+            provider=cfg.provider,
             start_time=start,
             end_time=end,
             duration=(end - start).total_seconds(),
+            description="Swarm execution completed"
         ),
     ) 

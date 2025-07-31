@@ -26,7 +26,7 @@ __all__: list[str] = [
     "get_workflow_proto",
 ]
 
-def get_workflow_proto() -> Type[Any]:
+def get_workflow_proto() -> Any:
     """Return the Workflow concrete class registered by the orchestrator layer.
 
     To respect the onion-architecture boundary, the SDK layer must not

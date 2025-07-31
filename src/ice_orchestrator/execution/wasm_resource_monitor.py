@@ -247,7 +247,7 @@ class WasmResourceMonitor:
         node_type: str, 
         limits: ResourceLimits, 
         usage: ResourceUsage
-    ):
+    ) -> None:
         """Check for resource limit violations."""
         
         violations = []
@@ -289,7 +289,7 @@ class WasmResourceMonitor:
         for violation in violations:
             await self._handle_violation(violation)
     
-    async def _handle_violation(self, violation: SecurityViolation):
+    async def _handle_violation(self, violation: SecurityViolation) -> None:
         """Handle a security violation."""
         
         logger.warning(
@@ -327,7 +327,7 @@ class WasmResourceMonitor:
         node_type: str, 
         usage: Optional[ResourceUsage], 
         status: str
-    ):
+    ) -> None:
         """Record execution metrics."""
         
         # Execution counter

@@ -26,7 +26,7 @@ class SemanticMemory(BaseMemory):
         """Initialize semantic memory."""
         super().__init__(config)
         self._facts_store: Dict[str, MemoryEntry] = {}
-        self._embeddings: Dict[str, np.ndarray] = {}
+        self._embeddings: Dict[str, np.ndarray[Any, Any]] = {}
         
         # 🚀 NESTED STRUCTURE: Much better performance!
         self._relationships: Dict[str, Dict[str, List[Tuple[str, str]]]] = defaultdict(lambda: defaultdict(list))
@@ -114,7 +114,7 @@ class SemanticMemory(BaseMemory):
             embedding = await self._generate_embedding(content)
             self._embeddings[key] = embedding
             
-    async def _generate_embedding(self, content: Any) -> np.ndarray:
+    async def _generate_embedding(self, content: Any) -> np.ndarray[Any, Any]:
         """Generate embedding for content."""
         # Simple hash-based embedding for demonstration
         # In production, would use actual embedding model
@@ -171,7 +171,7 @@ class SemanticMemory(BaseMemory):
         
     async def _vector_search(
         self,
-        query_embedding: np.ndarray,
+        query_embedding: np.ndarray[Any, Any],
         limit: int,
         filters: Dict[str, Any]
     ) -> List[MemoryEntry]:
@@ -299,7 +299,7 @@ class SemanticMemory(BaseMemory):
             await self.initialize()
             
         # Find facts containing this entity
-        fact_keys = self._entity_index.get(entity, [])
+        fact_keys: List[str] = self._entity_index.get(entity, [])
         
         related_facts = []
         for key in fact_keys:
@@ -307,7 +307,7 @@ class SemanticMemory(BaseMemory):
             if entry:
                 # Check relationship type if specified
                 if relationship_type:
-                    relationships = self._relationships.get(key, [])
+                    relationships: List[Tuple[str, float]] = self._relationships.get(key, [])
                     if any(rel[0] == relationship_type for rel in relationships):
                         related_facts.append(entry)
                 else:
@@ -324,7 +324,7 @@ class SemanticMemory(BaseMemory):
         if not self._initialized:
             await self.initialize()
             
-        graph = {
+        graph: Dict[str, Any] = {
             "nodes": {},
             "edges": []
         }
@@ -348,7 +348,7 @@ class SemanticMemory(BaseMemory):
             }
             
             # Find facts about this entity across all domains
-            fact_keys = []
+            fact_keys: List[str] = []
             for domain_entities in self._entity_index.values():
                 fact_keys.extend(domain_entities.get(entity, []))
             for key in fact_keys[:5]:  # Limit facts per entity

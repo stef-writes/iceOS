@@ -1,9 +1,9 @@
 """Chain-related error classes for the orchestrator."""
 
-from ice_core.exceptions import IceCoreError
+from ice_core.exceptions import CoreError
 
 
-class ChainError(IceCoreError):
+class ChainError(CoreError):
     """Base class for chain execution errors."""
     pass
 

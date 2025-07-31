@@ -7,6 +7,8 @@ ensuring secure isolation with resource limits and monitoring.
 import asyncio
 import inspect
 import json
+import resource
+import sys
 import tempfile
 import time
 from datetime import datetime
@@ -169,7 +171,7 @@ class WasmExecutor:
         self,
         code: str,
         context: Dict[str, Any],
-        allowed_imports: set,
+        allowed_imports: set[str],
         limits: Dict[str, Any],
         node_id: str
     ) -> Dict[str, Any]:
@@ -242,7 +244,7 @@ class WasmExecutor:
                 raise WasmExecutorError(f"WASM execution error: {e}")
     
     async def _compile_python_to_wasm(
-        self, python_script: str, allowed_imports: set, node_id: str
+        self, python_script: str, allowed_imports: set[str], node_id: str
     ) -> wasmtime.Module:
         """Compile Python script to WASM module.
         
@@ -294,7 +296,7 @@ class WasmExecutor:
         self,
         user_code: str,
         context: Dict[str, Any],
-        allowed_imports: set
+        allowed_imports: set[str]
     ) -> str:
         """Create a sandboxed Python script with restricted imports."""
         
@@ -432,9 +434,7 @@ async def execute_node_with_wasm(
             start_time=start_time,
             end_time=end_time,
             duration=result.get("execution_time", 0),
-            sandboxed=True,
-            memory_used_mb=result.get("memory_used_pages", 0) * 64 / 1024,  # Convert pages to MB
-            fuel_consumed=result.get("fuel_consumed", 0)
+            description=f"WASM sandboxed execution of {node_type} node"
         ),
         execution_time=result.get("execution_time", 0)
     )
