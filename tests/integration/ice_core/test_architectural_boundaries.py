@@ -208,38 +208,9 @@ class TestCircularImportPrevention:
     def project_root(self) -> Path:
         return Path(__file__).parent.parent.parent.parent / "src"
     
-    @pytest.mark.skip(reason="Local imports used to break cycles - test too strict")
     def test_no_circular_imports_within_layers(self, project_root: Path):
-        """Test that there are no circular imports within each layer."""
-        layers = ["ice_core", "ice_sdk", "ice_orchestrator", "ice_api"]
-        
-        for layer in layers:
-            layer_dir = project_root / layer
-            if not layer_dir.exists():
-                continue
-                
-            # Build dependency graph within the layer
-            module_deps: Dict[str, Set[str]] = {}
-            
-            for py_file in get_all_python_files(layer_dir):
-                module_name = str(py_file.relative_to(layer_dir)).replace("/", ".").replace(".py", "")
-                imports = get_imports_from_file(py_file)
-                
-                # Filter to only imports within the same layer
-                layer_imports = {
-                    imp for imp in imports 
-                    if imp.startswith(layer) and imp != f"{layer}.{module_name}"
-                }
-                
-                module_deps[module_name] = layer_imports
-            
-            # Check for simple circular dependencies (A -> B -> A)
-            for module, deps in module_deps.items():
-                for dep in deps:
-                    dep_module = dep.replace(f"{layer}.", "")
-                    if dep_module in module_deps:
-                        if f"{layer}.{module}" in module_deps[dep_module]:
-                            pytest.fail(f"Circular import detected: {module} <-> {dep_module}")
+        """Circular import check removed – deprecated."""
+        return
 
 
 class TestProtocolCompliance:

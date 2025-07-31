@@ -14,7 +14,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from ice_api.redis_client import get_redis
 from ice_api.api.mcp import router as mcp_router
 from ice_api.dependencies import get_tool_service
-from ice_api.api.direct_execution import router as direct_router
 from ice_api.ws_gateway import router as ws_router
 from ice_core.utils.logging import setup_logger
 # New startup helpers
@@ -156,7 +155,6 @@ add_exception_handlers(app)
 
 # Include routers
 app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
-app.include_router(direct_router, tags=["direct"])
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
 
 # ------------------------------------------------------------------

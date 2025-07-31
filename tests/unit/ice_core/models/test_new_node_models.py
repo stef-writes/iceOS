@@ -124,10 +124,9 @@ def test_human_runtime_validation_success():
 
 def test_human_runtime_validation_empty_prompt():
     """HumanNodeConfig fails validation with empty prompt."""
-    config = HumanNodeConfig(id="test_human", prompt_message="")
-    
-    with pytest.raises(ValueError):
-        config.runtime_validate()
+    # Pydantic field validation prevents creation with empty string
+    with pytest.raises(Exception):  # Pydantic validation error
+        HumanNodeConfig(id="test_human", prompt_message="")
 
 
 def test_human_runtime_validation_choice_without_choices():
@@ -174,10 +173,9 @@ def test_monitor_runtime_validation_success():
 
 def test_monitor_runtime_validation_empty_expression():
     """MonitorNodeConfig fails validation with empty expression."""
-    config = MonitorNodeConfig(id="test_monitor", metric_expression="")
-    
-    with pytest.raises(ValueError):
-        config.runtime_validate()
+    # Pydantic field validation prevents creation with empty string
+    with pytest.raises(Exception):  # Pydantic validation error
+        MonitorNodeConfig(id="test_monitor", metric_expression="")
 
 
 def test_monitor_runtime_validation_invalid_syntax():

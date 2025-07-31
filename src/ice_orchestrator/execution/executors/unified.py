@@ -146,7 +146,7 @@ async def tool_executor(
         flattened_inputs = _flatten_dependency_outputs(merged_inputs, tool)
         
         # Direct execution - tools need file I/O, network access, imports
-        result = await tool.execute(flattened_inputs)
+        result = await tool.execute(**flattened_inputs)
         
         # Ensure result is a dictionary
         if not isinstance(result, dict):

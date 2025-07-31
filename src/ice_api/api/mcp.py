@@ -49,6 +49,8 @@ from ice_core.base_tool import ToolBase
 from ice_core.unified_registry import registry, global_agent_registry
 from ice_core.models import NodeType
 
+# Import execution guard to allow orchestrator runtime during MCP execution
+
 # Fetch service lazily to avoid bootstrap order problems --------------------
 def _get_workflow_service() -> IWorkflowService:
     return ServiceLocator.get("workflow_service")  # type: ignore[return-value]
@@ -337,12 +339,12 @@ async def start_run(req: RunRequest) -> RunAck:
             asyncio.create_task(redis.xadd(_stream_key(run_id), {"event": evt_name, "payload": json.dumps(payload)}))  # type: ignore[arg-type]
 
         result_obj = await _get_workflow_service().execute(
-            conv_nodes,
-            bp.blueprint_id,
-            req.options.max_parallel,
-            run_id=run_id,
-            event_emitter=_emit,
-        )
+                conv_nodes,
+                bp.blueprint_id,
+                req.options.max_parallel,
+                run_id=run_id,
+                event_emitter=_emit,
+            )
         from pydantic import BaseModel
 
         def _serialize(obj):
