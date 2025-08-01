@@ -8,7 +8,7 @@ class AgentBuilder:
     """Builder for creating agent configurations for workflows."""
     
     def __init__(self, name: str = "agent"):
-        self.config = {
+        self.config: Dict[str, Any] = {
             "type": "agent",
             "id": name,
             "config": {
@@ -19,7 +19,8 @@ class AgentBuilder:
         
     def with_llm(self, model: str = "gpt-4", provider: ModelProvider = ModelProvider.OPENAI) -> "AgentBuilder":
         """Set the LLM configuration for the agent."""
-        self.config["config"]["llm_config"] = {
+        config_dict = self.config["config"]  # type: ignore[assignment]
+        config_dict["llm_config"] = {
             "provider": provider.value,
             "model": model,
             "temperature": 0.7,
@@ -29,24 +30,28 @@ class AgentBuilder:
         
     def with_system_prompt(self, prompt: str) -> "AgentBuilder":
         """Set the system prompt for the agent."""
-        self.config["config"]["system_prompt"] = prompt
+        config_dict = self.config["config"]  # type: ignore[assignment]
+        config_dict["system_prompt"] = prompt
         return self
         
     def with_tools(self, tools: List[str]) -> "AgentBuilder":
         """Set the allowed tools for the agent."""
-        self.config["config"]["tools"] = tools
+        config_dict = self.config["config"]  # type: ignore[assignment]
+        config_dict["tools"] = tools
         return self
         
     def with_memory(self, memory_config: Optional[Dict[str, Any]] = None) -> "AgentBuilder":
         """Enable memory for the agent."""
-        self.config["config"]["enable_memory"] = True
+        config_dict = self.config["config"]  # type: ignore[assignment]
+        config_dict["enable_memory"] = True
         if memory_config:
-            self.config["config"]["memory_config"] = memory_config
+            config_dict["memory_config"] = memory_config
         return self
         
     def with_max_retries(self, max_retries: int) -> "AgentBuilder":
         """Set the maximum number of retries for the agent."""
-        self.config["config"]["max_retries"] = max_retries
+        config_dict = self.config["config"]  # type: ignore[assignment]
+        config_dict["max_retries"] = max_retries
         return self
         
     def build(self) -> Dict[str, Any]:

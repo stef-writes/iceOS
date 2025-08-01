@@ -555,7 +555,7 @@ Complete runtime execution environment:
   - Error handling and retry policies
   - Context propagation between nodes
   
-- **Node Executors** (`nodes/`): Type-specific execution
+- **Node Executors** (`execution/executors/`): Type-specific execution
   - `ToolNode`, `LLMNode`, `AgentNode` bridges
   - `ConditionNode`, `LoopNode`, `ParallelNode`
 

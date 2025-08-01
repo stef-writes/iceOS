@@ -1,30 +1,26 @@
 """Human approval workflow handling."""
 import asyncio
 from typing import Dict, Any, Optional
-from dataclasses import dataclass
 from datetime import datetime
 from ice_core.models.node_models import HumanNodeConfig
+from pydantic import BaseModel, Field
 
-@dataclass
-class ApprovalResult:
+class ApprovalResult(BaseModel):
     """Result of human approval workflow."""
-    approved: bool
-    response: str
-    response_received: bool
-    timeout_occurred: bool = False
-    escalated: bool = False
-    response_time_seconds: Optional[float] = None
+    approved: bool = Field(..., description="Whether the request was approved")
+    response: str = Field(..., description="Human-provided response or system message")
+    response_received: bool = Field(..., description="True if a human (or escalation path) responded")
+    timeout_occurred: bool = Field(False, description="True if the original request timed out")
+    escalated: bool = Field(False, description="True if the request was escalated")
+    response_time_seconds: Optional[float] = Field(None, description="Round-trip time in seconds")
+
+    model_config = {"extra": "forbid"}
+
+    def to_dict(self) -> Dict[str, Any]:  # pragma: no cover – convenience for legacy callers
+        """Return a plain-Python dict representation (legacy helper)."""
+        return self.model_dump()
     
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary format."""
-        return {
-            "approved": self.approved,
-            "response": self.response,
-            "response_received": self.response_received,
-            "timeout_occurred": self.timeout_occurred,
-            "escalated": self.escalated,
-            "response_time_seconds": self.response_time_seconds
-        }
+
 
 class ApprovalHandler:
     """Handles human approval workflows with timeouts and escalation."""

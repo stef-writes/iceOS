@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from datetime import datetime
 
 import networkx as nx
@@ -292,10 +292,10 @@ class DependencyGraph:
         except:
             return []
 
-    def get_parallel_execution_groups(self) -> Dict[int, Dict[str, List[str]]]:
+    def get_parallel_execution_groups(self) -> Dict[int, Dict[str, Union[List[str], int]]]:
         """Get enhanced parallel execution groups with safety analysis."""
         levels = self.get_level_nodes()
-        result = {}
+        result: Dict[int, Dict[str, Union[List[str], int]]] = {}
         
         for level, nodes in levels.items():
             parallel_safe = []

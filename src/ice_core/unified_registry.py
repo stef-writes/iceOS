@@ -1,6 +1,7 @@
 """Unified registry for all node implementations."""
 from __future__ import annotations
 from typing import Dict, Type, Any, Optional, List, Tuple, Callable, Awaitable, TypeAlias, TypeVar, Protocol
+import pathlib
 import logging
 from pydantic import BaseModel, PrivateAttr
 from ice_core.models import INode, NodeConfig, NodeExecutionResult
@@ -82,10 +83,10 @@ class Registry(BaseModel):
         
         # Original registration logic
         if node_type not in self._instances:
-            self._instances[node_type] = {}
+            self._instances[node_type] = {}  # type: ignore[assignment]
         if name in self._instances[node_type]:
             raise RegistryError(f"Instance {node_type.value}:{name} already registered")
-        self._instances[node_type][name] = instance
+        self._instances[node_type][name] = instance  # type: ignore[assignment]
     
     def get_class(self, node_type: NodeType, name: str) -> Type[INode]:
         """Get a registered node class."""
@@ -104,8 +105,8 @@ class Registry(BaseModel):
             instance = self._nodes[node_type][name]()
             # Cache the new instance
             if node_type not in self._instances:
-                self._instances[node_type] = {}
-            self._instances[node_type][name] = instance
+                self._instances[node_type] = {}  # type: ignore[assignment]
+            self._instances[node_type][name] = instance  # type: ignore[assignment]
             return instance
         
         raise RegistryError(f"Node {node_type.value}:{name} not found")
@@ -135,7 +136,7 @@ class Registry(BaseModel):
         try:
             eps = metadata.entry_points(group=group)
         except TypeError:
-            eps = metadata.entry_points().get(group, [])
+            eps = metadata.entry_points().get(group, [])  # type: ignore[arg-type]
         
         for ep in eps:
             try:
@@ -264,11 +265,11 @@ class Registry(BaseModel):
                         if isinstance(obj, type):
                             if not issubclass(obj, ToolBase):
                                 raise RegistryError(f"Tool class {imp_path} is not a subclass of ToolBase")
-                            self.register_class(NodeType.TOOL, name, obj)
+                            self.register_class(NodeType.TOOL, name, obj)  # type: ignore[arg-type]
                         else:
                             if not isinstance(obj, ToolBase):
                                 raise RegistryError(f"Tool instance {imp_path} does not inherit ToolBase")
-                            self.register_instance(NodeType.TOOL, name, obj, validate=False)
+                            self.register_instance(NodeType.TOOL, name, obj, validate=False)  # type: ignore[arg-type]
                     except Exception as exc:
                         raise RegistryError(f"Failed to import tool {name}: {exc}") from exc
                 else:

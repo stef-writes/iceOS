@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, Any
 from pydantic import BaseModel, ConfigDict
 from ice_core.protocols.node import INode
-from ice_core.models.node_models import NodeExecutionResult
+from ice_core.models.node_models import NodeExecutionResult, NodeMetadata
 import time
 
 class BaseNode(BaseModel, INode):
@@ -15,7 +15,7 @@ class BaseNode(BaseModel, INode):
     
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
     
-    async def validate(self) -> None:
+    async def validate(self) -> None:  # type: ignore[override]
         """Validate node configuration.
         
         Default implementation relies on Pydantic validation.
@@ -41,14 +41,38 @@ class BaseNode(BaseModel, INode):
             return NodeExecutionResult(
                 success=True,
                 output=output,
-                execution_time=time.time() - start_time
+                execution_time=time.time() - start_time,
+                metadata=NodeMetadata(
+                    node_id=getattr(self, 'id', 'unknown'),
+                    node_type=getattr(self, 'type', 'unknown'),
+                    version="1.0.0",
+                    owner="system",
+                    description=f"Execution of {self.__class__.__name__}",
+                    provider=None,
+                    error_type=None,
+                    start_time=None,
+                    end_time=None,
+                    duration=None
+                )
             )
         except Exception as e:
             return NodeExecutionResult(
                 success=False,
                 output={},
                 error=str(e),
-                execution_time=time.time() - start_time
+                execution_time=time.time() - start_time,
+                metadata=NodeMetadata(
+                    node_id=getattr(self, 'id', 'unknown'),
+                    node_type=getattr(self, 'type', 'unknown'),
+                    version="1.0.0",
+                    owner="system",
+                    description=f"Execution of {self.__class__.__name__}",
+                    error_type=type(e).__name__,
+                    provider=None,
+                    start_time=None,
+                    end_time=None,
+                    duration=None
+                )
             )
     
     async def _execute_impl(self, inputs: Dict[str, Any]) -> Dict[str, Any]:

@@ -3,7 +3,7 @@
 from ice_core.unified_registry import global_agent_registry
 
 
-def initialize_agent_registry():
+def initialize_agent_registry() -> None:
     """Register core agents in the global registry.
     
     NOTE: Agent runtime implementations have moved to ice_orchestrator.agent

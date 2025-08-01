@@ -10,7 +10,7 @@ Usage::
 """
 
 import os
-from typing import Optional, Any, Awaitable, Callable
+from typing import Optional, Any, Awaitable, Callable, Union
 
 class _RedisStub:  # type: ignore
     """Minimal async stub when the *redis* package is not installed.
@@ -99,9 +99,9 @@ __all__: list[str] = ["get_redis"]
 # Singleton helper ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-_redis_client: Optional[Redis] = None
+_redis_client: Optional[Union[Redis, _RedisStub]] = None
 
-def get_redis() -> Redis:  # – singleton, *sync* accessor
+def get_redis() -> Union[Redis, _RedisStub]:  # – singleton, *sync* accessor
     """Return the shared :class:`redis.asyncio.Redis` client.
 
     The connection URL is read from the ``REDIS_URL`` environment variable and
@@ -123,7 +123,7 @@ def get_redis() -> Redis:  # – singleton, *sync* accessor
             # Always create a new in-memory stub for test isolation
             _redis_client = _RedisStub()  # type: ignore[call-arg]
         else:
-            _redis_client = redis.from_url(
+            _redis_client = redis.from_url(  # type: ignore[no-untyped-call]
                 os.getenv("REDIS_URL", "redis://localhost:6379/0")
             )
 

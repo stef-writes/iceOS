@@ -14,7 +14,7 @@ logger = structlog.get_logger(__name__)
 class AgentExecutor:
     """Executes agent nodes with tool coordination and memory management."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.llm_service = ServiceLocator.get("llm_service")
         self.tool_service = ServiceLocator.get("tool_service")
     
@@ -120,7 +120,7 @@ class AgentExecutor:
             return {"error": f"Tool {tool_name} not found"}
         
         try:
-            result = await tool.execute(tool_args)
+            result = await tool.execute(**tool_args)
             return result
         except Exception as e:
             return {"error": f"Tool execution failed: {str(e)}"}

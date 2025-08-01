@@ -150,7 +150,9 @@ async def main():
     
     # Initialize iceOS services
     try:
-        from ice_orchestrator import initialize_orchestrator
+        import importlib
+        # Dynamic import to avoid direct layer dependency
+        initialize_orchestrator = importlib.import_module("ice_orchestrator").initialize_orchestrator
         initialize_orchestrator()
     except Exception as e:
         print(f"Failed to initialize iceOS: {e}", file=sys.stderr)

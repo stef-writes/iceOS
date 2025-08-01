@@ -1,6 +1,6 @@
 """Chain-related error classes for the orchestrator."""
 
-from ice_core.exceptions import CoreError
+from ice_core.exceptions import CoreError, ErrorCode
 
 
 class ChainError(CoreError):
@@ -22,6 +22,6 @@ class NodeExecutionError(ChainError):
     """Error raised during node execution within a chain."""
     
     def __init__(self, message: str, node_id: str, node_type: str = "unknown"):
-        super().__init__(message)
+        super().__init__(ErrorCode.UNKNOWN, message)
         self.node_id = node_id
         self.node_type = node_type 

@@ -30,7 +30,7 @@ class ConsensusStrategy(SwarmStrategy):
         shared_pool: Any
     ) -> Dict[str, Any]:
         """Execute consensus coordination."""
-        proposals = []
+        proposals: List[Dict[str, Any]] = []
         round_num = 0
         
         while round_num < self.config.max_rounds:
@@ -59,9 +59,9 @@ class ConsensusStrategy(SwarmStrategy):
                 agent_spec = agents[i][1]
                 round_results.append({
                     "agent_role": agent_spec.role,
-                    "proposal": result.get("response", result),
-                    "confidence": result.get("confidence", 0.5),
-                    "reasoning": result.get("reasoning", "")
+                    "proposal": result.get("response", result) if hasattr(result, 'get') else result,
+                    "confidence": result.get("confidence", 0.5) if hasattr(result, 'get') else 0.5,
+                    "reasoning": result.get("reasoning", "") if hasattr(result, 'get') else ""
                 })
             
             # Check for consensus

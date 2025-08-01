@@ -72,7 +72,7 @@ def calculate_cost(
 class TokenCostCalculator:
     """Calculator for token-based costs across different providers."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         pass
     
     def calculate_cost(
@@ -129,7 +129,7 @@ class TokenCostCalculator:
 class CostTracker:
     """Tracks execution costs and time for chain execution"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._total_cost = Decimal("0")
         self._budget: Optional[Decimal] = None
         self._start_time: Optional[float] = None
@@ -167,10 +167,10 @@ class CostTracker:
 
     def get_costs(self) -> Dict[str, float]:
         """Get cost summary"""
-        return {
-            "total": float(self._total_cost),
-            "budget": float(self._budget) if self._budget else None,
-        }
+        costs: Dict[str, float] = {"total": float(self._total_cost)}
+        if self._budget is not None:
+            costs["budget"] = float(self._budget)
+        return costs
 
     def get_execution_time(self) -> Optional[float]:
         """Get execution time in seconds"""

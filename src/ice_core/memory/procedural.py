@@ -36,7 +36,7 @@ class ProceduralMemory(BaseMemory):
         self._initialized = True  # Set this FIRST to prevent recursion
     
     # 🚀 NEW: High-performance nested query methods
-    def get_procedures_by_category(self, category: str, procedure_type: str = None) -> List[str]:
+    def get_procedures_by_category(self, category: str, procedure_type: Optional[str] = None) -> List[str]:
         """Get procedures by category and type - MUCH faster than scanning all!"""
         if procedure_type:
             return self._category_index.get(category, {}).get(procedure_type, [])
@@ -46,7 +46,7 @@ class ProceduralMemory(BaseMemory):
                 result.extend(proc_type_dict)
             return result
     
-    def get_procedures_by_context(self, domain: str, context: str = None) -> List[str]:
+    def get_procedures_by_context(self, domain: str, context: Optional[str] = None) -> List[str]:
         """Get procedures by domain and context - targeted querying!"""
         if context:
             return self._context_index.get(domain, {}).get(context, [])
@@ -346,11 +346,16 @@ class ProceduralMemory(BaseMemory):
         
         # Get procedures by category if specified
         if category:
-            candidate_keys = self._category_index.get(category, [])
+            category_data = self._category_index.get(category, {})
+            category_procedure_keys: List[str] = []
+            for proc_type_dict in category_data.values():
+                category_procedure_keys.extend(proc_type_dict)
+            procedure_keys = category_procedure_keys
         else:
-            candidate_keys = list(self._procedures.keys())
+            all_procedure_keys: List[str] = list(self._procedures.keys())
+            procedure_keys = all_procedure_keys
             
-        for key in candidate_keys:
+        for key in procedure_keys:
             entry = self._procedures.get(key)
             if not entry:
                 continue

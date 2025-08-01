@@ -52,7 +52,7 @@ class Blueprint(BaseModel):
     @property
     def name(self) -> str:
         """Return user-facing name for blueprint (draft_name metadata fallback)."""
-        return self.metadata.get("draft_name", self.blueprint_id)
+        return str(self.metadata.get("draft_name", self.blueprint_id))
 
     @model_validator(mode='after')
     def validate_dependencies(cls, values: Any) -> Any:
@@ -127,7 +127,7 @@ class PartialBlueprint(BaseModel):
         default_factory=list,
         description="Current validation issues"
     )
-    next_suggestions: List[Dict[str, Any]] = Field(
+    next_suggestions: List[str] = Field(
         default_factory=list,
         description="AI suggestions for next nodes"
     )
@@ -219,13 +219,14 @@ class PartialBlueprint(BaseModel):
                     id=node.id,
                     type=node.type,
                     dependencies=node.dependencies,
-                    **{k: v for k, v in node.model_extra.items()}
+                    **{k: v for k, v in node.model_extra.items()} if node.model_extra else {}
                 ))
             else:
                 nodes.append(node)
         
         return Blueprint(
             blueprint_id=self.blueprint_id.replace("partial_", ""),
+            schema_version="1.1.0",
             nodes=nodes,
             metadata=self.metadata
         )

@@ -1,11 +1,8 @@
-"""Prompt template registry for dynamic prompting.
-
-This module provides a registry system for managing prompt templates,
-enabling dynamic prompt selection and composition at runtime.
-"""
+"""Prompt template registry for managing reusable message templates."""
 
 from typing import Dict, Optional, Callable
 from ice_core.models.llm import MessageTemplate
+from ice_core.models.enums import ModelProvider
 
 
 class PromptTemplateRegistry:
@@ -167,8 +164,9 @@ def _register_default_templates() -> None:
             MessageTemplate(
                 role="system",
                 content="You are a helpful AI assistant.",
+                version="1.0.0",
                 min_model_version="gpt-4",
-                provider="openai"
+                provider=ModelProvider.OPENAI
             )
         )
         
@@ -177,8 +175,9 @@ def _register_default_templates() -> None:
             MessageTemplate(
                 role="user",
                 content="Let's think step by step about this: {query}",
+                version="1.0.0",
                 min_model_version="gpt-4",
-                provider="openai"
+                provider=ModelProvider.OPENAI
             )
         )
         
@@ -187,8 +186,9 @@ def _register_default_templates() -> None:
             MessageTemplate(
                 role="system",
                 content="Always respond with valid JSON. {format_instructions}",
+                version="1.0.0",
                 min_model_version="gpt-4",
-                provider="openai"
+                provider=ModelProvider.OPENAI
             )
         )
     except ValueError:

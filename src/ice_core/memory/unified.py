@@ -1,6 +1,6 @@
 """Unified memory interface combining all memory types."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from .base import BaseMemory, MemoryConfig, MemoryEntry
 from .working import WorkingMemory
 from .episodic import EpisodicMemory
@@ -99,22 +99,26 @@ class UnifiedMemory:
     @property
     def working(self) -> Optional[WorkingMemory]:
         """Access working memory directly."""
-        return self._memories.get("working")
+        memory = self._memories.get("working")
+        return memory if isinstance(memory, WorkingMemory) else None
     
     @property 
     def episodic(self) -> Optional[EpisodicMemory]:
         """Access episodic memory directly."""
-        return self._memories.get("episodic")
+        memory = self._memories.get("episodic")
+        return memory if isinstance(memory, EpisodicMemory) else None
     
     @property
     def semantic(self) -> Optional[SemanticMemory]:
         """Access semantic memory directly."""
-        return self._memories.get("semantic")
+        memory = self._memories.get("semantic")
+        return memory if isinstance(memory, SemanticMemory) else None
     
     @property
     def procedural(self) -> Optional[ProceduralMemory]:
         """Access procedural memory directly."""
-        return self._memories.get("procedural")
+        memory = self._memories.get("procedural")
+        return memory if isinstance(memory, ProceduralMemory) else None
             
     async def initialize(self) -> None:
         """Initialize all memory subsystems."""
@@ -295,7 +299,7 @@ class UnifiedMemory:
         }
         
         for domain in self.config.domains:
-            domain_stats = {}
+            domain_stats: Dict[str, Union[int, Dict[str, str]]] = {}
             for mem_type, memory in self._memories.items():
                 try:
                     # Search for domain-specific entries

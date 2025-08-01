@@ -130,7 +130,7 @@ class NetworkCoordinator:
 
         for batch in batches:
             # Run workflows in the current *batch* concurrently
-            async def _run(entry: WorkflowEntry):
+            async def _run(entry: WorkflowEntry) -> Any:
                 async with self._sem:
                     try:
                         wf = self._prepare_workflow(entry)
@@ -271,7 +271,7 @@ class NetworkCoordinator:
     # --------------------------------------------------------------
     # Dynamic workflow loader                                       
     # --------------------------------------------------------------
-    def _load_workflow(self, ref: str):  # noqa: ANN401 – Any Workflow subtype
+    def _load_workflow(self, ref: str) -> Any:  # noqa: ANN401 – Any Workflow subtype
         """Import *ref* and return a Workflow instance.
 
         ``ref`` can be either ``module`` or ``module:attr``. When *attr* is
@@ -324,7 +324,7 @@ class NetworkCoordinator:
     # Helpers                                                            
     # ------------------------------------------------------------------
 
-    def _prepare_workflow(self, entry: WorkflowEntry):
+    def _prepare_workflow(self, entry: WorkflowEntry) -> Any:
         """Clone workflow and inject global context safely."""
         wf = self._load_workflow(entry.ref)
         # Deep copy to avoid mutating shared workflows loaded via import

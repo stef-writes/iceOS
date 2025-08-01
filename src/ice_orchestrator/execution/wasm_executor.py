@@ -34,7 +34,7 @@ class WasmExecutorError(Exception):
 class WasmExecutor:
     """Universal WASM runtime for secure node execution using wasmtime-py."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize WASM executor with security defaults."""
         # Initialize WASM engine with security settings
         config = wasmtime.Config()
@@ -377,7 +377,7 @@ except Exception as e:
 '''
         return script
     
-    def _set_resource_limits(self, memory_limit_mb: int, cpu_limit_seconds: float):
+    def _set_resource_limits(self, memory_limit_mb: int, cpu_limit_seconds: float) -> None:
         """Set resource limits for subprocess."""
         try:
             # Set memory limit (in bytes)
@@ -434,7 +434,11 @@ async def execute_node_with_wasm(
             start_time=start_time,
             end_time=end_time,
             duration=result.get("execution_time", 0),
-            description=f"WASM sandboxed execution of {node_type} node"
+            description=f"WASM sandboxed execution of {node_type} node",
+            version="1.0.0",
+            owner="system",
+            error_type=result.get("error_type"),
+            provider=None
         ),
         execution_time=result.get("execution_time", 0)
     )

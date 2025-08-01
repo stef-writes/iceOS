@@ -91,11 +91,11 @@ class SecurityViolation:
 class WasmResourceMonitor:
     """Comprehensive resource monitoring for WASM execution."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_executions: Dict[str, Dict[str, Any]] = {}
         self.violation_callbacks: List[Callable[[SecurityViolation], None]] = []
         
-    def add_violation_callback(self, callback: Callable[[SecurityViolation], None]):
+    def add_violation_callback(self, callback: Callable[[SecurityViolation], None]) -> None:
         """Add a callback for security violations."""
         self.violation_callbacks.append(callback)
     
@@ -362,7 +362,7 @@ class WasmResourceMonitor:
         """Get currently active executions."""
         return self.active_executions.copy()
     
-    async def terminate_execution(self, execution_id: str, reason: str = "manual"):
+    async def terminate_execution(self, execution_id: str, reason: str = "manual") -> None:
         """Terminate an active execution."""
         
         if execution_id in self.active_executions:

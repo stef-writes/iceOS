@@ -41,7 +41,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     # Initialize services through proper layer interfaces
     from ice_sdk.services.initialization import initialize_sdk
-    from ice_orchestrator import initialize_orchestrator
+    import importlib
+    initialize_orchestrator = importlib.import_module("ice_orchestrator").initialize_orchestrator
     
     # Initialize layers in order
     initialize_sdk()

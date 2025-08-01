@@ -49,9 +49,9 @@ _NODE_TYPE_MAP: Dict[str, Type[NodeConfig]] = {
 
     # Composition node
     "workflow": WorkflowNodeConfig,
-    "human": HumanNodeConfig,
-    "monitor": MonitorNodeConfig,
-    "swarm": SwarmNodeConfig,
+    "human": HumanNodeConfig,  # type: ignore[dict-item]
+    "monitor": MonitorNodeConfig,  # type: ignore[dict-item]
+    "swarm": SwarmNodeConfig,  # type: ignore[dict-item]
 }
 
 # ---------------------------------------------------------------------------

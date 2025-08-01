@@ -55,7 +55,8 @@ class SemanticMemory(BaseMemory):
     
     def get_relationships_by_type(self, rel_type: str) -> Dict[str, List[Tuple[str, float]]]:
         """Get all relationships of a specific type - organized access!"""
-        return dict(self._relationships.get(rel_type, {}))
+        relationships = self._relationships.get(rel_type, {})
+        return {k: [(target, float(strength)) for target, strength in v] for k, v in relationships.items()}
     
     def list_domains(self) -> List[str]:
         """List all domains with entities - great for analytics!"""
@@ -296,7 +297,10 @@ class SemanticMemory(BaseMemory):
             await self.initialize()
             
         # Find facts containing this entity
-        fact_keys: List[str] = self._entity_index.get(entity, [])
+        entity_data = self._entity_index.get(entity, {})
+        fact_keys: List[str] = []
+        for domain_entities in entity_data.values():
+            fact_keys.extend(domain_entities)
         
         related_facts = []
         for key in fact_keys:
@@ -304,9 +308,14 @@ class SemanticMemory(BaseMemory):
             if entry:
                 # Check relationship type if specified
                 if relationship_type:
-                    relationships: List[Tuple[str, float]] = self._relationships.get(key, [])
-                    if any(rel[0] == relationship_type for rel in relationships):
-                        related_facts.append(entry)
+                    relationships_data: Any = self._relationships.get(key, [])
+                    if isinstance(relationships_data, list):
+                        relationships: List[Tuple[str, float]] = []
+                        for rel_data in relationships_data:
+                            if isinstance(rel_data, (list, tuple)) and len(rel_data) >= 2:
+                                relationships.append((str(rel_data[0]), float(rel_data[1])))
+                        if any(rel[0] == relationship_type for rel in relationships):
+                            related_facts.append(entry)
                 else:
                     related_facts.append(entry)
                     
@@ -345,7 +354,7 @@ class SemanticMemory(BaseMemory):
             }
             
             # Find facts about this entity across all domains
-            fact_keys: List[str] = []
+            fact_keys = []
             for domain_entities in self._entity_index.values():
                 fact_keys.extend(domain_entities.get(entity, []))
             for key in fact_keys[:5]:  # Limit facts per entity
@@ -358,23 +367,31 @@ class SemanticMemory(BaseMemory):
                     })
                     
                     # Add relationships
-                    for rel_type, target in self._relationships.get(key, []):
-                        graph["edges"].append({
-                            "source": entity,
-                            "target": target,
-                            "type": rel_type
-                        })
-                        
-                        # Add to queue for traversal
-                        if depth < max_depth:
-                            queue.append((target, depth + 1))
+                    relationships_data: Any = self._relationships.get(key, [])
+                    if isinstance(relationships_data, list):
+                        relationships: List[Tuple[str, float]] = []
+                        for rel_data in relationships_data:
+                            if isinstance(rel_data, (list, tuple)) and len(rel_data) >= 2:
+                                relationships.append((str(rel_data[0]), float(rel_data[1])))
+                        for rel_data in relationships:
+                            if isinstance(rel_data, (list, tuple)) and len(rel_data) >= 2:
+                                rel_type, target_raw = rel_data[0], rel_data[1]
+                                target: str = str(target_raw)
+                                graph["edges"].append({
+                                    "source": entity,
+                                    "target": target,
+                                    "type": rel_type
+                                })
+                                # Add to queue for traversal if we have not exceeded max depth
+                                if depth < max_depth:
+                                    queue.append((target, depth + 1))
                             
         return graph
         
     async def learn_from_interaction(
         self,
         interaction_data: Dict[str, Any]
-    ) -> None:
+    ) -> List[str]:
         """Learn new facts from an interaction."""
         # Extract facts from interaction
         facts_learned = []

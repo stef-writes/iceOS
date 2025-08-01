@@ -49,7 +49,7 @@ def tool(
         if auto_register:
             # Create an instance for registration
             tool_instance = cls()
-            registry.register_instance(NodeType.TOOL, tool_name, tool_instance, validate=validate)
+            registry.register_instance(NodeType.TOOL, tool_name, tool_instance, validate=validate)  # type: ignore[arg-type]
             
         return cls
         

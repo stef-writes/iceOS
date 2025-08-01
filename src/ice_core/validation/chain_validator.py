@@ -6,7 +6,7 @@ inside `script_chain.py`, improving separation of concerns and testability.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Mapping, Set
+from typing import TYPE_CHECKING, List, Mapping, Set, Any
 
 from structlog import get_logger
 
@@ -20,10 +20,21 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = get_logger(__name__)
 
+# ---------------------------------------------------------------------------
+# Lightweight stub to avoid heavyweight context registry import at type-check
+# time and to keep *ice_core* free from orchestrator dependencies. At runtime,
+# the orchestrator patches this with the real instance.
+# ---------------------------------------------------------------------------
+from types import SimpleNamespace
+context_type_manager: Any = SimpleNamespace(
+    get_compatible_keys=lambda *args, **kwargs: [],
+    register_context_key=lambda *args, **kwargs: None,
+)
+
 class ChainValidator:  # – internal utility
     def __init__(
         self,
-        failure_policy: "FailurePolicy",
+        failure_policy: Any,
         levels: Mapping[int, List[str]],
         nodes: Mapping[str, "NodeConfig"],
     ) -> None:
@@ -171,12 +182,12 @@ class ChainValidator:  # – internal utility
                         )
 
             # Check 2: Output context registration
-            output_schema = skill_cls.get_output_schema()
+            output_schema = tool_cls.get_output_schema()
             context_type_manager.register_context_key(node.output_key, output_schema)  # type: ignore[arg-type]
             context_keys.add(node.output_key)  # type: ignore[arg-type]
 
             # Check 3: Side-effect validation
-            if skill_cls.is_pure() and getattr(node, "side_effects", None):
+            if tool_cls.is_pure() and getattr(node, "side_effects", None):
                 errors.append(f"Pure tool {node.type} cannot have side-effects")
 
         # Use ValidationResult dataclass from legacy namespace when available

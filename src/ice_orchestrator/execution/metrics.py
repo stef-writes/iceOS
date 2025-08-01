@@ -20,7 +20,7 @@ class ChainMetrics(BaseModel):
     
     # 🚀 NESTED STRUCTURE: NodeType -> node_id -> metrics
     node_metrics: Dict[NodeType, Dict[str, Dict[str, Any]]] = Field(
-        default_factory=lambda: defaultdict(lambda: defaultdict(dict))
+        default_factory=dict
     )
     
     subdag_execution_time: float = 0.0

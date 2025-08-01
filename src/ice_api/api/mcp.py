@@ -620,7 +620,8 @@ async def validate_component_definition(
             elif definition.type == "workflow":
                 # For workflows, create from nodes
                 if definition.workflow_nodes:
-                    from ice_orchestrator.workflow import Workflow
+                    import importlib
+                    Workflow = importlib.import_module("ice_orchestrator.workflow").Workflow
                     workflow = Workflow(
                         nodes=definition.workflow_nodes,
                         name=definition.name

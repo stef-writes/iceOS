@@ -11,8 +11,8 @@ try:
     from redis import Redis, Pipeline as RedisPipeline
 except ImportError:
     redis = None
-    Redis = None
-    RedisPipeline = None
+    Redis = None  # type: ignore
+    RedisPipeline = None  # type: ignore
 
 
 class EpisodicMemory(BaseMemory):
@@ -30,6 +30,7 @@ class EpisodicMemory(BaseMemory):
         """Initialize episodic memory with Redis backend."""
         super().__init__(config)
         self._redis: Optional[Any] = None
+        self._memory_store: Dict[str, Any] = {}  # Fallback to dict
         self._key_prefix = "episode:"
         self._index_prefix = "episode_idx:"
         self._ttl = config.ttl_seconds if config.ttl_seconds else 7 * 24 * 3600  # 7 days default
@@ -179,7 +180,10 @@ class EpisodicMemory(BaseMemory):
             )
         else:
             # Fallback to in-memory
-            return self._memory_store.get(key)
+            entry = self._memory_store.get(key)
+            if entry is not None:
+                return entry
+            return None
     
     async def search(
         self,
@@ -240,27 +244,27 @@ class EpisodicMemory(BaseMemory):
                     filtered_keys = set()
                     for key in matching_keys:
                         entry = await self.retrieve(key)
-                        if entry and query.lower() in str(entry.content).lower():
+                        if entry is not None and query.lower() in str(entry.content).lower():
                             filtered_keys.add(key)
                     matching_keys = filtered_keys
         else:
             # Fallback to in-memory search
             for key, entry in self._memory_store.items():
                 # Check query match
-                if query and query.lower() not in str(entry.content).lower():
+                if query and query.lower() not in str(entry.content).lower():  # type: ignore[union-attr]
                     continue
                     
                 # Check filters
                 if filters:
-                    if "type" in filters and entry.metadata.get("episode_type") != filters["type"]:
+                    if "type" in filters and entry.metadata.get("episode_type") != filters["type"]:  # type: ignore[union-attr]
                         continue
-                    if "participant" in filters and filters["participant"] not in entry.metadata.get("participants", []):
+                    if "participant" in filters and filters["participant"] not in entry.metadata.get("participants", []):  # type: ignore[union-attr]
                         continue
                     if "tags" in filters:
-                        entry_tags = set(entry.metadata.get("tags", []))
+                        entry_tags = set(entry.metadata.get("tags", []))  # type: ignore[union-attr]
                         if not all(tag in entry_tags for tag in filters["tags"]):
                             continue
-                    if "outcome" in filters and entry.metadata.get("outcome") != filters["outcome"]:
+                    if "outcome" in filters and entry.metadata.get("outcome") != filters["outcome"]:  # type: ignore[union-attr]
                         continue
                         
                 matching_keys.add(key)
@@ -317,7 +321,7 @@ class EpisodicMemory(BaseMemory):
             pipeline.delete(full_key)
             
             results = pipeline.execute()
-            return results[-1] > 0  # Check if delete was successful
+            return bool(results[-1] > 0)  # Check if delete was successful
         else:
             # Fallback to in-memory
             return self._memory_store.pop(key, None) is not None
@@ -439,9 +443,9 @@ class EpisodicMemory(BaseMemory):
             }
         
         # Analyze patterns
-        outcomes = {}
-        sentiments = {}
-        tags_freq = {}
+        outcomes: Dict[str, int] = {}
+        sentiments: Dict[str, int] = {}
+        tags_freq: Dict[str, int] = {}
         hourly_distribution = [0] * 24
         
         for episode in episodes:

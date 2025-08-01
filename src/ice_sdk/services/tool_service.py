@@ -29,7 +29,7 @@ class ToolService:  # pylint: disable=too-few-public-methods
     # Convenience getters --------------------------------------------------
     # ---------------------------------------------------------------------
     @property
-    def _delegate(self):  # type: ignore[return-annotation]
+    def _delegate(self) -> Any:  # type: ignore[return-annotation]
         delegate = ServiceLocator.get(self._delegate_key)
         if delegate is None:
             raise RuntimeError(
@@ -47,12 +47,12 @@ class ToolService:  # pylint: disable=too-few-public-methods
         context: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """Forward to runtime service."""
-        return await self._delegate.execute_tool(tool_name, inputs, context)  # type: ignore[arg-type]
+        return await self._delegate.execute_tool(tool_name, inputs, context)  # type: ignore[arg-type, no-any-return]
 
     def list_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return metadata for all registered tools."""
-        return self._delegate.list_tools()  # type: ignore[return-value]
+        return self._delegate.list_tools()  # type: ignore[no-any-return]
 
     # Expose attributes of delegate transparently (optional)
-    def __getattr__(self, item: str) -> Callable[..., Any]:  # noqa: D401
+    def __getattr__(self, item: str) -> Any:  # noqa: D401
         return getattr(self._delegate, item)

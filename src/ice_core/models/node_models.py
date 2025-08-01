@@ -751,6 +751,7 @@ class HumanNodeConfig(BaseNodeConfig):
     timeout_seconds: Optional[int] = Field(None, ge=1)
     auto_approve_after: Optional[int] = Field(None, ge=1)
     choices: Optional[List[str]] = None
+    escalation_path: Optional[str] = Field(None, description="Path for escalation if timeout occurs")
 
     def runtime_validate(self) -> None:
         super().runtime_validate()
@@ -789,3 +790,58 @@ class MonitorNodeConfig(BaseNodeConfig):
         invalid = set(self.alert_channels) - valid_channels
         if invalid:
             raise ValueError(f"Invalid alert channels: {invalid}")
+
+
+# ---------------------------------------------------------------------------
+# Type aliases for backward compatibility
+# ---------------------------------------------------------------------------
+
+NodeConfig = Union[
+    ToolNodeConfig,
+    LLMOperatorConfig,
+    AgentNodeConfig,
+    ConditionNodeConfig,
+    WorkflowNodeConfig,
+    LoopNodeConfig,
+    ParallelNodeConfig,
+    RecursiveNodeConfig,
+    CodeNodeConfig,
+    HumanNodeConfig,
+    MonitorNodeConfig,
+    SwarmNodeConfig,
+]
+
+# ---------------------------------------------------------------------------
+# Exports
+# ---------------------------------------------------------------------------
+
+__all__: list[str] = [
+    "RetryPolicy",
+    "ToolConfig",
+    "ContextFormat",
+    "InputMapping",
+    "ContextRule",
+    "BaseNodeConfig",
+    "LLMOperatorConfig",
+    "ToolNodeConfig",
+    "AgentNodeConfig",
+    "ConditionNodeConfig",
+    "WorkflowNodeConfig",
+    "LoopNodeConfig",
+    "ParallelNodeConfig",
+    "RecursiveNodeConfig",
+    "CodeNodeConfig",
+    "HumanNodeConfig",
+    "MonitorNodeConfig",
+    "SwarmNodeConfig",
+    "AgentSpec",
+    "NodeExecutionRecord",
+    "NodeIO",
+    "UsageMetadata",
+    "NodeExecutionResult",
+    "ChainExecutionResult",
+    "ChainMetadata",
+    "ChainSpec",
+    "NodeConfig",
+    "NodeMetadata",  # Re-export from node_metadata module
+]

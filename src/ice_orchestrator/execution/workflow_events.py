@@ -138,7 +138,7 @@ class CanvasSuggestion(WorkflowEvent):
 class WorkflowEventHandler:
     """Manages workflow event subscribers."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self._handlers: Dict[EventType, List[Any]] = {}
         self._global_handlers: List[Any] = []
         

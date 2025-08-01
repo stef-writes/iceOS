@@ -551,6 +551,10 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                     end_time=datetime.utcnow(),
                     duration=0.0,
                     error_type=type(e).__name__,
+                    version="1.0.0",
+                    owner="system",
+                    description=f"Recursive node execution error for {node_id}",
+                    provider=None
                 )
             )
             accumulated_results[node_id] = error_result

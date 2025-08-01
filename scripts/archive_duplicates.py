@@ -195,41 +195,9 @@ def main():
     """Archive duplicate files based on analysis."""
     root = Path(__file__).parent.parent
     
-    # Files to archive based on our analysis
+    # Files to archive based on our analysis (obsolete paths removed)
     files_to_archive = [
-        # Node implementations (duplicates of unified.py)
-        {
-            "old": "src/ice_orchestrator/nodes/agent.py",
-            "new": "src/ice_orchestrator/execution/executors/unified.py#agent_executor",
-            "reason": "Consolidated into unified executor pattern"
-        },
-        {
-            "old": "src/ice_orchestrator/nodes/code.py",
-            "new": "src/ice_orchestrator/execution/executors/unified.py#code_executor",
-            "reason": "Consolidated into unified executor pattern"
-        },
-        {
-            "old": "src/ice_orchestrator/nodes/condition.py",
-            "new": "src/ice_orchestrator/execution/executors/unified.py#condition_executor",
-            "reason": "Consolidated into unified executor pattern"
-        },
-        {
-            "old": "src/ice_orchestrator/nodes/loop.py",
-            "new": "src/ice_orchestrator/execution/executors/unified.py#loop_executor",
-            "reason": "Consolidated into unified executor pattern"
-        },
-        {
-            "old": "src/ice_orchestrator/nodes/parallel.py",
-            "new": "src/ice_orchestrator/execution/executors/unified.py#parallel_executor",
-            "reason": "Consolidated into unified executor pattern"
-        },
-        {
-            "old": "src/ice_orchestrator/nodes/workflow.py",
-            "new": "src/ice_orchestrator/execution/executors/unified.py#workflow_executor",
-            "reason": "Consolidated into unified executor pattern"
-        },
-        
-        # Old registry
+        # Old registry (moved to unified pattern)
         {
             "old": "src/ice_core/registry.py",
             "new": "src/ice_core/unified_registry.py",
