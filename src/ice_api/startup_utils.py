@@ -14,8 +14,8 @@ from datetime import datetime
 from types import ModuleType
 from typing import Any, Dict, Tuple
 
-from ice_core.unified_registry import registry, global_agent_registry
 from ice_core.models.enums import NodeType
+from ice_core.unified_registry import global_agent_registry, registry
 
 logger = logging.getLogger(__name__)
 

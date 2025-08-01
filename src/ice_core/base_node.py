@@ -1,10 +1,14 @@
 """Base node implementation."""
 from __future__ import annotations
-from typing import Dict, Any
-from pydantic import BaseModel, ConfigDict
-from ice_core.protocols.node import INode
-from ice_core.models.node_models import NodeExecutionResult, NodeMetadata
+
 import time
+from typing import Any, Dict
+
+from pydantic import BaseModel, ConfigDict
+
+from ice_core.models.node_models import NodeExecutionResult, NodeMetadata
+from ice_core.protocols.node import INode
+
 
 class BaseNode(BaseModel, INode):
     """Base class for all node implementations.

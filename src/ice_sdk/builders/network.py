@@ -10,10 +10,10 @@ make life easy—write it out as YAML/JSON. Validation is deferred to
 NetworkCoordinator when the manifest is executed.
 """
 
+import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import json
 import yaml
 
 __all__ = ["NetworkBuilder"]

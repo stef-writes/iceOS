@@ -1,10 +1,13 @@
 """Memory-enabled agent base class."""
 
 from typing import Any, Dict, List, Optional
-from pydantic import Field, model_validator, PrivateAttr
-from .base import AgentNode
-from ice_core.models.node_models import AgentNodeConfig  
+
+from pydantic import Field, PrivateAttr
+
 from ice_core.memory import UnifiedMemory, UnifiedMemoryConfig
+from ice_core.models.node_models import AgentNodeConfig
+
+from .base import AgentNode
 
 
 class MemoryAgentConfig(AgentNodeConfig):
@@ -207,4 +210,4 @@ class MemoryAgent(AgentNode):
 
 
 # Import at the end to avoid circular imports
-from datetime import datetime 
+from datetime import datetime

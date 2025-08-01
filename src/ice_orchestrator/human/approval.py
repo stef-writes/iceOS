@@ -1,9 +1,12 @@
 """Human approval workflow handling."""
 import asyncio
-from typing import Dict, Any, Optional
 from datetime import datetime
-from ice_core.models.node_models import HumanNodeConfig
+from typing import Any, Dict, Optional
+
 from pydantic import BaseModel, Field
+
+from ice_core.models.node_models import HumanNodeConfig
+
 
 class ApprovalResult(BaseModel):
     """Result of human approval workflow."""

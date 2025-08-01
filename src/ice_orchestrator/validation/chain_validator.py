@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, List, Mapping, Set
 from structlog import get_logger
 
 from ice_orchestrator.context import ContextTypeManager
+
 context_type_manager = ContextTypeManager()
 
 if TYPE_CHECKING:  # pragma: no cover

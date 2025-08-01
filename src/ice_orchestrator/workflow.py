@@ -33,37 +33,45 @@ import structlog
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
+from ice_core.base_tool import ToolBase
+from ice_core.graph.dependency_graph import DependencyGraph
+from ice_core.graph.level_resolver import BranchGatingResolver
 from ice_core.models import (
     ChainExecutionResult,
     ConditionNodeConfig,
-    WorkflowNodeConfig,
     NodeConfig,
     NodeExecutionResult,
+    WorkflowNodeConfig,
 )
 from ice_core.models.node_models import NodeMetadata
 from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
-from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy
-# Use WorkflowBuilder for creating workflows
-from ice_orchestrator.execution.executor import NodeExecutor
-from ice_orchestrator.execution.metrics import ChainMetrics
-from ice_orchestrator.execution.workflow_state import WorkflowExecutionState, ExecutionPhase
-from ice_orchestrator.execution.workflow_events import (
-    WorkflowEventHandler, WorkflowStarted, WorkflowCompleted,
-    NodeStarted, NodeCompleted, NodeFailed
-)
-from ice_orchestrator.execution.cost_estimator import WorkflowCostEstimator
-from ice_core.graph.dependency_graph import DependencyGraph
-from ice_core.graph.level_resolver import BranchGatingResolver
-from ice_orchestrator.utils.context_builder import ContextBuilder
-from ice_orchestrator.validation.chain_validator import ChainValidator
 from ice_core.validation import SafetyValidator, SchemaValidator
-from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 
 # NOTE: use AgentNode from SDK to avoid core dependency
 from ice_orchestrator.agent import AgentNode
+from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy
 from ice_orchestrator.config import runtime_config
 from ice_orchestrator.context import GraphContextManager
-from ice_core.base_tool import ToolBase
+from ice_orchestrator.execution.cost_estimator import WorkflowCostEstimator
+
+# Use WorkflowBuilder for creating workflows
+from ice_orchestrator.execution.executor import NodeExecutor
+from ice_orchestrator.execution.metrics import ChainMetrics
+from ice_orchestrator.execution.workflow_events import (
+    NodeCompleted,
+    NodeFailed,
+    NodeStarted,
+    WorkflowCompleted,
+    WorkflowEventHandler,
+    WorkflowStarted,
+)
+from ice_orchestrator.execution.workflow_state import (
+    ExecutionPhase,
+    WorkflowExecutionState,
+)
+from ice_orchestrator.utils.context_builder import ContextBuilder
+from ice_orchestrator.validation.chain_validator import ChainValidator
+from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
 
 # ---------------------------------------------------------------------------
 # Tracing & logging setup ----------------------------------------------------
@@ -538,6 +546,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             logger.error(f"Error in recursive execution for node {node_id}: {e}")
             # Create error result
             from datetime import datetime
+
             from ice_core.models.node_models import NodeExecutionResult, NodeMetadata
             
             error_result = NodeExecutionResult(

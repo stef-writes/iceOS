@@ -1,6 +1,7 @@
 import json
 from typing import Any, Mapping
 
+
 def auto_coerce(value: Any, target_schema: Mapping[str, Any]) -> Any:
     """Enhanced coercion based on schema patterns seen in your examples."""
     # JSON string → dict/list

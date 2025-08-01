@@ -1,9 +1,11 @@
 """Metrics evaluation for monitoring."""
 import asyncio
-from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Dict, Optional
+
 from ice_core.models.node_models import MonitorNodeConfig
+
 
 @dataclass
 class MonitoringResult:

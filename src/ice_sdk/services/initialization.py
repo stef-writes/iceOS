@@ -22,11 +22,11 @@ def initialize_sdk() -> None:
     if profile == "dev":
         # In dev mode import all SDK tool packages for convenience
         try:
-            import ice_sdk.tools.core
             import ice_sdk.tools.ai
+            import ice_sdk.tools.core
+            import ice_sdk.tools.db
             import ice_sdk.tools.system
             import ice_sdk.tools.web
-            import ice_sdk.tools.db
         except ImportError:
             pass  # Best effort
     

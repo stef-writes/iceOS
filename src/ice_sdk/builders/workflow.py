@@ -1,10 +1,16 @@
 """Fluent API for building workflows."""
 from __future__ import annotations
-from typing import List, Dict, Any, Optional, Literal
+
+from typing import Any, Dict, List, Literal, Optional
+
 from ice_core.models import (
-    NodeConfig, ToolNodeConfig, LLMOperatorConfig,
-    LLMConfig, ModelProvider
+    LLMConfig,
+    LLMOperatorConfig,
+    ModelProvider,
+    NodeConfig,
+    ToolNodeConfig,
 )
+
 # All node types now have config classes
 
 class WorkflowBuilder:

@@ -11,6 +11,7 @@ from typing import Any, List, Optional, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
+
 class ServiceContract(BaseModel):
     """Contract definition for a microservice."""
 

@@ -5,13 +5,12 @@ Extracted from `ScriptChain._is_output_valid` to improve separation of concerns.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
 from collections import defaultdict, deque
-from typing import List
+from typing import TYPE_CHECKING, Any, List
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ice_core.models.node_models import NodeConfig
     from ice_core.models.mcp import Blueprint  # noqa: WPS433  – runtime import
+    from ice_core.models.node_models import NodeConfig
 
 class SchemaValidator:  # – internal utility
     """Validates node outputs against declared schemas."""
@@ -96,7 +95,7 @@ class SchemaValidator:  # – internal utility
         # ------------------------------------------------------------------
         if isinstance(schema, dict):
             from ice_core.utils.json_schema import validate_with_schema
-            
+
             # Use the new validator that handles both simple and JSON Schema
             is_valid, errors, _ = validate_with_schema(output, schema)
             return is_valid

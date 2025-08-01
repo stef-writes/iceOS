@@ -10,8 +10,8 @@ from typing import Any, Optional
 
 from openai import AsyncOpenAI
 
-from ice_core.models.model_registry import get_default_model_id
 from ice_core.models import LLMConfig
+from ice_core.models.model_registry import get_default_model_id
 
 from .base_handler import BaseLLMHandler
 

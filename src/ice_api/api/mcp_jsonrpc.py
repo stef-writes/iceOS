@@ -24,16 +24,17 @@ import json
 import logging
 import traceback
 import uuid
-from typing import Any, Dict, List, Optional, Union, Literal
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel, field_validator, ValidationInfo
+from pydantic import BaseModel, ValidationInfo, field_validator
 
-from ice_core.unified_registry import registry, global_agent_registry
-from ice_sdk.services.locator import ServiceLocator
 from ice_core.models import NodeType
-from ice_core.models.mcp import Blueprint, RunRequest, NodeSpec
-from .mcp import start_run, get_result
+from ice_core.models.mcp import Blueprint, NodeSpec, RunRequest
+from ice_core.unified_registry import global_agent_registry, registry
+from ice_sdk.services.locator import ServiceLocator
+
+from .mcp import get_result, start_run
 
 # Setup logging
 logger = logging.getLogger(__name__)

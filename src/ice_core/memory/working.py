@@ -1,9 +1,9 @@
 """Working memory implementation for short-term agent state."""
 
-from typing import Any, Dict, List, Optional
-from datetime import datetime
 import asyncio
 from collections import OrderedDict
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from .base import BaseMemory, MemoryConfig, MemoryEntry
 

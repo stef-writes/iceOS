@@ -1,10 +1,13 @@
 """Swarm coordination orchestrator."""
-from typing import Dict, Any
+from typing import Any, Dict
+
+from ice_core.models import NodeType
 from ice_core.models.node_models import SwarmNodeConfig
 from ice_core.unified_registry import registry
-from ice_core.models import NodeType
 from ice_sdk.services.locator import ServiceLocator
+
 from .strategies import SwarmStrategy
+
 
 class SwarmCoordinator:
     """Orchestrates multi-agent coordination using different strategies."""

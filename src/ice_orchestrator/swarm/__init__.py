@@ -7,12 +7,12 @@ This module contains swarm coordination functionality including:
 - Convergence detection and round management
 """
 
-from .base import SwarmNode
-from .strategies import ConsensusStrategy, HierarchicalStrategy, MarketplaceStrategy
-from .coordinator import SwarmCoordinator
-
 # SwarmNodeConfig is imported from ice_core.models.node_models
 from ice_core.models.node_models import SwarmNodeConfig
+
+from .base import SwarmNode
+from .coordinator import SwarmCoordinator
+from .strategies import ConsensusStrategy, HierarchicalStrategy, MarketplaceStrategy
 
 __all__ = [
     "SwarmNode",

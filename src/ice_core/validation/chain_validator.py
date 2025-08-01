@@ -6,7 +6,7 @@ inside `script_chain.py`, improving separation of concerns and testability.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Mapping, Set, Any
+from typing import TYPE_CHECKING, Any, List, Mapping, Set
 
 from structlog import get_logger
 
@@ -16,6 +16,7 @@ from structlog import get_logger
 if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models.node_models import NodeConfig
     from ice_core.models.script_chain import ChainSpec, ValidationResult
+
     # FailurePolicy moved to core layer - will be created
 
 logger = get_logger(__name__)
@@ -26,6 +27,7 @@ logger = get_logger(__name__)
 # the orchestrator patches this with the real instance.
 # ---------------------------------------------------------------------------
 from types import SimpleNamespace
+
 context_type_manager: Any = SimpleNamespace(
     get_compatible_keys=lambda *args, **kwargs: [],
     register_context_key=lambda *args, **kwargs: None,

@@ -56,49 +56,45 @@ __all__: list[str] = [
     "AgentSpec",
 ]
 
+# Import protocols from ice_core.protocols
+from ice_core.protocols import IEmbedder, IRegistry, ITool, IVectorIndex, IWorkflow
+
+from ..protocols.node import INode
+
 # AppConfig removed - runtime config doesn't belong in core layer
 from .enums import ModelProvider, NodeType
 from .llm import LLMConfig, MessageTemplate
 from .node_metadata import NodeMetadata
-from ..protocols.node import INode
+
 # Node types removed - using definitions from node_models.py instead
 from .node_models import (
+    AgentNodeConfig,
+    AgentSpec,
     BaseNodeConfig,
-    RetryPolicy,
     ChainExecutionResult,
     ChainMetadata,
     ChainSpec,
-    ToolNodeConfig,
-    LLMOperatorConfig,
-    AgentNodeConfig,
-    ConditionNodeConfig,
-    WorkflowNodeConfig,
-    LoopNodeConfig,
-    ParallelNodeConfig,
-    RecursiveNodeConfig,
     CodeNodeConfig,
+    ConditionNodeConfig,
     ContextFormat,
     ContextRule,
+    HumanNodeConfig,
     InputMapping,
+    LLMOperatorConfig,
+    LoopNodeConfig,
+    MonitorNodeConfig,
     NodeConfig,
     NodeExecutionRecord,
     NodeExecutionResult,
     NodeIO,
-    ToolConfig,
-    UsageMetadata,
+    ParallelNodeConfig,
+    RecursiveNodeConfig,
+    RetryPolicy,
     SwarmNodeConfig,
-    HumanNodeConfig,
-    MonitorNodeConfig,
-    AgentSpec,
-)
-
-# Import protocols from ice_core.protocols
-from ice_core.protocols import (
-    ITool,
-    IRegistry,
-    IVectorIndex,
-    IEmbedder,
-    IWorkflow,
+    ToolConfig,
+    ToolNodeConfig,
+    UsageMetadata,
+    WorkflowNodeConfig,
 )
 
 # Import base implementations

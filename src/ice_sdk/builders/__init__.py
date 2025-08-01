@@ -1,7 +1,7 @@
 """Workflow builders for iceOS."""
-from .workflow import WorkflowBuilder
 from .agent import AgentBuilder, create_agent
 from .network import NetworkBuilder
+from .workflow import WorkflowBuilder
 
 __all__ = [
     "WorkflowBuilder",

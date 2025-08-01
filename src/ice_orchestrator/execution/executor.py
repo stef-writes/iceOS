@@ -8,17 +8,11 @@ from datetime import datetime
 # ---------------------------------------------------------------------------
 # Local type alias to satisfy static analysis on forward reference annotations.
 # ---------------------------------------------------------------------------
-from typing import TYPE_CHECKING
-from typing import Any
-from typing import Dict, cast
+from typing import TYPE_CHECKING, Any, Dict, cast
 
 import structlog
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
-
-# Import globally to avoid local shadowing errors
-from ice_core.models import NodeConfig, NodeExecutionResult
-from ice_core.models.node_models import NodeMetadata
 
 # ---------------------------------------------------------------------------
 # Ensure built-in node executors are registered *before* any workflow runs.
@@ -26,9 +20,12 @@ from ice_core.models.node_models import NodeMetadata
 # ---------------------------------------------------------------------------
 # ruff: noqa: F401 – imported for side-effects only
 import ice_orchestrator.execution.executors  # Import for side effects
-from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
+
+# Import globally to avoid local shadowing errors
+from ice_core.models import NodeConfig, NodeExecutionResult
+from ice_core.models.node_models import NodeMetadata
 from ice_core.unified_registry import get_executor
-from typing import TYPE_CHECKING
+from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_orchestrator.workflow import Workflow

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import uuid
-from typing import Any, Dict, List, Optional, Union, Literal
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -164,8 +164,8 @@ class PartialBlueprint(BaseModel):
                     )
         
         # Check if referenced components exist
-        from ice_core.unified_registry import registry, global_agent_registry
         from ice_core.models import NodeType
+        from ice_core.unified_registry import global_agent_registry, registry
         
         for node in self.nodes:
             if node.type == "tool" and hasattr(node, 'tool_name'):

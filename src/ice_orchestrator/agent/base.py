@@ -4,8 +4,13 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field, PrivateAttr
 
-from ice_core.models.node_models import AgentNodeConfig, NodeExecutionResult, NodeMetadata
 from ice_core.base_node import BaseNode
+from ice_core.models.node_models import (
+    AgentNodeConfig,
+    NodeExecutionResult,
+    NodeMetadata,
+)
+
 
 class AgentNode(BaseNode):
     """Orchestratable agent node combining LLM reasoning with tool usage."""

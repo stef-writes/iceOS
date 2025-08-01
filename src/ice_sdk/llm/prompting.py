@@ -1,4 +1,5 @@
-from typing import Type, Any
+from typing import Any, Type
+
 
 def build_robust_prompt(base_prompt: str, output_format: Type[Any]) -> str:
     format_instructions = {

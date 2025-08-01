@@ -1,7 +1,9 @@
 """Human node - human-in-the-loop workflows."""
-from typing import Dict, Any
+from typing import Any, Dict
+
 from ice_core.base_node import BaseNode
 from ice_core.models.node_models import HumanNodeConfig
+
 
 class HumanNode(BaseNode):
     """Human interaction node for approval workflows and input collection."""
@@ -41,7 +43,7 @@ class HumanNode(BaseNode):
     async def _execute_impl(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute human interaction through approval handler."""
         from .approval import ApprovalHandler
-        
+
         # Create approval handler with our configuration
         handler = ApprovalHandler(self.config)
         

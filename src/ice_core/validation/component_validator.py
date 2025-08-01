@@ -7,11 +7,14 @@ the Frosty/Canvas workflow where components are validated during design time.
 
 import ast
 
-from ice_core.models.mcp import ComponentDefinition, ComponentValidationResult
-from ice_core.unified_registry import registry, global_agent_registry
 from ice_core.models import NodeType
+from ice_core.models.mcp import (
+    Blueprint,
+    ComponentDefinition,
+    ComponentValidationResult,
+)
+from ice_core.unified_registry import global_agent_registry, registry
 from ice_core.validation.schema_validator import validate_blueprint
-from ice_core.models.mcp import Blueprint
 
 
 async def validate_tool_definition(

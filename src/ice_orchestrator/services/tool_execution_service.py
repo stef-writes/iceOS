@@ -1,11 +1,11 @@
 """Tool execution service for the orchestrator runtime."""
 
-from typing import Any, Dict, Optional
 import asyncio
-from ice_core.base_tool import ToolBase
-from ice_core.unified_registry import registry
+from typing import Any, Dict, Optional
+
 from ice_core.models import NodeType
 from ice_core.protocols.node import INode
+from ice_core.unified_registry import registry
 
 
 class ToolExecutionService:
@@ -61,7 +61,6 @@ class ToolExecutionService:
             Tool instance or None if not found
         """
         # Try to get from unified registry
-        registry_key = f"{NodeType.TOOL.value}:{tool_name}"
         tool_instance = registry._instances.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[no-any-return]
         
         if tool_instance:

@@ -19,9 +19,10 @@ from typing import Any, Dict, Optional
 
 import yaml  # PyYAML is already a transitive dependency
 
-from ice_orchestrator.workflow import Workflow
-from ice_core.models import ChainExecutionResult  # public return type
 from ice_core.llm.service import LLMService
+from ice_core.models import ChainExecutionResult  # public return type
+from ice_orchestrator.workflow import Workflow
+
 
 class WorkflowTester:  # pylint: disable=too-few-public-methods
     """Execute a Workflow with stubbed LLM responses.

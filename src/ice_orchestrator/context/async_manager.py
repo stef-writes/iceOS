@@ -10,6 +10,7 @@ from pydantic import Field
 from .manager import GraphContext
 from .manager import GraphContextManager as _SyncGraphContextManager
 
+
 class BranchContext(GraphContext):
     """Context object scoped to a *single* branch inside a session.
 

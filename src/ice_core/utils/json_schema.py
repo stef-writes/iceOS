@@ -10,11 +10,10 @@ This enables richer validation for the canvas UI and better error messages.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Tuple, Type, Optional, Union
-from pydantic import BaseModel
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from jsonschema import Draft7Validator
-
+from pydantic import BaseModel
 
 __all__ = [
     "validate_with_schema",

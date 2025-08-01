@@ -1,7 +1,9 @@
 """Embedder protocol definition."""
 from __future__ import annotations
+
 from abc import abstractmethod
 from typing import Protocol
+
 
 class IEmbedder(Protocol):
     """Protocol for text embedding implementations."""

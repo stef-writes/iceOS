@@ -24,18 +24,20 @@ if not TYPE_CHECKING:  # pragma: no cover – runtime side
         except ModuleNotFoundError:  # pragma: no cover – safety guard
             continue
 
+from ice_core.models import NodeType
+from ice_core.unified_registry import registry
+
+from .insights import InsightsOperator  # noqa: E402 F401
+
 # Re-export for convenience --------------------------------------------------
 from .line_item_generator import LineItemGeneratorOperator  # noqa: E402 F401
 from .summarizer import SummarizerOperator  # noqa: E402 F401
-from .insights import InsightsOperator  # noqa: E402 F401
 
 # ----------------------------------------
 # Register all operators with the global ProcessorRegistry so that they are
 # discoverable by orchestrators that rely on `registry.processor` look-ups.
 # ----------------------------------------
 
-from ice_core.unified_registry import registry
-from ice_core.models import NodeType
 
 for _op in (
     LineItemGeneratorOperator,

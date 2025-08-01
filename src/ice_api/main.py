@@ -5,27 +5,29 @@ FastAPI application entry point
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncIterator, List, Dict, Any
+from typing import Any, AsyncIterator, Dict, List
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ice_api.redis_client import get_redis
 from ice_api.api.mcp import router as mcp_router
 from ice_api.dependencies import get_tool_service
-from ice_api.ws_gateway import router as ws_router
-from ice_core.utils.logging import setup_logger
+from ice_api.errors import add_exception_handlers
+from ice_api.redis_client import get_redis
+
 # New startup helpers
 from ice_api.startup_utils import (
     print_startup_banner,
-    timed_import,
     summarise_demo_load,
+    timed_import,
     validate_registered_components,
 )
+from ice_api.ws_gateway import router as ws_router
+from ice_core.utils.logging import setup_logger
+
 # Note: API layer uses ServiceLocator for orchestrator services
 from ice_sdk.services import ServiceLocator
-from ice_api.errors import add_exception_handlers
 
 # Setup logging
 logger = setup_logger()
@@ -40,8 +42,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     Sets up services and cleans up resources on shutdown.
     """
     # Initialize services through proper layer interfaces
-    from ice_sdk.services.initialization import initialize_sdk
     import importlib
+
+    from ice_sdk.services.initialization import initialize_sdk
     initialize_orchestrator = importlib.import_module("ice_orchestrator").initialize_orchestrator
     
     # Initialize layers in order
@@ -172,8 +175,8 @@ async def ready_check() -> Dict[str, str]:
 @app.get("/api/v1/meta/components", tags=["discovery"], response_model=Dict[str, Any])
 async def meta_components() -> Dict[str, Any]:
     """Return counts of registered components for dashboards."""
-    from ice_core.unified_registry import registry, global_agent_registry
     from ice_core.models.enums import NodeType
+    from ice_core.unified_registry import global_agent_registry, registry
     return {
         "tools": [n for _, n in registry.list_nodes(NodeType.TOOL)],
         "agents": [n for n, _ in global_agent_registry.available_agents()],
@@ -182,6 +185,7 @@ async def meta_components() -> Dict[str, Any]:
 
 # Add real MCP JSON-RPC 2.0 endpoint
 from ice_api.api.mcp_jsonrpc import router as mcp_jsonrpc_router
+
 app.include_router(mcp_jsonrpc_router, prefix="/api/mcp", tags=["mcp-jsonrpc"])
 
 # Root endpoint
@@ -221,8 +225,8 @@ async def list_agents() -> List[str]:
 @app.get("/v1/workflows", response_model=List[str], tags=["discovery"]) 
 async def list_workflows() -> List[str]:
     """Return all registered workflow names."""
-    from ice_core.unified_registry import registry
     from ice_core.models import NodeType
+    from ice_core.unified_registry import registry
     return [name for name, _ in registry.available_instances(NodeType.WORKFLOW)]
 
 @app.get("/v1/chains", response_model=List[str], tags=["discovery"])

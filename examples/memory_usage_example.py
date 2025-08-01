@@ -8,7 +8,6 @@ This shows:
 """
 
 import asyncio
-from typing import Dict, Any
 
 from ice_core.memory import UnifiedMemory, UnifiedMemoryConfig
 from ice_orchestrator.agent.memory import MemoryAgent, MemoryAgentConfig

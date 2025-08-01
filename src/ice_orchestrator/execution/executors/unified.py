@@ -4,15 +4,13 @@ This module implements the proper architecture where executors use the registry
 protocol to retrieve and delegate to tools/services rather than manually 
 instantiating node wrapper classes.
 """
-from datetime import datetime, timezone
-from typing import Any, Dict, TypeAlias, List, Set, Optional, cast
 import asyncio
+from datetime import datetime
+from typing import Any, Dict, List, Optional, TypeAlias
 
-from ice_core.models import (
-    NodeExecutionResult, NodeType,
-    ToolNodeConfig, LLMOperatorConfig as LLMNodeConfig,
-    AgentNodeConfig, ConditionNodeConfig
-)
+from ice_core.models import AgentNodeConfig, ConditionNodeConfig
+from ice_core.models import LLMOperatorConfig as LLMNodeConfig
+from ice_core.models import NodeExecutionResult, NodeType, ToolNodeConfig
 from ice_core.models.node_metadata import NodeMetadata
 from ice_core.protocols.workflow import WorkflowLike
 from ice_core.unified_registry import register_node, registry
@@ -31,7 +29,7 @@ def _flatten_dependency_outputs(merged_inputs: Dict[str, Any], tool: Any) -> Dic
     """
     try:
         import inspect
-        
+
         # Get tool's expected parameters through introspection
         execute_method = getattr(tool, '_execute_impl', None)
         if not execute_method:
@@ -213,9 +211,9 @@ async def llm_executor(
             raise Exception(f"Missing template variable in prompt: {str(e)}")
         
         # Create LLM config
-        from ice_core.models.llm import LLMConfig
         from ice_core.models.enums import ModelProvider
-        
+        from ice_core.models.llm import LLMConfig
+
         # Get provider, defaulting to OpenAI
         provider = cfg.llm_config.provider if hasattr(cfg, 'llm_config') and cfg.llm_config else ModelProvider.OPENAI
         if isinstance(provider, str):
@@ -566,7 +564,7 @@ async def loop_executor(
     start_time = datetime.utcnow()
     try:
         from ice_core.models import LoopNodeConfig
-        
+
         # Handle different configuration formats
         iterator_path: Optional[str]
         if isinstance(cfg, LoopNodeConfig):
@@ -588,9 +586,6 @@ async def loop_executor(
         
         results = []
         for i, item in enumerate(items[:max_iterations]):
-            # Execute body with item context
-            item_ctx = {**ctx, "item": item, "index": i}
-            
             # Execute body nodes if specified
             if body_nodes:
                 # This would need to execute the body nodes
@@ -656,7 +651,7 @@ async def parallel_executor(
     
     try:
         from ice_core.models import ParallelNodeConfig
-        
+
         # Handle different configuration formats
         if isinstance(cfg, ParallelNodeConfig):
             branches = cfg.branches
@@ -806,9 +801,10 @@ async def code_executor(
     from ice_orchestrator.execution.wasm_executor import execute_node_with_wasm
     
     try:
-        from ice_core.models import CodeNodeConfig
         import ast
-        
+
+        from ice_core.models import CodeNodeConfig
+
         # Handle different configuration formats
         if isinstance(cfg, CodeNodeConfig):
             code = cfg.code
@@ -880,8 +876,12 @@ async def recursive_executor(
     start_time = datetime.utcnow()
     
     try:
-        from ice_core.models import RecursiveNodeConfig, AgentNodeConfig, WorkflowNodeConfig
-        
+        from ice_core.models import (
+            AgentNodeConfig,
+            RecursiveNodeConfig,
+            WorkflowNodeConfig,
+        )
+
         # Handle different configuration formats
         if not isinstance(cfg, RecursiveNodeConfig):
             # Convert generic config to RecursiveNodeConfig if needed
@@ -1055,7 +1055,11 @@ async def recursive_executor(
 # New Phase-2 executors (minimal MVP implementations) ------------------------
 # ---------------------------------------------------------------------------
 
-from ice_core.models import SwarmNodeConfig, HumanNodeConfig, MonitorNodeConfig, AgentSpec  # noqa: E402 – after large import section
+from ice_core.models import (  # noqa: E402 – after large import section
+    HumanNodeConfig,
+    MonitorNodeConfig,
+    SwarmNodeConfig,
+)
 
 
 @register_node("human")

@@ -1,5 +1,6 @@
 """Escalation management for human approval workflows."""
-from typing import Dict, Any
+from typing import Any, Dict
+
 
 class EscalationManager:
     """Manages escalation paths for human approval timeouts."""

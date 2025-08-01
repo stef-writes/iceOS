@@ -11,7 +11,7 @@ The proxy simply forwards every call to that registered instance.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Optional
 
 from ice_sdk.services.locator import ServiceLocator
 

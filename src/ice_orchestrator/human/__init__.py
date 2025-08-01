@@ -7,12 +7,12 @@ This module contains human interaction functionality including:
 - Workflow pause/resume integration via event system
 """
 
-from .base import HumanNode
-from .approval import ApprovalHandler, ApprovalResult
-from .escalation import EscalationManager
-
 # HumanNodeConfig is imported from ice_core.models.node_models
 from ice_core.models.node_models import HumanNodeConfig
+
+from .approval import ApprovalHandler, ApprovalResult
+from .base import HumanNode
+from .escalation import EscalationManager
 
 __all__ = [
     "HumanNode",

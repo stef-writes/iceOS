@@ -4,9 +4,10 @@ This module provides graph intelligence that leverages the powerful NetworkX
 infrastructure already in place but underutilized across iceOS layers.
 """
 
-from typing import Any, Dict, List, cast
-import networkx as nx
 from dataclasses import dataclass
+from typing import Any, Dict, List, cast
+
+import networkx as nx
 
 from ice_core.models.node_models import NodeConfig
 

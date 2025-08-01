@@ -1,7 +1,9 @@
 """Monitor node - real-time workflow monitoring."""
-from typing import Dict, Any
+from typing import Any, Dict
+
 from ice_core.base_node import BaseNode
 from ice_core.models.node_models import MonitorNodeConfig
+
 
 class MonitorNode(BaseNode):
     """Real-time monitoring node with alerting and control actions."""
@@ -42,7 +44,7 @@ class MonitorNode(BaseNode):
     async def _execute_impl(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute monitoring through metrics evaluator."""
         from .metrics import MetricsEvaluator
-        
+
         # Create metrics evaluator with our configuration
         evaluator = MetricsEvaluator(self.config)
         

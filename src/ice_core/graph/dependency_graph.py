@@ -1,9 +1,10 @@
-from typing import Any, Dict, List, Optional, Union
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 import networkx as nx
 
 from ice_core.exceptions import CycleDetectionError as CircularDependencyError
+
 
 class DependencyGraph:
     """
@@ -249,7 +250,7 @@ class DependencyGraph:
             for node_id, score in centrality.items():
                 self.graph.nodes[node_id]["centrality_score"] = score
                 self.graph.nodes[node_id]["is_bottleneck"] = score > 0.3
-        except:
+        except Exception:
             pass  # Skip if graph analysis fails
         
         # Critical path analysis (by complexity score)
@@ -261,7 +262,7 @@ class DependencyGraph:
                 for i in range(len(critical_path) - 1):
                     if self.graph.has_edge(critical_path[i], critical_path[i+1]):
                         self.graph.edges[critical_path[i], critical_path[i+1]]["critical_path"] = True
-        except:
+        except Exception:
             pass
             
         # Parallel group assignment
@@ -277,11 +278,11 @@ class DependencyGraph:
         try:
             path = nx.dag_longest_path(self.graph, weight='avg_execution_time')
             return list(path) if path else []
-        except:
+        except Exception:
             try:
                 path = nx.dag_longest_path(self.graph, weight='complexity_score')
                 return list(path) if path else []
-            except:
+            except Exception:
                 return []
 
     def get_bottleneck_nodes(self) -> List[str]:
@@ -289,7 +290,7 @@ class DependencyGraph:
         try:
             centrality = nx.betweenness_centrality(self.graph)
             return [str(node) for node, score in centrality.items() if score > 0.3]
-        except:
+        except Exception:
             return []
 
     def get_parallel_execution_groups(self) -> Dict[int, Dict[str, Union[List[str], int]]]:
@@ -427,8 +428,7 @@ class DependencyGraph:
             # Use spring layout as base positioning
             pos = nx.spring_layout(self.graph, k=3, iterations=50)
             
-            # Get levels for Y-axis positioning
-            levels = self.get_level_nodes()
+            # Get levels for Y-axis positioning (unused but kept for future use)
             
             for node_id in self.graph.nodes():
                 node_data = self.graph.nodes[node_id]

@@ -1,6 +1,7 @@
 """Agent executor for runtime agent execution in the orchestrator."""
 
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
 import structlog
 
 from ice_sdk.services import ServiceLocator

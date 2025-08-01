@@ -7,12 +7,12 @@ This module contains monitoring functionality including:
 - NetworkX graph intelligence integration for smart monitoring
 """
 
-from .base import MonitorNode
-from .metrics import MetricsEvaluator, MonitoringResult
-from .alerting import AlertManager
-
 # MonitorNodeConfig is imported from ice_core.models.node_models
 from ice_core.models.node_models import MonitorNodeConfig
+
+from .alerting import AlertManager
+from .base import MonitorNode
+from .metrics import MetricsEvaluator, MonitoringResult
 
 __all__ = [
     "MonitorNode",

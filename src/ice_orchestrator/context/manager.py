@@ -1,26 +1,27 @@
 """Context manager for graph execution."""
 
 import logging
+from collections import OrderedDict, defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
-from collections import OrderedDict, defaultdict
 
 import networkx as nx
 from pydantic import BaseModel, Field
 
-from ice_sdk.services import ServiceLocator  # new
 from ice_core.base_tool import ToolBase
 from ice_core.models.enums import NodeType
-from .types import ToolContext
-
-# Unified tool execution via ToolService -------------------------------
-# Tools are executed via tool execution service
+from ice_sdk.services import ServiceLocator  # new
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
 from .memory import BaseMemory, NullMemory  # simplified memory adapter
 from .store import ContextStore
+from .types import ToolContext
+
+# Unified tool execution via ToolService -------------------------------
+# Tools are executed via tool execution service
+
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..agents import AgentNode

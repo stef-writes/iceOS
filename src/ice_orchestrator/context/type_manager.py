@@ -2,6 +2,7 @@ from typing import Any, Dict, Mapping
 
 from ice_sdk.utils.coercion import schema_match  # From untracked files
 
+
 class ContextTypeManager:
     def __init__(self) -> None:
         self._registry: Dict[str, Mapping[str, Any]] = {}

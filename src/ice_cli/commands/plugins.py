@@ -7,9 +7,9 @@ from typing import List
 
 import click
 
-from ice_core.unified_registry import registry, RegistryError
-from ice_core.models.plugins import PluginsManifest, ComponentEntry
 from ice_core.models.enums import NodeType
+from ice_core.models.plugins import ComponentEntry, PluginsManifest
+from ice_core.unified_registry import RegistryError, registry
 
 # ---------------------------------------------------------------------------
 # Helper --------------------------------------------------------------------

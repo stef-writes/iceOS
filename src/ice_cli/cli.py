@@ -8,15 +8,12 @@ from __future__ import annotations
 
 """
 
+import asyncio
 import subprocess
 import sys
 from typing import List
 
 import click
-import json
-from pathlib import Path
-
-import asyncio
 
 # ---------------------------------------------------------------------------
 # Async helper ---------------------------------------------------------------
@@ -155,7 +152,10 @@ def schemas_export(output_dir: str, format: str) -> None:
 )
 def schemas_import(file_path: str, type: str) -> None:
     """Import a Blueprint or ComponentDefinition JSON/YAML file for testing."""
-    import json, pathlib, yaml
+    import json
+    import pathlib
+
+    import yaml
     from pydantic import ValidationError
 
     from ice_core.models.mcp import Blueprint, ComponentDefinition

@@ -8,10 +8,10 @@ import asyncio
 import time
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Callable
+from typing import Any, Callable, Dict, List, Optional
 
 import structlog
-from opentelemetry import trace, metrics  # type: ignore[import-not-found]
+from opentelemetry import metrics, trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
 tracer = trace.get_tracer(__name__)

@@ -1,7 +1,9 @@
 """Swarm node - multi-agent coordination."""
-from typing import Dict, Any
+from typing import Any, Dict
+
 from ice_core.base_node import BaseNode
 from ice_core.models.node_models import SwarmNodeConfig
+
 
 class SwarmNode(BaseNode):
     """Multi-agent swarm coordination node with consensus/hierarchical/marketplace strategies."""
@@ -36,7 +38,7 @@ class SwarmNode(BaseNode):
     async def _execute_impl(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute swarm coordination through coordinator delegation."""
         from .coordinator import SwarmCoordinator
-        
+
         # Create coordinator with our configuration
         coordinator = SwarmCoordinator(self.config)
         

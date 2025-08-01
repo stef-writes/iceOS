@@ -10,7 +10,8 @@ Usage::
 """
 
 import os
-from typing import Optional, Any, Awaitable, Callable, Union
+from typing import Any, Awaitable, Callable, Optional, Union
+
 
 class _RedisStub:  # type: ignore
     """Minimal async stub when the *redis* package is not installed.

@@ -1,6 +1,8 @@
 """Alert management for monitoring."""
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from ice_sdk.services.locator import ServiceLocator
+
 
 class AlertManager:
     """Manages alert sending for monitoring triggers."""

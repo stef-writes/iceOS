@@ -19,7 +19,7 @@ Example:
 from __future__ import annotations
 
 from threading import Lock
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional
 
 __all__: list[str] = [
     "ServiceLocator",

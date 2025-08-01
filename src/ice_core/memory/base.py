@@ -1,9 +1,11 @@
 """Base memory protocol and configuration models."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, TypeVar
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any, Dict, List, Optional, TypeVar
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from ice_core.models.enums import ModelProvider
 
 T = TypeVar('T')

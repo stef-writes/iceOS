@@ -1,11 +1,12 @@
 """Unified memory interface combining all memory types."""
 
 from typing import Any, Dict, List, Optional, Union
+
 from .base import BaseMemory, MemoryConfig, MemoryEntry
-from .working import WorkingMemory
 from .episodic import EpisodicMemory
-from .semantic import SemanticMemory
 from .procedural import ProceduralMemory
+from .semantic import SemanticMemory
+from .working import WorkingMemory
 
 
 class UnifiedMemoryConfig(MemoryConfig):
@@ -307,7 +308,7 @@ class UnifiedMemory:
                     domain_stats[mem_type] = len(domain_entries)
                 except Exception as e:
                     domain_stats[mem_type] = {"error": str(e)}
-            from typing import cast, Dict, Any
+            from typing import Any, cast
             domain_usage = cast(Dict[str, Any], analytics["domain_usage"])
             domain_usage[domain] = domain_stats
             

@@ -7,7 +7,7 @@ from __future__ import annotations
 import datetime as _dt
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # ---------------------------------------------------------------------------
 # Nested structures ---------------------------------------------------------

@@ -24,30 +24,37 @@ the canvas UI to build workflows progressively without executing them.
 
 from __future__ import annotations
 
+import asyncio
 import datetime as _dt
+import inspect
 import json
 import logging
 import uuid
 from typing import Any, Dict, List, Optional
-import inspect
 
 from fastapi import APIRouter, HTTPException, status
-import asyncio
 
 logger = logging.getLogger(__name__)
 
 # Redis helper
 from ice_api.redis_client import get_redis
+from ice_core.base_tool import ToolBase
+from ice_core.models import NodeType
 from ice_core.models.mcp import (
-    Blueprint, BlueprintAck, RunAck, RunRequest, RunResult,
-    PartialBlueprint, PartialNodeSpec, PartialBlueprintUpdate,
-    ComponentDefinition, ComponentValidationResult
+    Blueprint,
+    BlueprintAck,
+    ComponentDefinition,
+    ComponentValidationResult,
+    PartialBlueprint,
+    PartialBlueprintUpdate,
+    PartialNodeSpec,
+    RunAck,
+    RunRequest,
+    RunResult,
 )
 from ice_core.services.contracts import IWorkflowService
+from ice_core.unified_registry import global_agent_registry, registry
 from ice_sdk.services.locator import ServiceLocator
-from ice_core.base_tool import ToolBase
-from ice_core.unified_registry import registry, global_agent_registry
-from ice_core.models import NodeType
 
 # Import execution guard to allow orchestrator runtime during MCP execution
 
@@ -110,7 +117,9 @@ async def create_blueprint(bp: Blueprint) -> BlueprintAck:
     # Generate blueprint visualization if tool is available
     visualization_data = None
     try:
-        from ice_sdk.tools.builtin.blueprint_visualization_tool import BlueprintVisualizationTool
+        from ice_sdk.tools.builtin.blueprint_visualization_tool import (
+            BlueprintVisualizationTool,
+        )
         from ice_sdk.tools.builtin.config import is_tool_enabled
         
         if is_tool_enabled("blueprint_visualization"):
@@ -181,7 +190,9 @@ async def get_blueprint_visualization(blueprint_id: str) -> Dict[str, Any]:
     try:
         blueprint = Blueprint.model_validate_json(blueprint_data["json"])
         
-        from ice_sdk.tools.builtin.blueprint_visualization_tool import BlueprintVisualizationTool
+        from ice_sdk.tools.builtin.blueprint_visualization_tool import (
+            BlueprintVisualizationTool,
+        )
         from ice_sdk.tools.builtin.config import is_tool_enabled
         
         if not is_tool_enabled("blueprint_visualization"):
@@ -575,7 +586,7 @@ async def validate_component_definition(
     4. Return validation results with suggestions
     """
     from ice_core.validation.component_validator import validate_component
-    
+
     # Validate the component
     result = await validate_component(definition)
     

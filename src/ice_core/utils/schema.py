@@ -18,10 +18,11 @@ For complex nested objects, you can use either:
 
 from __future__ import annotations
 
-import re
 import inspect
+import re
 from typing import Any, Dict, List, Tuple, Type
-from pydantic import BaseModel # Imported locally in _validate_schema_value
+
+from pydantic import BaseModel  # Imported locally in _validate_schema_value
 
 _SCALAR_MAP: Dict[str, Type[Any]] = {
     "str": str,
@@ -87,6 +88,6 @@ def is_valid_schema_dict(schema: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """
     # Import the new JSON Schema validator
     from ice_core.utils.json_schema import is_valid_schema_dict as json_schema_validate
-    
+
     # Use the new validator that handles both formats
     return json_schema_validate(schema) 

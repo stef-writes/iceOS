@@ -5,11 +5,11 @@ Centralizes all runtime state for cleaner workflow execution logic.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional, Set, Any
 from enum import Enum
-from collections import defaultdict
+from typing import Any, Dict, List, Optional, Set
 
 from ice_core.models import NodeExecutionResult
 from ice_core.models.enums import NodeType

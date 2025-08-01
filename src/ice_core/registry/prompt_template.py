@@ -1,8 +1,9 @@
 """Prompt template registry for managing reusable message templates."""
 
-from typing import Dict, Optional, Callable
-from ice_core.models.llm import MessageTemplate
+from typing import Callable, Dict, Optional
+
 from ice_core.models.enums import ModelProvider
+from ice_core.models.llm import MessageTemplate
 
 
 class PromptTemplateRegistry:

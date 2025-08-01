@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from pydantic import BaseModel, Field
-from collections import defaultdict
+
 from ice_core.models.enums import NodeType
 
 # NOTE: To avoid a heavy import chain, we import NodeExecutionResult lazily in update()

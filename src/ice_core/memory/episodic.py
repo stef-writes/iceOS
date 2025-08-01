@@ -1,9 +1,10 @@
 """Episodic memory for storing conversation and interaction history."""
 
-from typing import Any, Dict, List, Optional, cast
+import hashlib
 import json
 from datetime import datetime, timedelta
-import hashlib
+from typing import Any, Dict, List, Optional, cast
+
 from .base import BaseMemory, MemoryConfig, MemoryEntry
 
 try:
@@ -167,7 +168,7 @@ class EpisodicMemory(BaseMemory):
             content = data.get("content", "")
             try:
                 content = json.loads(content)
-            except:
+            except Exception:
                 pass  # Keep as string if not JSON
                 
             metadata = json.loads(data.get("metadata", "{}"))

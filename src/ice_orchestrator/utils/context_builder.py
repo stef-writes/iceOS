@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from ice_orchestrator.errors import ChainError
 from ice_core.exceptions import ErrorCode
+from ice_orchestrator.errors import ChainError
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models import NodeConfig, NodeExecutionResult

@@ -16,9 +16,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import structlog
+import wasmtime
 from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
-import wasmtime
 
 from ice_core.models import NodeExecutionResult, NodeMetadata
 

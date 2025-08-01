@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional, cast
 from ice_core.models import ModelProvider
 from ice_core.models.node_models import ContextFormat, ContextRule
 
+
 class BaseContextFormatter:
     """Abstract base class for context formatters."""
 

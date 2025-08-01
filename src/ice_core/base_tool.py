@@ -1,8 +1,11 @@
 """Base tool implementation."""
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict
+
 from pydantic import BaseModel, ConfigDict
+
 
 class ToolBase(BaseModel, ABC):
     """Base class for all tool implementations.

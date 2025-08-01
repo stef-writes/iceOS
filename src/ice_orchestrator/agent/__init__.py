@@ -7,13 +7,13 @@ This module contains all runtime agent functionality including:
 - Tool coordination for agents
 """
 
-from .base import AgentNode
-from .memory import MemoryAgent, MemoryAgentConfig
-from .executor import AgentExecutor
-from .utils import extract_json, parse_llm_outline
-
 # AgentNodeConfig is now imported from ice_core.models.node_models
 from ice_core.models.node_models import AgentNodeConfig
+
+from .base import AgentNode
+from .executor import AgentExecutor
+from .memory import MemoryAgent, MemoryAgentConfig
+from .utils import extract_json, parse_llm_outline
 
 __all__ = [
     "AgentNode",

@@ -7,7 +7,6 @@ from typing import Any, Optional, Tuple
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ice_core.models import LLMConfig, ModelProvider
 from ice_core.llm.providers import (
     AnthropicHandler,
     DeepSeekHandler,
@@ -15,6 +14,7 @@ from ice_core.llm.providers import (
     OpenAIHandler,
 )
 from ice_core.llm.providers.base_handler import BaseLLMHandler
+from ice_core.models import LLMConfig, ModelProvider
 
 try:
     from openai import error as openai_error  # type: ignore

@@ -17,14 +17,14 @@ import sys
 from typing import Any, Dict
 
 from ice_api.api.mcp_jsonrpc import (
+    handle_components_validate,
     handle_initialize,
-    handle_tools_list, 
-    handle_tools_call,
-    handle_resources_list,
-    handle_resources_read, 
-    handle_prompts_list,
     handle_prompts_get,
-    handle_components_validate
+    handle_prompts_list,
+    handle_resources_list,
+    handle_resources_read,
+    handle_tools_call,
+    handle_tools_list,
 )
 
 
@@ -151,6 +151,7 @@ async def main() -> None:
     # Initialize iceOS services
     try:
         import importlib
+
         # Dynamic import to avoid direct layer dependency
         initialize_orchestrator = importlib.import_module("ice_orchestrator").initialize_orchestrator
         initialize_orchestrator()

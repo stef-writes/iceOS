@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+
 class EndpointSpec(BaseModel):
     method: Literal["POST", "GET"]
     path: str

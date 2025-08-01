@@ -9,6 +9,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+
 class RuntimeConfig(BaseModel):
     """Runtime configuration loaded from environment variables."""
 

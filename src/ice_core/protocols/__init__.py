@@ -9,11 +9,11 @@ Layer Rules:
 3. Define contracts only, no implementations
 """
 
-from .node import INode
-from .tool import ITool
-from .registry import IRegistry
-from .vector import IVectorIndex
 from .embedder import IEmbedder
+from .node import INode
+from .registry import IRegistry
+from .tool import ITool
+from .vector import IVectorIndex
 from .workflow import IWorkflow
 
 __all__ = [

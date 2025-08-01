@@ -2,8 +2,8 @@
 from typing import Callable, Optional, Type
 
 from ice_core.base_tool import ToolBase
-from ice_core.unified_registry import registry
 from ice_core.models.enums import NodeType
+from ice_core.unified_registry import registry
 
 
 def tool(

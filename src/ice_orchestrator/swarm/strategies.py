@@ -1,8 +1,10 @@
 """Swarm coordination strategies."""
 import asyncio
-from typing import Dict, Any, List, Tuple
 from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Tuple
+
 from ice_core.models.node_models import SwarmNodeConfig
+
 
 class SwarmStrategy(ABC):
     """Base class for swarm coordination strategies."""

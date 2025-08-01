@@ -13,8 +13,8 @@ import structlog
 
 from ice_core.models import NodeConfig
 from ice_core.services.contracts import IWorkflowService
-from ice_orchestrator.workflow import Workflow
 from ice_orchestrator.context import GraphContextManager
+from ice_orchestrator.workflow import Workflow
 
 # Tools are accessed via unified registry, not imported directly
 

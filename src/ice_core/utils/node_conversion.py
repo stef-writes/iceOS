@@ -7,22 +7,22 @@ Keeping this logic inside *ice_core* prevents higher-level layers from
 hard-coding type switches and ensures that the mapping stays in one place.
 """
 
-from typing import Dict, List, Type, Any
+from typing import Any, Dict, List, Type
 
 from ice_core.models import (
-    NodeConfig,
-    ToolNodeConfig,
-    LLMOperatorConfig,
     AgentNodeConfig,
+    CodeNodeConfig,
     ConditionNodeConfig,
-    WorkflowNodeConfig,
+    HumanNodeConfig,
+    LLMOperatorConfig,
     LoopNodeConfig,
+    MonitorNodeConfig,
+    NodeConfig,
     ParallelNodeConfig,
     RecursiveNodeConfig,
-    CodeNodeConfig,
-    HumanNodeConfig,
-    MonitorNodeConfig,
     SwarmNodeConfig,
+    ToolNodeConfig,
+    WorkflowNodeConfig,
 )
 
 __all__: list[str] = [
@@ -82,7 +82,7 @@ def convert_node_spec(spec: Any) -> NodeConfig:
     """
     # Import here to avoid circular dependency
     from ice_core.models.mcp import NodeSpec
-    
+
     # Ensure we have a NodeSpec
     if not isinstance(spec, NodeSpec):
         raise ValueError("Expected NodeSpec instance")
@@ -131,8 +131,8 @@ def discover_tool_schemas(tool_name: str) -> tuple[Dict[str, Any], Dict[str, Any
     Raises:
         ValueError: If tool is not found in registry
     """
-    from ice_core.unified_registry import registry
     from ice_core.models.enums import NodeType
+    from ice_core.unified_registry import registry
     
     try:
         tool = registry.get_instance(NodeType.TOOL, tool_name)

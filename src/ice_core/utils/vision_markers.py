@@ -9,7 +9,7 @@ The Three Tiers:
 3. DAG Orchestrator (Runtime) - Deterministic execution
 """
 
-from typing import TypeVar, Callable
+from typing import Callable, TypeVar
 
 T = TypeVar('T')
 

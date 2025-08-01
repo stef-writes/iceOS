@@ -1,7 +1,9 @@
 """Vector index protocol definition."""
 from __future__ import annotations
+
 from abc import abstractmethod
 from typing import Any, Dict, List, Protocol, Tuple
+
 
 class IVectorIndex(Protocol):
     """Protocol for vector index implementations."""

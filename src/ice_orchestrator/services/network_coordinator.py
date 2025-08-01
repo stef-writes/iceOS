@@ -40,9 +40,9 @@ Future work (not in this MVP):
 """
 
 import asyncio
+import copy
 import importlib
 import inspect
-import copy
 import logging
 from pathlib import Path
 from types import ModuleType
@@ -149,7 +149,11 @@ class NetworkCoordinator:
                 # Normalise exception into failure result for uniformity
                 if isinstance(res, Exception):
                     from datetime import datetime
-                    from ice_core.models.node_models import NodeMetadata, NodeExecutionResult
+
+                    from ice_core.models.node_models import (
+                        NodeExecutionResult,
+                        NodeMetadata,
+                    )
 
                     results[entry.id or entry.ref] = NodeExecutionResult(  # type: ignore[call-arg]
                         success=False,
@@ -247,8 +251,7 @@ class NetworkCoordinator:
     def _resolve_execution_batches(self) -> List[List[WorkflowEntry]]:
         """Return execution batches: each inner list can run in parallel."""
         order = self._resolve_execution_order()
-        # Build mapping for quick lookup of dependencies
-        id_map = {e.id or e.ref: e for e in order}
+        # Build dependency counts
         dep_counts = {e: 0 for e in order}
         for e in order:
             if e.after:
