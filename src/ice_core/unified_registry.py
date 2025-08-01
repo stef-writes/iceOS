@@ -14,15 +14,14 @@ from ice_core.protocols.workflow import WorkflowLike
 import importlib.metadata as metadata
 
 # Type aliases for node executors
-ScriptChain: TypeAlias = WorkflowLike
-ExecCallable = Callable[[ScriptChain, Any, Dict[str, Any]], Awaitable[NodeExecutionResult]]
+ExecCallable = Callable[[WorkflowLike, Any, Dict[str, Any]], Awaitable[NodeExecutionResult]]
 F = TypeVar("F", bound=ExecCallable)
 
 class NodeExecutor(Protocol):
     """Required async call signature for node executors."""
     async def __call__(
         self,
-        chain: ScriptChain,
+        chain: WorkflowLike,
         cfg: NodeConfig,
         ctx: Dict[str, Any],
     ) -> NodeExecutionResult: ...
@@ -122,10 +121,10 @@ class Registry(BaseModel):
                     results.append((nt, name))
         
         # Collect from instance registry 
-        for nt, names_dict in self._instances.items():
+        for nt, names_dict in self._instances.items():  # type: ignore[assignment]
             if node_type is None or node_type == nt:
                 for name in names_dict.keys():
-                    results.append((nt, name))
+                    results.append((nt, name))  # type: ignore[assignment]
         
         return sorted(set(results))
     
@@ -144,7 +143,7 @@ class Registry(BaseModel):
                 type_str, name = ep.name.split(":", 1)
                 node_type = NodeType(type_str)
                 
-                cls = ep.load()
+                cls: Type[INode] = ep.load()  # type: ignore[assignment]
                 self.register_class(node_type, name, cls)
                 count += 1
             except Exception as e:

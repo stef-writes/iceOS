@@ -28,7 +28,7 @@ class WorkflowService(IWorkflowService):
     and returns structured results with metrics.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the workflow service."""
         # Use context manager from ServiceLocator if available, otherwise create new one
         from ice_sdk.services.locator import ServiceLocator
@@ -67,7 +67,7 @@ class WorkflowService(IWorkflowService):
                 # because ``NodeConfig`` is a *typing.Annotated* alias which
                 # raises ``TypeError`` when used with ``isinstance``.
                 if isinstance(node, dict):
-                    node_configs.append(NodeConfig(**node))
+                    node_configs.append(NodeConfig(**node))  # type: ignore[operator]
                 else:
                     # Assume it's a valid *BaseNodeConfig* or compatible
                     # object; Pydantic validation inside ``Workflow`` will

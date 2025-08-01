@@ -31,7 +31,7 @@ class LLMServiceAdapter:
         self._svc = None  # Will be lazily loaded from ServiceLocator
     
     @property
-    def _service(self):
+    def _service(self) -> Any:
         """Lazy load the LLM service from ServiceLocator."""
         if self._svc is None:
             self._svc = ServiceLocator.get("llm_service_impl")

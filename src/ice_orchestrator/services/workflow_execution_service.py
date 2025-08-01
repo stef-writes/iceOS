@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from ice_core.models.mcp import NodeSpec
+from ice_core.models.node_models import NodeExecutionResult
 from ice_core.utils.node_conversion import convert_node_specs
 from ice_orchestrator.workflow import Workflow
 
@@ -20,7 +21,7 @@ class WorkflowExecutionService:
         inputs: Optional[Dict[str, Any]] = None,
         max_parallel: int = 5,
         name: str = "blueprint_run"
-    ) -> Dict[str, Any]:
+    ) -> NodeExecutionResult:
         """Execute a workflow from MCP blueprint specification.
         
         Args:
@@ -51,7 +52,7 @@ class WorkflowExecutionService:
         workflow: Workflow,
         *,
         inputs: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    ) -> NodeExecutionResult:
         """Execute a ready Workflow instance.
         
         Args:
@@ -74,7 +75,7 @@ class WorkflowExecutionService:
         self,
         builder: Any,  # WorkflowBuilder from SDK
         inputs: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    ) -> NodeExecutionResult:
         """Execute a workflow directly from a builder.
         
         Args:

@@ -40,7 +40,7 @@ class _Input(BaseModel):
                 return list(ast.literal_eval(v))
             except Exception:
                 return [h.strip() for h in v.strip("[]").split(",") if h]
-        return v
+        return v  # type: ignore[no-any-return]
 
 class _Output(BaseModel):
     """Structured operator output."""

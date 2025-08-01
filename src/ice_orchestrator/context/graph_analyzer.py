@@ -4,7 +4,7 @@ This module provides graph intelligence that leverages the powerful NetworkX
 infrastructure already in place but underutilized across iceOS layers.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 import networkx as nx
 from dataclasses import dataclass
 
@@ -158,12 +158,13 @@ class GraphAnalyzer:
             
         # Complexity reduction
         if metrics.complexity_score > 10.0:
-            suggestions.append({
+            suggestions.append(cast(Dict[str, Any], {
                 "type": "complexity",
                 "priority": "low",
                 "description": "Consider breaking down complex workflows into sub-workflows",
-                "complexity_score": metrics.complexity_score
-            })
+                "complexity_score": metrics.complexity_score,
+                "affected_nodes": []
+            }))
             
         return suggestions
         
@@ -294,7 +295,7 @@ class GraphAnalyzer:
     def _compute_critical_path_length(self) -> int:
         """Compute the length of the critical path."""
         try:
-            return max(nx.dag_longest_path_length(self.graph, weight=None), 0)
+            return max(int(nx.dag_longest_path_length(self.graph, weight=None)), 0)
         except (nx.NetworkXError, ValueError):
             return 0
             
@@ -307,11 +308,12 @@ class GraphAnalyzer:
             return 0.0
             
         # Factors: density, branching, depth
-        density = n_edges / (n_nodes * (n_nodes - 1)) if n_nodes > 1 else 0
-        avg_degree = sum(dict(self.graph.degree()).values()) / n_nodes
-        depth = self._compute_critical_path_length()
+        density: float = float(n_edges / (n_nodes * (n_nodes - 1))) if n_nodes > 1 else 0.0
+        avg_degree: float = float(sum(dict(self.graph.degree()).values()) / n_nodes)
+        depth: int = self._compute_critical_path_length()
         
-        return (density * 5) + (avg_degree * 2) + (depth * 0.5)
+        score: float = (density * 5) + (avg_degree * 2) + (depth * 0.5)
+        return score
         
     def _identify_bottlenecks(self) -> List[str]:
         """Identify nodes that could be bottlenecks."""
@@ -338,7 +340,7 @@ class GraphAnalyzer:
         
     def _find_sequential_chains(self) -> List[List[str]]:
         """Find long sequential chains that could be parallelized."""
-        chains = []
+        chains: List[List[str]] = []
         
         for node in self.graph.nodes():
             if (self.graph.in_degree(node) == 1 and 
@@ -360,7 +362,7 @@ class GraphAnalyzer:
     def _get_graph_aware_style(self, node_config: NodeConfig, layout_info: Dict[str, Any]) -> Dict[str, Any]:
         """Get styling based on graph position and properties."""
         
-        style = {
+        style: Dict[str, Any] = {
             "opacity": 1.0,
             "border_width": 1,
             "highlight": False

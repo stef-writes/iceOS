@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from ice_core.models.llm import ModelProvider
+from ice_core.models import ModelProvider
 from ice_orchestrator.llm.operators.base import LLMOperator, LLMOperatorConfig
 from ice_core.llm.service import LLMService
 
@@ -23,10 +23,10 @@ class _Input(BaseModel):
 
     @field_validator("rows", mode="before")
     @classmethod
-    def _parse_rows(cls, v):  # noqa: D401
+    def _parse_rows(cls, v: Any) -> List[Dict[str, Any]]:  # noqa: D401
         if isinstance(v, str):
-            return json.loads(v)
-        return v
+            return json.loads(v)  # type: ignore[no-any-return]
+        return v  # type: ignore[no-any-return]
 
 class _Output(BaseModel):
     summary: str
@@ -68,10 +68,10 @@ class SummarizerOperator(LLMOperator):
         # Offline fallback when no API key available ------------------------
         if not os.getenv("OPENAI_API_KEY") and not os.getenv("ANTHROPIC_API_KEY"):
             row_count = len(inp.rows)  # type: ignore[arg-type]
-            headers = list(inp.rows[0].keys()) if inp.rows else []  # type: ignore[arg-type]
+            headers = list(inp.rows[0].keys()) if inp.rows else []  # type: ignore[union-attr]
             return {"summary": f"Dataset has {row_count} rows with columns: {', '.join(headers)}."}
 
-        dataset_preview = json.dumps(inp.rows[:10], indent=2)  # type: ignore[arg-type]
+        dataset_preview = json.dumps(inp.rows[:10], indent=2)
         prompt = (
             "You are a data summarization assistant. Given the following rows\n"
             f"(maximum 10 shown) from a CSV dataset, produce a concise summary\n"

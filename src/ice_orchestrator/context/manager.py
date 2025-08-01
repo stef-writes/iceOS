@@ -176,7 +176,7 @@ class GraphContextManager:
                 call_kwargs["ctx"] = ToolContext(**ctx_payload)  # type: ignore[arg-type]
 
                 try:
-                    result_obj = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                    result_obj = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type,union-attr]
 
                     import inspect
 
@@ -188,7 +188,7 @@ class GraphContextManager:
                     if "ctx" in str(exc):
                         # Retry without ctx when tool doesn't expect it ----
                         call_kwargs.pop("ctx", None)
-                        result_obj = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type]
+                        result_obj = stateful_tool.run(**call_kwargs)  # type: ignore[arg-type,union-attr]
                         if inspect.isawaitable(result_obj):
                             result = await result_obj  # type: ignore[assignment]
                         else:

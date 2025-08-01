@@ -41,7 +41,7 @@ class MemoryAgent(AgentNode):
             config: Agent configuration
             memory: Memory instance (injected dependency)
         """
-        super().__init__(config)
+        super().__init__(config=config)
         if memory is not None:
             self.memory = memory
         elif config.enable_memory:
@@ -84,7 +84,7 @@ class MemoryAgent(AgentNode):
         if not self.memory:
             return {}
             
-        context = {}
+        context: Dict[str, Any] = {}
         
         # Get working memory context
         if "working" in self.memory._memories:

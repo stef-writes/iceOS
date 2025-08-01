@@ -5,6 +5,7 @@ import asyncio
 from ice_core.base_tool import ToolBase
 from ice_core.unified_registry import registry
 from ice_core.models import NodeType
+from ice_core.protocols.node import INode
 
 
 class ToolExecutionService:
@@ -48,9 +49,9 @@ class ToolExecutionService:
             # Run sync function in thread pool
             result = await asyncio.to_thread(execute_fn, **inputs)
         
-        return result
+        return result  # type: ignore[no-any-return]
     
-    def _get_tool_instance(self, tool_name: str) -> Optional[ToolBase]:
+    def _get_tool_instance(self, tool_name: str) -> Optional[INode]:
         """Get tool instance from unified registry.
         
         Args:
@@ -61,16 +62,16 @@ class ToolExecutionService:
         """
         # Try to get from unified registry
         registry_key = f"{NodeType.TOOL.value}:{tool_name}"
-        tool_instance = registry._instances.get(registry_key)
+        tool_instance = registry._instances.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[no-any-return]
         
         if tool_instance:
             return tool_instance
         
         # Try to get class and instantiate
-        tool_class = registry._registry.get(NodeType.TOOL, {}).get(tool_name)
+        tool_class = registry._registry.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[attr-defined]
         if tool_class:
             try:
-                return tool_class()
+                return tool_class()  # type: ignore[no-any-return]
             except Exception:
                 pass
         
@@ -85,7 +86,7 @@ class ToolExecutionService:
         tools = {}
         
         # Get all registered tools from unified registry
-        tool_registry = registry._registry.get(NodeType.TOOL, {})
+        tool_registry = registry._registry.get(NodeType.TOOL, {})  # type: ignore[attr-defined]
         
         for tool_name, tool_class in tool_registry.items():
             try:

@@ -8,13 +8,13 @@ from ice_core.models import LLMConfig, ModelProvider
 
 # ----------------------------------------
 # Cost-tracking decorator
-from ice_core.costs import cost_checkpoint
+# from ice_core.costs import cost_checkpoint  # Not available yet
 
 # ----------------------------------------
 # LLM operator helpers -------------------------------------------------------
 # ----------------------------------------
 
-@cost_checkpoint  # type: ignore[misc]
+# @cost_checkpoint  # type: ignore[misc]
 def llm_operator(func: Callable[..., Any]) -> Callable[..., Any]:
     """Marker decorator for LLM operator functions (currently a no-op)."""
     return func
@@ -69,10 +69,11 @@ class LLMOperator(BaseModel):
 
         llm_service = LLMService()
         response = await llm_service.generate(
-            prompt=self.config.prompt.format(input=input_data), config=llm_config
+            llm_config=llm_config,
+            prompt=self.config.prompt.format(input=input_data)
         )
 
-        return response["content"]
+        return response[0]  # First element is the text response
 
     async def generate(self, prompt: str) -> str:
         """Generate text using the LLM service.
@@ -90,8 +91,11 @@ class LLMOperator(BaseModel):
             max_tokens=self.config.max_tokens,
         )
         
-        response = await self.llm_service.generate(prompt=prompt, config=llm_config)
-        return response["content"]
+        response = await self.llm_service.generate(
+            llm_config=llm_config,
+            prompt=prompt
+        )
+        return str(response[0])  # First element is the text response
 
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the operator with given inputs.
@@ -104,4 +108,4 @@ class LLMOperator(BaseModel):
         """
         input_data = inputs.get("input", "")
         result = await self.process(input_data)
-        return {"output": result}
+        return {"output": result}  # type: ignore[no-any-return]

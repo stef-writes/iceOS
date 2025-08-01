@@ -307,7 +307,9 @@ class UnifiedMemory:
                     domain_stats[mem_type] = len(domain_entries)
                 except Exception as e:
                     domain_stats[mem_type] = {"error": str(e)}
-            analytics["domain_usage"][domain] = domain_stats
+            from typing import cast, Dict, Any
+            domain_usage = cast(Dict[str, Any], analytics["domain_usage"])
+            domain_usage[domain] = domain_stats
             
         return analytics
     

@@ -41,8 +41,8 @@ class ContextStore(BaseContextStore):
     ) -> None:
         if context_store_path:
             self.context_store_path = context_store_path
-        elif os.getenv("SCRIPTCHAIN_CONTEXT_STORE_PATH"):
-            self.context_store_path = os.environ["SCRIPTCHAIN_CONTEXT_STORE_PATH"]
+        elif os.getenv("WORKFLOW_CONTEXT_STORE_PATH"):
+            self.context_store_path = os.environ["WORKFLOW_CONTEXT_STORE_PATH"]
         else:
             default_workspace_root = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), "..", "..", "..")

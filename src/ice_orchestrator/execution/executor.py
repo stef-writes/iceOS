@@ -27,7 +27,8 @@ from ice_core.models.node_models import NodeMetadata
 # ruff: noqa: F401 – imported for side-effects only
 import ice_orchestrator.execution.executors  # Import for side effects
 from ice_orchestrator.providers.budget_enforcer import BudgetEnforcer
-from ice_core.unified_registry import get_executor, ScriptChain
+from ice_core.unified_registry import get_executor
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
     from ice_orchestrator.workflow import Workflow
@@ -43,7 +44,7 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
     ScriptChain instance so that no behaviour changes are required elsewhere.
     """
 
-    def __init__(self, chain: "ScriptChain") -> None:
+    def __init__(self, chain: "Workflow") -> None:
         self.chain = chain
         self.budget = BudgetEnforcer()  # Add enforcer
 
@@ -374,7 +375,7 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                     )
 
                 if base_backoff <= 0:
-                    wait_seconds = 0
+                    wait_seconds: float = 0.0
                 else:
                     if backoff_strategy == "fixed":
                         wait_seconds = base_backoff

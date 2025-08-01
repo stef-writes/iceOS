@@ -1,6 +1,6 @@
 """Episodic memory for storing conversation and interaction history."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 import json
 from datetime import datetime, timedelta
 import hashlib
@@ -8,9 +8,10 @@ from .base import BaseMemory, MemoryConfig, MemoryEntry
 
 try:
     import redis
-    from redis import Redis, Pipeline as RedisPipeline
+    from redis import Redis
+    from redis.client import Pipeline as RedisPipeline
 except ImportError:
-    redis = None
+    redis = None  # type: ignore[assignment]
     Redis = None  # type: ignore
     RedisPipeline = None  # type: ignore
 
@@ -182,7 +183,7 @@ class EpisodicMemory(BaseMemory):
             # Fallback to in-memory
             entry = self._memory_store.get(key)
             if entry is not None:
-                return entry
+                return cast(MemoryEntry, entry)
             return None
     
     async def search(

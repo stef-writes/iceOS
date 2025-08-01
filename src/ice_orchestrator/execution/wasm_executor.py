@@ -61,7 +61,7 @@ class WasmExecutor:
         }
         
         # Cache compiled WASM modules for performance
-        self._module_cache = {}
+        self._module_cache: Dict[str, wasmtime.Module] = {}
     
     async def execute_python_code(
         self,
@@ -181,7 +181,7 @@ class WasmExecutor:
         python_script = self._create_sandbox_script(code, context, allowed_imports)
         
         # Use cache key for compiled modules
-        cache_key = hash((python_script, frozenset(allowed_imports)))
+        cache_key = str(hash((python_script, tuple(sorted(allowed_imports)))))
         
         # Compile Python to WASM (or get from cache)
         if cache_key not in self._module_cache:

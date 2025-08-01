@@ -4,6 +4,7 @@ from ice_core.models.node_models import SwarmNodeConfig
 from ice_core.unified_registry import registry
 from ice_core.models import NodeType
 from ice_sdk.services.locator import ServiceLocator
+from .strategies import SwarmStrategy
 
 class SwarmCoordinator:
     """Orchestrates multi-agent coordination using different strategies."""
@@ -15,7 +16,7 @@ class SwarmCoordinator:
         """Coordinate swarm execution using configured strategy."""
         # Get shared memory pool for coordination
         shared_memory = ServiceLocator.get("shared_memory")
-        pool = await shared_memory.get_pool(self.config.shared_memory_pool)
+        pool = await shared_memory.get_pool("swarm_coordination")  # Use default pool name
         
         # Load agents from registry
         agents = []
@@ -24,6 +25,7 @@ class SwarmCoordinator:
             agents.append((agent, agent_spec))
         
         # Execute coordination strategy
+        strategy: SwarmStrategy
         if self.config.coordination_strategy == "consensus":
             from .strategies import ConsensusStrategy
             strategy = ConsensusStrategy(self.config)

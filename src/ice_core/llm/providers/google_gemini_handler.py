@@ -32,9 +32,9 @@ class GoogleGeminiHandler(BaseLLMHandler):
         if not api_key:
             return "", None, "GOOGLE_API_KEY not set"
 
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=api_key)  # type: ignore[attr-defined]
         model_name: str = llm_config.model or "gemini-pro"
-        model = genai.GenerativeModel(model_name)
+        model = genai.GenerativeModel(model_name)  # type: ignore[attr-defined]
 
         gen_cfg_params: dict[str, Any] = {
             "temperature": llm_config.temperature,
@@ -48,7 +48,7 @@ class GoogleGeminiHandler(BaseLLMHandler):
 
         try:
             response = await model.generate_content_async(
-                prompt, generation_config=gen_config
+                prompt, generation_config=gen_config  # type: ignore[arg-type]
             )
         except Exception as exc:  # pragma: no cover
             logger.error("Gemini API error", exc_info=True)

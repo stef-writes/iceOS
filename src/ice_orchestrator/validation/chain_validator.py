@@ -171,12 +171,12 @@ class ChainValidator:  # – internal utility
                         )
 
             # Check 2: Output context registration
-            output_schema = skill_cls.get_output_schema()
+            output_schema = tool_cls.get_output_schema()
             context_type_manager.register_context_key(node.output_key, output_schema)  # type: ignore[arg-type]
             context_keys.add(node.output_key)  # type: ignore[arg-type]
 
             # Check 3: Side-effect validation
-            if skill_cls.is_pure() and getattr(node, "side_effects", None):
+            if tool_cls.is_pure() and getattr(node, "side_effects", None):
                 errors.append(f"Pure tool {node.type} cannot have side-effects")
 
         # Use ValidationResult dataclass from legacy namespace when available

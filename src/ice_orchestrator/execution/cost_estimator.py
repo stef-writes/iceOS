@@ -23,9 +23,9 @@ class NodeCostEstimate:
     token_estimate: Optional[int] = None
     api_calls: int = 1
     confidence: float = 0.8  # 0-1 confidence in estimate
-    notes: List[str] = None
+    notes: Optional[List[str]] = None
     
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.notes is None:
             self.notes = []
 
@@ -85,7 +85,7 @@ class WorkflowCostEstimator:
         "workflow": {"min": 2.0, "avg": 10.0, "max": 30.0},
     }
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.cost_calculator = TokenCostCalculator()
         
     def estimate_workflow_cost(
@@ -162,7 +162,7 @@ class WorkflowCostEstimator:
                 min_cost=token_est["min"] * cost_per_token,
                 max_cost=token_est["max"] * cost_per_token,
                 avg_cost=avg_tokens * cost_per_token,
-                token_estimate=avg_tokens,
+                token_estimate=int(avg_tokens),
                 confidence=0.5,
                 notes=[f"Generic estimate for {node_type} node"]
             )
@@ -174,14 +174,14 @@ class WorkflowCostEstimator:
     ) -> NodeCostEstimate:
         """Estimate cost for LLM node."""
         # Calculate prompt tokens
-        prompt_tokens = len(node.prompt.split()) * 1.3  # Rough tokenization
+        prompt_tokens = int(len(node.prompt.split()) * 1.3)  # Rough tokenization
         prompt_tokens += context_size
         
         # Estimate output tokens
         max_tokens = node.max_tokens or 1000
         avg_output_tokens = int(max_tokens * 0.7)  # Assume 70% usage
         
-        total_tokens = prompt_tokens + avg_output_tokens
+        total_tokens = int(prompt_tokens + avg_output_tokens)
         
         # Get model-specific pricing
         model = node.model

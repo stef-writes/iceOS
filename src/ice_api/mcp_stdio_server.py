@@ -31,7 +31,7 @@ from ice_api.api.mcp_jsonrpc import (
 class StdioMCPServer:
     """MCP server using stdio transport."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.initialized = False
     
     async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
@@ -85,7 +85,7 @@ class StdioMCPServer:
                 }
             }
     
-    async def run(self):
+    async def run(self) -> None:
         """Main server loop reading from stdin and writing to stdout."""
         while True:
             try:
@@ -138,7 +138,7 @@ class StdioMCPServer:
                 print(json.dumps(error_response), flush=True)
 
 
-async def main():
+async def main() -> None:
     """Main entry point for stdio MCP server."""
     # Initialize logging to stderr so it doesn't interfere with JSON-RPC
     import logging

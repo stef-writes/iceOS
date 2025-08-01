@@ -47,7 +47,7 @@ class WorkflowTester:  # pylint: disable=too-few-public-methods
             "completion_tokens": 0,
             "total_tokens": 0,
         }
-        self._orig_generate = None  # will be populated on patch
+        self._orig_generate: Any = None  # will be populated on patch
 
     # ------------------------------------------------------------------ public API
     async def run(self, workflow: dict[str, Any] | Workflow) -> ChainExecutionResult:  # type: ignore[type-var]
@@ -64,7 +64,7 @@ class WorkflowTester:  # pylint: disable=too-few-public-methods
             if isinstance(workflow, Workflow):
                 wf = workflow
             else:
-                wf = Workflow.from_dict(workflow)  # type: ignore[arg-type]
+                wf = await Workflow.from_dict(workflow)  # type: ignore[arg-type]
 
             result = await wf.execute()
             return result  # type: ignore[return-value]
@@ -100,11 +100,11 @@ class WorkflowTester:  # pylint: disable=too-few-public-methods
 
         self._orig_generate = LLMService.generate
 
-        async def _stub_generate(  # type: ignore[return-type]
+        async def _stub_generate(
             _self: LLMService, *args: Any, **kwargs: Any
         ) -> tuple[str, dict[str, int] | None, None]:
             # Mimic signature: returns (text, usage, error)
-            return self._default_text, dict(self._default_usage), None  # type: ignore[arg-type]
+            return self._default_text, dict(self._default_usage), None
 
         # Bind as *instance* method so *self* is passed correctly
         LLMService.generate = MethodType(_stub_generate, LLMService)  # type: ignore[assignment]

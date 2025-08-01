@@ -11,6 +11,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -21,7 +22,7 @@ from ice_orchestrator.services.network_coordinator import NetworkCoordinator
 # Async helper (copied from ice_cli but kept local to avoid cross-imports) ----
 # ---------------------------------------------------------------------------
 
-def _safe_run(coro):  # noqa: ANN001 – generic coroutine
+def _safe_run(coro: Any) -> Any:  # noqa: ANN001 – generic coroutine
     """Run *coro* regardless of whether an event loop is already running."""
 
     try:

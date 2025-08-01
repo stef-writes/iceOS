@@ -15,7 +15,7 @@ from typing import Any, Optional, cast
 try:
     from anthropic import AsyncAnthropic as _AsyncAnthropic  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover – optional dep
-    _AsyncAnthropic = None  # type: ignore[assignment]
+    _AsyncAnthropic: Any = None  # type: ignore[assignment,no-redef]
 
 # Re-export under stable name – ``Optional[Any]`` avoids strict type errors
 AsyncAnthropic = cast("Optional[Any]", _AsyncAnthropic)

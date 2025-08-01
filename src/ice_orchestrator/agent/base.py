@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field, PrivateAttr
 
-from ice_core.models.node_models import AgentNodeConfig
+from ice_core.models.node_models import AgentNodeConfig, NodeExecutionResult, NodeMetadata
 from ice_core.base_node import BaseNode
 
 class AgentNode(BaseNode):
@@ -25,12 +25,31 @@ class AgentNode(BaseNode):
         """Output schema for agent node."""
         return {"type": "object", "properties": {"response": {"type": "string"}}}
 
-    async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute(self, inputs: Dict[str, Any]) -> NodeExecutionResult:
         """Execute agent's decision loop with error handling."""
         try:
-            return await self._execute_agent_cycle(inputs)
+            result = await self._execute_agent_cycle(inputs)
+            return NodeExecutionResult(
+                success=True,
+                output=result,
+                error=None,
+                metadata=NodeMetadata(
+                    node_id=self.config.id, 
+                    node_type="agent",
+                    name=self.config.name or "AgentNode"
+                )  # type: ignore[call-arg]
+            )
         except Exception as e:
-            return self._handle_agent_error(e)
+            return NodeExecutionResult(
+                success=False,
+                output=None,
+                error=str(e),
+                metadata=NodeMetadata(
+                    node_id=self.config.id, 
+                    node_type="agent",
+                    name=self.config.name or "AgentNode"
+                )  # type: ignore[call-arg]
+            )
 
     async def _execute_agent_cycle(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         # Core agent logic would integrate with LLM service
@@ -51,7 +70,7 @@ class AgentNode(BaseNode):
             "message": str(error),
         }
 
-    def validate(self) -> None:
+    async def validate_config(self) -> None:
         """Pre-execution validation."""
         if not self.config.tools:
             raise ValueError("AgentNode requires at least one allowed tool")
@@ -59,9 +78,9 @@ class AgentNode(BaseNode):
     @property
     def system_prompt(self) -> str:
         """Get system prompt from agent config."""
-        return self.config.agent_config.get("system_prompt", "You are a helpful AI assistant.")
+        return str(self.config.agent_config.get("system_prompt", "You are a helpful AI assistant."))
     
     @property
     def max_retries(self) -> int:
         """Get max retries from agent config."""
-        return self.config.agent_config.get("max_retries", 3)
+        return int(self.config.agent_config.get("max_retries", 3))

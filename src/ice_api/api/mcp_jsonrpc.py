@@ -27,7 +27,7 @@ import uuid
 from typing import Any, Dict, List, Optional, Union, Literal
 
 from fastapi import APIRouter, Request
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ValidationInfo
 
 from ice_core.unified_registry import registry, global_agent_registry
 from ice_sdk.services.locator import ServiceLocator
@@ -56,7 +56,7 @@ class MCPRequest(BaseModel):
     
     @field_validator('method')
     @classmethod
-    def validate_method(cls, v):
+    def validate_method(cls, v: str) -> str:
         valid_methods = {
             'initialize', 'initialized', 'ping', 'tools/list', 'tools/call',
             'resources/list', 'resources/read', 'resources/subscribe', 'resources/unsubscribe',
@@ -76,7 +76,7 @@ class MCPResponse(BaseModel):
     
     @field_validator('error')
     @classmethod
-    def validate_result_or_error(cls, v, info):
+    def validate_result_or_error(cls, v: Optional[MCPError], info: ValidationInfo) -> Optional[MCPError]:
         result = info.data.get('result') if info.data else None
         error = v
         if result is not None and error is not None:
@@ -99,7 +99,7 @@ class MCPTool(BaseModel):
     
     @field_validator('name')
     @classmethod
-    def validate_name(cls, v):
+    def validate_name(cls, v: str) -> str:
         if not v or not v.strip():
             raise ValueError("Tool name cannot be empty")
         return v.strip()
@@ -113,7 +113,7 @@ class MCPResource(BaseModel):
     
     @field_validator('uri')
     @classmethod
-    def validate_uri(cls, v):
+    def validate_uri(cls, v: str) -> str:
         if not v or not v.startswith(('iceos://', 'file://', 'http://', 'https://')):
             raise ValueError("Resource URI must be a valid scheme")
         return v
@@ -126,7 +126,7 @@ class MCPPrompt(BaseModel):
     
     @field_validator('arguments')
     @classmethod
-    def validate_arguments(cls, v):
+    def validate_arguments(cls, v: Optional[List[Dict[str, Any]]]) -> Optional[List[Dict[str, Any]]]:
         if v is not None:
             for arg in v:
                 if 'name' not in arg:
@@ -158,13 +158,13 @@ MCP_SERVER_INFO = {
 # Global state for MCP session
 class MCPSession:
     """Track MCP session state and capabilities."""
-    def __init__(self):
+    def __init__(self) -> None:
         self.initialized = False
-        self.client_capabilities = {}
+        self.client_capabilities: Dict[str, Any] = {}
         self.protocol_version = "2024-11-05"
         self.session_id = str(uuid.uuid4())
         
-    def reset(self):
+    def reset(self) -> None:
         """Reset session state."""
         self.initialized = False
         self.client_capabilities = {}
@@ -503,7 +503,7 @@ async def handle_tools_list() -> Dict[str, Any]:
         try:
             # Note: You may need to adjust this based on your chain registry implementation
             # For now, adding some common chains if they exist
-            chain_names = []  # TODO: Get from actual chain registry
+            chain_names: List[str] = []  # TODO: Get from actual chain registry
             logger.info(f"Found {len(chain_names)} chains")
             
             for chain_name in chain_names:
