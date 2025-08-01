@@ -19,7 +19,8 @@ __all__: list[str] = [
     "unified_registry",
     "validation",
     "graph",
+    "toolkits",
 ]
 
 from . import exceptions  # import after __all__ definition
-from . import graph, memory, unified_registry, validation
+from . import graph, memory, unified_registry, validation, toolkits

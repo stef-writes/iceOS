@@ -669,11 +669,11 @@ No layer violations remain. Each layer has a single, clear purpose.
 
 ```python
 ice_core.base_tool.ToolBase    # Abstract base with execute() contract
-├── CSVTool                    # Direct inheritance 
-├── InsightsTool               # Direct inheritance
-├── ComputerTool               # Direct inheritance
-└── All other tools            # All inherit directly from ToolBase
+├── AgentTool                  # Wraps an *agent* so it implements ITool
+└── DomainSpecificTool         # Any user-defined utility inheriting ToolBase
 ```
+
+> **New! Toolkit Pattern** – Multiple `ToolBase` implementations can now be returned by a single `BaseToolkit` (e.g. `GitHubToolkit`).  A toolkit handles shared config & validation and registers each concrete tool under a namespaced prefix (`github.get_issue`, `github.comment_issue`, …).
 
 ### Benefits of Simplified Tool Hierarchy
 

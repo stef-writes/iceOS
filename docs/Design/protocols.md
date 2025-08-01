@@ -121,7 +121,8 @@ async def tool_executor(chain, cfg, ctx):
 
 ## Executor Implementations
 
-### Tool Executor
+### Tool Executor  
+*The executor now also handles **AgentTool** instances (agents exposed via `ToolBase`) transparently.*
 
 **Protocol**: `ITool`  
 **Registry Lookup**: `NodeType.TOOL`  

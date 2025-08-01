@@ -28,7 +28,9 @@ flowchart LR
 * Incremental blueprint construction (`PartialBlueprint`) with live MCP validation.
 * NetworkX-powered graph analysis for critical-path and optimization insights.
 * Network manifests (`network.v0`) for orchestrating multiple workflows with dependency graphs & shared global config.
-* Plugin registry with 20+ production tools across AI, web, DB, and system domains (`src/ice_sdk/tools`).
+* Extensible tool registry – start with `AgentTool` (exposes agents via the tool protocol) and a growing set of domain-specific tools in `src/ice_sdk/tools/`.
+* **Toolkit pattern** – group related tools (e.g. `GitHubToolkit`, `SQLDatabaseToolkit`, `GmailToolkit`) with idempotent validation and optional extras.
+* **Agent-as-Tool bridge** – expose any agent via the standard `ToolBase` protocol (`ice_orchestrator.tools.AgentTool`), enabling agents to slot into existing tool nodes.
 * Selective WASM sandboxing for untrusted code nodes.
 * Structured logging & OpenTelemetry tracing out-of-the-box.
 * Draft → Blueprint → Workflow compiler pipeline with instant validation feedback (see docs).
