@@ -20,6 +20,7 @@ __all__ = [
     "LayerViolationError",
     "SecurityViolationError",
     "RegistryError",
+    "ValidationError",
 ]
 
 class ErrorCode(IntEnum):
@@ -98,6 +99,13 @@ class ScaffoldValidationError(CoreError):
             "Scaffolded resource failed schema validation",
             payload=details,
         )
+
+
+class ValidationError(CoreError):
+    """Raised when input or output validation fails."""
+
+    def __init__(self, message: str, *, payload: Any | None = None):
+        super().__init__(ErrorCode.UNKNOWN, message, payload=payload)
 
 
 class RegistryError(Exception):
