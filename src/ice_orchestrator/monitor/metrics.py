@@ -107,7 +107,7 @@ class MetricsEvaluator:
         """Evaluate the metric expression against current context."""
         try:
             # Create safe evaluation context
-            safe_dict = {"__builtins__": {}}
+            safe_dict: Dict[str, Any] = {"__builtins__": {}}
             
             # Add workflow metrics
             if "workflow_metrics" in context:

@@ -56,6 +56,8 @@ class ApprovalHandler:
                 approved=response.get("approved", False),
                 response=response.get("response", ""),
                 response_received=True,
+                timeout_occurred=False,
+                escalated=False,
                 response_time_seconds=response_time
             )
             
@@ -88,7 +90,9 @@ class ApprovalHandler:
                 approved=True,
                 response="Auto-approved after timeout",
                 response_received=False,
-                timeout_occurred=True
+                timeout_occurred=True,
+                escalated=False,
+                response_time_seconds=None
             )
         elif self.config.escalation_path:
             # Escalate to escalation path
@@ -103,7 +107,8 @@ class ApprovalHandler:
                 response=escalation_result.get("response", "Escalated"),
                 response_received=True,
                 escalated=True,
-                timeout_occurred=True
+                timeout_occurred=True,
+                response_time_seconds=None
             )
         else:
             # Timeout with no auto-approval or escalation - reject
@@ -111,7 +116,9 @@ class ApprovalHandler:
                 approved=False,
                 response="Timeout - no response received",
                 response_received=False,
-                timeout_occurred=True
+                timeout_occurred=True,
+                escalated=False,
+                response_time_seconds=None
             )
     
     async def _pause_workflow_for_human_input(self, inputs: Dict[str, Any]) -> None:

@@ -593,79 +593,80 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
     
     try:
         if tool_type == "tool":
-            node_spec = NodeSpec(
-                id=node_id,
-                type="tool",
-                tool_name=name,
-                tool_args=arguments.get("inputs", {}),
-                input_schema={"args": "dict"},
-                output_schema={"result": "dict"},
+            node_spec = NodeSpec.model_validate({
+                "id": node_id,
+                "type": "tool",
+                "tool_name": name,
+                "tool_args": arguments.get("inputs", {}),
+                "input_schema": {"args": "dict"},
+                "output_schema": {"result": "dict"},
                 **arguments.get("options", {})
-            )
+            })
         elif tool_type == "agent":
-            node_spec = NodeSpec(
-                id=node_id,
-                type="agent", 
-                package=name,
-                agent_config=arguments.get("context", {}),
-                input_schema={"context": "dict"},
-                output_schema={"response": "dict"},
+            node_spec = NodeSpec.model_validate({
+                "id": node_id,
+                "type": "agent",
+                "package": name,
+                "agent_config": arguments.get("context", {}),
+                "input_schema": {"context": "dict"},
+                "output_schema": {"response": "dict"},
                 **arguments.get("config", {})
-            )
+            })
         elif tool_type == "workflow":
-            node_spec = NodeSpec(
-                id=node_id,
-                type="workflow",
-                workflow_name=name,
-                workflow_inputs=arguments.get("inputs", {}),
-                input_schema={"inputs": "dict"},
-                output_schema={"outputs": "dict"},
+            node_spec = NodeSpec.model_validate({
+                "id": node_id,
+                "type": "workflow",
+                "workflow_ref": name,
+                "workflow_inputs": arguments.get("inputs", {}),
+                "input_schema": {"inputs": "dict"},
+                "output_schema": {"outputs": "dict"},
                 **arguments.get("config", {})
-            )
+            })
         elif tool_type == "chain":
-            node_spec = NodeSpec(
-                id=node_id,
-                type="chain",
-                chain_name=name,
-                chain_inputs=arguments.get("inputs", {}),
-                input_schema={"inputs": "dict"},
-                output_schema={"outputs": "dict"},
+            node_spec = NodeSpec.model_validate({
+                "id": node_id,
+                "type": "chain",
+                "chain_name": name,
+                "chain_inputs": arguments.get("inputs", {}),
+                "input_schema": {"inputs": "dict"},
+                "output_schema": {"outputs": "dict"},
                 **arguments.get("config", {})
-            )
+            })
         elif tool_type == "human":
-            node_spec = NodeSpec(
-                id=node_id,
-                type="human",
-                prompt_message=arguments.get("prompt"),
-                approval_type=arguments.get("approval_type", "approve_reject"),
-                input_schema={"prompt": "string"},
-                output_schema={"approved": "bool"},
-            )
+            node_spec = NodeSpec.model_validate({
+                "id": node_id,
+                "type": "human",
+                "prompt_message": arguments.get("prompt"),
+                "approval_type": arguments.get("approval_type", "approve_reject"),
+                "input_schema": {"prompt": "string"},
+                "output_schema": {"approved": "bool"},
+            })
         elif tool_type == "monitor":
-            node_spec = NodeSpec(
-                id=node_id,
-                type="monitor",
-                metric_expression=arguments.get("metric_expression"),
-                action_on_trigger=arguments.get("action", "alert_only"),
-                alert_channels=arguments.get("alert_channels", []),
-                input_schema={"context": "dict"},
-                output_schema={"triggered": "bool"},
-            )
+            node_spec = NodeSpec.model_validate({
+                "id": node_id,
+                "type": "monitor",
+                "metric_expression": arguments.get("metric_expression"),
+                "action_on_trigger": arguments.get("action", "alert_only"),
+                "alert_channels": arguments.get("alert_channels", []),
+                "input_schema": {"context": "dict"},
+                "output_schema": {"triggered": "bool"},
+            })
         elif tool_type == "swarm":
-            node_spec = NodeSpec(
-                id=node_id,
-                type="swarm",
-                agents=arguments.get("agents", []),
-                coordination_strategy=arguments.get("strategy", "consensus"),
-                input_schema={"context": "dict"},
-                output_schema={"result": "dict"},
-            )
+            node_spec = NodeSpec.model_validate({
+                "id": node_id,
+                "type": "swarm",
+                "agents": arguments.get("agents", []),
+                "coordination_strategy": arguments.get("strategy", "consensus"),
+                "input_schema": {"context": "dict"},
+                "output_schema": {"result": "dict"},
+            })
         else:
             raise ValueError(f"Unsupported tool type: {tool_type}")
         
         # Execute via existing blueprint system
         blueprint = Blueprint(
             blueprint_id=f"mcp_execution_{uuid.uuid4().hex[:8]}",
+            schema_version="1.1.0",
             nodes=[node_spec]
         )
         

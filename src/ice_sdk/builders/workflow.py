@@ -1,10 +1,10 @@
 """Fluent API for building workflows."""
-from typing import List, Dict, Any, Optional
+from __future__ import annotations
+from typing import List, Dict, Any, Optional, Literal
 from ice_core.models import (
     NodeConfig, ToolNodeConfig, LLMOperatorConfig,
     LLMConfig, ModelProvider
 )
-from ice_core.models.enums import NodeType
 # All node types now have config classes
 
 class WorkflowBuilder:
@@ -16,17 +16,19 @@ class WorkflowBuilder:
         self.edges: List[tuple[str, str]] = []
     
     def add_tool(
-        self, 
+        self,
         node_id: str,
         tool_name: str,
-        **kwargs
+        **tool_args: Any,
     ) -> "WorkflowBuilder":
         """Add a tool node."""
         self.nodes.append(ToolNodeConfig(
             id=node_id,
-            type=NodeType.TOOL,  # Enum subclass of str keeps JSON value
             tool_name=tool_name,  # Changed from tool_ref to tool_name
-            tool_args=kwargs
+            tool_args=tool_args,
+            name=tool_name,
+            input_selection=None,
+            output_selection=None
         ))
         return self
     
@@ -35,11 +37,11 @@ class WorkflowBuilder:
         node_id: str,
         model: str,
         prompt: str,
-        **kwargs
+        **llm_kwargs: Any,
     ) -> "WorkflowBuilder":
         """Add an LLM node."""
         # Extract llm_config if provided in kwargs
-        llm_config = kwargs.pop('llm_config', LLMConfig(provider=ModelProvider.OPENAI))
+        llm_config = llm_kwargs.pop('llm_config', LLMConfig(provider=ModelProvider.OPENAI))
         
         self.nodes.append(LLMOperatorConfig(
             id=node_id,
@@ -47,7 +49,10 @@ class WorkflowBuilder:
             model=model,
             prompt=prompt,  # LLMOperatorConfig expects 'prompt' not 'prompt_template'
             llm_config=llm_config,
-            **kwargs
+            name=node_id,
+            input_selection=None,
+            output_selection=None,
+            **llm_kwargs
         ))
         return self
     
@@ -56,7 +61,7 @@ class WorkflowBuilder:
         node_id: str,
         workflow_ref: str,
         exposed_outputs: Optional[Dict[str, str]] = None,
-        **kwargs
+        **wf_kwargs: Any,
     ) -> "WorkflowBuilder":
         """Add an embedded workflow node."""
         from ice_core.models import WorkflowNodeConfig
@@ -65,7 +70,10 @@ class WorkflowBuilder:
             type="workflow",
             workflow_ref=workflow_ref,
             exposed_outputs=exposed_outputs or {},
-            config_overrides=kwargs
+            config_overrides=wf_kwargs,
+            name=node_id,
+            input_selection=None,
+            output_selection=None
         ))
         return self
     
@@ -75,7 +83,7 @@ class WorkflowBuilder:
         package: str,  # AgentNodeConfig uses 'package' not 'agent_ref'
         tools: Optional[List[str]] = None,
         memory: Optional[Dict[str, Any]] = None,
-        **kwargs
+        **agent_kwargs: Any,
     ) -> "WorkflowBuilder":
         """Add an agent node."""
         from ice_core.models import AgentNodeConfig, ToolConfig
@@ -86,7 +94,10 @@ class WorkflowBuilder:
             package=package,
             tools=tool_configs,
             memory=memory,
-            **kwargs
+            name=node_id,
+            input_selection=None,
+            output_selection=None,
+            **agent_kwargs
         ))
         return self
     
@@ -96,7 +107,7 @@ class WorkflowBuilder:
         expression: str,
         true_branch: List[str],
         false_branch: Optional[List[str]] = None,
-        **kwargs
+        **cond_kwargs: Any,
     ) -> "WorkflowBuilder":
         """Add a condition node."""
         from ice_core.models import ConditionNodeConfig
@@ -106,7 +117,10 @@ class WorkflowBuilder:
             expression=expression,
             true_branch=true_branch,
             false_branch=false_branch,
-            **kwargs
+            name=node_id,
+            input_selection=None,
+            output_selection=None,
+            **cond_kwargs
         ))
         return self
     
@@ -117,7 +131,7 @@ class WorkflowBuilder:
         body_nodes: List[str],
         item_var: str = "item",
         parallel: bool = False,
-        **kwargs
+        **loop_kwargs: Any,
     ) -> "WorkflowBuilder":
         """Add a loop node."""
         from ice_core.models import LoopNodeConfig
@@ -128,7 +142,10 @@ class WorkflowBuilder:
             item_var=item_var,
             body_nodes=body_nodes,
             parallel=parallel,
-            **kwargs
+            name=node_id,
+            input_selection=None,
+            output_selection=None,
+            **loop_kwargs
         ))
         return self
     
@@ -137,7 +154,7 @@ class WorkflowBuilder:
         node_id: str,
         branches: List[List[str]],
         max_concurrency: Optional[int] = None,
-        **kwargs
+        **par_kwargs: Any,
     ) -> "WorkflowBuilder":
         """Add a parallel execution node."""
         from ice_core.models import ParallelNodeConfig
@@ -146,7 +163,10 @@ class WorkflowBuilder:
             type="parallel",
             branches=branches,
             max_concurrency=max_concurrency,
-            **kwargs
+            name=node_id,
+            input_selection=None,
+            output_selection=None,
+            **par_kwargs
         ))
         return self
     
@@ -154,9 +174,9 @@ class WorkflowBuilder:
         self,
         node_id: str,
         code: str,
-        language: str = "python",
+        language: Literal["python", "javascript"] = "python",
         sandbox: bool = True,
-        **kwargs
+        **code_kwargs: Any,
     ) -> "WorkflowBuilder":
         """Add a code execution node."""
         from ice_core.models import CodeNodeConfig
@@ -166,7 +186,10 @@ class WorkflowBuilder:
             code=code,
             language=language,
             sandbox=sandbox,
-            **kwargs
+            name=node_id,
+            input_selection=None,
+            output_selection=None,
+            **code_kwargs
         ))
         return self
     
@@ -179,7 +202,7 @@ class WorkflowBuilder:
         convergence_condition: Optional[str] = None,
         max_iterations: int = 50,
         preserve_context: bool = True,
-        **kwargs
+        **rec_kwargs: Any,
     ) -> "WorkflowBuilder":
         """Add a recursive node for agent conversations until convergence."""
         from ice_core.models import RecursiveNodeConfig
@@ -196,7 +219,10 @@ class WorkflowBuilder:
             convergence_condition=convergence_condition,
             max_iterations=max_iterations,
             preserve_context=preserve_context,
-            **kwargs
+            name=node_id,
+            input_selection=None,
+            output_selection=None,
+            **rec_kwargs
         ))
         return self
     
@@ -225,7 +251,7 @@ class WorkflowBuilder:
                     if from_node not in node.dependencies:
                         node.dependencies.append(from_node)
     
-    def build(self):
+    def build(self) -> Any:
         """Return an MCP Blueprint ready for validation/compilation."""
 
         # Update node dependencies according to the recorded edges
@@ -242,9 +268,9 @@ class WorkflowBuilder:
             for node in self.nodes
         ]
 
-        return Blueprint(nodes=node_specs, metadata={"draft_name": self.name})
+        return Blueprint(nodes=node_specs, metadata={"draft_name": self.name}, schema_version="1.1.0")
     
-    def to_workflow(self):
+    def to_workflow(self) -> Any:
         """Convert to Workflow instance using ServiceLocator.
         
         This method uses dependency injection to avoid direct imports.

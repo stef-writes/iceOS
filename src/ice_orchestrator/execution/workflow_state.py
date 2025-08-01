@@ -93,7 +93,13 @@ class WorkflowExecutionState:
         """Record node completion."""
         self.executing_nodes.discard(node_id)
         self.completed_nodes.add(node_id)
-        self.node_results[node_id] = result
+        from ice_core.models.enums import NodeType
+        raw_type = getattr(result.metadata, 'node_type', None) if hasattr(result, 'metadata') and result.metadata else None
+        try:
+            node_type_enum = NodeType(str(raw_type)) if raw_type else NodeType.TOOL
+        except ValueError:
+            node_type_enum = NodeType.TOOL
+        self.node_results[node_type_enum][node_id] = result
         
         if not result.success:
             self.failed_nodes.add(node_id)
@@ -136,8 +142,11 @@ class WorkflowExecutionState:
             "phase": self.phase.value,
             "completed_nodes": list(self.completed_nodes),
             "node_results": {
-                node_id: result.model_dump() 
-                for node_id, result in self.node_results.items()
+                node_type.value: {
+                    nid: res.model_dump()
+                    for nid, res in results.items()
+                }
+                for node_type, results in self.node_results.items()
             },
             "branch_decisions": self.branch_decisions.copy(),
             "total_tokens": self.total_tokens,

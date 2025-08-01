@@ -29,7 +29,9 @@ async def validate_tool_definition(
     result = ComponentValidationResult(
         valid=True,
         component_type="tool",
-        component_id=f"tool_{definition.name}"
+        component_id=f"tool_{definition.name}",
+        registered=False,
+        registry_name=None
     )
     
     # Check for naming conflicts
@@ -127,7 +129,9 @@ async def validate_agent_definition(
     result = ComponentValidationResult(
         valid=True,
         component_type="agent",
-        component_id=f"agent_{definition.name}"
+        component_id=f"agent_{definition.name}",
+        registered=False,
+        registry_name=None
     )
     
     # Check for naming conflicts
@@ -195,7 +199,9 @@ async def validate_workflow_definition(
     result = ComponentValidationResult(
         valid=True,
         component_type="workflow",
-        component_id=f"workflow_{definition.name}"
+        component_id=f"workflow_{definition.name}",
+        registered=False,
+        registry_name=None
     )
     
     # Check for naming conflicts
@@ -219,6 +225,7 @@ async def validate_workflow_definition(
     try:
         temp_blueprint = Blueprint(
             blueprint_id=f"validation_{definition.name}",
+            schema_version="1.1.0",
             nodes=definition.workflow_nodes,
             metadata={"validation_only": True}
         )
@@ -259,7 +266,10 @@ async def validate_component(
         return ComponentValidationResult(
             valid=False,
             errors=["Component name must be at least 2 characters"],
-            component_type=definition.type
+            component_type=definition.type,
+            registered=False,
+            registry_name=None,
+            component_id=f"{definition.type}_{definition.name}"
         )
     
     # Check name format (alphanumeric, underscore, dash)
@@ -268,7 +278,10 @@ async def validate_component(
         return ComponentValidationResult(
             valid=False,
             errors=["Component name must start with letter and contain only letters, numbers, underscore, or dash"],
-            component_type=definition.type
+            component_type=definition.type,
+            registered=False,
+            registry_name=None,
+            component_id=f"{definition.type}_{definition.name}"
         )
     
     # Dispatch to specific validators
@@ -282,5 +295,8 @@ async def validate_component(
         return ComponentValidationResult(
             valid=False,
             errors=[f"Unknown component type: {definition.type}"],
-            component_type=definition.type
+            component_type=definition.type,
+            registered=False,
+            registry_name=None,
+            component_id=f"{definition.type}_{definition.name}"
         ) 
