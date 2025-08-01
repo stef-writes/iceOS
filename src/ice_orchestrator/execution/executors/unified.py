@@ -146,16 +146,16 @@ async def tool_executor(
         flattened_inputs = _flatten_dependency_outputs(merged_inputs, tool)
         
         # Direct execution - tools need file I/O, network access, imports
-        result = await tool.execute(**flattened_inputs)
+        tool_output: Any = await tool.execute(**flattened_inputs)
         
-        # Ensure result is a dictionary
-        if not isinstance(result, dict):
-            result = {"result": result}
+        # Ensure tool_output is a dictionary
+        if not isinstance(tool_output, dict):
+            tool_output = {"result": tool_output}
         
         end_time = datetime.utcnow()
         return NodeExecutionResult(
             success=True,
-            output=result,
+            output=tool_output,
             metadata=NodeMetadata(
                 node_id=cfg.id,
                 node_type=cfg.type,
@@ -163,6 +163,7 @@ async def tool_executor(
                 version="1.0.0",
                 owner="system",
                 provider=cfg.provider,
+                error_type=None,
                 start_time=start_time,
                 end_time=end_time,
                 duration=(end_time - start_time).total_seconds(),
@@ -276,6 +277,7 @@ async def llm_executor(
                 version="1.0.0",
                 owner="system",
                 provider=cfg.provider,
+                error_type=None,
                 start_time=start_time,
                 end_time=end_time,
                 duration=(end_time - start_time).total_seconds(),
@@ -318,20 +320,20 @@ async def agent_executor(
         agent = registry.get_instance(NodeType.AGENT, cfg.package)
         
         # Direct execution - agents are trusted and need full access
-        result = await agent.execute(ctx)
+        agent_output: Any = await agent.execute(ctx)
         
-        # Ensure result is a dictionary
-        if not isinstance(result, dict):
-            result = {"result": result}
+        # Ensure agent_output is a dictionary
+        if not isinstance(agent_output, dict):
+            agent_output = {"result": agent_output}
         
         # Add agent metadata
-        result["agent_package"] = cfg.package
-        result["agent_executed"] = True
+        agent_output["agent_package"] = cfg.package
+        agent_output["agent_executed"] = True
         
         end_time = datetime.utcnow()
         return NodeExecutionResult(
             success=True,
-            output=result,
+            output=agent_output,
             metadata=NodeMetadata(
                 node_id=cfg.id,
                 node_type=cfg.type,
@@ -339,6 +341,7 @@ async def agent_executor(
                 version="1.0.0",
                 owner="system",
                 provider=cfg.provider,
+                error_type=None,
                 start_time=start_time,
                 end_time=end_time,
                 duration=(end_time - start_time).total_seconds(),
@@ -477,16 +480,25 @@ async def workflow_executor(
             merged_ctx.update(cfg.config_overrides)
         
         # Execute sub-workflow
-        result = await sub_workflow.execute(merged_ctx)
+        sub_result = await sub_workflow.execute(merged_ctx)
+
+        # Normalise to dictionary output
+        if isinstance(sub_result, NodeExecutionResult):
+            if sub_result.success:
+                result_dict: Any = sub_result.output or {}
+            else:
+                result_dict = {"error": sub_result.error}
+        else:
+            result_dict = sub_result
         
         # Handle exposed outputs
-        output = result
+        output = result_dict
         if hasattr(cfg, 'exposed_outputs') and cfg.exposed_outputs:
             # Extract only the exposed outputs
             exposed = {}
             for exposed_name, internal_path in cfg.exposed_outputs.items():
                 # Navigate the result using dot notation
-                value = result
+                value = result_dict
                 for part in internal_path.split('.'):
                     if isinstance(value, dict):
                         value = value.get(part)
@@ -509,6 +521,7 @@ async def workflow_executor(
                 version="1.0.0",
                 owner="system",
                 provider=cfg.provider,
+                error_type=None,
                 start_time=start_time,
                 end_time=end_time,
                 duration=duration,
@@ -549,10 +562,13 @@ async def loop_executor(
 ) -> NodeExecutionResult:
     """Execute a loop over a collection with WASM sandboxing for iteration logic."""
     
+    from datetime import datetime
+    start_time = datetime.utcnow()
     try:
         from ice_core.models import LoopNodeConfig
         
         # Handle different configuration formats
+        iterator_path: Optional[str]
         if isinstance(cfg, LoopNodeConfig):
             iterator_path = cfg.items_source
             max_iterations = cfg.max_iterations
@@ -584,6 +600,8 @@ async def loop_executor(
             
             results.append(result)
         
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
         return NodeExecutionResult(
             success=True,
             output={"results": results, "count": len(results)},
@@ -593,8 +611,10 @@ async def loop_executor(
                 version="1.0.0",
                 owner="system",
                 provider=cfg.provider,
-                start_time=datetime.utcnow(),
-                end_time=datetime.utcnow(),
+                error_type=None,
+                start_time=start_time,
+                end_time=end_time,
+                duration=duration,
                 description=f"Loop execution: {iterator_path}"
             )
         )
@@ -666,7 +686,9 @@ async def parallel_executor(
             return branch_results
         
         # Run branches in parallel
-        tasks = [execute_branch(branch, idx) for idx, branch in enumerate(branches)]
+        tasks: List[asyncio.Task[Dict[str, Any]]] = [
+            asyncio.create_task(execute_branch(branch, idx)) for idx, branch in enumerate(branches)
+        ]
         
         if wait_strategy == 'all':
             # Wait for all branches
@@ -697,12 +719,13 @@ async def parallel_executor(
             raise ValueError(f"Unknown wait strategy: {wait_strategy}")
         
         # Process results and handle exceptions
-        processed_results = []
+        processed_results: List[Dict[str, Any]] = []
         for idx, result in enumerate(branch_results):
             if isinstance(result, Exception):
                 processed_results.append({"branch_error": str(result), "branch_index": idx})
             else:
-                processed_results.append(result)
+                from typing import cast
+                processed_results.append(cast(Dict[str, Any], result))
         
         # Merge outputs if requested
         output = {
@@ -713,7 +736,7 @@ async def parallel_executor(
         
         if merge_outputs and all(isinstance(r, dict) for r in processed_results):
             # Merge all branch outputs into a single dict
-            merged = {}
+            merged: Dict[str, Any] = {}
             for branch_result in processed_results:
                 if isinstance(branch_result, dict) and 'branch_error' not in branch_result:
                     # Merge node outputs from each branch
@@ -740,6 +763,7 @@ async def parallel_executor(
                 version="1.0.0",
                 owner="system",
                 provider=cfg.provider,
+                error_type=None,
                 start_time=start_time,
                 end_time=end_time,
                 duration=duration,
@@ -890,6 +914,7 @@ async def recursive_executor(
                     version="1.0.0",
                     owner="system",
                     provider=recursive_config.provider,
+                    error_type=None,
                     start_time=start_time,
                     end_time=end_time,
                     duration=duration,
@@ -935,6 +960,7 @@ async def recursive_executor(
                             version="1.0.0",
                             owner="system",
                             provider=recursive_config.provider,
+                    error_type=None,
                             start_time=start_time,
                             end_time=end_time,
                             duration=duration,
@@ -961,9 +987,14 @@ async def recursive_executor(
             # Use existing agent executor
             agent_cfg = AgentNodeConfig(
                 id=recursive_config.id,
-                type="agent",
+                name="recursive_agent",
                 package=recursive_config.agent_package,
-                max_iterations=10  # Inner agent iterations
+                max_iterations=10,  # Inner agent iterations
+                input_selection=None,
+                output_selection=None,
+                agent_attr=None,
+                model=None,
+                version_constraint=None,
             )
             result = await agent_executor(workflow, agent_cfg, enhanced_ctx)
             
@@ -971,8 +1002,10 @@ async def recursive_executor(
             # Use existing workflow executor
             wf_cfg = WorkflowNodeConfig(
                 id=recursive_config.id,
-                type="workflow",
-                workflow_ref=recursive_config.workflow_ref
+                name="recursive_workflow",
+                workflow_ref=recursive_config.workflow_ref,
+                input_selection=None,
+                output_selection=None,
             )
             result = await workflow_executor(workflow, wf_cfg, enhanced_ctx)
         else:
@@ -1007,10 +1040,14 @@ async def recursive_executor(
                 node_id=getattr(cfg, 'id', 'recursive_unknown'),
                 node_type="recursive",
                 name=getattr(cfg, 'name', 'recursive_node'),
+                version="1.0.0",
+                owner="system",
+                error_type=type(e).__name__,
                 start_time=start_time,
                 end_time=end_time,
                 duration=duration,
-                error_type=type(e).__name__,
+                provider=getattr(cfg, 'provider', None),
+                description=f"Recursive execution failed: {str(e)}",
             )
         ) 
 
@@ -1047,6 +1084,7 @@ async def human_executor(workflow: Workflow, cfg: HumanNodeConfig, ctx: Dict[str
             version="1.0.0",
             owner="system",
             provider=cfg.provider,
+                error_type=None,
             start_time=start,
             end_time=end,
             duration=(end - start).total_seconds(),
@@ -1090,6 +1128,7 @@ async def monitor_executor(workflow: Workflow, cfg: MonitorNodeConfig, ctx: Dict
             version="1.0.0",
             owner="system",
             provider=cfg.provider,
+                error_type=None,
             start_time=start,
             end_time=end,
             duration=(end - start).total_seconds(),
@@ -1129,6 +1168,7 @@ async def swarm_executor(workflow: Workflow, cfg: SwarmNodeConfig, ctx: Dict[str
                 version="1.0.0",
                 owner="system",
                 provider=cfg.provider,
+                error_type=None,
                 start_time=start,
                 end_time=end,
                 duration=(end - start).total_seconds(),
@@ -1148,6 +1188,7 @@ async def swarm_executor(workflow: Workflow, cfg: SwarmNodeConfig, ctx: Dict[str
             version="1.0.0",
             owner="system",
             provider=cfg.provider,
+                error_type=None,
             start_time=start,
             end_time=end,
             duration=(end - start).total_seconds(),

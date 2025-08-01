@@ -14,7 +14,7 @@ import importlib.metadata as metadata
 
 # Type aliases for node executors
 ScriptChain: TypeAlias = WorkflowLike
-ExecCallable = Callable[[ScriptChain, NodeConfig, Dict[str, Any]], Awaitable[NodeExecutionResult]]
+ExecCallable = Callable[[ScriptChain, Any, Dict[str, Any]], Awaitable[NodeExecutionResult]]
 F = TypeVar("F", bound=ExecCallable)
 
 class NodeExecutor(Protocol):
