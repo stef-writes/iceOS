@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import structlog
 from opentelemetry import trace  # type: ignore[import-not-found]
@@ -206,7 +206,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         
         # New components for enhanced functionality
         self._event_handler = WorkflowEventHandler()
-        self._cost_estimator = WorkflowCostEstimator()
+        self._cost_estimator: WorkflowCostEstimator = WorkflowCostEstimator()  # type: ignore[no-untyped-call]
         self._execution_state: Optional[WorkflowExecutionState] = None
         
         # Graph intelligence analyzer
@@ -230,7 +230,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         from ice_core.models.node_models import ToolNodeConfig
         from ice_core.utils.node_conversion import populate_tool_node_schemas
         
-        updated_nodes = []
+        updated_nodes: List[NodeConfig] = []
         for node in nodes:
             if isinstance(node, ToolNodeConfig):
                 # Auto-populate schemas from registered tool
@@ -543,6 +543,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             error_result = NodeExecutionResult(
                 success=False,
                 error=str(e),
+                output=None,
                 metadata=NodeMetadata(
                     node_id=node_id,
                     node_type="recursive",
@@ -608,6 +609,15 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         """Delegate to :class:`ContextBuilder`."""
 
         return ContextBuilder.resolve_nested_path(data, path)  # type: ignore[return-value]  # dynamic path resolution returns Any
+
+    def _lookup_node_result(self, node_id: str) -> Optional[NodeExecutionResult]:
+        """Fetch a node's execution result irrespective of NodeType grouping."""
+        if not self._execution_state:
+            return None
+        for type_results in self._execution_state.node_results.values():
+            if node_id in type_results:
+                return type_results[node_id]
+        return None
 
     # ---------------------------------------------------------------------
     # Graph inspection public API -----------------------------------------
@@ -703,7 +713,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 total_cost=self._execution_state.total_cost,
                 nodes_executed=len(self._execution_state.completed_nodes),
                 nodes_skipped=len(self._execution_state.skipped_nodes),
-                error=str(e)
+                metadata={"error": str(e)}
             ))
             raise
     
@@ -745,7 +755,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         
         # Add execution info if available
         if self._execution_state:
-            result = self._execution_state.node_results.get(node_id)
+            result = self._lookup_node_result(node_id)
             if result:
                 debug_info["execution"] = {
                     "executed": node_id in self._execution_state.completed_nodes,
@@ -774,16 +784,16 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         }
         
         # Node type breakdown
+        node_breakdown: Dict[str, int] = cast(Dict[str, int], debug_info["node_breakdown"])
         for node in self.nodes.values():
             node_type = node.type
-            if node_type not in debug_info["node_breakdown"]:
-                debug_info["node_breakdown"][node_type] = 0
-            debug_info["node_breakdown"][node_type] += 1
+            node_breakdown[node_type] = node_breakdown.get(node_type, 0) + 1
             
         # Execution order
+        execution_order: List[Dict[str, Any]] = cast(List[Dict[str, Any]], debug_info["execution_order"])
         for level_num in sorted(self.levels.keys()):
             for node_id in self.levels[level_num]:
-                debug_info["execution_order"].append({
+                execution_order.append({
                     "level": level_num,
                     "node_id": node_id,
                     "type": self.nodes[node_id].type
@@ -826,7 +836,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         # Type-specific checks
         if node.type == "llm" and hasattr(node, 'model'):
             if "gpt-4" in node.model and hasattr(node, 'max_tokens'):
-                if node.max_tokens > 8000:
+                if node.max_tokens is not None and node.max_tokens > 8000:
                     issues.append("max_tokens exceeds GPT-4 limit")
                     
         return issues
@@ -909,7 +919,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         
         # Enhanced suggestions based on graph analysis
         if hasattr(node, 'output_schema') and node.output_schema:
-            if 'data' in node.output_schema or 'array' in str(node.output_schema):
+            if ((isinstance(node.output_schema, dict) and 'data' in node.output_schema) or 'array' in str(node.output_schema)):
                 # Consider parallelization if we're not already branching heavily
                 if out_degree < 2 and graph_metrics["parallel_opportunities"] < graph_metrics["total_nodes"] * 0.4:
                     suggestions.append({
@@ -936,7 +946,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                         }
                     })
                     
-            if 'text' in node.output_schema or 'string' in str(node.output_schema):
+            if ((isinstance(node.output_schema, dict) and 'text' in node.output_schema) or 'string' in str(node.output_schema)):
                 suggestions.append({
                     "type": "tool",
                     "reason": "Take action based on the text output",
@@ -1121,7 +1131,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         if not self._execution_state:
             return None
             
-        result = self._execution_state.node_results.get(node_id)
+        result = self._lookup_node_result(node_id)
         if not result:
             return None
             
@@ -1247,13 +1257,13 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             from ice_core.models.workflow import SubDAGResult
 
             if isinstance(result.output, SubDAGResult):
-                subdag = Workflow.from_dict(result.output.workflow_data)
+                subdag = await Workflow.from_dict(result.output.workflow_data)
                 subdag.validate()  # From Rule 13
                 return await self.execute_workflow(subdag)
 
         return result
 
-    async def execute_workflow(self, workflow) -> NodeExecutionResult:
+    async def execute_workflow(self, workflow: "Workflow") -> NodeExecutionResult:
         """Execute nested workflow and merge results"""
         with tracer.start_as_current_span("subdag.execute") as span:
             span.set_attribute("subdag.node_count", len(workflow.nodes))
@@ -1372,16 +1382,22 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             config_overrides=config_overrides or {},
             exposed_outputs=exposed_outputs or {},
             dependencies=[],
+            input_selection=None,
+            output_selection=None,
             type="workflow",  # explicit for clarity
         )
 
     def add_node(self, config: NodeConfig, depends_on: list[str] | None = None) -> str:
-        """Implements WorkflowProto.add_node()"""
+        """Add a new node to the workflow at runtime."""
         new_id = f"node_{len(self.nodes)}"
         config.id = new_id
         config.dependencies = depends_on or []
-        self.nodes.append(config)
-        self.graph.add_node(new_id, config.dependencies)
+        # ``self.nodes`` is a mapping, not a list
+        self.nodes[new_id] = config  # type: ignore[index]
+        # Update the dependency graph – append to underlying NetworkX graph
+        if hasattr(self.graph, "graph"):
+            # Safe-guard: DependencyGraph.graph is a networkx.DiGraph
+            self.graph.graph.add_node(new_id)  # type: ignore[attr-defined]
         return new_id
 
     def validate(self) -> None:
@@ -1396,7 +1412,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         SafetyValidator.validate_node_tool_access(list(self.nodes.values()))
         ChainValidator(self.failure_policy, self.levels, self.nodes).validate_chain()
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Implements WorkflowProto.to_dict()"""
         return {
             "nodes": [n.dict() for n in self.nodes.values()],
