@@ -95,6 +95,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from ice_core.services.tool_service import ToolService
     app.state.tool_service = ToolService()  # type: ignore[attr-defined]
 
+    # In-memory stores for blueprints and execution results (demo profile)
+    app.state.blueprints = {}
+    app.state.executions = {}
+
     # Load API keys from environment
     api_keys_to_load: dict[str, bool] = {
         "OPENAI_API_KEY": False,
@@ -159,6 +163,10 @@ add_exception_handlers(app)
 
 # Include routers
 app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
+
+from ice_api.api.blueprints import router as blueprint_router  # ensure module import
+app.include_router(blueprint_router, prefix="", tags=["blueprints"])
+
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
 
 # ------------------------------------------------------------------
