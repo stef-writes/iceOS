@@ -1,8 +1,8 @@
-from typing import Any, Dict, Type
+from typing import Any, Dict, Mapping, Type
 
 from pydantic import BaseModel, ValidationError
 
-__all__ = ["coerce_value", "coerce_types"]
+__all__ = ["coerce_value", "coerce_types", "schema_match"]
 
 def coerce_value(value: Any, target_type: Type[Any]) -> Any:
     try:
@@ -75,3 +75,21 @@ def coerce_types(output: Dict[str, Any], schema: Any) -> Dict[str, Any]:
     if errors:
         raise ValueError(f"Type coercion errors: {errors}")
     return coerced
+
+
+def schema_match(
+    source_schema: Mapping[str, Any], target_schema: Mapping[str, Any]
+) -> bool:
+    """Check if source schema is compatible with target schema.
+    
+    This is a simplified compatibility check that verifies basic type matching.
+    Used by the runtime for context type resolution.
+    
+    Args:
+        source_schema: The schema of available data
+        target_schema: The schema required by consumer
+        
+    Returns:
+        True if schemas are compatible, False otherwise
+    """
+    return source_schema.get("type") == target_schema.get("type")

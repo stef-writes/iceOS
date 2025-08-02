@@ -54,7 +54,7 @@ from pydantic import BaseModel, Field, ValidationError
 # Structured logging
 logger = logging.getLogger(__name__)
 
-from ice_sdk.services import ServiceLocator
+from ice_core.services import ServiceLocator
 
 # ---------------------------------------------------------------------------
 # Manifest models – deliberately forgiving (extra allowed)                   

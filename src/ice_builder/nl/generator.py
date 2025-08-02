@@ -13,11 +13,11 @@ NEW (2025-07):
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import List
 
+from ice_core.models.enums import NodeType
 from ice_core.models.mcp import PartialBlueprint, PartialNodeSpec
 from ice_core.unified_registry import registry
-from ice_core.models.enums import NodeType
 
 __all__: list[str] = [
     "create_partial_blueprint",
@@ -55,7 +55,7 @@ def append_tool_node(
     # ------------------------------------------------------------------
     try:
         tool_instance = registry.get_tool(tool_name)
-    except Exception as exc:  # noqa: BLE001 – propagate as validation error downstream
+    except Exception:  # noqa: BLE001 – propagate as validation error downstream
         # Add a stub node so incremental validation surfaces the missing tool.
         blueprint.add_node(
             PartialNodeSpec(
@@ -72,16 +72,15 @@ def append_tool_node(
 
     # Try to get input schema, fall back to empty dict if not available
     try:
-        input_schema = tool_instance.input_schema
+        input_schema = tool_instance.input_schema  # type: ignore[attr-defined]
     except AttributeError:
-        # Fall back to class method if property doesn't exist
         try:
-            input_schema = tool_instance.__class__.get_input_schema()
+            input_schema = tool_instance.__class__.get_input_schema()  # type: ignore[attr-defined]
         except AttributeError:
             input_schema = {"type": "object", "properties": {}}
 
     # Create node with extra fields (allowed by model_config={"extra": "allow"})
-    node = PartialNodeSpec(
+    node = PartialNodeSpec(  # type: ignore[call-arg]
         id=node_id,
         type=NodeType.TOOL.value,
         dependencies=dependencies,

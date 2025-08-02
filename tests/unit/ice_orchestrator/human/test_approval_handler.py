@@ -1,8 +1,9 @@
 import asyncio
+
 import pytest
 
-from ice_orchestrator.human.approval import ApprovalHandler, ApprovalResult
 from ice_core.models.node_models import HumanNodeConfig
+from ice_orchestrator.human.approval import ApprovalHandler, ApprovalResult
 
 pytestmark = pytest.mark.asyncio
 

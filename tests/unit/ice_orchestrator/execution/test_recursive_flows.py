@@ -3,12 +3,14 @@
 Tests the new recursive node type that enables agent conversations until convergence.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from ice_core.models import RecursiveNodeConfig, NodeExecutionResult, NodeMetadata
+
+import pytest
+
+from ice_builder.dsl.workflow import WorkflowBuilder
+from ice_core.models import NodeExecutionResult, NodeMetadata, RecursiveNodeConfig
 from ice_orchestrator.execution.executors.unified import recursive_executor
 from ice_orchestrator.workflow import Workflow
-from ice_builder.dsl.workflow import WorkflowBuilder
 
 
 @pytest.fixture
@@ -218,7 +220,7 @@ class TestWorkflowRecursiveExecution:
         """Test that cycle detection allows properly configured recursive cycles."""
         from ice_core.graph.dependency_graph import DependencyGraph
         from ice_core.models import AgentNodeConfig
-        
+
         # Create nodes with a recursive cycle
         buyer = AgentNodeConfig(id="buyer", type="agent", package="test.buyer")
         seller = AgentNodeConfig(id="seller", type="agent", package="test.seller") 
@@ -242,10 +244,10 @@ class TestWorkflowRecursiveExecution:
     
     def test_cycle_detection_blocks_invalid_cycles(self):
         """Test that cycle detection blocks improperly configured cycles."""
-        from ice_core.graph.dependency_graph import DependencyGraph
         from ice_core.exceptions import CycleDetectionError as CircularDependencyError
+        from ice_core.graph.dependency_graph import DependencyGraph
         from ice_core.models import AgentNodeConfig
-        
+
         # Create nodes with an invalid cycle (no recursive node)
         buyer = AgentNodeConfig(id="buyer", type="agent", package="test.buyer")
         seller = AgentNodeConfig(id="seller", type="agent", package="test.seller", dependencies=["buyer"])

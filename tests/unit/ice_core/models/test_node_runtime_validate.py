@@ -1,7 +1,7 @@
 import pytest
 
-from ice_core.models.node_models import LLMOperatorConfig, ToolNodeConfig, LLMConfig
 from ice_core.models.enums import ModelProvider
+from ice_core.models.node_models import LLMConfig, LLMOperatorConfig, ToolNodeConfig
 
 pytestmark = [pytest.mark.unit]
 

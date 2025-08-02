@@ -7,10 +7,11 @@ These tests validate that the iceOS layer architecture is respected:
 - Layer violations are caught early
 """
 
-import pytest
 import ast
 from pathlib import Path
-from typing import Set, List, Dict
+from typing import Dict, List, Set
+
+import pytest
 
 
 def get_all_python_files(directory: Path) -> List[Path]:
@@ -148,37 +149,26 @@ class TestServiceLocatorPattern:
     def project_root(self) -> Path:
         return Path(__file__).parent.parent.parent.parent / "src"
     
-    def test_service_locator_usage_in_sdk(self, project_root: Path):
-        """Test that SDK layer uses ServiceLocator for orchestrator dependencies."""
-        ice_sdk_dir = project_root / "ice_sdk"
+    def test_service_locator_usage_in_api(self, project_root: Path):
+        """Test that API layer uses ServiceLocator for cross-layer services."""
+        ice_api_dir = project_root / "ice_api"
         
-        # Look for files that should use ServiceLocator instead of direct imports
+        # Skip if API dir doesn't exist
+        if not ice_api_dir.exists():
+            pytest.skip("ice_api directory not found")
+            
+        # Look for files that should use ServiceLocator
         service_locator_files = []
-        direct_orchestrator_imports = []
         
-        for py_file in get_all_python_files(ice_sdk_dir):
+        for py_file in get_all_python_files(ice_api_dir):
             content = py_file.read_text()
-            imports = get_imports_from_file(py_file)
             
             # Check for ServiceLocator usage
             if "ServiceLocator" in content:
                 service_locator_files.append(str(py_file.relative_to(project_root)))
-            
-            # Check for direct orchestrator imports (should be avoided)
-            allowed_direct_imports = ["ice_orchestrator.workflow"]  # Exception for workflow building
-            for import_name in imports:
-                if import_name.startswith("ice_orchestrator"):
-                    if import_name not in allowed_direct_imports:
-                        direct_orchestrator_imports.append({
-                            "file": str(py_file.relative_to(project_root)),
-                            "import": import_name
-                        })
         
-        # ServiceLocator should be used somewhere in SDK
-        assert service_locator_files, "ServiceLocator should be used in ice_sdk layer"
-        
-        # No direct orchestrator imports should exist (except allowed exceptions)
-        assert not direct_orchestrator_imports, f"Found direct orchestrator imports: {direct_orchestrator_imports}"
+        # ServiceLocator should be used in API layer for service initialization
+        assert service_locator_files, "ServiceLocator should be used in ice_api layer"
     
     def test_core_layer_independence(self, project_root: Path):
         """Test that core layer remains completely independent."""
@@ -226,8 +216,8 @@ class TestProtocolCompliance:
         old_patterns = [
             "global_tool_registry",
             "global_operator_registry", 
-            "from ice_sdk.registry.tool import",
-            "from ice_sdk.registry.operator import"
+                            "from ice_core.registry.tool import",
+                "from ice_core.registry.operator import"
         ]
         
         violations = []

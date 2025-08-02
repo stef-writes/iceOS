@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import grpc
 
-from ice_sdk.services.network_service import NetworkService
+from ice_core.services.network_service import NetworkService
 
 if TYPE_CHECKING:
     # Real generated modules are only available in a fully generated env.

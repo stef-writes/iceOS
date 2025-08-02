@@ -5,6 +5,7 @@ not the implementation details of the security sandbox.
 """
 
 import pytest
+
 from ice_orchestrator.execution.wasm_executor import WasmExecutor
 
 pytestmark = [pytest.mark.unit]

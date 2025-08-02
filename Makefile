@@ -45,7 +45,7 @@ format:
 # Type checking
 type:
 	# Strict type checking for modernised layers (app + core)
-	poetry run mypy --strict --config-file config/typing/mypy.ini src/ice_api src/ice_core src/ice_sdk
+	poetry run mypy --strict --config-file config/typing/mypy.ini src/ice_api src/ice_core src/ice_builder src/ice_client
 	poetry run mypy --strict --config-file config/typing/mypy.ini src/ice_orchestrator
 	poetry run mypy --strict --config-file config/typing/mypy.ini src/frosty
 

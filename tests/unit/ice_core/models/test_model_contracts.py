@@ -10,11 +10,8 @@ When these tests fail, it means our documentation is wrong, not the models!
 import pytest
 from pydantic import ValidationError
 
-from ice_core.models import (
-    LLMOperatorConfig,
-    AgentNodeConfig,
-    ModelProvider
-)
+from ice_core.models import AgentNodeConfig, LLMOperatorConfig, ModelProvider
+
 # Import the LLMConfig that LLMOperatorConfig actually uses
 from ice_core.models.node_models import LLMConfig
 
@@ -79,7 +76,7 @@ class TestAgentNodeConfigContract:
         config = AgentNodeConfig(
             id="agent1",
             type="agent", 
-            package="ice_sdk.agents.example.ExampleAgent",  # NOT agent_ref!
+            package="ice_orchestrator.agent.ExampleAgent",  # NOT agent_ref!
             tools=[],
             max_iterations=10
         )

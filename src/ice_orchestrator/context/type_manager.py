@@ -1,6 +1,6 @@
 from typing import Any, Dict, Mapping
 
-from ice_sdk.utils.coercion import schema_match  # From untracked files
+from ice_core.utils.coercion import schema_match
 
 
 class ContextTypeManager:

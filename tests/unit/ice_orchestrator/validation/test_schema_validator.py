@@ -1,8 +1,8 @@
 import pytest
 
-from ice_core.validation.schema_validator import SchemaValidator
-from ice_core.models.node_models import ToolNodeConfig, LLMOperatorConfig, LLMConfig
 from ice_core.models.enums import ModelProvider
+from ice_core.models.node_models import LLMConfig, LLMOperatorConfig, ToolNodeConfig
+from ice_core.validation.schema_validator import SchemaValidator
 
 pytestmark = [pytest.mark.unit]
 

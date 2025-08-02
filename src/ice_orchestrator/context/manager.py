@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from ice_core.base_tool import ToolBase
 from ice_core.models.enums import NodeType
-from ice_sdk.services import ServiceLocator  # new
+from ice_core.services import ServiceLocator  # new
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter

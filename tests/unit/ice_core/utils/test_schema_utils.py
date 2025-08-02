@@ -1,6 +1,6 @@
 import pytest
 
-from ice_core.utils.schema import parse_type_literal, is_valid_schema_dict
+from ice_core.utils.schema import is_valid_schema_dict, parse_type_literal
 
 pytestmark = [pytest.mark.unit]
 

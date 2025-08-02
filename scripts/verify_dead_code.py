@@ -10,10 +10,11 @@ This script performs multiple checks:
 """
 
 import ast
+import json
 import re
 from pathlib import Path
 from typing import Dict, List
-import json
+
 
 class DeadCodeVerifier:
     def __init__(self, root_path: Path):

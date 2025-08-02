@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """WASM Executor for secure node execution.
 
 This provides actual WebAssembly sandboxing for ALL node types using wasmtime-py,

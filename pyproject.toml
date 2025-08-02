@@ -12,12 +12,13 @@ readme = "README.md"
 
 # Tell Poetry we use src/ layout and enumerate the top-level packages.
 packages = [
-  { include = "ice_sdk", from = "src" },
+
   { include = "ice_orchestrator", from = "src" },
   { include = "ice_cli", from = "src" },
   { include = "ice_api", from = "src" },
   { include = "ice_core", from = "src" },
-  { include = "ice_builder", from = "src" }
+  { include = "ice_builder", from = "src" },
+  { include = "ice_client", from = "src" }
 ]
 
 # Include non-Python assets (JSON templates & default context store)

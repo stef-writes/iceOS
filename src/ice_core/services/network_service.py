@@ -12,7 +12,7 @@ layer boundaries.
 from pathlib import Path
 from typing import Any, Dict, List
 
-from ice_sdk.services.locator import ServiceLocator
+from ice_core.services import ServiceLocator
 
 __all__ = ["NetworkService"]
 

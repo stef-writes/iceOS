@@ -281,7 +281,9 @@ class WorkflowBuilder:
         
         This method uses dependency injection to avoid direct imports.
         """
-        from ice_sdk.services.locator import get_workflow_proto
+        from ice_core.services import ServiceLocator
+
+        get_workflow_proto = ServiceLocator.get("workflow_proto")
         
         workflow_cls = get_workflow_proto()
         return workflow_cls(

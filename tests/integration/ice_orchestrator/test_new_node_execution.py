@@ -1,11 +1,19 @@
 """Integration tests for new Phase 2 node executors."""
 
-import pytest
 from unittest.mock import MagicMock
 
-from ice_core.models import SwarmNodeConfig, HumanNodeConfig, MonitorNodeConfig, AgentSpec
+import pytest
+
+from ice_core.models import (
+    AgentSpec,
+    HumanNodeConfig,
+    MonitorNodeConfig,
+    SwarmNodeConfig,
+)
 from ice_orchestrator.execution.executors.unified import (
-    swarm_executor, human_executor, monitor_executor
+    human_executor,
+    monitor_executor,
+    swarm_executor,
 )
 from ice_orchestrator.workflow import Workflow
 

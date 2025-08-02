@@ -31,8 +31,8 @@ from pydantic import BaseModel, ValidationInfo, field_validator
 
 from ice_core.models import NodeType
 from ice_core.models.mcp import Blueprint, NodeSpec, RunRequest
+from ice_core.services import ServiceLocator
 from ice_core.unified_registry import global_agent_registry, registry
-from ice_sdk.services.locator import ServiceLocator
 
 from .mcp import get_result, start_run
 
@@ -374,7 +374,7 @@ async def handle_network_execute(params: Dict[str, Any]) -> Dict[str, Any]:
     logger.info("[MCP] network.execute", extra={"manifest": manifest_path, "scheduled": scheduled})
 
     # Lazy import to avoid circular deps at module import time
-    from ice_sdk.services.network_service import NetworkService
+    from ice_core.services.network_service import NetworkService
 
     svc = NetworkService()
     if scheduled:

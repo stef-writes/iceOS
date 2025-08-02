@@ -59,12 +59,16 @@ class ToolBase(BaseModel, ABC):
         still override the method but should call ``super()._validate_inputs``
         first so the JSON-Schema check remains in effect.
         """
-        from ice_core.validation.input_validator import validate_tool_inputs  # local import to avoid cycles
+        from ice_core.validation.input_validator import (
+            validate_tool_inputs,  # local import to avoid cycles
+        )
 
         schema = self.get_input_schema()
         ok, errors, _ = validate_tool_inputs(schema, inputs)
         if not ok:
-            from ice_core.exceptions import ValidationError as IceValidationError  # type: ignore
+            from ice_core.exceptions import (
+                ValidationError as IceValidationError,  # type: ignore
+            )
 
             raise IceValidationError(
                 f"Input validation failed for tool '{self.name}': " + "; ".join(errors)
@@ -78,7 +82,9 @@ class ToolBase(BaseModel, ABC):
         if schema:
             ok, errors, _ = validate_with_schema(outputs, schema)
             if not ok:
-                from ice_core.exceptions import ValidationError as IceValidationError  # type: ignore
+                from ice_core.exceptions import (
+                    ValidationError as IceValidationError,  # type: ignore
+                )
 
                 raise IceValidationError(
                     f"Output validation failed for tool '{self.name}': " + "; ".join(errors)
@@ -92,7 +98,7 @@ class ToolBase(BaseModel, ABC):
     def _signature_properties_and_required(cls) -> tuple[Dict[str, Any], list[str]]:
         """Introspect `_execute_impl` and convert parameters to JSON-Schema props."""
         import inspect
-        from typing import Any, get_origin, get_args, Union
+        from typing import Union, get_args, get_origin
 
         def annotation_to_schema(annotation: Any) -> Dict[str, Any]:
             """Map Python type annotations to minimal JSON-Schema fragments."""

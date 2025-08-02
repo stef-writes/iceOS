@@ -31,7 +31,7 @@ class WorkflowService(IWorkflowService):
     def __init__(self) -> None:
         """Initialize the workflow service."""
         # Use context manager from ServiceLocator if available, otherwise create new one
-        from ice_sdk.services.locator import ServiceLocator
+        from ice_core.services import ServiceLocator
         self._context_manager = ServiceLocator.get("context_manager")
         if self._context_manager is None:
             self._context_manager = GraphContextManager()

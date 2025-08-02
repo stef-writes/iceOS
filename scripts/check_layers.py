@@ -21,12 +21,12 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 ALLOWED_DEPENDENCIES: dict[str, list[str]] = {
-    "ice_cli": ["ice_core"],
-    "ice_api": ["ice_core", "ice_sdk"],  # API can use SDK helpers like ServiceLocator
-    "ice_sdk": ["ice_core"],
-    "ice_builder": ["ice_core", "ice_sdk"],  # Builder can use SDK helpers like ToolBase
-    "ice_orchestrator": ["ice_core", "ice_sdk"],
-    "ice_core": [],  # Foundation layer
+    "ice_cli": ["ice_core", "ice_client", "ice_orchestrator"],  # CLI needs client for remote, orchestrator for local
+    "ice_api": ["ice_core", "ice_orchestrator"],  # API delegates to orchestrator
+    "ice_client": ["ice_core"],  # Client only needs core models
+    "ice_builder": ["ice_core"],  # Builder creates structures using core models
+    "ice_orchestrator": ["ice_core"],  # Runtime ONLY depends on core - must be standalone!
+    "ice_core": [],  # Foundation layer - no external dependencies
 }
 
 

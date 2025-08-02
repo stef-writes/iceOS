@@ -8,10 +8,11 @@ This script:
 4. Generates a migration guide
 """
 
-import shutil
-from pathlib import Path
-from datetime import datetime
 import json
+import shutil
+from datetime import datetime
+from pathlib import Path
+
 
 class CodeArchiver:
     def __init__(self, root_path: Path):

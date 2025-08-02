@@ -26,6 +26,7 @@ def initialize_orchestrator() -> None:
     from pathlib import Path
 
     from ice_core.llm.service import LLMService
+    from ice_core.services import ServiceLocator
     from ice_orchestrator.context import GraphContextManager
     from ice_orchestrator.services.network_coordinator import NetworkCoordinator
     from ice_orchestrator.services.task_manager import NetworkTaskManager
@@ -35,7 +36,6 @@ def initialize_orchestrator() -> None:
     )
     from ice_orchestrator.services.workflow_service import WorkflowService
     from ice_orchestrator.workflow import Workflow
-    from ice_sdk.services import ServiceLocator
     project_root = Path(os.getcwd())
     ServiceLocator.register("context_manager", GraphContextManager(project_root=project_root))
     
@@ -51,7 +51,7 @@ def initialize_orchestrator() -> None:
     ServiceLocator.register("network_task_manager", NetworkTaskManager())
     
     # Register tool service wrapper
-    from ice_sdk.services.tool_service import ToolService
+    from ice_core.services.tool_service import ToolService
     ServiceLocator.register("tool_service", ToolService())
     
     # Import executor modules to register them with the execution system
@@ -59,17 +59,6 @@ def initialize_orchestrator() -> None:
     import ice_orchestrator.execution.executors.unified  # noqa: F401
 
     # ------------------------------------------------------------------
-    # ALWAYS-ON built-in tools & agents (core library) ------------------
+    # Built-in tools will be loaded via toolkits once implemented.
     # ------------------------------------------------------------------
-    # Importing these modules registers their tools via @tool decorators
-    # or explicit registry calls.  Keep this at the end so that the
-    # ServiceLocator and registry infrastructure is already ready.
-    try:
-        import ice_sdk.tools.ai  # noqa: F401
-        import ice_sdk.tools.core  # noqa: F401
-        import ice_sdk.tools.db  # noqa: F401
-        import ice_sdk.tools.system  # noqa: F401
-        import ice_sdk.tools.web  # noqa: F401
-    except ImportError:
-        # If a category is missing we simply skip it.
-        pass
+    # (No built-in tool packages shipped yet – placeholder for future.)

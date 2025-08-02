@@ -4,6 +4,7 @@ These tests validate that schema validation works for the patterns we actually u
 in our successful enhanced Facebook Marketplace automation demo.
 """
 import pytest
+
 from ice_core.utils.schema import is_valid_schema_dict
 
 
@@ -100,7 +101,7 @@ class TestWorkingNodeConfigPatterns:
     def test_tool_node_config_validation(self):
         """Test ToolNodeConfig patterns from our working demo."""
         from ice_core.models.node_models import ToolNodeConfig
-        
+
         # This pattern works in our enhanced_blueprint_demo.py
         try:
             config = ToolNodeConfig(
@@ -119,7 +120,7 @@ class TestWorkingNodeConfigPatterns:
     def test_agent_node_config_validation(self):
         """Test AgentNodeConfig patterns from our working demo."""
         from ice_core.models.node_models import AgentNodeConfig, ToolConfig
-        
+
         # This pattern works in our enhanced_blueprint_demo.py
         try:
             config = AgentNodeConfig(

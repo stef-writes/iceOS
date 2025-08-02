@@ -19,21 +19,8 @@ def initialize_sdk() -> None:
     import os
     profile = os.getenv("ICEOS_PROFILE", "dev")
 
-    if profile == "dev":
-        # In dev mode import all SDK tool packages for convenience
-        try:
-            import ice_sdk.tools.ai
-            import ice_sdk.tools.core
-            import ice_sdk.tools.db
-            import ice_sdk.tools.system
-            import ice_sdk.tools.web
-        except ImportError:
-            pass  # Best effort
+    # No concrete tool packages yet – will be imported automatically once toolkits are implemented.
     
-    # Import agent utilities to ensure they're available
-    try:
-        import ice_sdk.agents.utils
-    except ImportError:
-        pass
+    # TODO: remove this stub once first-party toolkits are available.
     
     # That's it! All runtime services are in orchestrator 

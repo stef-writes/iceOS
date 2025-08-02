@@ -82,11 +82,17 @@ class Registry(BaseModel):
         # Validate before registration if requested
         if validate and node_type == NodeType.TOOL:
             # Basic validation - check if instance has required methods
+            from ice_core.base_tool import ToolBase
+
+            # Ensure the instance is a ToolBase subclass
+            if not isinstance(instance, ToolBase):
+                raise RegistryError(
+                    f"Tool '{name}' must subclass ice_core.base_tool.ToolBase"
+                )
             if not hasattr(instance, '_execute_impl'):
                 raise RegistryError(
                     f"Tool '{name}' must implement _execute_impl method"
                 )
-            
             # Check for required attributes
             if not hasattr(instance, 'name'):
                 raise RegistryError(

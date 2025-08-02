@@ -8,7 +8,7 @@ This is kept in SDK as a development utility for creating agent configurations.
 
 from __future__ import annotations
 
-from ice_core.models import AgentNodeConfig, LLMConfig, ModelProvider
+from ice_core.models import AgentNodeConfig, LLMConfig, ModelProvider, ToolConfig
 
 __all__ = ["AgentFactory"]
 
@@ -54,9 +54,12 @@ class AgentFactory:
             max_tokens=cls.DEFAULT_MAX_TOKENS,
         )
 
-        return AgentNodeConfig(
+        return AgentNodeConfig(  # type: ignore[call-arg]
+            id=f"agent_{id(system_prompt)}",  # Generate unique ID
+            type="agent",
+            package="ice_orchestrator.agent.base.BaseAgent",  # Default agent package
             llm_config=llm_config,
-            system_prompt=system_prompt,
-            tools=tools or [],
-            max_retries=max_retries,
+            agent_config={"system_prompt": system_prompt} if system_prompt else {},
+            tools=[ToolConfig(name=tool, parameters={}) for tool in (tools or [])],  # type: ignore[arg-type]
+            retries=max_retries,
         )

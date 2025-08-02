@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from ice_sdk.services.locator import ServiceLocator
+from ice_core.services import ServiceLocator
 
 
 class ToolService:  # pylint: disable=too-few-public-methods

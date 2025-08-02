@@ -1,20 +1,25 @@
 from typing import Any, Dict, Optional
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from ice_core.models.node_models import (
-    LLMOperatorConfig,
-    ToolNodeConfig,
-    LLMConfig,
-    AgentNodeConfig,
-    WorkflowNodeConfig,
-    ParallelNodeConfig,
-    CodeNodeConfig,
-)
 from ice_core.models.enums import ModelProvider
+from ice_core.models.node_models import (
+    AgentNodeConfig,
+    CodeNodeConfig,
+    LLMConfig,
+    LLMOperatorConfig,
+    ParallelNodeConfig,
+    ToolNodeConfig,
+    WorkflowNodeConfig,
+)
 from ice_orchestrator.execution.executors.unified import (
-    llm_executor, tool_executor, agent_executor, workflow_executor, parallel_executor, code_executor
+    agent_executor,
+    code_executor,
+    llm_executor,
+    parallel_executor,
+    tool_executor,
+    workflow_executor,
 )
 
 pytestmark = [pytest.mark.unit]
@@ -75,15 +80,15 @@ async def test_llm_executor_stubbed(monkeypatch):
 @pytest.mark.asyncio
 async def test_tool_executor_placeholder(monkeypatch):
     # For the protocol-based executor, we need to mock the registry
-    from ice_core.unified_registry import registry
     from ice_core.models import NodeType
-    
+    from ice_core.unified_registry import registry
+
     # Create a mock tool
     mock_tool = Mock()
     mock_tool.execute = AsyncMock(return_value={"echoed": "bar"})
     
     # Register the mock tool
-    registry.register_instance(NodeType.TOOL, "echo_tool", mock_tool)
+    registry.register_instance(NodeType.TOOL, "echo_tool", mock_tool, validate=False)
     
     cfg = ToolNodeConfig(
         id="tool1",
@@ -113,9 +118,9 @@ async def test_tool_executor_placeholder(monkeypatch):
 @pytest.mark.asyncio
 async def test_agent_executor():
     """Test agent executor with mock agent."""
-    from ice_core.unified_registry import registry
     from ice_core.models import NodeType
-    
+    from ice_core.unified_registry import registry
+
     # Create a mock agent
     mock_agent = Mock()
     mock_agent.execute = AsyncMock(return_value={"response": "Agent executed"})
@@ -149,9 +154,9 @@ async def test_agent_executor():
 @pytest.mark.asyncio
 async def test_workflow_executor():
     """Test workflow executor with mock sub-workflow."""
-    from ice_core.unified_registry import registry
     from ice_core.models import NodeType
-    
+    from ice_core.unified_registry import registry
+
     # Create a mock workflow
     mock_workflow = Mock()
     mock_workflow.execute = AsyncMock(return_value={"workflow_result": "completed"})

@@ -110,6 +110,85 @@ def network_run(manifest_path: str, scheduled: bool) -> None:  # noqa: D401
 
     subprocess.run(cmd, check=True)
 
+# ---------------------------------------------------------------------------
+# Blueprint commands ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@cli.command("run-blueprint")
+@click.argument("blueprint_path", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--remote",
+    "remote_url",
+    metavar="URL",
+    default=None,
+    help="Execute via remote orchestrator REST API instead of local runtime.",
+)
+@click.option(
+    "--max-parallel",
+    type=int,
+    default=5,
+    help="Maximum node parallelism (forwarded to orchestrator).",
+)
+def run_blueprint(blueprint_path: str, remote_url: str | None, max_parallel: int) -> None:  # noqa: D401
+    """Execute *BLUEPRINT_PATH* locally or against a remote orchestrator.
+
+    Examples
+    --------
+    Local runtime (no orchestrator container needed)::
+
+        ice run-blueprint my_bp.json
+
+    Remote execution via REST API::
+
+        ice run-blueprint my_bp.json --remote https://api.iceos.dev
+    """
+
+    import json
+    import pathlib
+    import sys
+
+    import click
+    from pydantic import ValidationError
+
+    if remote_url:
+        # --- Remote execution via IceClient ---------------------------------
+        from ice_client import IceClient
+        from ice_core.models.mcp import Blueprint
+
+        path = pathlib.Path(blueprint_path)
+        data = json.loads(path.read_text())
+        try:
+            bp = Blueprint(**data)
+        except ValidationError as exc:
+            click.echo(f"❌ Invalid blueprint: {exc}", err=True)
+            sys.exit(1)
+
+        async def _remote() -> None:  # noqa: D401
+            async with IceClient(remote_url) as client:
+                ack = await client.submit_blueprint(bp, max_parallel=max_parallel)
+                click.echo(f"🏃‍♂️ Run ID: {ack.run_id} (submitted)")
+                async for event in client.stream_events(ack.run_id):
+                    click.echo(json.dumps(event))
+                result = await client.wait_for_completion(ack.run_id)
+                click.echo("✅ Execution finished – result:")
+                click.echo(json.dumps(result.model_dump(mode="json"), indent=2))
+
+        _safe_run(_remote())
+    else:
+        # --- Local execution via runtime CLI --------------------------------
+        cmd = [
+            sys.executable,
+            "-m",
+            "ice_orchestrator.cli",
+            "blueprint",
+            "run",
+            blueprint_path,
+            "--max-parallel",
+            str(max_parallel),
+        ]
+        subprocess.run(cmd, check=True)
+
 # Alias for Poetry entrypoint -------------------------------------------------
 app = cli  # For backward compatibility with pyproject.toml script entry
 

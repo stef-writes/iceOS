@@ -52,9 +52,9 @@ from ice_core.models.mcp import (
     RunRequest,
     RunResult,
 )
+from ice_core.services import ServiceLocator
 from ice_core.services.contracts import IWorkflowService
 from ice_core.unified_registry import global_agent_registry, registry
-from ice_sdk.services.locator import ServiceLocator
 
 # Import execution guard to allow orchestrator runtime during MCP execution
 
@@ -114,29 +114,29 @@ async def create_blueprint(bp: Blueprint) -> BlueprintAck:
         validation_context["validation_errors"].append(str(exc))
         raise HTTPException(400, detail=str(exc))
 
-    # Generate blueprint visualization if tool is available
+    # TODO: Re-enable blueprint visualization when toolkit is implemented
     visualization_data = None
-    try:
-        from ice_sdk.tools.builtin.blueprint_visualization_tool import (
-            BlueprintVisualizationTool,
-        )
-        from ice_sdk.tools.builtin.config import is_tool_enabled
-        
-        if is_tool_enabled("blueprint_visualization"):
-            viz_tool = BlueprintVisualizationTool()
-            visualization_result = await viz_tool.execute(
-                blueprint=bp,
-                diagram_types=["dependency_graph", "workflow_flowchart", "validation_diagram"],
-                validation_context=validation_context
-            )
-            
-            if visualization_result.get("status") == "success":
-                visualization_data = visualization_result
-                logger.info("Generated blueprint visualization for %s", bp.blueprint_id)
-    except Exception as ve:
-        # Don't fail blueprint creation if visualization fails
-        logger.warning("Failed to generate blueprint visualization: %s", str(ve))
-        validation_context["warnings"].append(f"Visualization generation failed: {str(ve)}")
+    # try:
+    #     from ice_tools.builtin.blueprint_visualization_tool import (
+    #         BlueprintVisualizationTool,
+    #     )
+    #     from ice_tools.builtin.config import is_tool_enabled
+    #     
+    #     if is_tool_enabled("blueprint_visualization"):
+    #         viz_tool = BlueprintVisualizationTool()
+    #         visualization_result = await viz_tool.execute(
+    #             blueprint=bp,
+    #             diagram_types=["dependency_graph", "workflow_flowchart", "validation_diagram"],
+    #             validation_context=validation_context
+    #         )
+    #         
+    #         if visualization_result.get("status") == "success":
+    #             visualization_data = visualization_result
+    #             logger.info("Generated blueprint visualization for %s", bp.blueprint_id)
+    # except Exception as ve:
+    #     # Don't fail blueprint creation if visualization fails
+    #     logger.warning("Failed to generate blueprint visualization: %s", str(ve))
+    #     validation_context["warnings"].append(f"Visualization generation failed: {str(ve)}")
 
     redis = get_redis()
     blueprint_data = {"json": bp.model_dump_json()}
@@ -186,36 +186,38 @@ async def get_blueprint_visualization(blueprint_id: str) -> Dict[str, Any]:
             logger.warning("Failed to parse visualization data for blueprint %s", blueprint_id)
             raise HTTPException(500, detail="Invalid visualization data")
     
-    # Generate visualization on-demand if not cached
-    try:
-        blueprint = Blueprint.model_validate_json(blueprint_data["json"])
-        
-        from ice_sdk.tools.builtin.blueprint_visualization_tool import (
-            BlueprintVisualizationTool,
-        )
-        from ice_sdk.tools.builtin.config import is_tool_enabled
-        
-        if not is_tool_enabled("blueprint_visualization"):
-            raise HTTPException(503, detail="Blueprint visualization tool is not enabled")
-        
-        viz_tool = BlueprintVisualizationTool()
-        visualization_result = await viz_tool.execute(
-            blueprint=blueprint,
-            diagram_types=["dependency_graph", "workflow_flowchart", "config_overview", "validation_diagram"]
-        )
-        
-        if visualization_result.get("status") == "success":
-            # Cache the result for future requests
-            await redis.hset(_bp_key(blueprint_id), "visualization", json.dumps(visualization_result))
-            return visualization_result
-        else:
-            raise HTTPException(500, detail=f"Visualization generation failed: {visualization_result.get('error', 'Unknown error')}")
-            
-    except ImportError:
-        raise HTTPException(503, detail="Blueprint visualization tool is not available")
-    except Exception as e:
-        logger.error("Failed to generate visualization for blueprint %s: %s", blueprint_id, str(e))
-        raise HTTPException(500, detail=f"Visualization generation failed: {str(e)}")
+    # TODO: Re-enable visualization on-demand when toolkit is implemented
+    raise HTTPException(501, detail="Blueprint visualization not yet implemented")
+    
+    # try:
+    #     blueprint = Blueprint.model_validate_json(blueprint_data["json"])
+    #     
+    #     from ice_tools.builtin.blueprint_visualization_tool import (
+    #         BlueprintVisualizationTool,
+    #     )
+    #     from ice_tools.builtin.config import is_tool_enabled
+    #     
+    #     if not is_tool_enabled("blueprint_visualization"):
+    #         raise HTTPException(503, detail="Blueprint visualization tool is not enabled")
+    #     
+    #     viz_tool = BlueprintVisualizationTool()
+    #     visualization_result = await viz_tool.execute(
+    #         blueprint=blueprint,
+    #         diagram_types=["dependency_graph", "workflow_flowchart", "config_overview", "validation_diagram"]
+    #     )
+    #     
+    #     if visualization_result.get("status") == "success":
+    #         # Cache the result for future requests
+    #         await redis.hset(_bp_key(blueprint_id), "visualization", json.dumps(visualization_result))
+    #         return visualization_result
+    #     else:
+    #         raise HTTPException(500, detail=f"Visualization generation failed: {visualization_result.get('error', 'Unknown error')}")
+    #         
+    # except ImportError:
+    #     raise HTTPException(503, detail="Blueprint visualization tool is not available")
+    # except Exception as e:
+    #     logger.error("Failed to generate visualization for blueprint %s: %s", blueprint_id, str(e))
+    #     raise HTTPException(500, detail=f"Visualization generation failed: {str(e)}")
 
 # ---------------------------------------------------------------------------
 # Partial Blueprint Routes (Incremental Construction) -----------------------

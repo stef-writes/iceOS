@@ -8,13 +8,17 @@ This test suite validates:
 5. Performance tracking and data transfer analytics
 """
 
-from typing import Any, List
 from datetime import datetime
+from typing import Any, List
 
-from ice_core.models.node_models import ToolNodeConfig, LLMOperatorConfig, AgentNodeConfig
+from ice_core.graph.dependency_graph import DependencyGraph
 from ice_core.models.llm import LLMConfig
 from ice_core.models.node_metadata import NodeMetadata
-from ice_core.graph.dependency_graph import DependencyGraph
+from ice_core.models.node_models import (
+    AgentNodeConfig,
+    LLMOperatorConfig,
+    ToolNodeConfig,
+)
 
 
 class TestEnhancedNetworkXUtilization:
@@ -423,7 +427,7 @@ class TestEnhancedNetworkXUtilization:
     def test_performance_characteristics(self):
         """Test that enhanced NetworkX operations are performant."""
         import time
-        
+
         # Create larger graph for performance testing
         large_nodes = []
         for i in range(100):

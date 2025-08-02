@@ -6,7 +6,8 @@ from typing import Optional
 
 from ice_core.models.enums import NodeType
 from ice_core.toolkits.base import BaseToolkit
-from ice_core.unified_registry import Registry as _Registry, registry as _global_registry
+from ice_core.unified_registry import Registry as _Registry
+from ice_core.unified_registry import registry as _global_registry
 
 __all__: list[str] = [
     "register_toolkit",
@@ -42,7 +43,6 @@ def register_toolkit(
         Number of tools registered.
     """
 
-    from ice_core.unified_registry import Registry as _Registry  # local import for type checking
 
     if validate:
         toolkit.validate()

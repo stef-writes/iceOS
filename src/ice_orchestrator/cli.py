@@ -49,6 +49,60 @@ def cli() -> None:
     """Runtime-level commands (execute validated manifests)."""
 
 # ---------------------------------------------------------------------------
+# Blueprint commands ---------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+@cli.group()
+def blueprint() -> None:
+    """Operations for individual blueprints."""
+
+
+@blueprint.command("run")
+@click.argument("blueprint_path", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--max-parallel",
+    type=int,
+    default=5,
+    help="Maximum node parallelism during execution.",
+)
+def blueprint_run(blueprint_path: str, max_parallel: int) -> None:  # noqa: D401
+    """Execute *BLUEPRINT_PATH* locally using the orchestrator runtime."""
+
+    import json
+
+    import yaml
+    from pydantic import ValidationError
+
+    from ice_core.models.mcp import Blueprint as MCPBlueprint
+    from ice_orchestrator.services.workflow_execution_service import (
+        WorkflowExecutionService,
+    )
+
+    initialize_orchestrator()
+
+    path = Path(blueprint_path)
+    raw_text = path.read_text()
+    data: dict[str, Any]
+    if path.suffix.lower() in {".yaml", ".yml"}:
+        data = yaml.safe_load(raw_text)  # type: ignore[arg-type]
+    else:
+        data = json.loads(raw_text)
+
+    try:
+        bp = MCPBlueprint(**data)
+    except ValidationError as exc:
+        click.echo(f"❌ Invalid blueprint: {exc}", err=True)
+        sys.exit(1)
+
+    async def _run() -> None:  # noqa: D401
+        svc = WorkflowExecutionService()
+        result = await svc.execute_blueprint(bp.nodes, max_parallel=max_parallel, name=bp.name or "blueprint_run")
+        click.echo(json.dumps(result.model_dump(mode="json"), indent=2))
+
+    _safe_run(_run())
+
+# ---------------------------------------------------------------------------
 # Network manifest commands --------------------------------------------------
 # ---------------------------------------------------------------------------
 

@@ -14,8 +14,9 @@ class EchoTool(ToolBase):
 
 # Register instance so generator can resolve it
 _echo_instance = EchoTool()
-from ice_core.unified_registry import registry
 from ice_core.models.enums import NodeType
+from ice_core.unified_registry import registry
+
 registry.register_instance(NodeType.TOOL, "echo", _echo_instance, validate=False)  # type: ignore[arg-type]
 
 def test_append_tool_node_injects_schema():

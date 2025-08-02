@@ -8,10 +8,11 @@ This script helps identify:
 """
 
 import ast
+import json
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set
-import json
+
 
 class DependencyAnalyzer:
     def __init__(self, root_path: Path):

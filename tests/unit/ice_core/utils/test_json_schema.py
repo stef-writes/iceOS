@@ -3,11 +3,11 @@
 from pydantic import BaseModel
 
 from ice_core.utils.json_schema import (
-    is_json_schema,
     convert_simple_to_json_schema,
+    is_json_schema,
+    is_valid_schema_dict,
     normalize_schema,
     validate_with_schema,
-    is_valid_schema_dict,
 )
 
 

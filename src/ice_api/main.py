@@ -24,10 +24,10 @@ from ice_api.startup_utils import (
     validate_registered_components,
 )
 from ice_api.ws_gateway import router as ws_router
-from ice_core.utils.logging import setup_logger
 
 # Note: API layer uses ServiceLocator for orchestrator services
-from ice_sdk.services import ServiceLocator
+from ice_core.services import ServiceLocator
+from ice_core.utils.logging import setup_logger
 
 # Setup logging
 logger = setup_logger()
@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Initialize services through proper layer interfaces
     import importlib
 
-    from ice_sdk.services.initialization import initialize_sdk
+    from ice_core.services.initialization import initialize_sdk
     initialize_orchestrator = importlib.import_module("ice_orchestrator").initialize_orchestrator
     
     # Initialize layers in order
@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.context_manager = ServiceLocator.get("context_manager")  # type: ignore[attr-defined]
     
     # Initialize tool service to bridge unified registry to API endpoints
-    from ice_sdk.services.tool_service import ToolService
+    from ice_core.services.tool_service import ToolService
     app.state.tool_service = ToolService()  # type: ignore[attr-defined]
 
     # Load API keys from environment

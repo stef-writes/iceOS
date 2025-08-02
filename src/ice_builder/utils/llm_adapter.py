@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 from ice_core.models import LLMConfig, ModelProvider
 
 # LLMService is retrieved via ServiceLocator
-from ice_sdk.services.locator import ServiceLocator
+from ice_core.services import ServiceLocator
 
 __all__: list[str] = ["LLMServiceAdapter"]
 

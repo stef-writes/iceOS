@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import structlog
 
-from ice_sdk.services import ServiceLocator
+from ice_core.services import ServiceLocator
 
 if TYPE_CHECKING:
     from ice_core.base_tool import ToolBase

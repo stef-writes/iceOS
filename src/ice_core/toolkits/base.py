@@ -101,6 +101,8 @@ class BaseToolkit(BaseModel, abc.ABC):
             GitHubToolkit(...).register()
         """
 
-        from ice_core.toolkits.utils import register_toolkit  # local import to avoid cycles
+        from ice_core.toolkits.utils import (
+            register_toolkit,  # local import to avoid cycles
+        )
 
         return register_toolkit(self, namespace=namespace)

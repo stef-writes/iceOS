@@ -3,7 +3,10 @@
 import pytest
 
 from ice_core.models import (
-    SwarmNodeConfig, HumanNodeConfig, MonitorNodeConfig, AgentSpec
+    AgentSpec,
+    HumanNodeConfig,
+    MonitorNodeConfig,
+    SwarmNodeConfig,
 )
 
 pytestmark = [pytest.mark.unit]
