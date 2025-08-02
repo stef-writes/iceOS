@@ -16,11 +16,13 @@ def initialize_sdk() -> None:
     All runtime services (workflow execution, tool execution, context management)
     are handled by the orchestrator layer.
     """
-    import os
-    profile = os.getenv("ICEOS_PROFILE", "dev")
+    # Currently no runtime configuration needed – placeholder kept for
+    # forward-compatibility once SDK-level profiles are introduced.
+    # (The previous unused `profile` variable triggered a ruff F841 lint.)
 
-    # No concrete tool packages yet – will be imported automatically once toolkits are implemented.
-    
+    # No concrete tool packages yet – will be imported automatically once
+    # toolkits are implemented.
+
     # TODO: remove this stub once first-party toolkits are available.
     
     # That's it! All runtime services are in orchestrator 
