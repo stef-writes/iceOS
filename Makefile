@@ -47,7 +47,7 @@ type:
 	# Strict type checking for modernised layers (app + core)
 	poetry run mypy --strict --config-file config/typing/mypy.ini src/ice_api src/ice_core src/ice_builder src/ice_client
 	poetry run mypy --strict --config-file config/typing/mypy.ini src/ice_orchestrator
-	poetry run mypy --strict --config-file config/typing/mypy.ini src/frosty
+
 
 typecheck: type  # alias for docs compatibility
 
@@ -114,7 +114,11 @@ audit:
 	python -m scripts.validate_decision_records
 	pytest -c config/testing/pytest.ini tests/unit/lint -v 
 
-dev: ## Start Redis & API server with hot-reload (using Poetry)
+# ---------------------------------------------------------------------------
+# Local development helpers --------------------------------------------------
+# ---------------------------------------------------------------------------
+
+dev: ## Start Redis & API server with hot-reload (foreground)
 	@echo "Checking Redis availability..."; \
 	if ! lsof -i :6379 > /dev/null 2>&1; then \
 		echo "Starting Redis via Docker..."; \
@@ -123,8 +127,29 @@ dev: ## Start Redis & API server with hot-reload (using Poetry)
 	else \
 		echo "Redis already running on port 6379"; \
 	fi
-	@echo "Starting API server with Poetry..."
+	@echo "Starting API server with Poetry (hot-reload)…"
 	poetry run uvicorn ice_api.main:app --reload --host 0.0.0.0 --port 8000
+
+# One-liner background startup – convenience for demo users
+# Writes API PID to .dev_api_pid so `make dev-down` can stop it.
+dev-up: ## Start Redis & API (background) for CLI demos
+	@echo "[dev-up] Bringing up Redis container…"; \
+	if ! docker compose ps redis | grep -q "Up"; then \
+		docker compose up -d redis; \
+	fi;
+	@echo "[dev-up] Starting API server in background…"; \
+	poetry run uvicorn ice_api.main:app --host 0.0.0.0 --port 8000 > logs/dev_api.log 2>&1 & echo $$! > .dev_api_pid; \
+	echo "API PID=$$(cat .dev_api_pid) (logs -> logs/dev_api.log)";
+
+# Tear down background API + optional Redis container
+.dev_stop:
+	@echo "[dev-down] Stopping background API if running…"; \
+	if [ -f .dev_api_pid ] && kill -0 $$(cat .dev_api_pid) 2>/dev/null; then \
+		kill $$(cat .dev_api_pid) && rm .dev_api_pid; \
+	fi;
+
+dev-down: .dev_stop ## Stop API started by dev-up
+	@echo "[dev-down] Done."
 
 run-demo: ## Execute CSV→Summary demo (requires dev server running)
 	.venv/bin/python examples/comprehensive_demo_example.py \

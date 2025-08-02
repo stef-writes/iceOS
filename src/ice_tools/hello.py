@@ -4,18 +4,19 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from ice_builder.dsl.decorators import tool
 from ice_core.base_tool import ToolBase
+from ice_core.unified_registry import registry
+from ice_core.models.enums import NodeType
 
 
-@tool(name="hello")
 class HelloTool(ToolBase):
     """Return a friendly greeting.
 
     Example
     -------
-    >>> from ice_tools.hello import HelloTool  # noqa: F401 – auto-registers via decorator
-    >>> # Using ToolExecutionService (pseudo-code):
+    >>> from ice_core.services import ServiceLocator
+    >>> import ice_tools.hello  # noqa: F401 – ensures registration happens
+    >>> tool_service = ServiceLocator.get("tool_execution_service")
     >>> result = await tool_service.execute_tool("hello", {"name": "Ada"})
     >>> assert result == {"greeting": "Hello, Ada!"}
     """
@@ -43,3 +44,10 @@ class HelloTool(ToolBase):
         """
         greeting = f"Hello, {name}!"
         return {"greeting": greeting}
+
+
+# ---------------------------------------------------------------------------
+# Auto-registration on import (side-effect limited to registry call)
+# ---------------------------------------------------------------------------
+
+registry.register_instance(NodeType.TOOL, HelloTool.name, HelloTool(), validate=False)  # type: ignore[arg-type]

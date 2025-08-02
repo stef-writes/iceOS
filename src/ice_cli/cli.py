@@ -111,7 +111,17 @@ def network_run(manifest_path: str, scheduled: bool) -> None:  # noqa: D401
     subprocess.run(cmd, check=True)
 
 # ---------------------------------------------------------------------------
-# Blueprint commands ---------------------------------------------------------
+# Remote API helpers (push/run) ---------------------------------------------
+# ---------------------------------------------------------------------------
+
+from ice_cli.commands.push import cli_push as _push_cmd
+from ice_cli.commands.run_exec import cli_run as _run_cmd
+
+cli.add_command(_push_cmd)
+cli.add_command(_run_cmd)
+
+# ---------------------------------------------------------------------------
+# Blueprint commands (legacy local execution) -------------------------------
 # ---------------------------------------------------------------------------
 
 
