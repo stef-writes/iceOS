@@ -165,9 +165,19 @@ add_exception_handlers(app)
 app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
 
 from ice_api.api.blueprints import router as blueprint_router  # ensure module import
-app.include_router(blueprint_router, prefix="", tags=["blueprints"])
+from ice_api.api.executions import router as execution_router
 
+from ice_api.security import require_auth
+
+app.include_router(blueprint_router, prefix="", tags=["blueprints"], dependencies=[Depends(require_auth)])
+app.include_router(execution_router, prefix="", tags=["executions"], dependencies=[Depends(require_auth)])
+
+from ice_api.ws.executions import router as exec_ws_router
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
+app.include_router(exec_ws_router, prefix="/ws", tags=["websocket"])
+
+from ice_api.metrics import router as metrics_router
+app.include_router(metrics_router)
 
 # ------------------------------------------------------------------
 # Readiness & meta routes ------------------------------------------

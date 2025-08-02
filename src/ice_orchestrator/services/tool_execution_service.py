@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+
+from ice_core.metrics import EXEC_STARTED, EXEC_COMPLETED
 from typing import Any, Dict, Optional
 
 from ice_core.models import NodeType
@@ -44,6 +46,7 @@ class ToolExecutionService:
         if execute_fn is None:
             raise ValueError(f"Tool '{tool_name}' has no execute method")
         
+        EXEC_STARTED.inc()
         # Handle both sync and async execution
         if asyncio.iscoroutinefunction(execute_fn):
             result = await execute_fn(**inputs)
@@ -51,6 +54,7 @@ class ToolExecutionService:
             # Run sync function in thread pool
             result = await asyncio.to_thread(execute_fn, **inputs)
         
+        EXEC_COMPLETED.inc()
         return result  # type: ignore[no-any-return]
     
     def _get_tool_instance(self, tool_name: str) -> Optional[INode]:
@@ -69,7 +73,7 @@ class ToolExecutionService:
             return tool_instance
         
         # Try to get class and instantiate
-        tool_class = registry._registry.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[attr-defined]
+        tool_class = registry._nodes.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[attr-defined]
         if tool_class:
             try:
                 return tool_class()  # type: ignore[no-any-return]
@@ -87,7 +91,12 @@ class ToolExecutionService:
         tools: Dict[str, Dict[str, Any]] = {}
 
         # Get all registered tools from unified registry
-        tool_registry = registry._registry.get(NodeType.TOOL, {})  # type: ignore[attr-defined]
+        # Collect both pre-instantiated and class-only tools
+        tool_registry: Dict[str, Any] = {}
+        # Instances already registered
+        tool_registry.update(registry._instances.get(NodeType.TOOL, {}))  # type: ignore[attr-defined]
+        # Classes that are registered but not yet instantiated
+        tool_registry.update(registry._nodes.get(NodeType.TOOL, {}))  # type: ignore[attr-defined]
 
         for tool_name, tool_class in tool_registry.items():
             try:

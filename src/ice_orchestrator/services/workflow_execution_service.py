@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+from ice_core.metrics import EXEC_STARTED, EXEC_COMPLETED
+
 from ice_core.models.mcp import NodeSpec
 from ice_core.models.node_models import NodeExecutionResult
 from ice_core.utils.node_conversion import convert_node_specs
@@ -48,7 +50,14 @@ class WorkflowExecutionService:
         )
         
         # Execute workflow
-        return await workflow.execute()
+        EXEC_STARTED.inc()
+        try:
+            result = await workflow.execute()
+            EXEC_COMPLETED.inc()
+            return result
+        except Exception:
+            EXEC_COMPLETED.inc()
+            raise
     
     async def execute_workflow(
         self,
@@ -72,7 +81,14 @@ class WorkflowExecutionService:
                 ctx.metadata["inputs"] = inputs
         
         # Execute workflow
-        return await workflow.execute()
+        EXEC_STARTED.inc()
+        try:
+            result = await workflow.execute()
+            EXEC_COMPLETED.inc()
+            return result
+        except Exception:
+            EXEC_COMPLETED.inc()
+            raise
     
     async def execute_workflow_builder(
         self,
