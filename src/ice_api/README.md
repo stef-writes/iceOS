@@ -12,6 +12,23 @@
 
 Routes live under `ice_api.api.*` and are versioned (`/api/v1/...`).
 
+### Frosty Integration 🧊
+The `/api/v1/blueprints` and `/api/v1/executions` endpoints are now consumed by
+[Frosty](../frosty/README.md) – the code-generation layer that turns natural
+language into runnable workflows. A full round-trip looks like this:
+
+```bash
+make dev-up                    # start Redis + API in background
+
+# 1) Generate blueprint from NL prompt
+poetry run frost generate "say hello to Ada" --provider o3
+#    └─ Frosty calls /blueprints → returns <bp_id>
+# 2) Execution is started automatically → streams status until completion
+```
+
+The same endpoints power the `ice push` and `ice run` CLI commands for manual
+workflow deployment and execution.
+
 ### FastAPI Dev Server
 ```bash
 poetry run uvicorn ice_api.main:app --reload
@@ -64,7 +81,7 @@ Response includes:
 
 ### MCP Blueprint Endpoints
 ```http
-# Register blueprint
+# Register blueprint (full)
 POST /api/v1/mcp/blueprints
 {
   "blueprint_id": "my_workflow",

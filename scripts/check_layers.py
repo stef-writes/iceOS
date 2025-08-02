@@ -26,6 +26,8 @@ ALLOWED_DEPENDENCIES: dict[str, list[str]] = {
     "ice_client": ["ice_core"],  # Client only needs core models
     "ice_builder": ["ice_core"],  # Builder creates structures using core models
     "ice_orchestrator": ["ice_core"],  # Runtime ONLY depends on core - must be standalone!
+    "ice_tools": ["ice_core"],  # Built-in tools depend only on core
+    "frosty": ["ice_core", "ice_builder"],  # Code-generation layer
     "ice_core": [],  # Foundation layer - no external dependencies
 }
 

@@ -21,6 +21,16 @@ make test
 poetry run ice run-blueprint examples/hello_world.json
 ```
 
+## Frosty → API → Orchestrator Pipeline
+
+```
+Prompt  ─► FrostyAgent  ─►  ice_api  ─►  ice_orchestrator  ─►  Runtime Services
+        (LLM+planning)      (REST)        (execution)           (tools, llm)
+```
+
+Frosty generates Blueprints via the public builder API, pushes them to
+`ice_api`, which hands them to the orchestrator for deterministic execution.
+
 ## Architecture
 
 ```

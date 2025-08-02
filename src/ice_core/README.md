@@ -1,6 +1,12 @@
 # ice_core - Foundation Layer
 
-## Vision Context
+## Vision Context – End-to-End Flow
+
+Frosty (NL Interpreter) 👉 **ice_builder.public** 👉 *Blueprint* 👉 **ice_api** (validation) 👉 **ice_orchestrator** (runtime)
+
+This README documents the **foundation layer** that enables that flow.
+
+## Why This Layer Exists
 
 This is the foundation for the **3-tier iceOS architecture**:
 - 🧊 **Frosty** (Interpreter) → Natural language to blueprints
