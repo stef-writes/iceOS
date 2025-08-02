@@ -1,5 +1,7 @@
 """Tool execution service for the orchestrator runtime."""
 
+from __future__ import annotations
+
 import asyncio
 from typing import Any, Dict, Optional
 
@@ -78,25 +80,39 @@ class ToolExecutionService:
     
     def list_tools(self) -> Dict[str, Dict[str, Any]]:
         """List all available tools with their metadata.
-        
+
         Returns:
-            Dictionary of tool names to metadata
+            dict[str, dict[str, Any]]: Mapping of tool names to metadata dictionaries.
         """
-        tools = {}
-        
+        tools: Dict[str, Dict[str, Any]] = {}
+
         # Get all registered tools from unified registry
         tool_registry = registry._registry.get(NodeType.TOOL, {})  # type: ignore[attr-defined]
-        
+
         for tool_name, tool_class in tool_registry.items():
             try:
-                # Get tool metadata
+                # Build tool metadata
                 tools[tool_name] = {
                     "name": tool_name,
                     "description": tool_class.__doc__ or "No description",
                     "category": getattr(tool_class, "category", "general"),
                 }
-            except Exception:
-                # Skip tools that can't be introspected
-                pass
-        
-        return tools 
+            except Exception:  # pragma: no cover – defensive
+                # Skip tools that can't be introspected for whatever reason
+                continue
+
+        return tools
+
+    # ------------------------------------------------------------------
+    # Convenience helpers ----------------------------------------------
+    # ------------------------------------------------------------------
+    def available_tools(self) -> list[str]:  # noqa: D401 – simple name list helper
+        """Return a list of all available tool names.
+
+        This is a lightweight helper primarily for HTTP discovery endpoints that
+        only need the names rather than full metadata.
+
+        Returns:
+            list[str]: All registered tool names.
+        """
+        return list(self.list_tools().keys()) 

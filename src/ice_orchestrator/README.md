@@ -17,8 +17,8 @@
 ```bash
 # Run tests to ensure orchestrator is healthy
 make test
-# Execute demo workflow via Makefile helper
-python use_cases/RivaRidge/FB_Marketplace_Seller/run_blueprint.py
+# Execute a demo blueprint locally
+poetry run ice run-blueprint examples/hello_world.json
 ```
 
 ## Architecture
@@ -53,13 +53,9 @@ ice_orchestrator/
 │   └── utils.py       # Agent utilities
 ├── (memory provided by ice_core.memory)
 
-├── providers/         # LLM provider integrations
-│   ├── llm_service.py # Main LLM service
-│   └── llm_providers/ # Provider implementations
-│       ├── openai_handler.py
-│       ├── anthropic_handler.py
-│       ├── google_gemini_handler.py
-│       └── deepseek_handler.py
+├── providers/         # Budget enforcement utilities
+├── (LLM service in `ice_core.llm.service`)
+├── (Provider handlers in `ice_core.llm.providers/`)
 ├── context/           # Runtime context management
 │   ├── async_manager.py    # GraphContextManager
 │   ├── manager.py          # GraphContext
@@ -94,24 +90,20 @@ The complete agent implementation including:
 - `AgentExecutor`: Coordinates tool calls and LLM reasoning
 
 ### Memory Subsystem (powered by ice_core.memory)
-🚀 **Enhanced with nested architecture for massive performance gains:**
+
 - **Working Memory**: Short-term task context
 - **Episodic Memory**: Conversation and interaction history  
 - **Semantic Memory**: Long-term domain knowledge with **O(1) domain queries**
 - **Procedural Memory**: Learned patterns with **O(1) category targeting**
 
-**Performance Benefits:**
-- **🎯 Domain-specific queries**: `get_entities_by_domain('marketplace')` - O(1) access
-- **📊 Built-in analytics**: `list_domains()`, `get_success_metrics_for_domain()` - instant insights
-- **⚡ 10-100x faster** for large datasets with organized data structures
-- **🔍 Relationship filtering**: `get_relationships_by_type('belongs_to')` - O(1) organization
+
 
 ➡️ **[Memory Architecture Details](../ice_core/memory/README.md)**
 
 ### LLM Services
 Unified interface for multiple LLM providers:
 ```python
-from ice_orchestrator.providers import LLMService
+from ice_core.llm.service import LLMService
 
 service = LLMService()
 text, usage, error = await service.generate(
@@ -121,19 +113,15 @@ text, usage, error = await service.generate(
 ```
 
 ### Context Management
-🚀 **Enhanced with unified nested structure for better organization:**
+
 - `GraphContextManager`: Manages workflow execution context with **O(1) node access by type**
 - `ContextStore`: Persistent state storage
 - `SessionState`: User session management
 
-**Performance Benefits:**
-- **🔧 Unified Registration**: Single nested structure for all node types (agents, tools, etc.)
-- **📊 Type-based Analytics**: `get_nodes_by_type(NodeType.TOOL)` - instant filtering
-- **🎯 Registration Summary**: `get_registration_summary()` - dashboard-ready overview
-- **⚡ Better Organization**: No more separate dictionaries, unified patterns across components
+
 
 ### Execution Metrics
-🚀 **Enhanced with nested structure for comprehensive analytics:**
+
 
 **Performance Tracking by Node Type:**
 - **📊 Type-based Metrics**: `get_metrics_by_node_type(NodeType.AGENT)` - instant filtering

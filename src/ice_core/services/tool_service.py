@@ -53,6 +53,15 @@ class ToolService:  # pylint: disable=too-few-public-methods
         """Return metadata for all registered tools."""
         return self._delegate.list_tools()  # type: ignore[no-any-return]
 
+    def available_tools(self) -> list[str]:  # noqa: D401 – helper alias
+        """Return a flat list of available tool names.
+
+        This delegates to :pyfunc:`list_tools` and extracts the keys for
+        convenience.  It exists mainly for backwards compatibility with older
+        API routes that returned just the names.
+        """
+        return list(self.list_tools().keys())
+
     # Expose attributes of delegate transparently (optional)
     def __getattr__(self, item: str) -> Any:  # noqa: D401
         return getattr(self._delegate, item)

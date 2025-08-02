@@ -34,7 +34,7 @@ make doctor  # Full health check
 - Google-style docstrings with examples
 
 ## Architecture Rules
-1. **Layer Dependencies**: ice_core → ice_sdk → ice_orchestrator → ice_api
+1. **Layer Dependencies**: ice_core → ice_builder → ice_orchestrator → ice_api
 2. **No Cross-Layer Imports**: Use ServiceLocator for cross-layer communication
 3. **External I/O**: Only in Tool implementations
 4. **Dynamic Imports**: Only in `plugin_discovery.py`

@@ -1,13 +1,13 @@
 # 🧠 iceOS Memory System Architecture
 
-## 🚀 **Improved Architecture (v3.0)**
+## Architecture Overview
 
-The iceOS memory system has been moved to the **core layer** and enhanced with:
-- **🎯 Simplified configuration** with smart defaults
-- **💉 Dependency injection** pattern for better testability
-- **📊 Built-in analytics and monitoring capabilities**
-- **🧠 Clear separation** between memory and context
-- **⚡ Performance optimizations** for large datasets
+The iceOS memory subsystem resides in the **core layer** (`ice_core.memory`) and currently ships four complementary stores:
+
+- WorkingMemory – short-term, in-process context (optionally Redis-backed)
+- EpisodicMemory – conversation history
+- SemanticMemory – domain knowledge with entity & relationship indexing
+- ProceduralMemory – reusable action patterns and success metrics
 
 ## 📋 **Memory Types**
 
@@ -23,10 +23,7 @@ _entity_index: Dict[str, List[str]]  # "entity" -> [fact_keys]
 _entity_index: Dict[str, Dict[str, List[str]]]  # domain -> entity -> [fact_keys]
 ```
 
-**Performance Benefits:**
-- Query marketplace entities: `memory.get_entities_by_domain('marketplace')` - **O(1)**
-- Get relationship types: `memory.list_relationship_types()` - **O(1)** 
-- Domain analytics: `memory.list_domains()` - **O(1)**
+
 
 ### 🛠️ **Procedural Memory**
 Stores procedures, success metrics, and usage patterns by category and domain.
@@ -40,10 +37,7 @@ _category_index: Dict[str, List[str]]  # "category" -> [procedure_keys]
 _category_index: Dict[str, Dict[str, List[str]]]  # category -> type -> [procedure_keys]
 ```
 
-**Performance Benefits:**
-- Get procedures by category: `memory.get_procedures_by_category('negotiation')` - **O(1)**
-- Domain-specific metrics: `memory.get_success_metrics_for_domain('marketplace')` - **O(1)**
-- Usage analytics: `memory.get_usage_stats_for_domain('pricing')` - **O(1)**
+
 
 ## 🎯 **Usage Examples**
 
@@ -122,10 +116,7 @@ for domain in procedural_memory.list_domains():
 - `get_procedures_by_category(category, type)` - Structured procedure lookup
 - `list_domains()`, `list_relationship_types()`, `list_categories()` - Analytics
 
-**📊 Performance Impact:**
-- **Large datasets:** 10-100x faster domain-specific queries
-- **Memory usage:** Slightly higher due to nested structure, but much better cache locality
-- **Analytics:** Near-instant instead of full scans
+
 
 ## 🎭 **Real-World Usage**
 
