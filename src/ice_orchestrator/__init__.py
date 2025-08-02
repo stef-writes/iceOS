@@ -53,6 +53,19 @@ def initialize_orchestrator() -> None:
     # Register tool service wrapper
     from ice_core.services.tool_service import ToolService
     ServiceLocator.register("tool_service", ToolService())
+
+    # ------------------------------------------------------------------
+    # Built-in tools ----------------------------------------------------
+    # ------------------------------------------------------------------
+    # Import the built-in tools package so its @tool decorators run and
+    # components become discoverable via API endpoints.
+    import importlib
+
+    try:
+        importlib.import_module("ice_tools")
+    except ModuleNotFoundError:
+        # Package might be removed in minimal builds – ignore gracefully.
+        pass
     
     # Import executor modules to register them with the execution system
     import ice_orchestrator.execution.executors  # noqa: F401
