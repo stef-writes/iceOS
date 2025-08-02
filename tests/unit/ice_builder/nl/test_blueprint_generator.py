@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from frosty.blueprint.generator import append_tool_node, create_partial_blueprint
+from ice_builder.nl.generator import append_tool_node, create_partial_blueprint
 from ice_core.base_tool import ToolBase
 
 

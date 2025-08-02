@@ -17,7 +17,7 @@ packages = [
   { include = "ice_cli", from = "src" },
   { include = "ice_api", from = "src" },
   { include = "ice_core", from = "src" },
-  { include = "frosty", from = "src" }
+  { include = "ice_builder", from = "src" }
 ]
 
 # Include non-Python assets (JSON templates & default context store)
@@ -67,7 +67,7 @@ addopts = """
     --cov=ice_sdk
     --cov=ice_orchestrator
     --cov=ice_api
-    --cov=frosty
+    --cov=ice_builder
     --cov-report=html
     --cov-report=term-missing
     --cov-fail-under=0

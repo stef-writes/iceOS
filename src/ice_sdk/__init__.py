@@ -9,7 +9,7 @@ from ice_core.base_tool import ToolBase
 from ice_core.models import LLMConfig, MessageTemplate
 from ice_core.models.node_models import NodeConfig, NodeExecutionResult, NodeMetadata
 
-from .builders.workflow import WorkflowBuilder
+# WorkflowBuilder moved to ice_builder.dsl
 from .services.locator import ServiceLocator
 from .services.tool_service import ToolService
 
@@ -30,8 +30,7 @@ __all__ = [
     "ServiceLocator",
     "ToolService",
 
-    # Builders
-    "WorkflowBuilder",
+    # Builders moved to ice_builder.dsl
 ]
 
 # Workflow composition features for embedding sub-workflows

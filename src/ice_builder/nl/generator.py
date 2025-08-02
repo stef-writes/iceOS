@@ -26,7 +26,7 @@ __all__: list[str] = [
 
 def create_partial_blueprint(name: str) -> PartialBlueprint:
     """Return a new *empty* ``PartialBlueprint`` with the provided *name*."""
-    return PartialBlueprint(metadata={"name": name})
+    return PartialBlueprint(schema_version="1.1.0", metadata={"name": name})
 
 def append_tool_node(
     blueprint: PartialBlueprint,
@@ -61,7 +61,6 @@ def append_tool_node(
             PartialNodeSpec(
                 id=node_id,
                 type=NodeType.TOOL.value,
-                tool_name=tool_name,
                 dependencies=dependencies,
             )
         )
@@ -71,15 +70,22 @@ def append_tool_node(
     # False because LongRunningToolBase is not yet implemented.
     progress_capable = hasattr(tool_instance, "yield_progress")  # naive check
 
-    input_schema = tool_instance.get_input_schema()
+    # Try to get input schema, fall back to empty dict if not available
+    try:
+        input_schema = tool_instance.input_schema
+    except AttributeError:
+        # Fall back to class method if property doesn't exist
+        try:
+            input_schema = tool_instance.__class__.get_input_schema()
+        except AttributeError:
+            input_schema = {"type": "object", "properties": {}}
 
-    # Create node with additional metadata (allowed by *extra*="allow")
+    # Create node with extra fields (allowed by model_config={"extra": "allow"})
     node = PartialNodeSpec(
         id=node_id,
         type=NodeType.TOOL.value,
-        tool_name=tool_name,
         dependencies=dependencies,
-        # Extra fields ↓↓↓
+        # Extra fields for metadata
         input_schema=input_schema,  # type: ignore[arg-type]
         progress_capable=progress_capable,  # type: ignore[arg-type]
     )

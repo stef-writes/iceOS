@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 from ice_core.models import RecursiveNodeConfig, NodeExecutionResult, NodeMetadata
 from ice_orchestrator.execution.executors.unified import recursive_executor
 from ice_orchestrator.workflow import Workflow
-from ice_sdk.builders.workflow import WorkflowBuilder
+from ice_builder.dsl.workflow import WorkflowBuilder
 
 
 @pytest.fixture
