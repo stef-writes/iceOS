@@ -12,6 +12,9 @@ from ice_core.models.node_models import (
 )
 
 
+from ice_core.protocols import validated_protocol
+
+@validated_protocol("agent")
 class AgentNode(BaseNode):
     """Orchestratable agent node combining LLM reasoning with tool usage."""
     
@@ -74,6 +77,14 @@ class AgentNode(BaseNode):
             "error_type": type(error).__name__,
             "message": str(error),
         }
+
+    def allowed_tools(self) -> List[str]:
+        """Return list of tool names allowed for this agent."""
+        return [getattr(t, "name", "<unknown>") for t in self.tools]
+
+    async def think(self, context: Dict[str, Any]) -> str:  # noqa: D401 – imperative OK
+        """Simple reasoning stub – replace with real chain-of-thought."""
+        return f"Thinking over {len(context)} keys"
 
     async def validate_config(self) -> None:
         """Pre-execution validation."""

@@ -122,10 +122,21 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
             base_backoff = float(getattr(node, "backoff_seconds", 0.0))
             backoff_strategy = "exponential"
 
-        attempt = 0
+        from ice_core.metrics import EXEC_FAILED
+
+        def _calc_backoff(idx: int) -> float:
+            if base_backoff <= 0:
+                return 0.0
+            if backoff_strategy == "fixed":
+                return base_backoff
+            if backoff_strategy == "linear":
+                return base_backoff * idx
+            # exponential (default)
+            return base_backoff * (2 ** idx)
+
         last_error: Exception | None = None
 
-        while attempt <= max_retries:
+        for attempt in range(max_retries + 1):
             try:
                 # --------------------------------------------------
                 # Cache lookup (opt-in) ----------------------------
@@ -154,20 +165,33 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                         cache_key = None
 
                 # --------------------------------------------------
-                # Dispatch to executor -----------------------------
+                # Dispatch to executor with retry ------------------
                 # --------------------------------------------------
-                executor = get_executor(str(getattr(node, "type", "")))  # type: ignore[arg-type]
+                for attempt in range(max_retries + 1):
+                    try:
+                        executor = get_executor(str(getattr(node, "type", "")))  # type: ignore[arg-type]
 
-                with tracer.start_as_current_span(
-                    "node.execute",
-                    attributes={
-                        "node_id": node_id,
-                        "node_type": str(getattr(node, "type", "")),
-                    },
-                ):
-                    # MyPy may not recognise that *executor* is an async callable – cast for clarity.
+                        with tracer.start_as_current_span(
+                            "node.execute",
+                            attributes={"node_id": node_id, "node_type": str(getattr(node, "type", ""))},
+                        ):
+                            from ice_orchestrator.execution.sandbox.resource_sandbox import ResourceSandbox
+                            timeout = getattr(node, "timeout_seconds", 30) or 30
+                            async with ResourceSandbox(timeout_seconds=timeout) as sbx:
+                                result_raw = await sbx.run_with_timeout(
+                                    executor(chain, node, input_data)
+                                )
+                        break  # success
+                    except Exception as exc:
+                        last_error = exc  # remember last
+                        if attempt == max_retries:
+                            from ice_core.metrics import EXEC_FAILED
+                            EXEC_FAILED.inc()
+                            raise
+                        await asyncio.sleep(_calc_backoff(attempt))
+                # --------------------------------------------------
 
-                    result_raw = await executor(chain, node, input_data)
+
 
                     # If the executor already returned a fully-formed
                     # NodeExecutionResult, we can short-circuit all further
@@ -335,10 +359,11 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                     return result
 
                 else:  # If output was None after all processing, return failure
-                    result = NodeExecutionResult(
-                        success=False, error="Executor returned empty output"
+                    result = NodeExecutionResult(  # type: ignore[call-arg]
+                        success=False,
+                        error="Executor returned empty output"
                     )
-                    result.metadata = NodeMetadata(
+                    result.metadata = NodeMetadata(  # type: ignore[call-arg]
                         node_id=node_id,
                         node_type=str(getattr(node, "type", "")),
                         name=getattr(node, "name", None),

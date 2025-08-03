@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import pathlib
 import sys
-from typing import Optional
 
 import click
 import httpx

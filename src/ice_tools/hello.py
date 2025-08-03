@@ -50,4 +50,5 @@ class HelloTool(ToolBase):
 # Auto-registration on import (side-effect limited to registry call)
 # ---------------------------------------------------------------------------
 
-registry.register_instance(NodeType.TOOL, HelloTool.name, HelloTool(), validate=False)  # type: ignore[arg-type]
+_instance = HelloTool()
+registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]

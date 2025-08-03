@@ -716,7 +716,7 @@ class SwarmNodeConfig(BaseNodeConfig):
 
     type: Literal["swarm"] = "swarm"
 
-    agents: List[AgentSpec] = Field(..., min_items=2)
+    agents: List[AgentSpec] = Field(..., min_length=2)
     coordination_strategy: Literal["consensus", "hierarchical", "marketplace"] = "consensus"
     max_rounds: int = Field(10, ge=1)
     consensus_threshold: float = Field(0.75, ge=0.5, le=1.0)

@@ -19,9 +19,8 @@ from __future__ import annotations
 import inspect
 import textwrap
 from pathlib import Path
-from typing import Dict, List, Tuple, Type, cast
+from typing import Dict, List, Tuple, cast
 
-from ice_core.models.enums import NodeType
 from ice_core.models.node_models import BaseNodeConfig
 
 # ---------------------------------------------------------------------------

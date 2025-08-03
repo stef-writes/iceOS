@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import inspect
 from pathlib import Path
-from typing import Type
 
 from ice_core.models import node_models
 

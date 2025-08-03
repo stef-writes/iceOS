@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from .base import BaseMemory, MemoryConfig, MemoryEntry
+from ice_core.models.enums import MemoryGuarantee
 
 
 class ProceduralMemory(BaseMemory):
@@ -18,6 +19,12 @@ class ProceduralMemory(BaseMemory):
     - Problem-solving patterns
     """
     
+    # ------------------------------------------------------------------
+    # MemoryGuarantee interface
+    # ------------------------------------------------------------------
+    def guarantees(self) -> set[MemoryGuarantee]:  # noqa: D401
+        return {MemoryGuarantee.DURABLE}
+
     def __init__(self, config: MemoryConfig):
         """Initialize procedural memory."""
         super().__init__(config)

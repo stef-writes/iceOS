@@ -7,6 +7,10 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from .base import BaseMemory, MemoryConfig, MemoryEntry
+from ice_core.models.enums import MemoryGuarantee
+from ice_core.utils.token_counter import TokenCounter
+from ice_core.costs import TokenCostCalculator
+from ice_core.metrics import MEMORY_TOKEN_TOTAL, MEMORY_COST_TOTAL
 
 
 class SemanticMemory(BaseMemory):
@@ -32,8 +36,13 @@ class SemanticMemory(BaseMemory):
         self._relationships: Dict[str, Dict[str, List[Tuple[str, str]]]] = defaultdict(lambda: defaultdict(list))
         self._entity_index: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))
         
-        self._embedding_dim = 384  # Default dimension for embeddings
+        # Embedding dimensionality comes from config (default 384)
+        self._embedding_dim = config.embedding_dim
         self._enable_vectors = config.enable_vector_search
+
+        # Accounting totals
+        self._token_total: int = 0
+        self._cost_total: float = 0.0
         
     async def initialize(self) -> None:
         """Initialize semantic memory backend."""
@@ -78,12 +87,26 @@ class SemanticMemory(BaseMemory):
             
         metadata = metadata or {}
         
+        # ------------------------------------------------------------------
+        # Token and cost accounting
+        # ------------------------------------------------------------------
+        token_usage = 0
+        if isinstance(content, str):
+            try:
+                token_usage = TokenCounter.estimate_tokens(content, model="gpt-3.5-turbo")
+            except Exception:
+                token_usage = len(content) // 4
+        calculator = TokenCostCalculator()
+        cost_usd = calculator.calculate_cost(model="gpt-3.5-turbo", input_tokens=token_usage, output_tokens=0)
+
         # Create memory entry
         entry = MemoryEntry(
             key=key,
             content=content,
             metadata=metadata,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
+            token_usage=token_usage,
+            cost_usd=cost_usd,
         )
         
         # Add semantic-specific metadata
@@ -98,6 +121,14 @@ class SemanticMemory(BaseMemory):
         
         # Store the fact
         self._facts_store[key] = entry
+
+        # Update aggregate stats
+        self._token_total += token_usage
+        self._cost_total += cost_usd
+
+        # Prometheus metrics
+        MEMORY_TOKEN_TOTAL.labels(memory_type="semantic").inc(token_usage)
+        MEMORY_COST_TOTAL.labels(memory_type="semantic").inc(cost_usd)
         
         # Index entities by domain for much better query performance
         domain = entry.metadata.get("domain", "general")
@@ -113,8 +144,23 @@ class SemanticMemory(BaseMemory):
         # Generate and store embedding if vector search is enabled
         if self._enable_vectors:
             embedding = await self._generate_embedding(content)
+            # Guard against dimension mismatch
+            self.validate_embedding(embedding)  # type: ignore[attr-defined]
             self._embeddings[key] = embedding
             
+    def validate_embedding(self, vector: List[float]) -> None:  # noqa: D401
+        """Validate embedding dimensionality.
+
+        Args:
+            vector: Embedding vector to validate
+
+        Raises:
+            DimensionMismatchError: If *vector* length differs from configured embedding_dim.
+        """
+        if len(vector) != self._embedding_dim:
+            from ice_core.exceptions import DimensionMismatchError
+            raise DimensionMismatchError(expected=self._embedding_dim, actual=len(vector))
+
     async def _generate_embedding(self, content: Any) -> List[float]:
         """Generate embedding for content."""
         # Simple hash-based embedding for demonstration
@@ -253,6 +299,25 @@ class SemanticMemory(BaseMemory):
         
         return True
         
+    # ------------------------------------------------------------------
+    # IVectorIndex compatibility helpers
+    # ------------------------------------------------------------------
+    @property
+    def embedding_dimension(self) -> int:  # noqa: D401
+        """Expose embedding dimensionality for vector guard."""
+        return self._embedding_dim
+
+    # ------------------------------------------------------------------
+    # MemoryGuarantee interface
+    # ------------------------------------------------------------------
+
+    def guarantees(self) -> set[MemoryGuarantee]:  # noqa: D401
+        base = {MemoryGuarantee.DURABLE}
+        if self._enable_vectors:
+            base.add(MemoryGuarantee.VECTORISED)
+        return base
+
+    # ------------------------------------------------------------------
     async def clear(self, pattern: Optional[str] = None) -> int:
         """Clear facts matching pattern."""
         if not self._initialized:
@@ -285,6 +350,13 @@ class SemanticMemory(BaseMemory):
             keys = list(self._facts_store.keys())
             
         return keys[:limit]
+
+    # ------------------------------------------------------------------
+    # Usage statistics
+    # ------------------------------------------------------------------
+    def get_usage_stats(self) -> Dict[str, float]:
+        """Return cumulative token and cost usage for this semantic memory."""
+        return {"tokens": self._token_total, "cost_usd": self._cost_total}
         
     async def find_related(
         self,

@@ -346,6 +346,38 @@ class Registry(BaseModel):
         if name not in self._agents:
             raise KeyError(f"Agent {name} not found")
         return self._agents[name]
+
+    # ------------------------------------------------------------------
+    # New symmetry helpers ---------------------------------------------
+    # ------------------------------------------------------------------
+    def get_agent_class(self, name: str) -> type:  # noqa: D401
+        """Return the imported *class* for the given agent name.
+
+        This performs a lazy import based on the stored import path and
+        caches the resulting class object in ``_instances`` for faster
+        subsequent access.
+        """
+        if name not in self._agents:
+            raise KeyError(f"Agent {name} not found")
+
+        # Check cached instance/class first
+        from typing import Any, cast
+        cached: Any = self._instances.get(NodeType.AGENT, {}).get(name)  # type: ignore[arg-type]
+        if cached and isinstance(cached, type):
+            from typing import cast
+            return cast(type, cached)
+
+        import_path = self._agents[name]
+        module_str, attr = import_path.split(":", 1)
+        import importlib
+        module = importlib.import_module(module_str)
+        cls = getattr(module, attr)
+        if not isinstance(cls, type):
+            raise TypeError(f"{import_path} does not resolve to a class")
+
+        # Cache for future look-ups under _instances to avoid re-import
+        self._instances.setdefault(NodeType.AGENT, {})[name] = cls  # type: ignore[arg-type,assignment]
+        return cls
     
     def available_agents(self) -> List[Tuple[str, str]]:
         """List all registered agents with their import paths."""
@@ -355,17 +387,26 @@ class Registry(BaseModel):
 registry = Registry()
 
 # Node executor decorator
+from ice_core.protocols import validated_protocol
+
+
+
 def register_node(node_type: str) -> Callable[[F], F]:
     """Decorator to register a node executor.
-    
-    Example:
+
+    Example::
+
         @register_node("tool")
-        async def tool_executor(chain, cfg, ctx):
+        async def tool_executor(workflow, cfg, ctx):
             ...
     """
+
     def decorator(func: F) -> F:
+        # Validate protocol compliance (executor signature & coroutine semantics)
+        validated_protocol("executor")(func)  # type: ignore[arg-type]
         registry.register_executor(node_type, func)
         return func
+
     return decorator
 
 # Convenience functions

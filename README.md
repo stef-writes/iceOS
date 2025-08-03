@@ -52,10 +52,13 @@ $ make setup
 # 1️⃣ Run the test-suite (optional but recommended)
 $ make test
 
-# 2️⃣ Start the MCP API locally
-$ poetry run uvicorn ice_api.main:app --reload
+# 2️⃣ Spin up Redis & start the API (Docker required for the Redis helper)
+$ make dev               # starts Redis (via Docker) + hot-reloaded API
 
-# 3️⃣ Execute a blueprint (local runtime)
+# 3️⃣ Copy the environment template and add your API keys (optional but recommended)
+$ cp config/dev.env.example .env
+
+# 4️⃣ Execute a blueprint (local runtime)
 $ poetry run ice run-blueprint examples/hello_world.json
 ```
 

@@ -3,7 +3,7 @@
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from fastapi import APIRouter, Response
 
-from ice_core.metrics import EXEC_STARTED, EXEC_COMPLETED  # ensure counters imported so they register
+from ice_core.metrics import EXEC_STARTED, EXEC_COMPLETED  # noqa: F401  # ensure counters imported so they register
 
 router = APIRouter(tags=["metrics"])
 

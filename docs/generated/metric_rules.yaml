@@ -1,0 +1,38 @@
+groups:
+- name: iceos-generated
+  rules:
+  - alert: executions_started_total_absent
+    expr: absent(executions_started_total)
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: Metric executions_started_total missing
+  - alert: executions_completed_total_absent
+    expr: absent(executions_completed_total)
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: Metric executions_completed_total missing
+  - alert: executions_failed_total_absent
+    expr: absent(executions_failed_total)
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: Metric executions_failed_total missing
+  - alert: draft_mutation_total_absent
+    expr: absent(draft_mutation_total)
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: Metric draft_mutation_total missing
+  - alert: llm_cost_total_absent
+    expr: absent(llm_cost_total)
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      summary: Metric llm_cost_total missing

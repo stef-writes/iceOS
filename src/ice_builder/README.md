@@ -29,6 +29,42 @@ with tempfile.NamedTemporaryFile("w", suffix=".json") as f:
     subprocess.run(["ice", "push", f.name])
 ```
 
+## AI-Powered Natural-Language Builder
+
+`ice_builder.nl` is the new home of **Frosty’s** multi-LLM pipeline.  It turns free-text
+specifications into validated `Blueprint` objects while showing an iterative
+**Mermaid** preview so users can see the execution graph evolve.
+
+```python
+from ice_builder.nl import generate_blueprint_interactive
+
+mermaid, blueprint = generate_blueprint_interactive("Process CSV and email a summary")
+print(mermaid)       # ↩ live diagram (can be rendered on Canvas)
+print(len(blueprint.nodes))
+```
+
+### Interactive flow (future Canvas integration)
+1. **Prompt** – The user describes their idea in natural language.
+2. **Mermaid Draft** – The NL pipeline creates a draft diagram and returns it
+   to the *Canvas* for visual feedback.
+3. **Reprompt / Drag-and-Drop** – The user can:
+   * Edit the prompt (↺ regenerate)
+   * Drag validated **nodes** (registered tools, agents, sub-systems) onto the
+     diagram – these become *locked* and cannot be overwritten by the LLM.
+4. **Enhance & Validate** – The AI refines the plan, filling in missing
+   parameters and connecting the user-placed nodes.
+5. **Generate Blueprint** – A fully-validated `Blueprint` is persisted; the
+   **Mermaid** diagram (with node IDs) is stored as part of the blueprint’s
+   `metadata` so it can be re-hydrated later as a *memory* of the design.
+
+```
+user ─▶ idea
+          ▼
+ AI (LLM) ──▶ Mermaid draft ──▶ Canvas 🖱️  ──▶ refined prompt ──▶ …
+```
+
+---
+
 ## Natural-Language Helpers
 ```python
 from ice_builder.nl import create_partial_blueprint, append_tool_node

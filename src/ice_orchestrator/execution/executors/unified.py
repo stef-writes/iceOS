@@ -144,7 +144,10 @@ async def tool_executor(
         flattened_inputs = _flatten_dependency_outputs(merged_inputs, tool)
         
         # Direct execution - tools need file I/O, network access, imports
-        tool_output: Any = await tool.execute(**flattened_inputs)
+        from ice_orchestrator.execution.sandbox.resource_sandbox import ResourceSandbox
+
+        async with ResourceSandbox(timeout_seconds=cfg.timeout_seconds or 30) as sbx:  # type: ignore[attr-defined]
+            tool_output: Any = await sbx.run_with_timeout(tool.execute(**flattened_inputs))
         
         # Ensure tool_output is a dictionary
         if not isinstance(tool_output, dict):

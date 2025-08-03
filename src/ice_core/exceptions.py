@@ -21,6 +21,7 @@ __all__ = [
     "SecurityViolationError",
     "RegistryError",
     "ValidationError",
+    "DimensionMismatchError",
 ]
 
 class ErrorCode(IntEnum):
@@ -30,6 +31,7 @@ class ErrorCode(IntEnum):
     LAYER_VIOLATION = 1002  # New – layer boundary breach
     PATH_SECURITY_VIOLATION = 1003  # Unsafe path outside project root
     SCAFFOLD_VALIDATION = 1004  # Scaffolded content failed schema validation
+    DIMENSION_MISMATCH = 1005  # Vector dimension mismatch
 
     # Generic fall-back
     UNKNOWN = 9000
@@ -40,6 +42,7 @@ class ErrorCode(IntEnum):
             ErrorCode.CYCLIC_TOOL_COMPOSITION: "Cyclic tool/agent invocation detected",
             ErrorCode.LAYER_VIOLATION: "Layer boundary violation detected",
             ErrorCode.UNKNOWN: "Unknown or uncategorised error",
+            ErrorCode.DIMENSION_MISMATCH: "Vector embedding dimension mismatch",
         }
         return mapping.get(self, mapping[ErrorCode.UNKNOWN])
 
@@ -106,6 +109,17 @@ class ValidationError(CoreError):
 
     def __init__(self, message: str, *, payload: Any | None = None):
         super().__init__(ErrorCode.UNKNOWN, message, payload=payload)
+
+
+class DimensionMismatchError(CoreError):
+    """Raised when vector dimensionality does not match index specification."""
+
+    def __init__(self, expected: int, actual: int):
+        super().__init__(
+            ErrorCode.DIMENSION_MISMATCH,
+            f"Embedding dimension mismatch: expected {expected}, got {actual}",
+            payload={"expected": expected, "actual": actual},
+        )
 
 
 class RegistryError(Exception):

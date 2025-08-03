@@ -163,6 +163,22 @@ add_exception_handlers(app)
 
 # Include routers
 app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
+from ice_api.api import drafts_router as _drafts_router
+app.include_router(_drafts_router)
+
+# WebSocket endpoint for draft updates --------------------------------------
+from ice_api.ws import draft_ws as _draft_ws
+
+@app.websocket("/ws/drafts/{session_id}")
+async def draft_updates(ws, session_id: str):  # type: ignore[valid-type]
+    await _draft_ws.register(session_id, ws)
+    try:
+        while True:
+            await ws.receive_text()  # keep connection alive (client pings)
+    except Exception:
+        pass
+    finally:
+        await _draft_ws.unregister(session_id, ws)
 
 from ice_api.api.blueprints import router as blueprint_router  # ensure module import
 from ice_api.api.executions import router as execution_router

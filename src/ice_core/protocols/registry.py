@@ -89,6 +89,16 @@ class IRegistry(Protocol):
         ...
     
     @abstractmethod
+    def get_agent_class(self, name: str) -> type:
+        """Return the imported agent class for *name* (lazy import)."""
+        ...
+
+    @abstractmethod
+    def list_agents(self) -> List[str]:
+        """List registered agent names."""
+        ...
+
+    @abstractmethod
     def list_nodes(self, node_type: Optional[NodeType] = None) -> List[str]:
         """List all registered nodes.
         

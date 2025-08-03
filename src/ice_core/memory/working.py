@@ -6,6 +6,10 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from .base import BaseMemory, MemoryConfig, MemoryEntry
+from ice_core.models.enums import MemoryGuarantee
+from ice_core.utils.token_counter import TokenCounter
+from ice_core.costs import TokenCostCalculator
+from ice_core.metrics import MEMORY_TOKEN_TOTAL, MEMORY_COST_TOTAL
 
 
 class WorkingMemory(BaseMemory):
@@ -34,6 +38,17 @@ class WorkingMemory(BaseMemory):
         # Use OrderedDict to maintain insertion order for LRU
         self._store: OrderedDict[str, MemoryEntry] = OrderedDict()
         self._cleanup_task: Optional[asyncio.Task[None]] = None
+
+        # Accounting totals
+        self._token_total: int = 0
+        self._cost_total: float = 0.0
+
+    # ------------------------------------------------------------------
+    # Guarantee implementation
+    # ------------------------------------------------------------------
+
+    def guarantees(self) -> set[MemoryGuarantee]:  # noqa: D401
+        return {MemoryGuarantee.EPHEMERAL}
         
     async def initialize(self) -> None:
         """Initialize and start cleanup task."""
@@ -91,17 +106,40 @@ class WorkingMemory(BaseMemory):
             content: Content to store
             metadata: Optional metadata
         """
+        # ------------------------------------------------------------------
+        # Token and cost accounting
+        # ------------------------------------------------------------------
+        token_usage = 0
+        if isinstance(content, str):
+            try:
+                # Rough estimate using OpenAI tokenizer defaults
+                token_usage = TokenCounter.estimate_tokens(content, model="gpt-3.5-turbo")
+            except Exception:
+                token_usage = len(content) // 4  # Fallback heuristic
+        calculator = TokenCostCalculator()
+        cost_usd = calculator.calculate_cost(model="gpt-3.5-turbo", input_tokens=token_usage, output_tokens=0)
+
         entry = MemoryEntry(
             key=key,
             content=content,
             metadata=metadata or {},
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
+            token_usage=token_usage,
+            cost_usd=cost_usd,
         )
         
         # Update or add entry (moves to end if exists)
         if key in self._store:
             del self._store[key]
         self._store[key] = entry
+
+        # Update aggregate stats
+        self._token_total += token_usage
+        self._cost_total += cost_usd
+
+        # Prometheus metrics
+        MEMORY_TOKEN_TOTAL.labels(memory_type="working").inc(token_usage)
+        MEMORY_COST_TOTAL.labels(memory_type="working").inc(cost_usd)
         
         # Enforce size limit
         self._enforce_size_limit()
@@ -241,6 +279,13 @@ class WorkingMemory(BaseMemory):
                 break
                 
         return keys
+
+    # ------------------------------------------------------------------
+    # Usage statistics
+    # ------------------------------------------------------------------
+    def get_usage_stats(self) -> Dict[str, float]:
+        """Return cumulative token and cost usage for this working memory."""
+        return {"tokens": self._token_total, "cost_usd": self._cost_total}
         
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Clean up on exit."""

@@ -28,4 +28,9 @@ repos:
         name: pytest
         entry: poetry run pytest -c config/testing/pytest.ini -q
         language: system
+        pass_filenames: false
+      - id: layer-guard
+        name: layer guard
+        entry: python scripts/check_layers.py
+        language: system
         pass_filenames: false 

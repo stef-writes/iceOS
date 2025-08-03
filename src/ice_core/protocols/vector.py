@@ -5,8 +5,31 @@ from abc import abstractmethod
 from typing import Any, Dict, List, Protocol, Tuple
 
 
+from ice_core.exceptions import DimensionMismatchError
+
 class IVectorIndex(Protocol):
-    """Protocol for vector index implementations."""
+    """Vector index protocol ensuring dimensional safety and search consistency."""
+
+    # ------------------------------------------------------------------
+    # Structural metadata
+    # ------------------------------------------------------------------
+
+    @property
+    @abstractmethod
+    def embedding_dimension(self) -> int:
+        """Fixed dimensionality of vectors handled by this index."""
+        ...
+
+    # ------------------------------------------------------------------
+    # Helper – default dimensionality guard
+    # ------------------------------------------------------------------
+
+    def validate_embedding(self, embedding: list[float]) -> None:  # noqa: D401
+        """Raise :class:`DimensionMismatchError` if *embedding* has wrong length."""
+        expected = self.embedding_dimension
+        actual = len(embedding)
+        if actual != expected:
+            raise DimensionMismatchError(expected, actual)
     
     @abstractmethod
     async def upsert(

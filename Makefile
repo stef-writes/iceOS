@@ -160,4 +160,22 @@ run-demo: ## Execute CSV→Summary demo (requires dev server running)
 # ---------------------------------------------------------------------------
 
 ci: lint type test structure
-	poetry run pip-audit --summary 
+	poetry run pip-audit --summary
+
+# ---------------------------------------------------------------------------
+# Release candidate build ----------------------------------------------------
+# ---------------------------------------------------------------------------
+#   1. Ensure lockfile is fresh & deps pinned
+#   2. Run full quality gate (ci)
+#   3. Regenerate docs & schemas; fail if drift
+#   4. Build Docker image for smoke testing
+#
+# Usage: `make release-candidate`
+# ---------------------------------------------------------------------------
+
+release-candidate: lock-check refresh-docs
+	$(PYTHON) scripts/gen_docs/build_all.py
+	$(PYTHON) scripts/ci/check_schema_drift.py
+	$(MAKE) ci
+	docker build -t iceos:rc .
+	@echo "[release-candidate] Docker image tag 'iceos:rc' built successfully." 

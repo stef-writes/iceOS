@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ice_core.models.enums import ModelProvider
+from ice_core.models.enums import ModelProvider, MemoryGuarantee
 
 T = TypeVar('T')
 
@@ -37,6 +37,12 @@ class MemoryConfig(BaseModel):
         default=False,
         description="Enable semantic/vector search capabilities"
     )
+    embedding_dim: int = Field(
+        default=384,
+        ge=32,
+        le=8192,
+        description="Expected embedding dimensionality when vector search is enabled"
+    )
     embedding_model: Optional[str] = Field(
         default="text-embedding-3-small",
         description="Model to use for embeddings"
@@ -44,6 +50,12 @@ class MemoryConfig(BaseModel):
     embedding_provider: Optional[ModelProvider] = Field(
         default=ModelProvider.OPENAI,
         description="Provider for embedding model"
+    )
+
+    # Durability guarantee
+    guarantee: MemoryGuarantee = Field(
+        default=MemoryGuarantee.DURABLE,
+        description="Durability guarantee of the backend"
     )
     
     # Connection details
@@ -75,6 +87,19 @@ class MemoryEntry(BaseModel):
         ge=0.0,
         le=10.0,
         description="Importance score for retention"
+    )
+    # ------------------------------------------------------------------
+    # Accounting fields ------------------------------------------------
+    # ------------------------------------------------------------------
+    token_usage: int = Field(
+        default=0,
+        ge=0,
+        description="Number of tokens associated with this memory entry"
+    )
+    cost_usd: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Estimated USD cost of tokens for this entry"
     )
 
 
@@ -201,11 +226,31 @@ class BaseMemory(ABC):
         # Subclasses can override to close connections
         pass
     
-    def validate(self) -> None:
-        """Validate memory configuration.
-        
-        Raises:
-            ValueError: If configuration is invalid
+    # ------------------------------------------------------------------
+    # Guarantee handling ------------------------------------------------
+    # ------------------------------------------------------------------
+
+    def guarantees(self) -> set[MemoryGuarantee]:  # noqa: D401
+        """Return guarantees offered by this backend.
+
+        Derived from configuration: the primary durability guarantee plus
+        VECTORISED when vector search is enabled. Sub-classes may override
+        to expose more nuanced semantics.
         """
+        guarantees: set[MemoryGuarantee] = {self.config.guarantee}
+        if self.config.enable_vector_search:
+            guarantees.add(MemoryGuarantee.VECTORISED)
+        return guarantees
+
+    # ------------------------------------------------------------------
+    def validate(self) -> None:
+        """Validate memory configuration and guarantee compatibility."""
         if not self.config.backend:
-            raise ValueError("Memory backend must be specified") 
+            raise ValueError("Memory backend must be specified")
+
+        requested = {self.config.guarantee}
+        offered = self.guarantees()
+        if not requested.issubset(offered):
+            from ice_core.exceptions import ValidationError
+            raise ValidationError(
+                f"Backend offers {offered} but request requires {requested}") 

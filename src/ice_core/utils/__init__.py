@@ -13,4 +13,5 @@ __all__: list[str] = [
     "text",
     "coercion",
     "nested_validation",
+    "vector",
 ]

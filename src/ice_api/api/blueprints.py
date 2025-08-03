@@ -33,6 +33,18 @@ def _merge_nodes(existing: List[NodeSpec], patch_nodes: List[NodeSpec]) -> List[
             mapping[p.id] = p
     return list(mapping.values())
 
+import hashlib
+import json
+
+# ---------------------------------------------------------------------------
+# Version-lock helper -------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+def _calculate_version_lock(bp: Blueprint) -> str:  # noqa: D401
+    """Return SHA-256 hash of the blueprint's JSON representation."""
+    payload = bp.model_dump(mode="json", exclude_none=True)
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -50,7 +62,32 @@ async def create_blueprint(  # noqa: D401 – API route
 
     blueprint_id = str(uuid.uuid4())
     _get_store(request)[blueprint_id] = blueprint
-    return {"id": blueprint_id}
+
+    version_lock = _calculate_version_lock(blueprint)
+    return {"id": blueprint_id, "version_lock": version_lock}
+
+
+from fastapi import Depends, Response
+from ice_api.dependencies import rate_limit
+from ice_api.security import require_auth
+
+
+@router.get("/{blueprint_id}", dependencies=[Depends(rate_limit), Depends(require_auth)])
+async def get_blueprint(
+    request: Request,
+    blueprint_id: str,
+    response: Response,
+) -> Dict[str, Any]:  # noqa: D401 – API route
+    """Return a stored Blueprint by *id* with optimistic version-lock header."""
+    store = _get_store(request)
+    bp = store.get(blueprint_id)
+    if bp is None:
+        raise HTTPException(status_code=404, detail="Blueprint not found")
+
+    # Compute version lock and expose as header
+    version_lock = _calculate_version_lock(bp)
+    response.headers["X-Version-Lock"] = version_lock
+    return bp.model_dump()
 
 
 @router.patch("/{blueprint_id}")
@@ -69,6 +106,15 @@ async def patch_blueprint(  # noqa: D401
     store = _get_store(request)
     if blueprint_id not in store:
         raise HTTPException(status_code=404, detail="Blueprint not found")
+
+    # Optimistic locking --------------------------------------------------
+    client_lock = request.headers.get("X-Version-Lock")
+    if client_lock is None:
+        raise HTTPException(status_code=428, detail="Missing X-Version-Lock header")
+
+    server_lock = _calculate_version_lock(store[blueprint_id])
+    if client_lock != server_lock:
+        raise HTTPException(status_code=409, detail="Blueprint version conflict")
 
     bp = store[blueprint_id]
 

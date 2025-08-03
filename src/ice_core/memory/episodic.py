@@ -6,6 +6,10 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, cast
 
 from .base import BaseMemory, MemoryConfig, MemoryEntry
+from ice_core.models.enums import MemoryGuarantee
+from ice_core.utils.token_counter import TokenCounter
+from ice_core.costs import TokenCostCalculator
+from ice_core.metrics import MEMORY_TOKEN_TOTAL, MEMORY_COST_TOTAL
 
 try:
     import redis
@@ -28,6 +32,12 @@ class EpisodicMemory(BaseMemory):
     - Semantic search through metadata
     """
     
+    # ------------------------------------------------------------------
+    # MemoryGuarantee interface
+    # ------------------------------------------------------------------
+    def guarantees(self) -> set[MemoryGuarantee]:  # noqa: D401
+        return {MemoryGuarantee.TTL}
+
     def __init__(self, config: MemoryConfig):
         """Initialize episodic memory with Redis backend."""
         super().__init__(config)
@@ -36,6 +46,10 @@ class EpisodicMemory(BaseMemory):
         self._key_prefix = "episode:"
         self._index_prefix = "episode_idx:"
         self._ttl = config.ttl_seconds if config.ttl_seconds else 7 * 24 * 3600  # 7 days default
+
+        # Accounting totals
+        self._token_total: int = 0
+        self._cost_total: float = 0.0
         
     async def initialize(self) -> None:
         """Initialize Redis connection."""
@@ -83,12 +97,26 @@ class EpisodicMemory(BaseMemory):
         if not self._initialized:
             await self.initialize()
             
+        # ------------------------------------------------------------------
+        # Token and cost accounting
+        # ------------------------------------------------------------------
+        token_usage = 0
+        if isinstance(content, str):
+            try:
+                token_usage = TokenCounter.estimate_tokens(content, model="gpt-3.5-turbo")
+            except Exception:
+                token_usage = len(content) // 4
+        calculator = TokenCostCalculator()
+        cost_usd = calculator.calculate_cost(model="gpt-3.5-turbo", input_tokens=token_usage, output_tokens=0)
+
         # Create memory entry
         entry = MemoryEntry(
             key=key,
             content=content,
             metadata=metadata or {},
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
+            token_usage=token_usage,
+            cost_usd=cost_usd,
         )
         
         # Add episode-specific metadata
@@ -121,9 +149,25 @@ class EpisodicMemory(BaseMemory):
             self._index_episode(pipeline, key, entry)
             
             pipeline.execute()
+
+            # Update aggregate stats
+            self._token_total += token_usage
+            self._cost_total += cost_usd
+
+            # Prometheus metrics
+            MEMORY_TOKEN_TOTAL.labels(memory_type="episodic").inc(token_usage)
+            MEMORY_COST_TOTAL.labels(memory_type="episodic").inc(cost_usd)
         else:
             # Fallback to in-memory
             self._memory_store[key] = entry
+
+            # Update aggregate stats
+            self._token_total += token_usage
+            self._cost_total += cost_usd
+
+            # Prometheus metrics
+            MEMORY_TOKEN_TOTAL.labels(memory_type="episodic").inc(token_usage)
+            MEMORY_COST_TOTAL.labels(memory_type="episodic").inc(cost_usd)
     
     def _index_episode(self, pipeline: Any, key: str, entry: MemoryEntry) -> None:
         """Index episode for efficient search."""
@@ -393,6 +437,13 @@ class EpisodicMemory(BaseMemory):
                 return [k for k in self._memory_store.keys() if k.startswith(pattern)][:limit]
             else:
                 return list(self._memory_store.keys())[:limit]
+
+    # ------------------------------------------------------------------
+    # Usage statistics
+    # ------------------------------------------------------------------
+    def get_usage_stats(self) -> Dict[str, float]:
+        """Return cumulative token and cost usage for this episodic memory."""
+        return {"tokens": self._token_total, "cost_usd": self._cost_total}
     
     async def get_conversation_history(
         self,

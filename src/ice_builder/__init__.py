@@ -1,20 +1,51 @@
-"""ice_builder - Unified workflow building package.
+from __future__ import annotations
+"""ice_builder – Unified workflow building package.
 
-This package combines the fluent DSL builders and natural language processing
-capabilities into a single, cohesive interface for creating iceOS workflows.
+During the v0.1 hardening phase the natural-language (NL) generator is
+*disabled by default* to avoid strict-typing violations bleeding into other
+layers.  A feature flag allows developers to enable it locally while we
+complete the refactor.
 """
 
+import os
+from contextlib import suppress
 from importlib import metadata
-
-# Stable public surface for code generators
-from .public import *  # noqa: F401,F403 – re-export for convenience
-
-from . import dsl as _dsl  # internal DSL (full surface)
-from .dsl import *  # noqa: F401,F403 – legacy re-export
-from .nl import append_tool_node, create_partial_blueprint  # public NL entry
-
 from typing import List as _List
 
+# ---------------------------------------------------------------------------
+# Public DSL surface (always available) -------------------------------------
+# ---------------------------------------------------------------------------
+from . import dsl as _dsl  # noqa: E402 – re-export order intentional
+from .dsl import *  # noqa: F401,F403 – DSL builders
+
+# ---------------------------------------------------------------------------
+# Conditional NL generator export ------------------------------------------
+# ---------------------------------------------------------------------------
+
+ENABLE_NL_GENERATOR = os.getenv("ENABLE_NL_GENERATOR", "0") == "1"
+
+with suppress(ImportError):
+    if ENABLE_NL_GENERATOR:
+        from .nl import append_tool_node, create_partial_blueprint  # noqa: F401
+        __all_extra: _List[str] = [
+            "append_tool_node",
+            "create_partial_blueprint",
+        ]
+    else:  # Hardened builds: raise a warning to callers
+        import warnings
+
+        warnings.warn(
+            "NL generator is temporarily disabled during protocol-compliance "
+            "hardening.  Set ENABLE_NL_GENERATOR=1 to opt-in.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        __all_extra = []
+
+# ---------------------------------------------------------------------------
+# Package metadata ----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
 _public_all: _List[str] = globals().get("__all__", [])  # type: ignore[arg-type]
-__all__: _List[str] = _public_all + _dsl.__all__ + ["create_partial_blueprint", "append_tool_node"]
-__version__ = metadata.version("iceos") 
+__all__: _List[str] = _public_all + _dsl.__all__ + __all_extra
+__version__ = metadata.version("iceos")

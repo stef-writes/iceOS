@@ -6,6 +6,8 @@ from enum import Enum
 
 __all__: list[str] = [
     "ModelProvider",
+    "MemoryGuarantee",
+    "MetricName",
 ]
 
 class ModelProvider(str, Enum):
@@ -16,6 +18,27 @@ class ModelProvider(str, Enum):
     GOOGLE = "google"
     DEEPSEEK = "deepseek"
     CUSTOM = "custom"
+
+
+class MemoryGuarantee(str, Enum):
+    """Guarantee characteristics offered by memory back-ends."""
+
+    EPHEMERAL = "ephemeral"      # in-proc only
+    SHORT_TERM = "short_term"    # persisted for session / hrs
+    TTL = "ttl"                  # deprecated alias for SHORT_TERM
+    DURABLE = "durable"          # survives restarts, replicated
+    VECTORISED = "vectorised"    # supports fixed-dim vector search
+
+
+class MetricName(str, Enum):
+    """Canonical Prometheus metric names used across iceOS layers."""
+
+    EXECUTIONS_STARTED = "executions_started_total"
+    EXECUTIONS_COMPLETED = "executions_completed_total"
+    EXECUTIONS_FAILED = "executions_failed_total"
+    DRAFT_MUTATION_TOTAL = "draft_mutation_total"
+    LLM_COST_TOTAL = "llm_cost_total"
+
 
 # ---------------------------------------------------------------------------
 # NodeType enum (canonical runtime discriminator values) ---------------------
