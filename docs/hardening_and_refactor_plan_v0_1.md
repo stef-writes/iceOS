@@ -140,6 +140,22 @@ Deliverable → pristine tree; tests fail only for known gaps below.
 
 ---
 
+## Phase 7 – Production Readiness  *(1 day)*
+| Step | Status | Description |
+|------|--------|-------------|
+| 7.1 | ◇ | Structured JSON logging & OpenTelemetry trace correlation |
+| 7.2 | ◇ | Secure secrets/config management (Vault/KMS loader, `.env` fallback) |
+| 7.3 | ◇ | Dependency & vulnerability scanning (`pip-audit`, `OSV`, Dependabot) |
+| 7.4 | ◇ | Automated license scanning wired to CI (`scripts/cli/check_license.py`) |
+| 7.5 | ◇ | WebSocket auth & rate-limiting middleware |
+| 7.6 | ◇ | Health-check endpoints `/livez`, `/readyz` + graceful shutdown hooks |
+| 7.7 | ◇ | Container hardening (non-root UID, distroless base) & SBOM export |
+| 7.8 | ◇ | SLA alert rules (error-rate, latency, sandbox kills) → PagerDuty |
+| 7.9 | ◇ | Automated DB & Redis backups with restore runbook |
+| 7.10 | ◇ | PII redaction policy for logs & memory stores |
+
+---
+
 ## Timeline Estimate
 | Work-stream | Effort |
 |-------------|--------|
@@ -152,7 +168,7 @@ Deliverable → pristine tree; tests fail only for known gaps below.
 
 ---
 
-## Combined Definition of Done
+## Combined Definition of Done (updated)
 1. `make test`, `ruff`, `isort`, **and** `mypy --strict` green (zero errors).  
 2. Coverage ≥ 90 % on changed lines.  
 3. Integration test passes end-to-end (Hello-world DSL → MCP API → Orchestrator).  
