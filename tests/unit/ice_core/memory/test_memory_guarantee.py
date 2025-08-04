@@ -1,5 +1,5 @@
-from ice_core.models.enums import MemoryGuarantee
 from ice_core.memory.base import MemoryConfig
+from ice_core.models.enums import MemoryGuarantee
 
 
 def test_memory_guarantee_values():

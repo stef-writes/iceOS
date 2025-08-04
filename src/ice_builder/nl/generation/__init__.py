@@ -6,7 +6,7 @@ natural language specifications into validated iceOS Blueprints.
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Tuple, Optional
+from typing import TYPE_CHECKING, Optional, Tuple
 
 if TYPE_CHECKING:
     from ice_core.models.mcp import Blueprint

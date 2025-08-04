@@ -1,12 +1,13 @@
 import asyncio
 import os
+
 import pytest
 
 if not os.getenv("ENABLE_NL_GENERATOR"):
     pytest.skip("NL generator disabled", allow_module_level=True)
 
-from ice_builder.nl.memory import DraftState, InMemoryDraftStore
 from ice_builder.nl.generation.interactive_pipeline import InteractiveBlueprintPipeline
+from ice_builder.nl.memory import DraftState, InMemoryDraftStore
 
 
 @pytest.mark.asyncio

@@ -9,7 +9,6 @@ from typing import Any, Dict, List
 
 from .node_selection_heuristics import describe_node_capabilities
 
-
 INTENT_EXTRACTION_PROMPT = """You are an expert at understanding user requirements for workflow automation.
 
 Extract the following from the user's request:

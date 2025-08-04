@@ -6,10 +6,10 @@ Located in *ice_core* so both the API layer and authoring tools can depend on
 it without violating layer-boundary rules (builder -> core, api -> core).
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Protocol, Tuple, TypedDict, cast
 import json
 import os
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Protocol, Tuple, TypedDict, cast
 
 # Optional Redis dependency is only required if a Redis store is actually used.
 try:
@@ -109,9 +109,8 @@ class RedisDraftStore(DraftStore):
         self._redis_url: str = cast(str, redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0"))
         _default_ttl = 60 * 60 * 24  # 24h
         self._ttl = ttl_seconds or int(os.getenv("DRAFTSTORE_TTL", str(_default_ttl)))
-        from typing import cast
         # Redis client returns Any (no type hints); cast for mypy strict
-        from typing import Callable, Any
+        from typing import Callable, cast
         from_url_typed = cast(Callable[..., "redis.Redis"], redis.from_url)
         self._client = from_url_typed(self._redis_url, decode_responses=True)
 

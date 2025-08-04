@@ -10,9 +10,8 @@ from ice_core.models.node_models import (
     NodeExecutionResult,
     NodeMetadata,
 )
-
-
 from ice_core.protocols import validated_protocol
+
 
 @validated_protocol("agent")
 class AgentNode(BaseNode):

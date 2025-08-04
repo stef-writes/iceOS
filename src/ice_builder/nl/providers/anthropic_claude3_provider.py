@@ -7,12 +7,11 @@ from __future__ import annotations
 
 from typing import AsyncGenerator
 
-from ice_core.models.llm import LLMConfig
 from ice_core.models.enums import ModelProvider
+from ice_core.models.llm import LLMConfig
+from ice_core.protocols import enforce_protocol
 from ice_core.protocols.llm import ILLMProvider
 
-
-from ice_core.protocols import enforce_protocol
 
 @enforce_protocol(ILLMProvider)
 class AnthropicClaude3Provider(ILLMProvider):

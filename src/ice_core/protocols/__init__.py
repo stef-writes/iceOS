@@ -9,18 +9,20 @@ Layer Rules:
 3. Define contracts only, no implementations
 """
 
+from typing import Any, Set
+
+from .agent import IAgent
 from .embedder import IEmbedder
+from .executor import IExecutor
 from .llm import ILLMProvider, LLMProviderRegistry, llm_provider_registry
 from .node import INode
 from .registry import IRegistry
 from .tool import ITool
 from .vector import IVectorIndex
 from .workflow import IWorkflow
-from .agent import IAgent
-from .executor import IExecutor
+
 # validated_protocol will be imported lazily at the end to avoid circulars
 
-from typing import Any, Set
 
 # ---------------------------------------------------------------------------
 # Protocol enforcement utilities

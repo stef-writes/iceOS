@@ -9,8 +9,9 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Any, Dict, Protocol
 
-from .node import INode
 from ice_core.models.node_models import NodeExecutionResult
+
+from .node import INode
 
 
 class IExecutor(Protocol):

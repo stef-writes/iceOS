@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """ice_builder – Unified workflow building package.
 
 During the v0.1 hardening phase the natural-language (NL) generator is

@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from ice_core.models.enums import ModelProvider, MemoryGuarantee
+from ice_core.models.enums import MemoryGuarantee, ModelProvider
 
 T = TypeVar('T')
 

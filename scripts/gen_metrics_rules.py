@@ -6,6 +6,7 @@ Outputs YAML compatible with Prometheus rule files under docs/generated/.
 """
 
 from pathlib import Path
+
 import yaml  # type: ignore
 
 from ice_core.models.enums import MetricName

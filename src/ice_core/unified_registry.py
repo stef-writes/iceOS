@@ -361,7 +361,7 @@ class Registry(BaseModel):
             raise KeyError(f"Agent {name} not found")
 
         # Check cached instance/class first
-        from typing import Any, cast
+        from typing import cast
         cached: Any = self._instances.get(NodeType.AGENT, {}).get(name)  # type: ignore[arg-type]
         if cached and isinstance(cached, type):
             from typing import cast
@@ -388,7 +388,6 @@ registry = Registry()
 
 # Node executor decorator
 from ice_core.protocols import validated_protocol
-
 
 
 def register_node(node_type: str) -> Callable[[F], F]:

@@ -1,11 +1,10 @@
-from typing import Any, Dict, Tuple
 import time
-from fastapi import HTTPException, Depends
+from typing import Any, Dict, Tuple
 
-from fastapi import Request
+from fastapi import Depends, HTTPException, Request
 
-from ice_core.services.tool_service import ToolService
 from ice_api.security import require_auth
+from ice_core.services.tool_service import ToolService
 
 
 def get_tool_service(request: Request) -> ToolService:

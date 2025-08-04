@@ -5,8 +5,9 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .base import BaseMemory, MemoryConfig, MemoryEntry
 from ice_core.models.enums import MemoryGuarantee
+
+from .base import BaseMemory, MemoryConfig, MemoryEntry
 
 
 class ProceduralMemory(BaseMemory):

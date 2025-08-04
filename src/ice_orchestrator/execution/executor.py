@@ -136,6 +136,7 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
             return float(base_backoff * (2 ** idx))
 
         last_error: Exception | None = None
+        result_raw: Any | None = None
 
         for attempt in range(max_retries + 1):
             try:
@@ -176,7 +177,9 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                             "node.execute",
                             attributes={"node_id": node_id, "node_type": str(getattr(node, "type", ""))},
                         ):
-                            from ice_orchestrator.execution.sandbox.resource_sandbox import ResourceSandbox
+                            from ice_orchestrator.execution.sandbox.resource_sandbox import (
+                                ResourceSandbox,
+                            )
                             timeout = getattr(node, "timeout_seconds", 30) or 30
                             async with ResourceSandbox(timeout_seconds=timeout) as sbx:
                                 result_raw = await sbx.run_with_timeout(

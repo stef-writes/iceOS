@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-import os, pytest
+import os
+
+import pytest
 
 if not os.getenv("ENABLE_NL_GENERATOR"):
     pytest.skip("NL generator disabled", allow_module_level=True)

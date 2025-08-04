@@ -3,8 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from ice_core.metrics import EXEC_STARTED, EXEC_COMPLETED
-
+from ice_core.metrics import EXEC_COMPLETED, EXEC_STARTED
 from ice_core.models.mcp import NodeSpec
 from ice_core.models.node_models import NodeExecutionResult
 from ice_core.utils.node_conversion import convert_node_specs

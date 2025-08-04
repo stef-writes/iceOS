@@ -1,5 +1,6 @@
 import pytest
-from hypothesis import given, assume, strategies as st
+from hypothesis import assume, given
+from hypothesis import strategies as st
 
 from ice_core.exceptions import DimensionMismatchError
 from ice_core.utils.vector import validate_embedding_dimension

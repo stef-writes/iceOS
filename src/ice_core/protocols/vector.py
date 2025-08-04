@@ -4,8 +4,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Any, Dict, List, Protocol, Tuple
 
-
 from ice_core.exceptions import DimensionMismatchError
+
 
 class IVectorIndex(Protocol):
     """Vector index protocol ensuring dimensional safety and search consistency."""

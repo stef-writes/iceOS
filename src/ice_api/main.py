@@ -7,9 +7,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List
 
+import structlog
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from ice_api.api.mcp import router as mcp_router
 from ice_api.dependencies import get_tool_service
@@ -140,6 +143,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Cleanup on shutdown
     logger.info("Application shutting down")
+    try:
+        if hasattr(redis, "aclose"):
+            await redis.aclose()  # type: ignore[attr-defined]
+        elif hasattr(redis, "close"):
+            await redis.close()  # type: ignore[attr-defined]
+    except Exception as exc:
+        logger.warning("Error while closing Redis connection: %s", exc)
 
 # Create FastAPI app
 app = FastAPI(
@@ -148,6 +158,10 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# OTEL tracing for requests
+app.add_middleware(OpenTelemetryMiddleware)
+FastAPIInstrumentor().instrument_app(app)
 
 # Add CORS middleware
 app.add_middleware(
@@ -161,13 +175,25 @@ app.add_middleware(
 # Add exception handlers
 add_exception_handlers(app)
 
+# Add request context for structured logging
+@app.middleware("http")
+async def add_request_context(request, call_next):
+    structlog.contextvars.bind_contextvars(
+        path=request.url.path, method=request.method
+    )
+    response = await call_next(request)
+    structlog.contextvars.clear_contextvars()
+    return response
+
 # Include routers
 app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
 from ice_api.api import drafts_router as _drafts_router
+
 app.include_router(_drafts_router)
 
 # WebSocket endpoint for draft updates --------------------------------------
 from ice_api.ws import draft_ws as _draft_ws
+
 
 @app.websocket("/ws/drafts/{session_id}")
 async def draft_updates(ws, session_id: str):  # type: ignore[valid-type]
@@ -182,24 +208,32 @@ async def draft_updates(ws, session_id: str):  # type: ignore[valid-type]
 
 from ice_api.api.blueprints import router as blueprint_router  # ensure module import
 from ice_api.api.executions import router as execution_router
-
 from ice_api.security import require_auth
 
 app.include_router(blueprint_router, prefix="", tags=["blueprints"], dependencies=[Depends(require_auth)])
 app.include_router(execution_router, prefix="", tags=["executions"], dependencies=[Depends(require_auth)])
 
 from ice_api.ws.executions import router as exec_ws_router
+
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
 app.include_router(exec_ws_router, prefix="/ws", tags=["websocket"])
 
 from ice_api.metrics import router as metrics_router
+
 app.include_router(metrics_router)
 
 # ------------------------------------------------------------------
-# Readiness & meta routes ------------------------------------------
+# Liveness / readiness routes --------------------------------------
 # ------------------------------------------------------------------
 
-@app.get("/ready", tags=["health"], response_model=Dict[str, str])
+@app.get("/livez", tags=["health"], response_model=Dict[str, str])
+async def live_check() -> Dict[str, str]:  # noqa: D401
+    """Liveness probe – always returns 200 when the server process is running."""
+    return {"status": "live"}
+
+# ------------------------------------------------------------------
+
+@app.get("/readyz", tags=["health"], response_model=Dict[str, str])
 async def ready_check() -> Dict[str, str]:
     """Readiness probe – returns 200 only after full startup."""
     import ice_api.startup_utils as su

@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/v1/executions", tags=["executions"])
 
 from typing import TypedDict, cast
 
+
 class _ExecutionRecord(TypedDict, total=False):
     status: str
     blueprint_id: str

@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from ice_core.base_tool import ToolBase
-from ice_core.unified_registry import registry
 from ice_core.models.enums import NodeType
+from ice_core.unified_registry import registry
 
 
 class HelloTool(ToolBase):

@@ -26,7 +26,7 @@ except ModuleNotFoundError:  # pragma: no cover
     seccomp = None  # type: ignore
 
 
-from typing import Any, TypeVar, Awaitable
+from typing import Awaitable, TypeVar
 
 T = TypeVar("T")
 

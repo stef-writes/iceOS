@@ -1,22 +1,18 @@
 """Draft management API – author-time blueprint state."""
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import time
-import json
 from typing import Any, Dict, Tuple
-import hashlib
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, constr
 
-from ice_core.models.draft import (
-    DraftState,
-    RedisDraftStore,
-    InMemoryDraftStore,
-)
 from ice_api.security import require_auth
 from ice_core.metrics import DRAFT_MUTATION_TOTAL
+from ice_core.models.draft import DraftState, InMemoryDraftStore, RedisDraftStore
 
 router = APIRouter(
     prefix="/api/v1/drafts",
@@ -28,6 +24,7 @@ router = APIRouter(
 # Draft persistence store
 # ────────────────────────────────────────────────────────────
 from ice_core.models.draft import DraftStore
+
 
 def _init_store() -> DraftStore:
     if os.getenv("USE_INMEMORY_DRAFTSTORE", "0") == "1":

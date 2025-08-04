@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-
-from ice_core.metrics import EXEC_STARTED, EXEC_COMPLETED
 from typing import Any, Dict, Optional
 
+from ice_core.metrics import EXEC_COMPLETED, EXEC_STARTED
 from ice_core.models import NodeType
 from ice_core.protocols.node import INode
 from ice_core.unified_registry import registry

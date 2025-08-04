@@ -1,6 +1,6 @@
 """Tests for agent registry symmetry helpers."""
-from types import ModuleType
 import sys
+from types import ModuleType
 
 import pytest
 

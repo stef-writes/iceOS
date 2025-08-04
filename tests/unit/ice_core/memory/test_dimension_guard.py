@@ -1,9 +1,10 @@
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 
 from ice_core.exceptions import DimensionMismatchError
-from ice_core.memory.semantic import SemanticMemory
 from ice_core.memory.base import MemoryConfig
+from ice_core.memory.semantic import SemanticMemory
 
 
 @given(
@@ -14,7 +15,8 @@ def test_validate_embedding_dimension(expected_dim: int, wrong_dim: int) -> None
     """SemanticMemory must raise when embedding dimensionality differs."""
 
     # Ensure we are generating a *wrong* dimension
-    assume_diff = pytest.assume if hasattr(pytest, "assume") else lambda x: None  # type: ignore
+    from hypothesis import assume as hyp_assume
+    assume_diff = hyp_assume
     assume_diff(expected_dim != wrong_dim)
 
     mem = SemanticMemory(MemoryConfig(enable_vector_search=True, embedding_dim=expected_dim))

@@ -8,7 +8,6 @@ from ice_core.models.node_models import NodeExecutionResult, RetryPolicy
 from ice_core.unified_registry import register_node, registry
 from ice_orchestrator.execution.executor import NodeExecutor
 
-
 # ---------------------------------------------------------------------------
 # Dummy executor that fails twice, succeeds on third call
 # ---------------------------------------------------------------------------
@@ -19,10 +18,11 @@ async def _dummy_executor(_wf, _cfg, _ctx):  # noqa: D401 – test stub
     _attempt_counter["count"] += 1
     if _attempt_counter["count"] < 3:
         raise RuntimeError("temporary failure")
+    from ice_core.models.node_metadata import NodeMetadata
     return NodeExecutionResult(  # type: ignore[call-arg]
         success=True,
         output={"ok": True},
-        metadata=None,  # type: ignore[arg-type]
+        metadata=NodeMetadata(node_id="n1", node_type="dummy"),
     )
 
 
@@ -30,8 +30,11 @@ async def _dummy_executor(_wf, _cfg, _ctx):  # noqa: D401 – test stub
 # Minimal chain stub with required attributes for NodeExecutor
 # ---------------------------------------------------------------------------
 class _FakeContextManager:
+    class _Ctx:
+        execution_id = None
+
     def get_context(self):
-        return None
+        return self._Ctx()
 
     def update_node_context(self, **kwargs):
         pass
@@ -50,6 +53,8 @@ class _FakeChain:
         self.context_manager = _FakeContextManager()
         self.failure_policy = type("FP", (), {"name": "HALT"})()
         self.budget = _FakeBudget()
+        self.persist_intermediate_outputs = False
+        self.validate_outputs = False
 
     # Needed by NodeExecutor
     def _emit_event(self, *_, **__):
@@ -64,6 +69,7 @@ class DummyNode(BaseModel):
     type: str = "dummy"
     retry_policy: RetryPolicy = RetryPolicy(max_attempts=3, backoff_seconds=0.0, backoff_strategy="fixed")
     timeout_seconds: int = 5
+    output_schema: dict = {}
 
     def runtime_validate(self):
         pass

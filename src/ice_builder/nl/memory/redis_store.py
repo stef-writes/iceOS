@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Optional, Any
+from typing import Optional
 
 try:
     import redis.asyncio as redis
@@ -24,7 +24,7 @@ class RedisDraftStore(DraftStore):
         from typing import cast
         self._redis_url: str = cast(str, redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0"))
         self._ttl = ttl_seconds or int(os.getenv("DRAFTSTORE_TTL", str(_REDISTTL_SECONDS_DEFAULT)))
-        from typing import Callable, Any, cast
+        from typing import Callable, cast
         from_url_typed = cast(Callable[..., "redis.Redis"], redis.from_url)
         self._client = from_url_typed(self._redis_url, decode_responses=True)
 

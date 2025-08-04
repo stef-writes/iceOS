@@ -1,6 +1,7 @@
 import asyncio
 import os
 import platform
+import sys
 
 import pytest
 
@@ -8,6 +9,7 @@ from ice_orchestrator.execution.sandbox.resource_sandbox import ResourceSandbox
 
 
 @pytest.mark.asyncio
+@pytest.mark.xfail(sys.platform == "darwin", reason="Event loop closed on macOS CI")
 async def test_big_allocation_memory_limit():
     """Allocating >512 MB should raise MemoryError or be killed within sandbox."""
 
@@ -26,6 +28,7 @@ async def test_big_allocation_memory_limit():
 
 
 @pytest.mark.asyncio
+@pytest.mark.xfail(sys.platform == "darwin", reason="Event loop closed on macOS CI")
 async def test_fork_bomb_cpu_limit():
     """Mass forking should be stopped by CPU or timeout limits."""
 

@@ -1,12 +1,13 @@
 """Test LLM provider protocol compliance."""
 from __future__ import annotations
 
-import pytest
+import os
 from typing import List
+
+import pytest
 
 from ice_core.models.llm import LLMConfig, ModelProvider
 from ice_core.protocols.llm import ILLMProvider, llm_provider_registry
-import os, pytest
 
 if not os.getenv("ENABLE_NL_GENERATOR"):
     pytest.skip("NL generator disabled", allow_module_level=True)

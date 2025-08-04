@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -59,9 +59,13 @@ class NodeMetadata(BaseModel):
 
     @model_validator(mode="before")  # type: ignore[override]
     @classmethod
-    def _set_modified_at(cls, values: Dict[str, Any]) -> Dict[str, Any]:  # – validator
-        values["modified_at"] = datetime.utcnow()
-        return values
+    def _set_modified_at(cls, values: Any) -> Dict[str, Any]:  # – validator
+        if values is None:
+            values = {}
+        if isinstance(values, dict):
+            values.setdefault("modified_at", datetime.utcnow())
+            return cast(Dict[str, Any], values)
+        return cast(Dict[str, Any], values)
 
     @model_validator(mode="after")  # type: ignore[override]
     def _set_duration(self) -> "NodeMetadata":  # – validator

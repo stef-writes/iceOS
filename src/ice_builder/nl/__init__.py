@@ -10,9 +10,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     pass
 
-# Re-export the generator utilities
-from .generator import append_tool_node, create_partial_blueprint
-
 # Import the main generation functions
 from .generation import (
     InteractiveBlueprintPipeline,
@@ -20,6 +17,9 @@ from .generation import (
     generate_blueprint,
     generate_blueprint_interactive,
 )
+
+# Re-export the generator utilities
+from .generator import append_tool_node, create_partial_blueprint
 
 __all__ = [
     # Legacy generator functions
