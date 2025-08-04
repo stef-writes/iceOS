@@ -69,6 +69,9 @@ def _resolve_jinja_templates(data: Any, context: Dict[str, Any]) -> Any:
         env = jinja2.Environment(autoescape=False)  # Don't escape for data processing
         
         def resolve_value(value: Any) -> Any:
+            from ice_core.models import NodeExecutionResult as _NER  # local to avoid heavy import
+            if isinstance(value, _NER):
+                return resolve_value(value.output if value.output is not None else {})
             if isinstance(value, str):
                 # Check if it looks like a Jinja template
                 if "{{" in value and "}}" in value:
@@ -136,11 +139,20 @@ async def tool_executor(
         # Get tool instance from registry using ITool protocol
         tool = registry.get_instance(NodeType.TOOL, cfg.tool_name)
         
-        # Resolve Jinja templates in tool_args using the full context
-        resolved_tool_args = _resolve_jinja_templates(cfg.tool_args, ctx)
+        # Clean context: unwrap NodeExecutionResult objects to their .output for template rendering
+        from ice_core.models import NodeExecutionResult as _NER
+        ctx_clean: Dict[str, Any] = {}
+        for k, v in ctx.items():
+            if isinstance(v, _NER):
+                ctx_clean[k] = v.output if v.output is not None else {}
+            else:
+                ctx_clean[k] = v
+        
+        # Resolve Jinja templates in tool_args using the cleaned context
+        resolved_tool_args = _resolve_jinja_templates(cfg.tool_args, ctx_clean)
         
         # Smart parameter flattening for the "easy way"
-        merged_inputs = {**resolved_tool_args, **ctx}
+        merged_inputs = {**resolved_tool_args, **ctx_clean}
         flattened_inputs = _flatten_dependency_outputs(merged_inputs, tool)
         
         # Direct execution - tools need file I/O, network access, imports
@@ -149,8 +161,11 @@ async def tool_executor(
         async with ResourceSandbox(timeout_seconds=cfg.timeout_seconds or 30) as sbx:  # type: ignore[attr-defined]
             tool_output: Any = await sbx.run_with_timeout(tool.execute(**flattened_inputs))
         
-        # Ensure tool_output is a dictionary
-        if not isinstance(tool_output, dict):
+        # Unwrap NodeExecutionResult for downstream nodes
+        from ice_core.models import NodeExecutionResult as _NER  # local import to avoid circular
+        if isinstance(tool_output, _NER):
+            tool_output = tool_output.output or ({"error": tool_output.error} if tool_output.error else {})
+        elif not isinstance(tool_output, dict):
             tool_output = {"result": tool_output}
         
         end_time = datetime.utcnow()
@@ -583,20 +598,28 @@ async def loop_executor(
             raise ValueError(f"Loop node {cfg.id} missing iterator_path")
         
         # Get items to iterate over
-        items = ctx.get(iterator_path, [])
+        # Resolve list using helper so dotted paths like "load_csv.rows" work
+        if hasattr(workflow, "_resolve_nested_path"):
+            items = workflow._resolve_nested_path(ctx, iterator_path)  # type: ignore[attr-defined]
+        else:
+            items = ctx.get(iterator_path)
         if not isinstance(items, list):
-            raise ValueError(f"Iterator path {iterator_path} must point to a list")
-        
-        results = []
-        for i, item in enumerate(items[:max_iterations]):
-            # Execute body nodes if specified
-            if body_nodes:
-                # This would need to execute the body nodes
-                result = {"item": item, "processed": True, "body_nodes": body_nodes}
-            else:
-                result = {"item": item, "processed": True}
-            
-            results.append(result)
+            raise ValueError(f"Iterator path {iterator_path} must point to a list (got {type(items)})")
+
+        results: list[dict[str, Any]] = []
+        for idx, item in enumerate(items[: max_iterations or len(items)]):
+            # Build per-item context inheriting parent ctx
+            item_ctx = {**ctx, item_var: item}
+            item_result: dict[str, Any] = {"item_index": idx, "input": item}
+            # Execute body nodes sequentially (respect order)
+            for node_id in body_nodes:
+                node_exec = await workflow.execute_node(node_id, item_ctx)
+                item_ctx[node_id] = node_exec.output
+                item_result[node_id] = node_exec.output
+            results.append(item_result)
+
+        # Expose loop results in parent context for downstream nodes (e.g., aggregator)
+        ctx[cfg.id] = {"results": results}
         
         end_time = datetime.utcnow()
         duration = (end_time - start_time).total_seconds()

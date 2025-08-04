@@ -11,8 +11,14 @@ import structlog
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+try:
+    from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    _OTEL_AVAILABLE = True
+except ModuleNotFoundError:  # pragma: no cover – OTEL optional
+    OpenTelemetryMiddleware = None  # type: ignore
+    FastAPIInstrumentor = None  # type: ignore
+    _OTEL_AVAILABLE = False
 
 from ice_api.api.mcp import router as mcp_router
 from ice_api.dependencies import get_tool_service
@@ -70,12 +76,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         raw_paths = [p.strip() for p in env_packs.split(",") if p.strip()]
         demo_modules = [(module_path.split(".")[-1], module_path) for module_path in raw_paths]
     else:
-        # Default demos in dev profile
-        demo_modules = [
-            ("DocumentAssistant", "DocumentAssistant"),
-            ("BCI Investment Lab", "BCIInvestmentLab"),
-            ("FB Marketplace Seller", "RivaRidge.FB_Marketplace_Seller.workflows"),
-        ]
+        demo_modules = []  # No default demos – avoid noisy import errors
 
     for label, module_path in demo_modules:
         seconds, mod, exc = timed_import(module_path)
@@ -159,9 +160,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# OTEL tracing for requests
-app.add_middleware(OpenTelemetryMiddleware)
-FastAPIInstrumentor().instrument_app(app)
+# OTEL tracing for requests (optional)
+if _OTEL_AVAILABLE and OpenTelemetryMiddleware is not None:  # noqa: WPS504
+    app.add_middleware(OpenTelemetryMiddleware)
+    FastAPIInstrumentor().instrument_app(app)
+else:
+    logger.warning("OpenTelemetry not installed – tracing disabled")
 
 # Add CORS middleware
 app.add_middleware(

@@ -63,6 +63,12 @@ def _assert_version_lock(request: Request, expected: str) -> None:  # noqa: D401
 # Routes
 # ---------------------------------------------------------------------------
 
+# Note: All mutating routes enforce the optimistic X-Version-Lock header to
+# avoid write-skew and lost updates in concurrent clients. The helper
+# *_assert_version_lock* raises 428 for missing header and 409 when the header
+# does not match the server-side SHA-256.
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_blueprint(  # noqa: D401 – API route
     request: Request,
@@ -154,3 +160,74 @@ async def patch_blueprint(  # noqa: D401
 
     store[blueprint_id] = bp
     return {"id": blueprint_id, "node_count": len(bp.nodes)}
+
+# ---------------------------------------------------------------------------
+# DELETE – remove blueprint --------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@router.delete("/{blueprint_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_blueprint(  # noqa: D401
+    request: Request,
+    blueprint_id: str,
+) -> Response:
+    """Delete a blueprint after optimistic lock validation."""
+    store = _get_store(request)
+    if blueprint_id not in store:
+        raise HTTPException(status_code=404, detail="Blueprint not found")
+
+    # Concurrency guard ------------------------------------------------------
+    server_lock = _calculate_version_lock(store[blueprint_id])
+    _assert_version_lock(request, server_lock)
+
+    del store[blueprint_id]
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+# ---------------------------------------------------------------------------
+# PUT – full replacement -----------------------------------------------------
+# ---------------------------------------------------------------------------
+
+@router.put("/{blueprint_id}")
+async def replace_blueprint(  # noqa: D401
+    request: Request,
+    blueprint_id: str,
+    payload: Dict[str, Any] = Body(..., description="Full blueprint JSON payload"),
+) -> Dict[str, str]:
+    """Replace an existing blueprint in one shot (optimistic concurrency)."""
+    store = _get_store(request)
+    if blueprint_id not in store:
+        raise HTTPException(status_code=404, detail="Blueprint not found")
+
+    # Concurrency guard ------------------------------------------------------
+    server_lock = _calculate_version_lock(store[blueprint_id])
+    _assert_version_lock(request, server_lock)
+
+    # Validate complete payload --------------------------------------------
+    try:
+        bp = Blueprint.model_validate(payload)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    store[blueprint_id] = bp
+    new_lock = _calculate_version_lock(bp)
+    return {"id": blueprint_id, "version_lock": new_lock}
+
+# ---------------------------------------------------------------------------
+# POST clone – duplicate blueprint ------------------------------------------
+# ---------------------------------------------------------------------------
+
+@router.post("/{blueprint_id}/clone", status_code=status.HTTP_201_CREATED)
+async def clone_blueprint(  # noqa: D401
+    request: Request,
+    blueprint_id: str,
+) -> Dict[str, str]:
+    """Create a deep copy of an existing blueprint and return the new id."""
+    store = _get_store(request)
+    if blueprint_id not in store:
+        raise HTTPException(status_code=404, detail="Blueprint not found")
+
+    original = store[blueprint_id]
+    new_id = str(uuid.uuid4())
+    # Perform a shallow copy – Blueprint is immutable enough for in-memory demo
+    store[new_id] = original.model_copy(deep=True)
+    new_lock = _calculate_version_lock(original)
+    return {"id": new_id, "version_lock": new_lock}

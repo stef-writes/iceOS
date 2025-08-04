@@ -41,6 +41,13 @@ class ToolBase(BaseModel, ABC):
             # Execute implementation
             result = await self._execute_impl(**kwargs)
             
+            # Enforce contract: tools must return plain dicts, not NodeExecutionResult
+            from ice_core.models import NodeExecutionResult as _NER  # local import
+            if isinstance(result, _NER):
+                raise RuntimeError(
+                    f"{self.__class__.__name__} must return dict, got NodeExecutionResult"
+                )
+            
             # Validate outputs
             self._validate_outputs(result)
             
@@ -131,6 +138,12 @@ class ToolBase(BaseModel, ABC):
 
         for name, param in sig.parameters.items():
             if name in {"self", "cls"}:
+                continue
+            # Skip *args and **kwargs – they are catch-alls, not explicit inputs
+            if param.kind in (
+                inspect.Parameter.VAR_POSITIONAL,
+                inspect.Parameter.VAR_KEYWORD,
+            ):
                 continue
             prop_schema = annotation_to_schema(param.annotation)
             properties[name] = prop_schema

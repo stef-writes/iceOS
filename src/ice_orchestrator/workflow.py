@@ -359,10 +359,22 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
 
         final_node_id = self.graph.get_leaf_nodes()[0]
 
+        # Extract only the output fields from NodeExecutionResult objects for JSON serialization
+        serializable_results = {}
+        for node_id, result in results.items():
+            if result.success and result.output is not None:
+                serializable_results[node_id] = result.output
+            else:
+                # For failed nodes, include error information
+                serializable_results[node_id] = {
+                    "success": False,
+                    "error": result.error or "Unknown error"
+                }
+        
         # Wrap ChainExecutionResult as NodeExecutionResult for ABC compliance
         chain_result = ChainExecutionResult(
             success=len(errors) == 0,
-            output=results,
+            output=serializable_results,
             error="\n".join(errors) if errors else None,
             metadata=NodeMetadata(
                 node_id=final_node_id,
@@ -597,6 +609,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             if dep_result and dep_result.success and dep_result.output is not None:
                 # Prefer not to overwrite when the context already has a key
                 # (explicit mappings > implicit exposure).
+                # Store only the output, not the entire NodeExecutionResult
                 node_ctx.setdefault(dep_id, dep_result.output)
 
         # Inject high-level metadata provided via ``chain.context_manager`` so

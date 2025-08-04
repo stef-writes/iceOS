@@ -33,7 +33,8 @@ class SchemaValidator:  # – internal utility
         # loudly so the bug surfaces during testing.
         # ------------------------------------------------------------------
 
-        if not schema:
+        # Treat only *None* or an explicitly empty dict as "no schema".
+        if schema is None or (isinstance(schema, dict) and len(schema) == 0):
             from ice_core.models.node_models import LLMOperatorConfig  # local import
 
             if isinstance(node, LLMOperatorConfig):

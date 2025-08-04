@@ -17,6 +17,8 @@ import contextlib
 import platform
 import resource
 from types import TracebackType
+
+from ice_core.metrics import SANDBOX_CPU_SECONDS, SANDBOX_MAX_RSS_BYTES
 from typing import Optional, Type
 
 # Optional seccomp import (Linux only)
@@ -44,6 +46,9 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
         self._mem_bytes = memory_limit_mb * 1024 * 1024
         self._cpu_seconds = cpu_limit_seconds
         self._timeout_handle: Optional[asyncio.TimerHandle] = None
+        # Metrics snapshot
+        self._cpu_start: float | None = None
+        self._rss_start: int | None = None
 
     # --------------------------------------------------------------
     # Async context management
@@ -54,7 +59,11 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
         # Schedule timeout cancellation.
         self._timeout_handle = loop.call_later(self._timeout, self._cancel_current_task)
 
-        # Apply RLIMITs in the current (executor) process only.
+        # Snapshot resource usage at entry for delta calculation
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        self._cpu_start = usage.ru_utime + usage.ru_stime
+        self._rss_start = usage.ru_maxrss
+
         self._apply_rlimits()
         self._apply_seccomp()
         return self
@@ -67,7 +76,24 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
     ) -> bool:  # noqa: D401 – returns False to propagate exceptions
         if self._timeout_handle:
             self._timeout_handle.cancel()
-        # No exception suppression here.
+
+        # Record resource usage metrics if snapshot available
+        try:
+            usage = resource.getrusage(resource.RUSAGE_SELF)
+            cpu_end = usage.ru_utime + usage.ru_stime
+            rss_end = usage.ru_maxrss
+            if self._cpu_start is not None:
+                SANDBOX_CPU_SECONDS.observe(max(cpu_end - self._cpu_start, 0.0))
+            if self._rss_start is not None:
+                # ru_maxrss is kilobytes on Linux, bytes on macOS/BSD.
+                rss_bytes = rss_end * 1024 if resource.getpagesize() == 4096 else rss_end
+                # ru_maxrss is already cumulative (peak), so take end value.
+                SANDBOX_MAX_RSS_BYTES.observe(rss_bytes)
+        except Exception:
+            # Metrics must never break sandbox teardown.
+            pass
+
+        # Propagate exceptions (do not suppress)
         return False
 
     # --------------------------------------------------------------

@@ -219,6 +219,25 @@ class GraphContextManager:
         # ------------------------------------------------------------------
         # Enforce *max_tokens* window per GraphContextManager configuration --
         # ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Sanitize content – unwrap NodeExecutionResult objects ---------------
+        # ------------------------------------------------------------------
+        from ice_core.models import NodeExecutionResult as _NER
+
+        def _unwrap(obj):
+            if isinstance(obj, _NER):
+                return obj.output if obj.output is not None else {
+                    "success": obj.success,
+                    "error": obj.error,
+                }
+            if isinstance(obj, dict):
+                return {k: _unwrap(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [_unwrap(v) for v in obj]
+            return obj
+
+        content = _unwrap(content)
+
         try:
             # Serialize *content* for counting/truncation.  Non-string payloads
             # are converted to JSON-ish string so the token approximation is

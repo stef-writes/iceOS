@@ -108,6 +108,10 @@ production-check:
 	poetry run pip-audit
 	git-secrets --scan 
 
+audit-deps:
+	poetry run pip-audit --summary
+	poetry run pip-licenses --format=plain --with-authors --with-urls
+
 audit:
 	python -m scripts.check_layer_violations
 	python -m scripts.check_service_contracts
@@ -177,5 +181,6 @@ release-candidate: lock-check refresh-docs
 	$(PYTHON) scripts/gen_docs/build_all.py
 	$(PYTHON) scripts/ci/check_schema_drift.py
 	$(MAKE) ci
+	$(MAKE) audit-deps
 	docker build -t iceos:rc .
 	@echo "[release-candidate] Docker image tag 'iceos:rc' built successfully." 

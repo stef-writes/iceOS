@@ -1,0 +1,90 @@
+"""MarketplaceClientTool – async HTTP POST wrapper for product listings.
+
+Keeps network I/O confined to `_execute_impl` and supports `test_mode` for
+offline execution.
+"""
+from __future__ import annotations
+
+import asyncio
+import logging
+from typing import Any, Dict, Optional
+from urllib.parse import urlparse
+
+import httpx
+from pydantic import Field, SecretStr, validator
+
+from ice_core.base_tool import ToolBase
+from ice_core.exceptions import ValidationError
+from ice_core.models.enums import NodeType
+from ice_core.unified_registry import registry
+
+__all__: list[str] = ["MarketplaceClientTool"]
+
+logger = logging.getLogger(__name__)
+
+
+class MarketplaceClientTool(ToolBase):
+    """Create a product listing via HTTP POST (or simulate in test_mode)."""
+
+    # Metadata ----------------------------------------------------------------
+    name: str = "marketplace_client"
+    description: str = "POST a product listing to an external marketplace API."
+
+    # Config ------------------------------------------------------------------
+    endpoint_url: str = Field("https://example.com/api/listings", description="Marketplace listings endpoint (HTTPS)")
+    api_key: Optional[SecretStr] = Field(None, description="Bearer token for Authorization header")
+    test_mode: bool = False
+
+    # Validators --------------------------------------------------------------
+    @validator("endpoint_url")
+    def _must_be_https(cls, v: str) -> str:  # noqa: D401
+        parsed = urlparse(str(v))
+        if parsed.scheme != "https":
+            raise ValueError("Marketplace endpoint must be HTTPS for security reasons")
+        return v
+
+    async def validate(self) -> None:  # type: ignore[override]
+        """Optional lightweight connectivity probe (HEAD)."""
+        if self.test_mode:
+            return
+        timeout = httpx.Timeout(3.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            try:
+                await client.head(str(self.endpoint_url))
+            except Exception as exc:  # pragma: no cover – network path
+                raise ValidationError(f"Marketplace endpoint unreachable: {exc}") from exc
+
+    # Execution ---------------------------------------------------------------
+    async def _execute_impl(self, *, item: Dict[str, Any]) -> Dict[str, Any]:  # noqa: D401
+        if "sku" not in item:
+            raise ValidationError("'item' must include at least a 'sku' field")
+
+        if self.test_mode:
+            await asyncio.sleep(0.05)  # Simulate latency
+            simulated_id = f"TEST-{item['sku']}"
+            logger.debug("[TEST_MODE] listing simulated | sku=%s id=%s", item["sku"], simulated_id)
+            return {"listing_id": simulated_id, "raw_response": {"status": "simulated"}}
+
+        headers: Dict[str, str] = {}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key.get_secret_value()}"
+
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+            logger.debug("Marketplace POST → %s | payload=%s", self.endpoint_url, item)
+            resp = await client.post(str(self.endpoint_url), json=item, headers=headers)
+
+        if resp.status_code not in {200, 201}:
+            raise ValidationError(f"Marketplace returned {resp.status_code}: {resp.text[:200]}")
+
+        data = resp.json() if resp.content else {}
+        listing_id = data.get("id") or data.get("listing_id") or data.get("result")
+        if not listing_id:
+            raise ValidationError("Marketplace response lacks 'id' field")
+
+        logger.debug("Marketplace response OK | id=%s", listing_id)
+        return {"listing_id": listing_id, "raw_response": data}
+
+
+# Auto-registration -----------------------------------------------------------
+_instance = MarketplaceClientTool(endpoint_url="https://example.com/api/listings", test_mode=True)
+registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]

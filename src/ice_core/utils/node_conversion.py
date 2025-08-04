@@ -192,7 +192,14 @@ def populate_tool_node_schemas(config: "ToolNodeConfig") -> "ToolNodeConfig":
     )
     
     # If both schemas are already populated, return as-is
-    if has_input_schema and has_output_schema:
+    # Consider fallback placeholder schema {"result": {}} as missing
+    def _is_placeholder(sch: Any) -> bool:
+        return (
+            isinstance(sch, dict)
+            and sch.get("properties") == {"result": {}}
+        )
+
+    if has_input_schema and has_output_schema and not _is_placeholder(config.output_schema):
         return config
     
     # Discover schemas from the registered tool
@@ -202,7 +209,7 @@ def populate_tool_node_schemas(config: "ToolNodeConfig") -> "ToolNodeConfig":
         # Only update empty schemas
         if not has_input_schema:
             config.input_schema = input_schema
-        if not has_output_schema:
+        if (not has_output_schema) or _is_placeholder(config.output_schema):
             config.output_schema = output_schema
             
     except ValueError as e:

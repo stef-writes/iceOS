@@ -143,7 +143,22 @@ class WorkflowExecutionState:
             "completed_nodes": list(self.completed_nodes),
             "node_results": {
                 node_type.value: {
-                    nid: res.model_dump()
+                    nid: {
+                        "success": res.success,
+                        "error": res.error,
+                        "output": res.output,
+                        "execution_time": res.execution_time,
+                        "metadata": {
+                            "node_id": res.metadata.node_id,
+                            "node_type": res.metadata.node_type,
+                            "name": res.metadata.name,
+                            "version": res.metadata.version,
+                            "start_time": res.metadata.start_time.isoformat() if res.metadata.start_time else None,
+                            "end_time": res.metadata.end_time.isoformat() if res.metadata.end_time else None,
+                            "duration": res.metadata.duration,
+                            "error_type": res.metadata.error_type,
+                        } if res.metadata else None
+                    }
                     for nid, res in results.items()
                 }
                 for node_type, results in self.node_results.items()
