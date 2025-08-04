@@ -11,10 +11,33 @@ def _create_sample_blueprint():
         "nodes": [{"id": "n1", "type": "tool"}],
         "metadata": {}
     }
-    res = client.post("/api/v1/blueprints/", json=payload, headers={"Authorization": "Bearer demo-token"})
+    res = client.post(
+        "/api/v1/blueprints/",
+        json=payload,
+        headers={
+            "Authorization": "Bearer demo-token",
+            "X-Version-Lock": "__new__",
+        },
+    )
     assert res.status_code == 201
     data = res.json()
     return data["id"], data["version_lock"]
+
+
+def test_create_requires_header():
+    payload = {"name": "b", "nodes": [], "metadata": {}}
+    res = client.post("/api/v1/blueprints/", json=payload, headers={"Authorization": "Bearer demo-token"})
+    assert res.status_code == 428
+
+
+def test_create_conflict_header():
+    payload = {"name": "b", "nodes": [], "metadata": {}}
+    res = client.post(
+        "/api/v1/blueprints/",
+        json=payload,
+        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": "wrong"},
+    )
+    assert res.status_code == 409
 
 
 def test_patch_happy_path():

@@ -37,13 +37,27 @@ import hashlib
 import json
 
 # ---------------------------------------------------------------------------
-# Version-lock helper -------------------------------------------------------
+# Version-lock helpers ------------------------------------------------------
 # ---------------------------------------------------------------------------
 
 def _calculate_version_lock(bp: Blueprint) -> str:  # noqa: D401
     """Return SHA-256 hash of the blueprint's JSON representation."""
     payload = bp.model_dump(mode="json", exclude_none=True)
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def _assert_version_lock(request: Request, expected: str) -> None:  # noqa: D401
+    """Validate *X-Version-Lock* header against *expected* value.
+
+    Raises:
+        HTTPException 428 – header missing
+        HTTPException 409 – mismatch
+    """
+    client_lock = request.headers.get("X-Version-Lock")
+    if client_lock is None:
+        raise HTTPException(status_code=428, detail="Missing X-Version-Lock header")
+    if client_lock != expected:
+        raise HTTPException(status_code=409, detail="Blueprint version conflict")
 
 # ---------------------------------------------------------------------------
 # Routes
@@ -54,7 +68,16 @@ async def create_blueprint(  # noqa: D401 – API route
     request: Request,
     payload: Dict[str, Any] = Body(..., description="Blueprint JSON payload"),
 ) -> Dict[str, str]:
-    """Validate and store a Blueprint. Returns its generated id."""
+    """Create a blueprint using optimistic concurrency.
+
+    The client **must** send header ``X-Version-Lock: __new__`` to signal it
+    created the object offline. This avoids races when two users create a
+    blueprint with the same natural-language spec concurrently.
+    """
+    # Enforce header
+    _assert_version_lock(request, "__new__")
+
+    # Validate payload
     try:
         blueprint = Blueprint.model_validate(payload)
     except ValidationError as exc:
@@ -108,13 +131,8 @@ async def patch_blueprint(  # noqa: D401
         raise HTTPException(status_code=404, detail="Blueprint not found")
 
     # Optimistic locking --------------------------------------------------
-    client_lock = request.headers.get("X-Version-Lock")
-    if client_lock is None:
-        raise HTTPException(status_code=428, detail="Missing X-Version-Lock header")
-
     server_lock = _calculate_version_lock(store[blueprint_id])
-    if client_lock != server_lock:
-        raise HTTPException(status_code=409, detail="Blueprint version conflict")
+    _assert_version_lock(request, server_lock)
 
     bp = store[blueprint_id]
 

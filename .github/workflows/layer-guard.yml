@@ -24,3 +24,12 @@ jobs:
       - name: Run layer boundary check
         run: |
           make structure
+      - name: Type check (mypy --strict)
+        run: |
+          poetry run mypy --strict src
+      - name: Schema drift guard
+        run: |
+          poetry run python scripts/ci/check_schema_drift.py
+      - name: Run tests
+        run: |
+          make test
