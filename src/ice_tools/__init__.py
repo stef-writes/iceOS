@@ -19,11 +19,18 @@ from typing import List
 
 _loaded: List[ModuleType] = []
 
-for module_info in iter_modules(__path__):  # type: ignore[name-defined]
-    if module_info.ispkg:
-        # Skip sub-packages for now – keep footprint small
-        continue
-    module_name = f"{__name__}.{module_info.name}"
-    _loaded.append(import_module(module_name))
+def _recursive_import(package_name: str, pkg_path):  # noqa: D401 – helper
+    """Recursively import *all* modules under *package_name* so that tool
+    registration side-effects run exactly once at startup."""
+    for mod in iter_modules(pkg_path):
+        full_name = f"{package_name}.{mod.name}"
+        if mod.ispkg:
+            sub_pkg = import_module(full_name)
+            _recursive_import(full_name, sub_pkg.__path__)  # type: ignore[arg-type]
+        else:
+            _loaded.append(import_module(full_name))
+
+
+_recursive_import(__name__, __path__)  # type: ignore[arg-type]
 
 __all__ = [m.__name__.split('.')[-1] for m in _loaded]

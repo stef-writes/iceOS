@@ -87,7 +87,7 @@ def setup_logger() -> logging.Logger:
     env_profile = os.getenv("ICE_ENV", "dev").lower()
 
     if ice_log_json and ice_log_json.lower() in {"stdout", "1", "true"}:
-        json_handler = logging.StreamHandler(sys.stdout)
+        json_handler: logging.Handler = logging.StreamHandler(sys.stdout)
         json_handler.setLevel(log_level)
         json_handler.setFormatter(_build_json_formatter())
         logger.addHandler(json_handler)

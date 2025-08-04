@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 import httpx
+import os
 from pydantic import Field, SecretStr, validator
 
 from ice_core.base_tool import ToolBase
@@ -31,9 +32,20 @@ class MarketplaceClientTool(ToolBase):
     description: str = "POST a product listing to an external marketplace API."
 
     # Config ------------------------------------------------------------------
-    endpoint_url: str = Field("https://example.com/api/listings", description="Marketplace listings endpoint (HTTPS)")
-    api_key: Optional[SecretStr] = Field(None, description="Bearer token for Authorization header")
-    test_mode: bool = False
+    # Defaults can be overridden via env vars for zero-config deployment
+    endpoint_url: str = Field(
+        default_factory=lambda: os.getenv("ICE_MARKETPLACE_ENDPOINT", "https://example.com/api/listings"),
+        description="Marketplace listings endpoint (HTTPS)",
+    )
+    api_key: Optional[SecretStr] = Field(
+        default_factory=lambda: (
+            SecretStr(os.getenv("ICE_MARKETPLACE_API_KEY"))
+            if os.getenv("ICE_MARKETPLACE_API_KEY")
+            else None
+        ),
+        description="Bearer token for Authorization header",
+    )
+    test_mode: bool = Field(default_factory=lambda: os.getenv("ICE_TEST_MODE", "0") in {"1", "true", "True"})
 
     # Validators --------------------------------------------------------------
     @validator("endpoint_url")
@@ -69,9 +81,20 @@ class MarketplaceClientTool(ToolBase):
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key.get_secret_value()}"
 
-        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
-            logger.debug("Marketplace POST → %s | payload=%s", self.endpoint_url, item)
-            resp = await client.post(str(self.endpoint_url), json=item, headers=headers)
+        timeout = httpx.Timeout(10.0)
+        max_attempts = 3
+        delay = 1.0
+        for attempt in range(1, max_attempts + 1):
+            try:
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    logger.debug("Marketplace POST → %s | attempt=%s payload=%s", self.endpoint_url, attempt, item)
+                    resp = await client.post(str(self.endpoint_url), json=item, headers=headers)
+                break  # success – exit retry loop
+            except (httpx.RequestError, httpx.TimeoutException) as exc:
+                if attempt == max_attempts:
+                    raise ValidationError(f"Marketplace request failed after {max_attempts} attempts: {exc}") from exc
+                logger.warning("Marketplace request failed (attempt %s/%s): %s", attempt, max_attempts, exc)
+                await asyncio.sleep(delay * attempt)
 
         if resp.status_code not in {200, 201}:
             raise ValidationError(f"Marketplace returned {resp.status_code}: {resp.text[:200]}")

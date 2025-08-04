@@ -44,8 +44,7 @@ class AggregatorTool(ToolBase):
     max_items: int = Field(1000, ge=1, description="Safety cap on result list size")
 
     # Execution -------------------------------------------------------------
-    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
-        results: List[Dict[str, Any]] = kwargs.get("results", [])
+    async def _execute_impl(self, *, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         if len(results) > self.max_items:
             raise ValidationError("Too many items to aggregate – increase max_items if intentional")
 

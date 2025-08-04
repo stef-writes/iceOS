@@ -20,6 +20,23 @@ poetry install --with dev     # or pip install -e .
 ```
 The `ice` entry-point is installed via the `ice_cli.cli:cli` Typer app.
 
+## Scaffolder quick-start
+Generate fully-typed components without manual boiler-plate:
+
+```bash
+# Create a deterministic tool
+ice new tool pricing_calc_tool --description "Compute sale price"
+
+# Create an agent and expose it as a tool
+ice new agent support_chat_agent --system-prompt "You are support." --tools search_tool
+ice new agent-tool support_chat_agent
+
+# Stateless LLM operator (single-shot generation)
+ice new llm-operator summarize_text --model gpt-4o
+```
+
+Each command writes to `src/ice_tools/generated/…` and components auto-register on import – no extra wiring required.
+
 ## Typical workflow
 ```bash
 make dev-up                  # start Redis & API in background

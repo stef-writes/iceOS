@@ -222,21 +222,6 @@ class GraphContextManager:
         # ------------------------------------------------------------------
         # Sanitize content – unwrap NodeExecutionResult objects ---------------
         # ------------------------------------------------------------------
-        from ice_core.models import NodeExecutionResult as _NER
-
-        def _unwrap(obj):
-            if isinstance(obj, _NER):
-                return obj.output if obj.output is not None else {
-                    "success": obj.success,
-                    "error": obj.error,
-                }
-            if isinstance(obj, dict):
-                return {k: _unwrap(v) for k, v in obj.items()}
-            if isinstance(obj, list):
-                return [_unwrap(v) for v in obj]
-            return obj
-
-        content = _unwrap(content)
 
         try:
             # Serialize *content* for counting/truncation.  Non-string payloads
@@ -252,8 +237,9 @@ class GraphContextManager:
             else:
                 try:
                     serialised = json.dumps(content, ensure_ascii=False, default=str)
-                except TypeError:
-                    serialised = str(content)
+                except TypeError as exc:
+                    from ice_core.exceptions import SerializationError
+                    raise SerializationError(node_id=node_id, obj_type=type(content).__name__) from exc
 
             current_tokens = TokenCounter.estimate_tokens(
                 serialised, model="", provider=ModelProvider.CUSTOM
@@ -278,7 +264,11 @@ class GraphContextManager:
                     content = content[:char_budget]
 
         # Persist via underlying store --------------------------------------
-        self.store.update(node_id, content, execution_id=execution_id, schema=schema)
+        try:
+            self.store.update(node_id, content, execution_id=execution_id, schema=schema)
+        except TypeError as exc:
+            from ice_core.exceptions import SerializationError
+            raise SerializationError(node_id=node_id, obj_type=type(content).__name__) from exc
 
     def get_node_context(self, node_id: str) -> Any:
         """Get context for a specific node."""

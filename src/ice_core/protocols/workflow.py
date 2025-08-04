@@ -21,6 +21,7 @@ class WorkflowLike(Protocol):
     _chain_tools: list[Any]
 
     # Methods that are directly invoked
-    # (currently none; extend when needed)
+    async def execute_node(self, node_id: str, context: dict[str, Any]) -> Any:  # pragma: no cover
+        ...
 
  

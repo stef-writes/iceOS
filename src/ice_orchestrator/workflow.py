@@ -47,7 +47,6 @@ from ice_core.models.node_models import NodeMetadata
 from ice_core.utils.perf import WeightedSemaphore, estimate_complexity
 from ice_core.validation import SafetyValidator, SchemaValidator
 
-# NOTE: use AgentNode from SDK to avoid core dependency
 from ice_orchestrator.agent import AgentNode
 from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy
 from ice_orchestrator.config import runtime_config
@@ -1208,6 +1207,29 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             ))
 
         result = await self._executor.execute_node(node_id, input_data)
+
+        # Persist semantic output to shared context
+        if getattr(self, "context_manager", None) and result.output is not None:
+            self.context_manager.update_node_context(node_id, result.output)
+
+        # Broadcast via in-memory event bus for observers / Canvas UI
+        try:
+            from ice_orchestrator.execution.event_bus import EventBus
+
+            EventBus.publish(
+                "node.completed",
+                {
+                    "workflow_id": self.chain_id,
+                    "node_id": node_id,
+                    "success": result.success,
+                    "output_preview": str(result.output)[:250] if result.output else None,
+                    "error": result.error,
+                    "execution_time": result.execution_time,
+                    "tokens_used": result.usage.total_tokens if result.usage else None,
+                },
+            )
+        except Exception:  # pragma: no cover – event bus is optional
+            pass
         
         # 🚀 Enhanced NetworkX tracking - Update execution statistics
         execution_time = time.time() - execution_start

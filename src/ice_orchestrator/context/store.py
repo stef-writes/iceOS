@@ -148,7 +148,8 @@ class ContextStore(BaseContextStore):
                         current_data = json.load(f_read)
                     except json.JSONDecodeError:
                         logger.warning(
-                            f"Context store file {self.context_store_path} is malformed. Will overwrite with new context."
+                            "Context store file %s is malformed. Resetting.",
+                            self.context_store_path,
                         )
                         current_data = {}
                     finally:

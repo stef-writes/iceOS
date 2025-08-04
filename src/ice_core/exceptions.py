@@ -111,6 +111,17 @@ class ValidationError(CoreError):
         super().__init__(ErrorCode.UNKNOWN, message, payload=payload)
 
 
+class SerializationError(CoreError):
+    """Raised when a value cannot be JSON-serialised for the context store."""
+
+    def __init__(self, node_id: str, obj_type: str):
+        super().__init__(
+            ErrorCode.UNKNOWN,
+            f"Node '{node_id}' produced non-serialisable value of type {obj_type}",
+            payload={"node_id": node_id, "type": obj_type},
+        )
+
+
 class DimensionMismatchError(CoreError):
     """Raised when vector dimensionality does not match index specification."""
 

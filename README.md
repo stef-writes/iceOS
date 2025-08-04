@@ -1,17 +1,5 @@
 # iceOS – Intelligent Orchestration Platform
 
-iceOS converts natural-language intent into fully-validated, cost-aware execution graphs that run anywhere 🚀.  It couples a **compiler-grade validation pipeline** with a **high-performance runtime** and a pluggable **builder DSL**, letting you design, test and operate complex multi-agent systems with confidence.
-
-```mermaid
-flowchart LR
-    subgraph "Authoring"
-        U([User / Developer]) --> B[Builder DSL]
-    end
-    B --> C[MCP API – Compiler]
-    C --> R[Orchestrator – Runtime]
-    R -- Results / Events --> U
-```
-
 ---
 ## Repository at a Glance
 | Layer | Path | Role |

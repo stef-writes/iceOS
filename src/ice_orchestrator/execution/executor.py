@@ -101,11 +101,10 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
         _ctx_cur = chain.context_manager.get_context()
         exec_id = _ctx_cur.execution_id if _ctx_cur is not None else None
 
-        chain.context_manager.update_node_context(
-            node_id=node_id,
-            content=input_data,
-            execution_id=exec_id,
-        )
+        # Store input data but ensure it's serializable
+        # Skip storing inputs as they may contain NodeExecutionResult objects
+        # The actual output will be stored after execution in workflow.py
+        pass  # Removed input storage to prevent serialization errors
 
         # ------------------------------------------------------------------
         # Retry policy extraction (v2) --------------------------------------
@@ -245,8 +244,15 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                     except Exception:
                         pass  # leave unchanged – validation will handle
 
+                # Unwrap NodeExecutionResult to its semantic output first
+                from ice_core.models import NodeExecutionResult as _NER
+                if isinstance(result_raw, _NER):
+                    raw_out = result_raw.output
+                else:
+                    raw_out = result_raw
+
                 # New coercion layer
-                processed_output = self._coerce_output(node, result_raw)
+                processed_output = self._coerce_output(node, raw_out)
 
                 # Store in cache if enabled & succeeded -------------
 

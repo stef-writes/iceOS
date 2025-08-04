@@ -283,10 +283,57 @@ class WorkflowBuilder:
         """
         from ice_core.services import ServiceLocator
 
-        get_workflow_proto = ServiceLocator.get("workflow_proto")
+        # Ensure built-in tools/agents are registered before validation/execution
+        try:
+            import ice_tools  # noqa: F401 – triggers recursive auto-import
+            _ = ice_tools
+        except ModuleNotFoundError:
+            pass
+
+        # Auto-register local Workflow class if orchestrator has not yet injected one
+        try:
+            get_workflow_proto = ServiceLocator.get("workflow_proto")
+        except KeyError:
+            # Late import avoids crossing the layer boundary unless needed
+            from ice_orchestrator.workflow import Workflow as _WF  # noqa: WPS433 – runtime import
+            ServiceLocator.register("workflow_proto", lambda: _WF)
+            get_workflow_proto = lambda: _WF  # type: ignore[assignment]
         
         workflow_cls = get_workflow_proto()
         return workflow_cls(
             name=self.name,
-            nodes=self.nodes
-        ) 
+            nodes=self.nodes,
+        )
+
+    # ------------------------------------------------------------------
+    # Preview helpers ---------------------------------------------------
+    # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Convenience sugar -------------------------------------------------
+    # ------------------------------------------------------------------
+
+    def map(self, items_source: str) -> "_MapBuilderProxy":
+        """Return a proxy that allows `.with_tool()` map sugar.
+
+        Example
+        -------
+        >>> builder.map("load_csv.rows").with_tool("listing", tool_name="listing_agent")
+        """
+        return _MapBuilderProxy(self, items_source)
+
+    def preview(self) -> str:
+        """Return a Mermaid graph diagram of the current builder state."""
+        # Ensure dependencies reflect the recorded edges
+        self._apply_connections()
+
+        lines: list[str] = ["graph TD;"]
+        # Declare nodes with type label
+        for node in self.nodes:
+            label = f"{node.id} ({getattr(node, 'type', '?')})"
+            lines.append(f"    {node.id}[\"{label}\"];")
+        # Declare edges
+        for src, dst in self.edges:
+            lines.append(f"    {src} --> {dst};")
+
+        return "\n".join(lines)

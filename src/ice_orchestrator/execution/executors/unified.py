@@ -79,6 +79,14 @@ def _resolve_jinja_templates(data: Any, context: Dict[str, Any]) -> Any:
                         # Extract the variable name from the template
                         var_name = value.strip('{}').strip()
                         
+                        # Special case: wildcard access like 'process_loop.*' -> return dict['results'] if present
+                        if var_name.endswith('.*'):
+                            base = var_name[:-2]
+                            base_val = context.get(base)
+                            if isinstance(base_val, dict):
+                                # Fallback to 'results' key or return the entire dict
+                                return base_val.get('results', base_val)
+                            return base_val
                         # Handle dotted references like 'parse_documents.documents'
                         if '.' in var_name:
                             parts = var_name.split('.')
@@ -91,7 +99,6 @@ def _resolve_jinja_templates(data: Any, context: Dict[str, Any]) -> Any:
                                     template = env.from_string(value)
                                     result = template.render(**context)
                                     break
-                            # print(f"🔧 Template resolved (dotted): '{value}' -> {type(result)} with {len(result) if hasattr(result, '__len__') else 'N/A'} items")
                             return result
                         
                         # If the context value is not a string, return it directly
@@ -136,6 +143,14 @@ async def tool_executor(
     start_time = datetime.utcnow()
     
     try:
+        # Ensure all built-in tools are registered
+        try:
+            import importlib
+            import ice_tools  # noqa: F401 – trigger recursive auto-import
+            _ = ice_tools  # silence linter unused variable
+        except ModuleNotFoundError:
+            pass  # package optional in some deployments
+
         # Get tool instance from registry using ITool protocol
         tool = registry.get_instance(NodeType.TOOL, cfg.tool_name)
         
@@ -155,11 +170,21 @@ async def tool_executor(
         merged_inputs = {**resolved_tool_args, **ctx_clean}
         flattened_inputs = _flatten_dependency_outputs(merged_inputs, tool)
         
+        # Keep only parameters that the tool actually expects ----------
+        import inspect
+        sig = inspect.signature(getattr(tool, '_execute_impl'))
+        accepted = set(sig.parameters.keys()) - {'self', 'kwargs'}
+        # If tool _execute_impl takes explicit params, pass only those; otherwise pass all inputs
+        if accepted:
+            safe_inputs = {k: v for k, v in flattened_inputs.items() if k in accepted}
+        else:
+            safe_inputs = flattened_inputs
+
         # Direct execution - tools need file I/O, network access, imports
         from ice_orchestrator.execution.sandbox.resource_sandbox import ResourceSandbox
 
         async with ResourceSandbox(timeout_seconds=cfg.timeout_seconds or 30) as sbx:  # type: ignore[attr-defined]
-            tool_output: Any = await sbx.run_with_timeout(tool.execute(**flattened_inputs))
+            tool_output: Any = await sbx.run_with_timeout(tool.execute(**safe_inputs))
         
         # Unwrap NodeExecutionResult for downstream nodes
         from ice_core.models import NodeExecutionResult as _NER  # local import to avoid circular
@@ -589,10 +614,12 @@ async def loop_executor(
             iterator_path = cfg.items_source
             max_iterations = cfg.max_iterations
             body_nodes = cfg.body_nodes
+            item_var = cfg.item_var
         else:
             iterator_path = getattr(cfg, 'iterator_path', None)
             max_iterations = getattr(cfg, 'max_iterations', 100)
             body_nodes = getattr(cfg, 'body_nodes', [])
+            item_var = getattr(cfg, 'item_var', 'item')
         
         if not iterator_path:
             raise ValueError(f"Loop node {cfg.id} missing iterator_path")
@@ -606,7 +633,7 @@ async def loop_executor(
         if not isinstance(items, list):
             raise ValueError(f"Iterator path {iterator_path} must point to a list (got {type(items)})")
 
-        results: list[dict[str, Any]] = []
+        results_raw: list[dict[str, Any]] = []
         for idx, item in enumerate(items[: max_iterations or len(items)]):
             # Build per-item context inheriting parent ctx
             item_ctx = {**ctx, item_var: item}
@@ -616,16 +643,24 @@ async def loop_executor(
                 node_exec = await workflow.execute_node(node_id, item_ctx)
                 item_ctx[node_id] = node_exec.output
                 item_result[node_id] = node_exec.output
-            results.append(item_result)
+            results_raw.append(item_result)
+
+        # Strip wrapper so downstream nodes get clean semantic outputs ---------
+        cleaned_results: list[Any] = []
+        for res in results_raw:
+            if body_nodes and body_nodes[-1] in res:
+                cleaned_results.append(res[body_nodes[-1]])
+            else:
+                cleaned_results.append(res)
 
         # Expose loop results in parent context for downstream nodes (e.g., aggregator)
-        ctx[cfg.id] = {"results": results}
+        ctx[cfg.id] = cleaned_results
         
         end_time = datetime.utcnow()
         duration = (end_time - start_time).total_seconds()
         return NodeExecutionResult(
             success=True,
-            output={"results": results, "count": len(results)},
+            output=cleaned_results,
             metadata=NodeMetadata(
                 node_id=cfg.id,
                 node_type=cfg.type,
