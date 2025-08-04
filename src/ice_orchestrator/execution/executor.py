@@ -112,6 +112,7 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
         # ------------------------------------------------------------------
 
         policy = getattr(node, "retry_policy", None)
+        base_backoff: float
         if policy is not None:
             # New structured policy overrides legacy scalar fields
             max_retries = int(getattr(policy, "max_attempts", 1)) - 1  # attempts after first run
@@ -132,7 +133,7 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
             if backoff_strategy == "linear":
                 return base_backoff * idx
             # exponential (default)
-            return base_backoff * (2 ** idx)
+            return float(base_backoff * (2 ** idx))
 
         last_error: Exception | None = None
 
@@ -274,11 +275,11 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                                     processed_output, src_path
                                 )
                                 # Add type validation
-                                expected_type = (
-                                    next(iter(node.output_schema.values()), None)
-                                    if node.output_schema
-                                    else None
-                                )
+                                expected_type = None
+                                if isinstance(getattr(node, "output_schema", None), dict):  # type: ignore[attr-defined]
+                                    schema_dict = node.output_schema  # type: ignore[attr-defined]
+                                    if schema_dict and isinstance(schema_dict, dict):
+                                        expected_type = next(iter(schema_dict.values()), None)
                                 if expected_type and not isinstance(
                                     value, expected_type
                                 ):

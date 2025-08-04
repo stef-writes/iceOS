@@ -45,6 +45,7 @@ for _op in (
     InsightsOperator,
 ):
     try:
-        registry.register_class(NodeType.LLM, _op.name, _op)  # type: ignore[arg-type]
+        op_name: str = getattr(_op, "name", _op.__name__)
+        registry.register_class(NodeType.LLM, op_name, _op)  # type: ignore[arg-type]
     except Exception:  # pragma: no cover – duplicate or validation failure
         pass 

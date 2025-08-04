@@ -38,11 +38,11 @@ class PipelineState:
     current_stage: PipelineStage
     intent_data: Optional[Dict[str, Any]] = None
     plan_text: Optional[str] = None
-    nodes: Dict[str, Dict[str, Any]] = None  # type: ignore[assignment]
+    nodes: Dict[str, Dict[str, Any]] | None = None
     mermaid_diagram: Optional[str] = None
     blueprint: Optional[Blueprint] = None
-    warnings: List[str] = None
-    questions: List[str] = None
+    warnings: Optional[List[str]] = None
+    questions: Optional[List[str]] = None
     
     def __post_init__(self) -> None:
         if self.warnings is None:
@@ -133,10 +133,7 @@ Please revise the plan to address these concerns. Focus on:
 """
         
         # Re-run planning with feedback
-        revised_plan = await self.orchestrator.providers["planning"].complete(
-            revision_prompt,
-            temperature=0.3
-        )
+        revised_plan = await self.orchestrator.providers["planning"].complete(revision_prompt)
         
         self.state.plan_text = revised_plan
         await self._run_decomposition()
@@ -189,8 +186,8 @@ Please revise the plan to address these concerns. Focus on:
         
         # Create partial blueprint with only specified nodes
         partial_bp = PartialBlueprint(
-            id=f"{self.state.blueprint.id}_partial",
-            name=f"{self.state.blueprint.name}_partial",
+            blueprint_id=f"{self.state.blueprint.blueprint_id}_partial",
+            schema_version="1.1.0",
             nodes=[
                 node for node in self.state.blueprint.nodes
                 if node.id in node_ids
@@ -217,7 +214,7 @@ Please revise the plan to address these concerns. Focus on:
         """Run planning stage."""
         if not self.state.intent_data:
             await self._run_intent_extraction()
-        
+        assert self.state.intent_data is not None
         self.state.plan_text = await self.orchestrator._create_plan(self.state.intent_data)
         self.state.current_stage = PipelineStage.DECOMPOSITION
     
@@ -225,7 +222,7 @@ Please revise the plan to address these concerns. Focus on:
         """Run decomposition stage."""
         if not self.state.plan_text:
             await self._run_planning()
-        
+        assert self.state.plan_text is not None
         new_nodes = await self.orchestrator._decompose_plan(self.state.plan_text)
         # ------------------------------------------------------------------
         # Honour locked / real nodes – never overwrite, only append

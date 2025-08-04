@@ -116,20 +116,19 @@ class MultiLLMOrchestrator:
     async def _extract_intent(self) -> Dict[str, Any]:
         """Extract structured intent from the user specification."""
         prompt = format_intent_prompt(self.specification)
-        response = await self.providers["intent"].complete(prompt)
-        
+        raw_response = await self.providers["intent"].complete(prompt)
+
+        # Attempt JSON parsing first
         try:
-            return json.loads(response)
-        except json.JSONDecodeError:
-            logger.error(f"Failed to parse intent JSON: {response}")
-            # Fallback to basic intent
-            return {
-                "goal": self.specification,
-                "constraints": [],
-                "inputs": [],
-                "outputs": [],
-                "tools_mentioned": [],
-            }
+            data = json.loads(raw_response)
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            pass  # fallthrough to best-effort fallback
+
+        # Fallback – wrap raw text so downstream stages can still proceed
+        return {"raw": raw_response}
+
     
     async def _create_plan(self, intent_data: Dict[str, Any]) -> str:
         """Create a high-level execution plan."""
@@ -151,7 +150,8 @@ class MultiLLMOrchestrator:
         
         try:
             data = json.loads(response)
-            return data.get("nodes", [])
+            from typing import cast, List, Dict
+            return cast(List[Dict[str, Any]], data.get("nodes", []))
         except json.JSONDecodeError:
             logger.error(f"Failed to parse decomposition JSON: {response}")
             # Fallback to simple tool node
@@ -186,14 +186,14 @@ class MultiLLMOrchestrator:
         # Parse code blocks (simple extraction)
         implementations = {}
         current_node = None
-        current_code = []
+        current_code: List[str] = []
         
         for line in response.split("\n"):
             if line.startswith("# Node:"):
                 if current_node and current_code:
                     implementations[current_node] = "\n".join(current_code).strip()
                 current_node = line.split(":")[-1].strip()
-                current_code = []
+
             elif current_node:
                 current_code.append(line)
         
@@ -220,60 +220,62 @@ class MultiLLMOrchestrator:
             node_id = node_data["id"]
             node_type = node_data["type"]
             config = node_data.get("config", {})
-            
-            # Select appropriate node class
+
             if node_type not in NODE_TYPE_PATTERNS:
-                logger.warning(f"Unknown node type '{node_type}', defaulting to LLM")
+                logger.warning("Unknown node type '%s', defaulting to LLM", node_type)
                 node_type = "llm"
-            
+
             NodeClass = NODE_TYPE_PATTERNS[node_type]
-            
-            # Build node configuration based on type
+            fields: Dict[str, Any] = {"id": node_id}
+
             if node_type == "llm":
-                node = LLMOperatorConfig(
-                    id=node_id,
-                    prompt=config.get("prompt", node_data.get("description", "Process input")),
-                    model=config.get("model", "gpt-4o-mini"),
-                    provider=ModelProvider.OPENAI,
-                    llm_config=LLMConfig(temperature=0.7),
+                fields.update(
+                    {
+                        "prompt": config.get("prompt", node_data.get("description", "Process input")),
+                        "model": config.get("model", "gpt-4o-mini"),
+                        "provider": ModelProvider.OPENAI,
+                        "llm_config": LLMConfig(temperature=0.7),
+                    }
                 )
             elif node_type == "agent":
-                node = AgentNodeConfig(
-                    id=node_id,
-                    package=config.get("package", "ice_tools.base_agent"),
-                    agent_config=config.get("agent_config", {}),
-                    tools=config.get("tools", []),
+                fields.update(
+                    {
+                        "package": config.get("package", "ice_tools.base_agent"),
+                        "agent_config": config.get("agent_config", {}),
+                        "tools": config.get("tools", []),
+                    }
                 )
             elif node_type == "tool":
-                node = ToolNodeConfig(
-                    id=node_id,
-                    tool_name=config.get("tool_name", "hello"),
-                    tool_args=config.get("tool_args", {}),
+                fields.update(
+                    {
+                        "tool_name": config.get("tool_name", "hello"),
+                        "tool_args": config.get("tool_args", {}),
+                    }
                 )
             elif node_type == "code":
-                code = code_implementations.get(node_id, config.get("code", ""))
-                node = CodeNodeConfig(
-                    id=node_id,
-                    language="python",
-                    code=code,
-                )
+                code_impl = code_implementations.get(node_id, config.get("code", ""))
+                fields.update({"language": "python", "code": code_impl})
             elif node_type == "human":
-                node = HumanNodeConfig(
-                    id=node_id,
-                    prompt_message=config.get("prompt", "Please review and approve"),
-                    approval_type=config.get("approval_type", "approve_reject"),
+                fields.update(
+                    {
+                        "prompt_message": config.get("prompt", "Please review and approve"),
+                        "approval_type": config.get("approval_type", "approve_reject"),
+                    }
                 )
             else:
-                # Generic fallback for other types
-                node = NodeClass(
-                    id=node_id,
-                    **config,
-                )
-            
-            # Set dependencies
-            node.dependencies = node_data.get("dependencies", [])
-            node_map[node_id] = node
-            pb.nodes.append(node)
+                # Fallback: merge config verbatim
+                fields.update(config)
+
+            # Construct without full validation to allow partial configs during generation
+            node = NodeClass.model_construct(**fields)  # type: ignore[arg-type]
+
+            # Set dependencies afterwards (skip validation for speed)
+            node.dependencies = node_data.get("dependencies", [])  # type: ignore[attr-defined]
+
+            node_map[node_id] = node  # type: ignore[arg-type]
+            from ice_core.models.mcp import NodeSpec
+            pb.nodes.append(NodeSpec.model_construct(**node.model_dump()))
+
         
         # Convert to full Blueprint with validation
         try:

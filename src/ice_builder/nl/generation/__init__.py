@@ -6,7 +6,7 @@ natural language specifications into validated iceOS Blueprints.
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Tuple, Optional
 
 if TYPE_CHECKING:
     from ice_core.models.mcp import Blueprint
@@ -60,7 +60,7 @@ def generate_blueprint(specification: str) -> Blueprint:
     return asyncio.run(_generate_async(specification))
 
 
-async def _generate_interactive_async(specification: str) -> Tuple[str, Blueprint]:
+async def _generate_interactive_async(specification: str) -> Tuple[str, Optional[Blueprint]]:
     """Interactive blueprint generation with preview."""
     pipeline = InteractiveBlueprintPipeline(specification)
     
@@ -76,7 +76,7 @@ async def _generate_interactive_async(specification: str) -> Tuple[str, Blueprin
     return mermaid, None
 
 
-def generate_blueprint_interactive(specification: str) -> Tuple[str, Blueprint]:
+def generate_blueprint_interactive(specification: str) -> Tuple[str, Optional[Blueprint]]:
     """Generate blueprint with interactive preview and approval.
     
     This version shows a Mermaid diagram preview before generating the full

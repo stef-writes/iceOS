@@ -54,6 +54,16 @@ class DraftState:
     # The most recent validated (partial) Blueprint, if any
     last_blueprint: Optional[Blueprint] = None
 
+    # Interactive pipeline supplemental fields --------------------
+    specification: Optional[str] = None
+    mermaid_diagram: Optional[str] = None
+    warnings: List[str] = field(default_factory=list)
+    questions: List[str] = field(default_factory=list)
+    intent_data: Optional[Dict[str, Any]] = None
+    plan_text: Optional[str] = None
+    current_stage: Any = None  # PipelineStage but avoid circular import
+    blueprint: Optional[Blueprint] = None
+
     # Arbitrary scratch-pad (includes a "status" dict by convention)
     meta: _StatusDict = field(default_factory=lambda: cast(_StatusDict, {"status": {}}))
 
