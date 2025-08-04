@@ -25,7 +25,7 @@ ALLOWED_DEPENDENCIES: dict[str, list[str]] = {
     "ice_api": ["ice_core", "ice_orchestrator"],  # API delegates to orchestrator
     "ice_client": ["ice_core"],  # Client only needs core models
     "ice_builder": ["ice_core"],  # Builder creates structures using core models
-    "ice_orchestrator": ["ice_core"],  # Runtime ONLY depends on core - must be standalone!
+    "ice_orchestrator": ["ice_core", "ice_tools"],  # Runtime depends on core and built-in tools
     "ice_tools": ["ice_core"],  # Built-in tools depend only on core
     "frosty": ["ice_core", "ice_builder"],  # CLI only
     "frosty.core": ["ice_core", "ice_builder"],

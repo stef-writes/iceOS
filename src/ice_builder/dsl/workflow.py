@@ -283,22 +283,20 @@ class WorkflowBuilder:
         """
         from ice_core.services import ServiceLocator
 
-        # Ensure built-in tools/agents are registered before validation/execution
-        try:
-            import ice_tools  # noqa: F401 – triggers recursive auto-import
-            _ = ice_tools
-        except ModuleNotFoundError:
-            pass
-
-        # Auto-register local Workflow class if orchestrator has not yet injected one
+        # Retrieve runtime Workflow prototype from the service locator.
+        # The runtime layer (e.g. *ice_orchestrator*) **must** register this
+        # dependency during application start-up.  The builder no longer
+        # attempts to import runtime classes – that would violate the
+        # compile-time ↔ run-time boundary.
         try:
             get_workflow_proto = ServiceLocator.get("workflow_proto")
-        except KeyError:
-            # Late import avoids crossing the layer boundary unless needed
-            from ice_orchestrator.workflow import Workflow as _WF  # noqa: WPS433 – runtime import
-            ServiceLocator.register("workflow_proto", lambda: _WF)
-            get_workflow_proto = lambda: _WF  # type: ignore[assignment]
-        
+        except KeyError as err:  # pragma: no cover – captured in tests
+            raise RuntimeError(
+                "No 'workflow_proto' registered in ServiceLocator.  "
+                "Import 'ice_orchestrator.workflow' (or another runtime "
+                "implementation) before calling 'WorkflowBuilder.to_workflow()'."
+            ) from err
+
         workflow_cls = get_workflow_proto()
         return workflow_cls(
             name=self.name,
