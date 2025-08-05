@@ -667,19 +667,21 @@ async def validate_component_definition(
             elif definition.type == "workflow":
                 # For workflows, create from nodes
                 if definition.workflow_nodes:
-                    import importlib
-
-                    Workflow = importlib.import_module(
-                        "ice_orchestrator.workflow"
-                    ).Workflow
-                    workflow = Workflow(
-                        nodes=definition.workflow_nodes, name=definition.name
-                    )
-                    registry.register_instance(
-                        NodeType.WORKFLOW, definition.name, workflow
-                    )
-                    result.registered = True
-                    result.registry_name = definition.name
+                    # Use ServiceLocator to get Workflow class without direct import
+                    try:
+                        Workflow = ServiceLocator.get("workflow_proto")
+                        workflow = Workflow(
+                            nodes=definition.workflow_nodes, name=definition.name
+                        )
+                        registry.register_instance(
+                            NodeType.WORKFLOW, definition.name, workflow
+                        )
+                        result.registered = True
+                        result.registry_name = definition.name
+                    except KeyError:
+                        result.warnings.append(
+                            "Workflow prototype not registered in ServiceLocator"
+                        )
 
         except Exception as e:
             result.warnings.append(

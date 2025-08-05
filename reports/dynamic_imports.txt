@@ -1,0 +1,28 @@
+src/ice_orchestrator/monitor/metrics.py:131:            result = bool(eval(self.config.metric_expression, safe_dict))
+src/ice_orchestrator/llm/operators/line_item_generator.py:40:                return list(ast.literal_eval(v))
+src/ice_orchestrator/context/formatter.py:119:            if not isinstance(content[key], eval(typ)):
+src/ice_orchestrator/__init__.py:65:        importlib.import_module("ice_tools")
+Binary file src/ice_orchestrator/execution/__pycache__/wasm_executor.cpython-310.pyc matches
+src/ice_orchestrator/execution/executors/unified.py:68:        jinja2 = importlib.import_module("jinja2")
+src/ice_orchestrator/execution/executors/unified.py:443:        result = bool(eval(expression, safe_globals))
+src/ice_orchestrator/execution/executors/unified.py:1002:                converged = bool(eval(recursive_config.convergence_condition, safe_globals))
+src/ice_orchestrator/execution/executors/unified.py:1169:        triggered = bool(eval(cfg.metric_expression, {}, ctx))
+Binary file src/ice_orchestrator/execution/executors/__pycache__/unified.cpython-310.pyc matches
+src/ice_orchestrator/execution/wasm_executor.py:359:# Restrict imports by overriding __import__
+src/ice_orchestrator/execution/wasm_executor.py:360:_original_import = __builtins__.__import__
+src/ice_orchestrator/execution/wasm_executor.py:368:__builtins__.__import__ = restricted_import
+src/ice_orchestrator/execution/wasm_executor.py:371:dangerous_builtins = ['open', 'file', 'execfile', 'reload', '__import__', 'eval', 'exec']
+src/ice_orchestrator/services/network_coordinator.py:291:                module: ModuleType = importlib.import_module(module_path)
+src/ice_core/plugins/discovery.py:47:        return importlib.import_module(safe_module_name)
+src/ice_core/unified_registry.py:293:                        module = importlib.import_module(module_str)
+src/ice_core/unified_registry.py:320:                        module = importlib.import_module(module_str)
+src/ice_core/unified_registry.py:380:        module = importlib.import_module(module_str)
+src/ice_core/services/shared_memory.py:42:ServiceLocator = importlib.import_module("importlib").import_module("types").SimpleNamespace()
+src/ice_core/services/shared_memory.py:108:        MemoryConfig = importlib.import_module("ice_core.memory.base").MemoryConfig  # type: ignore
+src/ice_core/services/shared_memory.py:117:        MemoryConfig = importlib.import_module("ice_core.memory.base").MemoryConfig  # type: ignore
+src/ice_core/services/shared_memory.py:126:        MemoryConfig = importlib.import_module("ice_core.memory.base").MemoryConfig  # type: ignore
+src/ice_api/mcp_stdio_server.py:156:        initialize_orchestrator = importlib.import_module("ice_orchestrator").initialize_orchestrator
+src/ice_api/api/mcp.py:638:                    exec(definition.tool_class_code, namespace)
+src/ice_api/api/mcp.py:672:                    Workflow = importlib.import_module(
+src/ice_api/startup_utils.py:85:        mod = importlib.import_module(module_path)
+src/ice_api/main.py:61:    initialize_orchestrator = importlib.import_module(
