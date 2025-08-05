@@ -177,10 +177,10 @@ pip-audit = "^2.7.2"
 types-PyYAML = "^6.0.12.20250516"
 pyright = "^1.1.402"
 import-linter = "^2.3.0"
-hypothesis = "^6.100"
+
 mutmut = "^2.5"
 testcontainers = "^4.5"
-respx = "^0.21.0"
+
 questionary = "^2.0.1"
 mkdocs = "^1.5.3"
 mkdocs-material = "^9.5.9"
@@ -233,10 +233,10 @@ dev = [
   "types-PyYAML",
   "pyright",
   "import-linter",
-  "hypothesis",
+
   "mutmut",
   "testcontainers",
-  "respx",
+
   "questionary",
   "mkdocs",
   "mkdocs-material",

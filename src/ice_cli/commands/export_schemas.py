@@ -64,7 +64,6 @@ SCHEMA_MODELS: Dict[str, Type[BaseModel]] = {
     "SwarmNodeConfig": SwarmNodeConfig,
     "HumanNodeConfig": HumanNodeConfig,
     "MonitorNodeConfig": MonitorNodeConfig,
-    
     # MCP models
     "Blueprint": Blueprint,
     "BlueprintAck": BlueprintAck,
@@ -72,7 +71,6 @@ SCHEMA_MODELS: Dict[str, Type[BaseModel]] = {
     "NodeSpec": NodeSpec,
     "PartialBlueprint": PartialBlueprint,
     "PartialNodeSpec": PartialNodeSpec,
-    
     # Supporting models
     "BaseNodeConfig": BaseNodeConfig,
     "LLMConfig": LLMConfig,
@@ -82,7 +80,6 @@ SCHEMA_MODELS: Dict[str, Type[BaseModel]] = {
     "InputMapping": InputMapping,
     "ToolConfig": ToolConfig,
     "AgentSpec": AgentSpec,
-    
     # Execution results
     "NodeExecutionResult": NodeExecutionResult,
     "ChainExecutionResult": ChainExecutionResult,
@@ -91,28 +88,34 @@ SCHEMA_MODELS: Dict[str, Type[BaseModel]] = {
 
 def generate_schema_with_metadata(model: Type[BaseModel], name: str) -> Dict[str, Any]:
     """Generate JSON schema with additional metadata.
-    
+
     Args:
         model: Pydantic model to generate schema for
         name: Name of the model
-        
+
     Returns:
         Dict containing the JSON schema with metadata
     """
     # Generate base schema
     schema = model.model_json_schema(mode="serialization")
-    
+
     # Add metadata
     schema["$id"] = f"https://iceos.ai/schemas/{name}.json"
     schema["$comment"] = f"Generated from {model.__module__}.{model.__name__}"
     schema["x-iceos-version"] = "1.0.0"
-    
+
     # Add examples if available
-    if hasattr(model, "model_config") and hasattr(model.model_config, "json_schema_extra"):
-        extra = model.model_config.json_schema_extra
-        if isinstance(extra, dict) and "examples" in extra:
-            schema["examples"] = extra["examples"]
-    
+    # Pydantic v2 stores optional extras in `model_config` dict-like object.
+    extra = getattr(model, "model_config", {})
+    if isinstance(extra, dict):
+        examples = (
+            extra.get("json_schema_extra", {}).get("examples")
+            if extra.get("json_schema_extra")
+            else None
+        )
+        if examples:
+            schema["examples"] = examples
+
     return schema
 
 
@@ -121,7 +124,7 @@ def get_schema_categories() -> Dict[str, List[str]]:
     return {
         "node_configs": [
             "ToolNodeConfig",
-            "LLMOperatorConfig", 
+            "LLMOperatorConfig",
             "AgentNodeConfig",
             "ConditionNodeConfig",
             "WorkflowNodeConfig",
@@ -160,40 +163,40 @@ def get_schema_categories() -> Dict[str, List[str]]:
 
 def export_all_schemas(output_dir: str, format: str = "json") -> int:
     """Export all schemas to the specified directory.
-    
+
     Args:
         output_dir: Directory to write schema files
         format: Output format ('json' or 'yaml')
-        
+
     Returns:
         Number of schemas exported
     """
     output_path = pathlib.Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
-    
+
     # Create category subdirectories
     categories = get_schema_categories()
     for category in categories:
         (output_path / category).mkdir(exist_ok=True)
-    
+
     # Track exported schemas
     exported_count = 0
-    
+
     # Export schemas by category
     for category, schema_names in categories.items():
         category_path = output_path / category
-        
+
         for name in schema_names:
             if name not in SCHEMA_MODELS:
                 continue
-                
+
             model = SCHEMA_MODELS[name]
             schema = generate_schema_with_metadata(model, name)
-            
+
             # Write schema file
             file_extension = format
             file_path = category_path / f"{name}.{file_extension}"
-            
+
             if format == "json":
                 file_path.write_text(
                     json.dumps(schema, indent=2, ensure_ascii=False) + "\n"
@@ -202,9 +205,9 @@ def export_all_schemas(output_dir: str, format: str = "json") -> int:
                 file_path.write_text(
                     yaml.dump(schema, default_flow_style=False, sort_keys=False)
                 )
-            
+
             exported_count += 1
-    
+
     # Generate index file
     index_path = output_path / f"index.{format}"
     index_data = {
@@ -214,12 +217,14 @@ def export_all_schemas(output_dir: str, format: str = "json") -> int:
         "description": "Index of all available iceOS schemas",
         "x-iceos-version": "1.0.0",
         "categories": {
-            category: [f"{category}/{name}.{format}" for name in names if name in SCHEMA_MODELS]
+            category: [
+                f"{category}/{name}.{format}" for name in names if name in SCHEMA_MODELS
+            ]
             for category, names in categories.items()
         },
         "total_schemas": exported_count,
     }
-    
+
     if format == "json":
         index_path.write_text(
             json.dumps(index_data, indent=2, ensure_ascii=False) + "\n"
@@ -228,13 +233,13 @@ def export_all_schemas(output_dir: str, format: str = "json") -> int:
         index_path.write_text(
             yaml.dump(index_data, default_flow_style=False, sort_keys=False)
         )
-    
+
     return exported_count
 
 
 def validate_schema_completeness() -> List[str]:
     """Validate that we're exporting schemas for all necessary models.
-    
+
     Returns:
         List of missing model names
     """
@@ -242,13 +247,13 @@ def validate_schema_completeness() -> List[str]:
     # For now, we'll just ensure our categories cover all registered models
     categories = get_schema_categories()
     all_categorized = set()
-    
+
     for names in categories.values():
         all_categorized.update(names)
-    
+
     missing = []
     for name in SCHEMA_MODELS:
         if name not in all_categorized:
             missing.append(name)
-    
-    return missing 
+
+    return missing

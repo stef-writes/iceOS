@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import pathlib
 import sys
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import click
 import httpx
@@ -38,8 +38,16 @@ def _load_last_blueprint() -> Optional[str]:
     help="Base URL of iceOS API (env ICEOS_API_URL).",
 )
 @click.option("--last", "use_last", is_flag=True, help="Run the last pushed blueprint.")
-@click.option("--token", envvar="ICEOS_API_TOKEN", default="demo-token", help="Bearer token")
-def cli_run(blueprint_id: Optional[str], inputs: List[str], api_url: str, use_last: bool, token: str) -> None:  # noqa: D401
+@click.option(
+    "--token", envvar="ICEOS_API_TOKEN", default="demo-token", help="Bearer token"
+)
+def cli_run(
+    blueprint_id: Optional[str],
+    inputs: List[str],
+    api_url: str,
+    use_last: bool,
+    token: str,
+) -> None:  # noqa: D401
     """Execute a *blueprint_id* via API and stream status until completion."""
 
     if use_last and not blueprint_id:
@@ -63,12 +71,17 @@ def cli_run(blueprint_id: Optional[str], inputs: List[str], api_url: str, use_la
 
     # Start execution
     url = f"{api_url.rstrip('/')}/api/v1/executions"
-    payload = {"blueprint_id": blueprint_id}
+    payload: Dict[str, Any] = {"blueprint_id": blueprint_id}
     if input_dict:
         payload["inputs"] = input_dict
 
     try:
-        resp = httpx.post(url, json=payload, timeout=30.0, headers={"Authorization": f"Bearer {token}"})
+        resp = httpx.post(
+            url,
+            json=payload,
+            timeout=30.0,
+            headers={"Authorization": f"Bearer {token}"},
+        )
         resp.raise_for_status()
     except Exception as exc:  # noqa: BLE001
         click.echo(f"Failed to start execution: {exc}", err=True)
@@ -77,10 +90,14 @@ def cli_run(blueprint_id: Optional[str], inputs: List[str], api_url: str, use_la
     execution_id = resp.json()["execution_id"]
     click.echo(f"Execution ID: {execution_id}")
 
-    ws_url = api_url.replace("http", "ws", 1).rstrip("/") + f"/ws/executions/{execution_id}"
+    ws_url = (
+        api_url.replace("http", "ws", 1).rstrip("/") + f"/ws/executions/{execution_id}"
+    )
 
     with httpx.Client() as client:
-        with client.stream("GET", f"{api_url.rstrip('/')}/api/v1/executions/{execution_id}"):
+        with client.stream(
+            "GET", f"{api_url.rstrip('/')}/api/v1/executions/{execution_id}"
+        ):
             pass  # preflight
 
     try:
@@ -98,7 +115,10 @@ def cli_run(blueprint_id: Optional[str], inputs: List[str], api_url: str, use_la
         click.echo("Falling back to polling …")
         # Fallback polling loop
         while True:
-            status_resp = httpx.get(f"{api_url.rstrip('/')}/api/v1/executions/{execution_id}", headers={"Authorization": f"Bearer {token}"})
+            status_resp = httpx.get(
+                f"{api_url.rstrip('/')}/api/v1/executions/{execution_id}",
+                headers={"Authorization": f"Bearer {token}"},
+            )
             status_data = status_resp.json()
             click.echo(json.dumps(status_data, indent=2))
             if status_data["status"] in {"completed", "failed"}:
@@ -106,4 +126,5 @@ def cli_run(blueprint_id: Optional[str], inputs: List[str], api_url: str, use_la
                     sys.exit(1)
                 break
             import time
+
             time.sleep(2)

@@ -7,6 +7,7 @@ data-science libraries.
 It is meant as the first step in Kim's end-to-end listing workflow:
 ``csv_loader → listing_agent (loop) → aggregator``.
 """
+
 from __future__ import annotations
 
 import csv
@@ -72,15 +73,21 @@ class CSVLoaderTool(ToolBase):
     # Schema overrides --------------------------------------------------
     # ------------------------------------------------------------------
     @classmethod
-    def get_input_schema(cls):  # noqa: D401 – override
+    def get_input_schema(cls) -> Dict[str, Any]:  # noqa: D401 – override
         """CSVLoader accepts optional path override at runtime."""
         return {
-            "type": "object", 
+            "type": "object",
             "properties": {
-                "path": {"type": "string", "description": "CSV file path (optional override)"},
-                "delimiter": {"type": "string", "description": "CSV delimiter (optional override)"}
-            }, 
-            "additionalProperties": False
+                "path": {
+                    "type": "string",
+                    "description": "CSV file path (optional override)",
+                },
+                "delimiter": {
+                    "type": "string",
+                    "description": "CSV delimiter (optional override)",
+                },
+            },
+            "additionalProperties": False,
         }
 
 

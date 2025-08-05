@@ -20,6 +20,7 @@ from ice_orchestrator.workflow import Workflow
 
 logger = structlog.get_logger(__name__)
 
+
 class WorkflowService(IWorkflowService):
     """Real workflow service implementation.
 
@@ -32,12 +33,15 @@ class WorkflowService(IWorkflowService):
         """Initialize the workflow service."""
         # Use context manager from ServiceLocator if available, otherwise create new one
         from ice_core.services import ServiceLocator
+
         self._context_manager = ServiceLocator.get("context_manager")
         if self._context_manager is None:
             self._context_manager = GraphContextManager()
-        
+
+        # In-memory cache for executed workflows (very lightweight)
+        self._workflow_cache: dict[str, Workflow] = {}
+
         # Tools are auto-registered via @tool decorator when SDK is initialized
-        # No need to manually import and register them here
 
     async def execute(
         self,
@@ -98,6 +102,11 @@ class WorkflowService(IWorkflowService):
             end_time = datetime.utcnow()
             execution_time = (end_time - start_time).total_seconds()
 
+            # Cache the workflow instance for `get_workflow` retrieval
+            if run_id is not None:
+
+                self._workflow_cache[run_id] = workflow
+
             result_dict = {
                 "success": True,
                 "start_time": start_time,
@@ -138,9 +147,25 @@ class WorkflowService(IWorkflowService):
 
             return error_dict
 
+    async def get_workflow(self, workflow_id: str) -> Workflow:
+        """Retrieve a previously executed or cached Workflow instance.
+
+        For the minimal protocol compliance we keep an *in-memory* map that is
+        populated only when `execute` is called with an explicit `run_id`.  In
+        real deployments this would hit a persistent store or orchestrator
+        cache.
+        """
+        # NOTE: minimal implementation – *not* production-grade persistence.
+
+        wf = self._workflow_cache.get(workflow_id)
+        if wf is None:
+            raise KeyError(f"workflow_id {workflow_id} not found")
+        return wf
+
     async def create_partial_blueprint(self) -> str:
         """Create a new partial blueprint for incremental building."""
         import uuid
+
         blueprint_id = f"blueprint_{uuid.uuid4().hex[:8]}"
         # In a real implementation, this would store the blueprint
         # For now, just return the ID

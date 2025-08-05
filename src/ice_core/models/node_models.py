@@ -38,6 +38,7 @@ from ice_core.utils.vision_markers import mcp_tier, multi_granularity
 # Retry policy --------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 class RetryPolicy(BaseModel):
     """Declarative retry policy attached to any node.
 
@@ -58,6 +59,7 @@ class RetryPolicy(BaseModel):
     max_attempts: int = Field(3, ge=1)
     backoff_strategy: Literal["fixed", "linear", "exponential"] = "exponential"
     backoff_seconds: float = Field(1.0, ge=0.0)
+
 
 # ---------------------------------------------------------------------------
 # Imports
@@ -84,6 +86,7 @@ ScriptChainLike: TypeAlias = _WorkflowLike
 # Tool configuration --------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 class ToolConfig(BaseModel):
     """Declarative description of a tool made available to an LLM agent."""
 
@@ -94,9 +97,11 @@ class ToolConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+
 # ---------------------------------------------------------------------------
 # Context handling ---------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 class ContextFormat(str, Enum):
     TEXT = "text"
@@ -104,6 +109,7 @@ class ContextFormat(str, Enum):
     MARKDOWN = "markdown"
     CODE = "code"
     CUSTOM = "custom"
+
 
 class InputMapping(BaseModel):
     """Mapping configuration for node inputs."""
@@ -119,6 +125,7 @@ class InputMapping(BaseModel):
         default_factory=dict,
         description="Optional transformation rules (e.g. 'truncate', 'format')",
     )
+
 
 class ContextRule(BaseModel):
     """Rule for handling context in a node."""
@@ -137,6 +144,7 @@ class ContextRule(BaseModel):
         default=True, description="Whether to truncate if context exceeds max_tokens"
     )
 
+
 # LLMConfig now imported from ice_core.models.llm for consistency
 
 # ---------------------------------------------------------------------------
@@ -145,10 +153,11 @@ class ContextRule(BaseModel):
 
 # NodeMetadata moved to node_metadata.py
 
+
 @mcp_tier("Base blueprint configuration for all node types")
 class BaseNodeConfig(BaseModel):
     """Base configuration for all nodes - blueprint representation.
-    
+
     WHY: This is the "design-time" representation that can be validated
     without executing. Supports incremental canvas construction where
     users can add nodes before all connections are defined.
@@ -188,8 +197,12 @@ class BaseNodeConfig(BaseModel):
     )
 
     # IO schemas – can be either a JSON-serialisable dict *or* a Pydantic model
-    input_schema: Union[Dict[str, Any], Type[BaseModel]] = Field(default_factory=dict)
-    output_schema: Union[Dict[str, Any], Type[BaseModel]] = Field(default_factory=dict)
+    input_schema: Union[Dict[str, Any], Type[BaseModel]] = Field(
+        default_factory=lambda: {}
+    )
+    output_schema: Union[Dict[str, Any], Type[BaseModel]] = Field(
+        default_factory=lambda: {}
+    )
 
     input_mappings: Dict[str, InputMapping] = Field(default_factory=dict)
     output_mappings: Dict[str, str] = Field(default_factory=dict)
@@ -268,13 +281,23 @@ class BaseNodeConfig(BaseModel):
             return  # No further checks for input_schema – prompts often vary.
 
         # Node types that don't require schema validation
-        schema_optional_types = {"workflow", "loop", "parallel", "code", "human", "monitor", "swarm"}
-        
+        schema_optional_types = {
+            "workflow",
+            "loop",
+            "parallel",
+            "code",
+            "human",
+            "monitor",
+            "swarm",
+        }
+
         if node_type in schema_optional_types:
             return
 
         # Deterministic execution nodes – require both schemas ------------------------
-        if _is_schema_missing(self.input_schema) or _is_schema_missing(self.output_schema):
+        if _is_schema_missing(self.input_schema) or _is_schema_missing(
+            self.output_schema
+        ):
             raise ValueError(
                 f"Node '{self.id}' of type '{node_type}' must declare non-empty input_schema and output_schema."
             )
@@ -299,21 +322,23 @@ class BaseNodeConfig(BaseModel):
         """Check if schema is a Pydantic model."""
         return isinstance(schema, type) and issubclass(schema, BaseModel)
 
+
 # ---------------------------------------------------------------------------
 # Specific node configurations ----------------------------------------------
 # ---------------------------------------------------------------------------
 
-@mcp_tier("Blueprint for LLM text operations")  
+
+@mcp_tier("Blueprint for LLM text operations")
 @multi_granularity("node")
 class LLMOperatorConfig(BaseNodeConfig):
     """LLM operator configuration - Pure text generation without tools.
-    
+
     WHY: For stateless, one-shot LLM operations. NO tool access.
     If you need tools, use AgentNodeConfig instead.
-    
+
     Use this for: Summarization, extraction, translation, single Q&A
     Use AgentNodeConfig for: Any LLM operation that needs tools or memory
-    
+
     In Frosty: "summarize in 3 bullets" → LLMOperatorConfig with template
     """
 
@@ -340,11 +365,12 @@ class LLMOperatorConfig(BaseNodeConfig):
         None, description="JSON schema for output"
     )
 
+
 @mcp_tier("Blueprint for simple function execution")
 @multi_granularity("tool")
 class ToolNodeConfig(BaseNodeConfig):
     """Configuration for tool nodes - atomic utilities.
-    
+
     WHY: Represents the simplest granularity - a single tool invocation.
     In Frosty: "parse this CSV" → ToolNodeConfig(tool_name="csv_reader")
     """
@@ -354,18 +380,19 @@ class ToolNodeConfig(BaseNodeConfig):
     tool_name: str = Field(..., description="Registered name of the tool to invoke")
     tool_args: Dict[str, Any] = Field(default_factory=dict)
 
+
 @mcp_tier("Blueprint for intelligent decision-making")
-@multi_granularity("chain")  
+@multi_granularity("chain")
 class AgentNodeConfig(BaseNodeConfig):
     """Agent configuration - Multi-turn reasoning with memory and state.
-    
+
     WHY: Agents maintain conversation history, learn from interactions,
     and can perform complex multi-step reasoning. They have persistent
     memory across turns, unlike stateless LLM nodes.
-    
+
     Use this for: Customer support, research tasks, iterative problem solving
     Use LLMOperatorConfig for: Single-shot generation without memory needs
-    
+
     In Frosty: "help me debug this issue" → AgentNodeConfig with memory
     """
 
@@ -384,13 +411,13 @@ class AgentNodeConfig(BaseNodeConfig):
     memory: Optional[Dict[str, Any]] = Field(default=None)
     max_iterations: int = Field(
         default=10,
-        description="Maximum agent reasoning iterations to prevent infinite loops"
+        description="Maximum agent reasoning iterations to prevent infinite loops",
     )
-    
+
     # LLM configuration for the agent's reasoning
     llm_config: Optional[LLMConfig] = Field(
         default=None,
-        description="LLM configuration for agent reasoning. If None, uses defaults."
+        description="LLM configuration for agent reasoning. If None, uses defaults.",
     )
 
     @model_validator(mode="after")
@@ -403,6 +430,7 @@ class AgentNodeConfig(BaseNodeConfig):
                 self.agent_attr = package_parts[-1]
         return self
 
+
 class ConditionNodeConfig(BaseNodeConfig):
     """Branching node that decides execution path based on *expression*."""
 
@@ -414,14 +442,15 @@ class ConditionNodeConfig(BaseNodeConfig):
     true_branch: List[str] = Field(default_factory=list)
     false_branch: Optional[List[str]] = Field(default=None)
 
+
 @mcp_tier("Blueprint for embedded workflows")
 @multi_granularity("workflow")
 class WorkflowNodeConfig(BaseNodeConfig):
     """Configuration for embedding a sub-workflow.
-    
+
     WHY: Enables composition of workflows. Replaces both Unit and NestedChain
     concepts with a single, clear abstraction for workflow embedding.
-    
+
     Use this for: Reusable workflow components, modular design
     """
 
@@ -431,59 +460,63 @@ class WorkflowNodeConfig(BaseNodeConfig):
     exposed_outputs: Dict[str, str] = Field(default_factory=dict)
     config_overrides: Dict[str, Any] = Field(
         default_factory=dict,
-        description="Override configuration for the embedded workflow"
+        description="Override configuration for the embedded workflow",
     )
+
 
 @mcp_tier("Blueprint for iteration")
 class LoopNodeConfig(BaseNodeConfig):
     """Configuration for loop/iteration nodes.
-    
+
     WHY: Enables iteration over collections with proper context propagation.
-    
+
     Use this for: Processing lists, batch operations, map-reduce patterns
     """
 
     type: Literal["loop"] = "loop"
 
-    items_source: str = Field(..., description="Context key containing items to iterate over")
+    items_source: str = Field(
+        ..., description="Context key containing items to iterate over"
+    )
     item_var: str = Field(default="item", description="Variable name for current item")
     body_nodes: List[str] = Field(..., description="Node IDs to execute for each item")
-    max_iterations: Optional[int] = Field(None, description="Maximum iterations allowed")
+    max_iterations: Optional[int] = Field(
+        None, description="Maximum iterations allowed"
+    )
     parallel: bool = Field(default=False, description="Execute iterations in parallel")
+
 
 @mcp_tier("Blueprint for parallel execution")
 class ParallelNodeConfig(BaseNodeConfig):
     """Configuration for parallel execution branches.
-    
+
     WHY: Enables concurrent execution of independent branches.
-    
+
     Use this for: Independent operations, performance optimization
     """
 
     type: Literal["parallel"] = "parallel"
 
     branches: List[List[str]] = Field(
-        ...,
-        description="List of branches, each containing node IDs to execute"
+        ..., description="List of branches, each containing node IDs to execute"
     )
     max_concurrency: Optional[int] = Field(
-        None,
-        description="Maximum concurrent branches (None = unlimited)"
+        None, description="Maximum concurrent branches (None = unlimited)"
     )
     merge_outputs: bool = Field(
-        default=True,
-        description="Whether to merge outputs from all branches"
+        default=True, description="Whether to merge outputs from all branches"
     )
+
 
 @mcp_tier("Blueprint for recursive agent conversations")
 @multi_granularity("chain")
 class RecursiveNodeConfig(BaseNodeConfig):
     """Configuration for recursive/cyclic execution.
-    
+
     WHY: Enables agents to loop back and continue conversations until convergence.
     Leverages existing memory systems and state management for sophisticated
     recursive workflows while maintaining safety through convergence conditions.
-    
+
     Use this for: Agent negotiations, iterative refinement, multi-turn conversations
     """
 
@@ -492,77 +525,77 @@ class RecursiveNodeConfig(BaseNodeConfig):
     # Which nodes can loop back to this one (creates controlled cycles)
     recursive_sources: List[str] = Field(
         default_factory=list,
-        description="Node IDs that can trigger recursive execution back to this node"
+        description="Node IDs that can trigger recursive execution back to this node",
     )
-    
+
     # Convergence conditions (leverages existing condition system)
     convergence_condition: Optional[str] = Field(
         None,
-        description="Expression that stops recursion when true (e.g. 'agreement_reached == True')"
+        description="Expression that stops recursion when true (e.g. 'agreement_reached == True')",
     )
     max_iterations: int = Field(
-        default=50,
-        description="Safety limit to prevent infinite loops"
+        default=50, description="Safety limit to prevent infinite loops"
     )
-    
+
     # Agent/workflow configuration (one of these must be specified)
     agent_package: Optional[str] = Field(
-        None,
-        description="Import path for agent to execute in recursive loop"
+        None, description="Import path for agent to execute in recursive loop"
     )
     workflow_ref: Optional[str] = Field(
-        None,
-        description="Reference to workflow to execute in recursive loop"
+        None, description="Reference to workflow to execute in recursive loop"
     )
-    
+
     # Memory and context settings
     preserve_context: bool = Field(
         default=True,
-        description="Whether to preserve context across recursive iterations"
+        description="Whether to preserve context across recursive iterations",
     )
     context_key: str = Field(
         default="recursive_context",
-        description="Key for storing recursive context in state"
+        description="Key for storing recursive context in state",
     )
 
     @model_validator(mode="after")
     def _validate_recursive_config(self) -> "RecursiveNodeConfig":
         """Validate recursive node configuration."""
         if not self.agent_package and not self.workflow_ref:
-            raise ValueError("RecursiveNodeConfig must specify either agent_package or workflow_ref")
-        
+            raise ValueError(
+                "RecursiveNodeConfig must specify either agent_package or workflow_ref"
+            )
+
         if self.agent_package and self.workflow_ref:
-            raise ValueError("RecursiveNodeConfig cannot specify both agent_package and workflow_ref")
-        
+            raise ValueError(
+                "RecursiveNodeConfig cannot specify both agent_package and workflow_ref"
+            )
+
         if not self.recursive_sources:
-            raise ValueError("RecursiveNodeConfig must specify at least one recursive_source")
-        
+            raise ValueError(
+                "RecursiveNodeConfig must specify at least one recursive_source"
+            )
+
         return self
+
 
 @mcp_tier("Blueprint for code execution")
 class CodeNodeConfig(BaseNodeConfig):
     """Configuration for direct code execution.
-    
+
     WHY: Enables custom logic that doesn't fit other node types.
-    
+
     Use this for: Data transformations, custom calculations, glue code
     """
 
     type: Literal["code"] = "code"
 
     language: Literal["python", "javascript"] = Field(
-        default="python",
-        description="Programming language"
+        default="python", description="Programming language"
     )
     code: str = Field(..., description="Code to execute")
-    sandbox: bool = Field(
-        default=True,
-        description="Execute in sandboxed environment"
-    )
+    sandbox: bool = Field(default=True, description="Execute in sandboxed environment")
     imports: List[str] = Field(
-        default_factory=list,
-        description="Allowed imports for sandboxed execution"
+        default_factory=list, description="Allowed imports for sandboxed execution"
     )
+
 
 # ---------------------------------------------------------------------------
 # Discriminated union & helpers
@@ -587,6 +620,7 @@ NodeConfig = Annotated[
 # Execution results -------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 class NodeExecutionRecord(BaseModel):
     """Record of node execution statistics."""
 
@@ -599,11 +633,13 @@ class NodeExecutionRecord(BaseModel):
     token_usage: Dict[str, int] = Field(default_factory=dict)
     provider_usage: Dict[str, Dict[str, int]] = Field(default_factory=dict)
 
+
 class NodeIO(BaseModel):
     """Input/output schema for a node."""
 
     data_schema: Dict[str, Any] = Field(default_factory=dict)
     required: List[str] = Field(default_factory=list)
+
 
 class UsageMetadata(BaseModel):
     """Token usage and cost metadata."""
@@ -626,6 +662,7 @@ class UsageMetadata(BaseModel):
             self.total_tokens = self.prompt_tokens + self.completion_tokens
         return self
 
+
 class NodeExecutionResult(BaseModel):
     """Result of a node execution."""
 
@@ -641,6 +678,7 @@ class NodeExecutionResult(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+
 class ChainExecutionResult(BaseModel):
     """Result of a chain execution."""
 
@@ -651,6 +689,7 @@ class ChainExecutionResult(BaseModel):
     chain_metadata: Optional["ChainMetadata"] = None
     execution_time: Optional[float] = None
     token_stats: Optional[Dict[str, Any]] = None
+
 
 class ChainMetadata(BaseModel):
     """Metadata for a chain execution."""
@@ -666,6 +705,7 @@ class ChainMetadata(BaseModel):
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+
 try:
     ChainExecutionResult.model_rebuild()
 except NameError:
@@ -674,6 +714,7 @@ except NameError:
 # ---------------------------------------------------------------------------
 # Serializable ChainSpec (v1)
 # ---------------------------------------------------------------------------
+
 
 class ChainSpec(BaseModel):
     """Serializable chain specification."""
@@ -695,9 +736,11 @@ class ChainSpec(BaseModel):
         },
     )
 
+
 # ---------------------------------------------------------------------------
 # Phase-2 execution-control node configs (Swarm / Human / Monitor)
 # ---------------------------------------------------------------------------
+
 
 class AgentSpec(BaseModel):
     """Specification for an agent inside a swarm."""
@@ -717,7 +760,9 @@ class SwarmNodeConfig(BaseNodeConfig):
     type: Literal["swarm"] = "swarm"
 
     agents: List[AgentSpec] = Field(..., min_length=2)
-    coordination_strategy: Literal["consensus", "hierarchical", "marketplace"] = "consensus"
+    coordination_strategy: Literal["consensus", "hierarchical", "marketplace"] = (
+        "consensus"
+    )
     max_rounds: int = Field(10, ge=1)
     consensus_threshold: float = Field(0.75, ge=0.5, le=1.0)
 
@@ -747,21 +792,31 @@ class HumanNodeConfig(BaseNodeConfig):
     type: Literal["human"] = "human"
 
     prompt_message: str = Field(..., min_length=1)
-    approval_type: Literal["approve_reject", "input_required", "choice"] = "approve_reject"
+    approval_type: Literal["approve_reject", "input_required", "choice"] = (
+        "approve_reject"
+    )
     timeout_seconds: Optional[int] = Field(None, ge=1)
     auto_approve_after: Optional[int] = Field(None, ge=1)
     choices: Optional[List[str]] = None
-    escalation_path: Optional[str] = Field(None, description="Path for escalation if timeout occurs")
+    escalation_path: Optional[str] = Field(
+        None, description="Path for escalation if timeout occurs"
+    )
 
     def runtime_validate(self) -> None:
         super().runtime_validate()
         if not self.prompt_message.strip():
             raise ValueError("Human node requires non-empty prompt_message")
-        if self.approval_type == "choice" and (not self.choices or len(self.choices) < 2):
+        if self.approval_type == "choice" and (
+            not self.choices or len(self.choices) < 2
+        ):
             raise ValueError("Choice approval type requires at least 2 choices")
         if self.auto_approve_after and not self.timeout_seconds:
             raise ValueError("auto_approve_after requires timeout_seconds")
-        if self.auto_approve_after and self.timeout_seconds and self.auto_approve_after >= self.timeout_seconds:
+        if (
+            self.auto_approve_after
+            and self.timeout_seconds
+            and self.auto_approve_after >= self.timeout_seconds
+        ):
             raise ValueError("auto_approve_after must be less than timeout_seconds")
 
 
@@ -796,20 +851,6 @@ class MonitorNodeConfig(BaseNodeConfig):
 # Type aliases for backward compatibility
 # ---------------------------------------------------------------------------
 
-NodeConfig = Union[
-    ToolNodeConfig,
-    LLMOperatorConfig,
-    AgentNodeConfig,
-    ConditionNodeConfig,
-    WorkflowNodeConfig,
-    LoopNodeConfig,
-    ParallelNodeConfig,
-    RecursiveNodeConfig,
-    CodeNodeConfig,
-    HumanNodeConfig,
-    MonitorNodeConfig,
-    SwarmNodeConfig,
-]
 
 # ---------------------------------------------------------------------------
 # Exports

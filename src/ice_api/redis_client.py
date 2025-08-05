@@ -29,7 +29,9 @@ class _RedisStub:  # type: ignore
     async def ping(self) -> bool:  # noqa: D401 – stub method
         return True
 
-    def __getattr__(self, name: str) -> Callable[..., Awaitable[Any]]:  # noqa: D401 – dynamic stub
+    def __getattr__(
+        self, name: str
+    ) -> Callable[..., Awaitable[Any]]:  # noqa: D401 – dynamic stub
         async def _dummy(*_args: Any, **_kwargs: Any) -> None:  # noqa: D401
             return None
 
@@ -83,6 +85,7 @@ class _RedisStub:  # type: ignore
                 results.append((stream, entries))
         return results
 
+
 try:
     # ``redis.asyncio`` provides the fully featured async client, including the
     # ``from_url`` helper used throughout the codebase.  Importing it under the
@@ -100,9 +103,10 @@ __all__: list[str] = ["get_redis"]
 # Singleton helper ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-_redis_client: Optional[Union["Redis[Any]", _RedisStub]] = None
+_redis_client: Optional[Union["Redis", _RedisStub]] = None
 
-def get_redis() -> Union[Redis, _RedisStub]:  # – singleton, *sync* accessor
+
+def get_redis() -> Union["Redis", _RedisStub]:  # – singleton, *sync* accessor
     """Return the shared :class:`redis.asyncio.Redis` client.
 
     The connection URL is read from the ``REDIS_URL`` environment variable and
@@ -117,7 +121,12 @@ def get_redis() -> Union[Redis, _RedisStub]:  # – singleton, *sync* accessor
     global _redis_client
 
     import sys
-    use_fake = os.getenv("USE_FAKE_REDIS", "0") == "1" or "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules
+
+    use_fake = (
+        os.getenv("USE_FAKE_REDIS", "0") == "1"
+        or "PYTEST_CURRENT_TEST" in os.environ
+        or "pytest" in sys.modules
+    )
 
     if _redis_client is None:
         if use_fake or redis is None:

@@ -7,7 +7,7 @@ communicate without violating architectural boundaries.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Protocol, runtime_checkable
+from typing import Any, List, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
@@ -18,6 +18,7 @@ class ServiceContract(BaseModel):
     version: str
     name: str
     endpoints: List[str] = []
+
 
 def load_current(service_name: str) -> ServiceContract:
     """Return the *current* contract for *service_name*.
@@ -43,6 +44,7 @@ def load_current(service_name: str) -> ServiceContract:
     # Service contract loading from YAML not yet implemented
     return ServiceContract(version="0.1.0", name=service_name)
 
+
 @runtime_checkable
 class MicroserviceContract(Protocol):
     """Base protocol for microservice implementations."""
@@ -50,6 +52,7 @@ class MicroserviceContract(Protocol):
     def validate_api_surface(self) -> bool:
         """Validate the API surface matches the contract."""
         ...
+
 
 class NodeService(MicroserviceContract):
     def __init__(self, service_name: str = "ice_core"):
@@ -74,6 +77,7 @@ class NodeService(MicroserviceContract):
         if not self._contract.version:
             raise ValueError("ServiceContract.version must be a non-empty string")
 
+
 @runtime_checkable
 class IWorkflowService(Protocol):
     """Protocol for executing workflows without leaking orchestrator types."""
@@ -89,6 +93,13 @@ class IWorkflowService(Protocol):
         event_emitter: Any | None = None,
     ) -> Any: ...
 
+    @abstractmethod
+    async def get_workflow(self, workflow_id: str) -> Any: ...
+
+    @abstractmethod
+    async def create_partial_blueprint(self) -> str: ...
+
+
 @runtime_checkable
 class IBuilderService(Protocol):
     """Protocol for workflow builder services (implemented in SDK layer)."""
@@ -99,7 +110,9 @@ class IBuilderService(Protocol):
         ...
 
     @abstractmethod
-    def add_node(self, builder: Any, node_type: str, node_id: str, **config: Any) -> Any:
+    def add_node(
+        self, builder: Any, node_type: str, node_id: str, **config: Any
+    ) -> Any:
         """Add a node to the workflow"""
         ...
 
@@ -117,6 +130,7 @@ class IBuilderService(Protocol):
     def to_dict(self, builder: Any) -> dict[str, Any]:
         """Export workflow as dictionary"""
         ...
+
 
 class NetworkStorage(ABC):
     @abstractmethod

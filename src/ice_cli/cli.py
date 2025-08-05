@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import subprocess
 import sys
-from typing import List
+from typing import Any, Coroutine, List, TypeVar
 
 import click
 
@@ -19,7 +19,11 @@ import click
 # Async helper ---------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-def _safe_run(coro):  # noqa: ANN001 – generic coroutine
+
+T = TypeVar("T")
+
+
+def _safe_run(coro: "Coroutine[Any, Any, T]") -> T:
     """Run *coro* regardless of whether an event loop is already running.
 
     If running inside an existing loop (e.g., Jupyter) we schedule the coroutine
@@ -42,6 +46,7 @@ def _safe_run(coro):  # noqa: ANN001 – generic coroutine
 
     return loop.run_until_complete(coro)
 
+
 # NOTE: All runtime execution now lives in *ice_orchestrator.cli* to respect
 # clean layer boundaries.  We forward commands via *subprocess* instead of
 # importing the orchestrator layer directly.
@@ -59,9 +64,11 @@ _VALID_TARGETS: dict[str, List[str]] = {
     "all": ["lint", "type", "test"],
 }
 
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def cli() -> None:  # – entrypoint
     """iceOS CLI utilities (run ``ice --help`` for details)."""
+
 
 @cli.command()
 @click.argument(
@@ -88,6 +95,7 @@ def doctor(category: str) -> None:  # – imperative mood
 
     click.echo("[doctor] All checks passed ✔")
 
+
 # ---------------------------------------------------------------------------
 # Network commands -----------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -100,15 +108,25 @@ def network() -> None:
 
 @network.command("run")
 @click.argument("manifest_path", type=click.Path(exists=True, dir_okay=False))
-@click.option("--scheduled", is_flag=True, help="Respect cron schedules and watch forever.")
+@click.option(
+    "--scheduled", is_flag=True, help="Respect cron schedules and watch forever."
+)
 def network_run(manifest_path: str, scheduled: bool) -> None:  # noqa: D401
     """Execute *MANIFEST_PATH* via the runtime CLI without importing it."""
 
-    cmd = [sys.executable, "-m", "ice_orchestrator.cli", "network", "run", manifest_path]
+    cmd = [
+        sys.executable,
+        "-m",
+        "ice_orchestrator.cli",
+        "network",
+        "run",
+        manifest_path,
+    ]
     if scheduled:
         cmd.append("--scheduled")
 
     subprocess.run(cmd, check=True)
+
 
 # ---------------------------------------------------------------------------
 # Remote API helpers (push/run) ---------------------------------------------
@@ -124,6 +142,7 @@ cli.add_command(_run_cmd)
 # Scaffolder (new) -----------------------------------------------------------
 # ---------------------------------------------------------------------------
 from ice_cli.commands.scaffold import new as _new_cmd
+
 cli.add_command(_new_cmd)
 
 # ---------------------------------------------------------------------------
@@ -146,7 +165,9 @@ cli.add_command(_new_cmd)
     default=5,
     help="Maximum node parallelism (forwarded to orchestrator).",
 )
-def run_blueprint(blueprint_path: str, remote_url: str | None, max_parallel: int) -> None:  # noqa: D401
+def run_blueprint(
+    blueprint_path: str, remote_url: str | None, max_parallel: int
+) -> None:  # noqa: D401
     """Execute *BLUEPRINT_PATH* locally or against a remote orchestrator.
 
     Examples
@@ -205,6 +226,7 @@ def run_blueprint(blueprint_path: str, remote_url: str | None, max_parallel: int
         ]
         subprocess.run(cmd, check=True)
 
+
 # Alias for Poetry entrypoint -------------------------------------------------
 app = cli  # For backward compatibility with pyproject.toml script entry
 
@@ -212,30 +234,33 @@ app = cli  # For backward compatibility with pyproject.toml script entry
 # Schema commands -----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 @cli.group()
 def schemas() -> None:
     """Schema generation and validation commands."""
+
 
 @schemas.command("export")
 @click.option(
     "--output-dir",
     type=click.Path(file_okay=False, writable=True),
     default="schemas/generated",
-    help="Directory to write JSON schema files (default: schemas/generated)"
+    help="Directory to write JSON schema files (default: schemas/generated)",
 )
 @click.option(
     "--format",
     type=click.Choice(["json", "yaml"], case_sensitive=False),
     default="json",
-    help="Output format for schema files"
+    help="Output format for schema files",
 )
 def schemas_export(output_dir: str, format: str) -> None:
     """Export JSON schemas for all node types and MCP models."""
     from ice_cli.commands.export_schemas import export_all_schemas
-    
+
     click.echo(f"🔧 Exporting schemas to {output_dir} in {format} format...")
     exported_count = export_all_schemas(output_dir, format)
     click.echo(f"✅ Exported {exported_count} schemas successfully!")
+
 
 @schemas.command("import")
 @click.argument("file_path", type=click.Path(exists=True, dir_okay=False))
@@ -243,7 +268,7 @@ def schemas_export(output_dir: str, format: str) -> None:
     "--type",
     type=click.Choice(["blueprint", "component"], case_sensitive=False),
     default="blueprint",
-    help="Type of file to import"
+    help="Type of file to import",
 )
 def schemas_import(file_path: str, type: str) -> None:
     """Import a Blueprint or ComponentDefinition JSON/YAML file for testing."""
@@ -261,7 +286,7 @@ def schemas_import(file_path: str, type: str) -> None:
     path = pathlib.Path(file_path)
     try:
         raw_text = path.read_text()
-        if path.suffix.lower() in {'.yaml', '.yml'}:
+        if path.suffix.lower() in {".yaml", ".yml"}:
             data = yaml.safe_load(raw_text)
         else:
             data = json.loads(raw_text)
@@ -302,6 +327,7 @@ def schemas_import(file_path: str, type: str) -> None:
         click.echo(f"❌ Import failed: {exc}", err=True)
         ctx = click.get_current_context()
         ctx.exit(1)
+
 
 # Plugins group import (must come before cli.add_command)
 from ice_cli.commands.plugins import plugins

@@ -17,9 +17,10 @@ Design decisions
 
 The unit tests live in ``tests/unit/ice_tools/test_pricing_strategy_tool.py``.
 """
+
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Dict
 
 from pydantic import Field, PositiveFloat, validator
@@ -63,7 +64,9 @@ class PricingStrategyTool(ToolBase):
     # Config fields -----------------------------------------------------------
     margin_percent: PositiveFloat = Field(25.0, description="Desired margin percentage")
     min_price: PositiveFloat = Field(0.99, description="Minimum allowed price")
-    decimal_places: int = Field(2, ge=0, le=4, description="Decimal precision for rounding")
+    decimal_places: int = Field(
+        2, ge=0, le=4, description="Decimal precision for rounding"
+    )
 
     # Validators --------------------------------------------------------------
     @validator("margin_percent")  # noqa: D401 – imperative
@@ -74,11 +77,21 @@ class PricingStrategyTool(ToolBase):
 
     # Core execution ----------------------------------------------------------
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # noqa: D401
-        cost_raw: Any | None = kwargs.get("cost")
+        """Calculate price from *cost*.
+
+        Parameters
+        ----------
+        cost : float | int | str
+            Input cost passed at runtime via workflow.  Must be convertible to
+            ``float`` and **greater than 0**.
+        """
+        cost_raw: float | int | str | None = kwargs.get("cost")
+        if cost_raw is None:
+            raise ValidationError("'cost' is a required numeric argument")
         try:
             cost = float(cost_raw)
         except (TypeError, ValueError):
-            raise ValidationError("'cost' must be a float > 0") from None
+            raise ValidationError("'cost' must be a numeric value") from None
 
         if cost <= 0:
             raise ValidationError("'cost' must be > 0")
@@ -89,7 +102,9 @@ class PricingStrategyTool(ToolBase):
         final_price = raw_price.quantize(quant, rounding=ROUND_HALF_UP)
 
         if final_price < Decimal(str(self.min_price)):
-            final_price = Decimal(str(self.min_price)).quantize(quant, rounding=ROUND_HALF_UP)
+            final_price = Decimal(str(self.min_price)).quantize(
+                quant, rounding=ROUND_HALF_UP
+            )
 
         return {"price": float(final_price)}
 
