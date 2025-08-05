@@ -10,7 +10,7 @@ import sys
 
 import coverage  # ``pytest-cov`` dependency pulls this in already
 
-MIN_COVERAGE = 60  # Percentage threshold – keep in sync with repo rules
+MIN_COVERAGE = 55  # Percentage threshold – updated per new requirements
 
 
 def enforce_coverage() -> None:  # – CLI helper

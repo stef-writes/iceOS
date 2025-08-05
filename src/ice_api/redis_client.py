@@ -100,7 +100,7 @@ __all__: list[str] = ["get_redis"]
 # Singleton helper ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-_redis_client: Optional[Union[Redis, _RedisStub]] = None
+_redis_client: Optional[Union["Redis[Any]", _RedisStub]] = None
 
 def get_redis() -> Union[Redis, _RedisStub]:  # – singleton, *sync* accessor
     """Return the shared :class:`redis.asyncio.Redis` client.

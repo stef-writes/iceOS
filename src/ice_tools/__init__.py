@@ -19,7 +19,10 @@ from typing import List
 
 _loaded: List[ModuleType] = []
 
-def _recursive_import(package_name: str, pkg_path):  # noqa: D401 – helper
+from typing import Sequence
+
+
+def _recursive_import(package_name: str, pkg_path: Sequence[str]) -> None:  # noqa: D401 – helper
     """Recursively import *all* modules under *package_name* so that tool
     registration side-effects run exactly once at startup."""
     for mod in iter_modules(pkg_path):

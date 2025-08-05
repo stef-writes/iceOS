@@ -41,7 +41,8 @@ class TitleDescriptionGeneratorTool(ToolBase):
         "and 'description' only.\n\nProduct JSON:\n{item_json}"
     )
 
-    async def _execute_impl(self, *, item: Dict[str, Any]) -> Dict[str, Any]:  # noqa: D401
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # noqa: D401
+        item: dict[str, Any] = kwargs.get("item", {})
         if "name" not in item:
             raise ValidationError("'item' must include at least a 'name' field")
 

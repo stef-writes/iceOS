@@ -19,7 +19,6 @@ packages = [
   { include = "ice_core", from = "src" },
   { include = "ice_builder", from = "src" },
   { include = "ice_client", from = "src" },
-  { include = "frosty", from = "src" }
 ]
 
 # Include non-Python assets (JSON templates & default context store)
@@ -195,6 +194,8 @@ pip = ">=23.3"
 setuptools = ">=78.1.1"
 sqlalchemy = "^2.0.23"
 vulture = "^2.14"
+pydantic = {extras = ["mypy"], version = "^2.12.0a1", allow-prereleases = true}
+types-redis = {version = "^4.6.0.20241004", allow-prereleases = true}
 
 [tool.poetry.scripts]
 ice = "ice_cli.cli:app"

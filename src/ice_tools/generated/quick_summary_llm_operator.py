@@ -12,8 +12,9 @@ class QuickSummaryLLMOperator(ToolBase):
     description: str = Field("Quick summarizer")
     model: str = "gpt-4o"
 
-    async def _execute_impl(self, *, prompt: str) -> Dict[str, Any]:  # noqa: D401
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # noqa: D401
+        prompt: str = kwargs.get("prompt", "")
         return {"completion": f"Echo: {prompt}"}
 
 _instance = QuickSummaryLLMOperator()
-registry.register_instance(NodeType.LLM, _instance.name, _instance, validate=False)
+registry.register_instance(NodeType.LLM, _instance.name, _instance)  # type: ignore[arg-type]

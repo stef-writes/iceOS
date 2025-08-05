@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Any
 
 from ice_core.services.contracts import NetworkStorage
 
@@ -24,7 +24,7 @@ class SupabaseNetworkStorage(NetworkStorage):
     # NetworkStorage implementation
     # ------------------------------------------------------------------
 
-    async def get(self, spec_id: str) -> Optional[dict]:  # – simple CRUD
+    async def get(self, spec_id: str) -> dict[str, Any] | None:  # – simple CRUD
         resp = (
             await self._client.table("network_specs")
             .select("*")
@@ -33,14 +33,14 @@ class SupabaseNetworkStorage(NetworkStorage):
         )
         return resp.data[0] if resp.data else None
 
-    async def put(self, spec_id: str, spec: dict) -> None:  # – simple CRUD
+    async def put(self, spec_id: str, spec: dict[str, Any]) -> None:  # – simple CRUD
         await (
             self._client.table("network_specs")
             .upsert({**spec, "id": spec_id})
             .execute()
         )
 
-    async def query(self, filter: str = "") -> List[dict]:  # – simple CRUD
+    async def query(self, filter: str = "") -> list[dict[str, Any]]:  # – simple CRUD
         query_builder = self._client.table("network_specs").select("*")
         if filter:
             # Basic example using ILIKE for name filtering.

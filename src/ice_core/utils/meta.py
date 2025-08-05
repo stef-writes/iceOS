@@ -16,13 +16,9 @@ _T = TypeVar("_T", bound=Any)
 def _get_module(obj: _T) -> ModuleType:  # pragma: no cover – trivial helper
     return sys.modules[obj.__module__]
 
-@overload
-def public(obj: _T) -> _T: ...
+from typing import Union, Callable
 
-@overload
-def public(*, name: str | None = None) -> Callable[[_T], _T]: ...
-
-def public(obj: _T | None = None, *, name: str | None = None):
+def public(obj: _T | None = None, *, name: str | None = None) -> Union[_T, Callable[[_T], _T]]:
     """Mark *obj* as part of the public API of its defining module."""
 
     def _decorator(target: _T) -> _T:

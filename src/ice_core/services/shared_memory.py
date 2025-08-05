@@ -13,6 +13,23 @@ Key Features:
 
 from __future__ import annotations
 
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from ice_core.memory.base import UnifiedMemory, UnifiedMemoryConfig  # type: ignore[attr-defined]
+else:
+    class UnifiedMemory(Protocol):
+        async def initialize(self) -> None: ...
+        async def store(self, key: str, value: Any, metadata: Dict[str, Any], memory_type: str) -> None: ...
+        async def retrieve(self, key: str, memory_type: str) -> Any: ...
+        async def delete(self, key: str, memory_type: str) -> bool: ...
+        working: Any
+        episodic: Any
+        semantic: Any
+
+    class UnifiedMemoryConfig(Protocol):
+        pass
+
 import asyncio
 import importlib
 import logging
@@ -20,8 +37,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 # Lazy import to avoid cross-layer boundary at module import
-UnifiedMemory = importlib.import_module("ice_core.memory.unified").UnifiedMemory  # type: ignore
-UnifiedMemoryConfig = importlib.import_module("ice_core.memory.unified").UnifiedMemoryConfig  # type: ignore
+# Dynamic import removed; rely on Protocol stub
+
 ServiceLocator = importlib.import_module("importlib").import_module("types").SimpleNamespace()
 
 logger = logging.getLogger(__name__)
@@ -61,7 +78,7 @@ class SharedMemoryPool:
         """
         self.pool_name = pool_name
         self.ttl_seconds = ttl_seconds
-        self._memory: Optional[UnifiedMemory] = None
+        self._memory: UnifiedMemory | None = None
         self._initialized = False
         
     async def initialize(self) -> None:
@@ -80,13 +97,13 @@ class SharedMemoryPool:
             semantic_config=self._get_semantic_config()
         )
         
-        self._memory = UnifiedMemory(config)
+        self._memory = UnifiedMemory(config)  # type: ignore[call-arg]
         await self._memory.initialize()
         self._initialized = True
         
         logger.info(f"Initialized shared memory pool: {self.pool_name}")
     
-    def _get_working_config(self):
+    def _get_working_config(self) -> Any:
         """Configure working memory for shared pool (lazy import to avoid boundary)."""
         MemoryConfig = importlib.import_module("ice_core.memory.base").MemoryConfig  # type: ignore
         return MemoryConfig(
@@ -95,7 +112,7 @@ class SharedMemoryPool:
             max_entries=10000  # Large limit for shared pools
         )
     
-    def _get_episodic_config(self):
+    def _get_episodic_config(self) -> Any:
         """Configure episodic memory for interaction history."""
         MemoryConfig = importlib.import_module("ice_core.memory.base").MemoryConfig  # type: ignore
         return MemoryConfig(
@@ -104,7 +121,7 @@ class SharedMemoryPool:
             max_entries=50000
         )
     
-    def _get_semantic_config(self):
+    def _get_semantic_config(self) -> Any:
         """Configure semantic memory for shared facts."""
         MemoryConfig = importlib.import_module("ice_core.memory.base").MemoryConfig  # type: ignore
         return MemoryConfig(
@@ -143,6 +160,7 @@ class SharedMemoryPool:
             "memory_type": memory_type
         })
         
+        assert self._memory is not None
         await self._memory.store(pool_key, value, metadata, memory_type)
         logger.debug(f"Stored {key} in pool {self.pool_name} ({memory_type})")
     
@@ -164,6 +182,7 @@ class SharedMemoryPool:
             await self.initialize()
             
         pool_key = f"pool:{self.pool_name}:{key}"
+        assert self._memory is not None
         entry = await self._memory.retrieve(pool_key, memory_type)
         
         if entry:
@@ -184,6 +203,8 @@ class SharedMemoryPool:
             await self.initialize()
             
         # Get memory instance for type
+        assert self._memory is not None
+        assert self._memory is not None
         if memory_type == "working" and self._memory.working:
             all_keys = await self._memory.working.list_keys()
         elif memory_type == "episodic" and self._memory.episodic:
@@ -216,12 +237,13 @@ class SharedMemoryPool:
             await self.initialize()
             
         pool_key = f"pool:{self.pool_name}:{key}"
+        assert self._memory is not None
         success = await self._memory.delete(pool_key, memory_type)
         
         if success:
             logger.debug(f"Deleted {key} from pool {self.pool_name}")
         
-        return success
+        return bool(success)
     
     async def clear(self, memory_type: Optional[str] = None) -> None:
         """Clear all entries in this pool.
@@ -246,20 +268,17 @@ class SharedMemoryPool:
         if not self._initialized:
             await self.initialize()
             
+        working_keys = len(await self.list_keys("working"))
+        episodic_keys = len(await self.list_keys("episodic"))
+        semantic_keys = len(await self.list_keys("semantic"))
         stats = {
             "pool_name": self.pool_name,
             "initialized": self._initialized,
-            "working_keys": len(await self.list_keys("working")),
-            "episodic_keys": len(await self.list_keys("episodic")),
-            "semantic_keys": len(await self.list_keys("semantic")),
-            "total_keys": 0
+            "working_keys": working_keys,
+            "episodic_keys": episodic_keys,
+            "semantic_keys": semantic_keys,
+            "total_keys": working_keys + episodic_keys + semantic_keys,
         }
-        
-        stats["total_keys"] = (
-            stats["working_keys"] + 
-            stats["episodic_keys"] + 
-            stats["semantic_keys"]
-        )
         
         return stats
 
@@ -274,10 +293,10 @@ class SharedMemoryService:
     - Performance monitoring
     """
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the shared memory service."""
         self._pools: Dict[str, SharedMemoryPool] = {}
-        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: Optional[asyncio.Task[None]] = None
         
     async def initialize(self) -> None:
         """Initialize the service and start cleanup task."""
@@ -339,14 +358,16 @@ class SharedMemoryService:
     
     async def get_global_stats(self) -> Dict[str, Any]:
         """Get statistics for all memory pools."""
-        stats = {
+        from typing import cast
+        stats: dict[str, Any] = {
             "total_pools": len(self._pools),
             "pools": {}
         }
+        pools_dict = cast(dict[str, Any], stats["pools"])
         
         for pool_name, pool in self._pools.items():
             pool_stats = await pool.get_stats()
-            stats["pools"][pool_name] = pool_stats
+            pools_dict[pool_name] = pool_stats
         
         return stats
     
@@ -387,7 +408,7 @@ async def get_shared_memory_service() -> SharedMemoryService:
     global _shared_memory_service
     
     if _shared_memory_service is None:
-        _shared_memory_service = SharedMemoryService()
+        _shared_memory_service = SharedMemoryService()  # type: ignore[no-untyped-call]
         await _shared_memory_service.initialize()
         
         # Register with ServiceLocator for dependency injection

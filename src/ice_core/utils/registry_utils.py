@@ -6,7 +6,7 @@ meet system requirements before they can be used in workflows.
 from __future__ import annotations
 
 import inspect
-from typing import Type, Union
+from typing import Type, Union, Any
 
 from ice_core.base_node import BaseNode
 from ice_core.base_tool import ToolBase
@@ -48,7 +48,7 @@ def validate_registry_entry(entry: Type[Union[ToolBase, BaseNode]]) -> None:
         raise RegistryError("Missing metrics_schema class attribute", entry)
 
 
-def generate_default_metrics(cls: Type[BaseNode]) -> dict:
+def generate_default_metrics(cls: Type[BaseNode]) -> dict[str, Any]:
     """Generate default metrics schema for agents missing one."""
     return {
         "type": "object",

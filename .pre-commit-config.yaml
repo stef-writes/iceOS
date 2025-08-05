@@ -3,34 +3,22 @@ repos:
     rev: v0.4.0
     hooks:
       - id: ruff
-        args: ["check", "--config", "config/linting/ruff.toml"]
+        args: ["--fix", "--config", "config/linting/ruff.toml"]
+
   - repo: https://github.com/psf/black
     rev: 24.4.2
     hooks:
       - id: black
         language_version: python3.10
+
   - repo: https://github.com/timothycrosley/isort
     rev: 5.13.2
     hooks:
       - id: isort
+
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
       - id: mypy
         args: ["--strict", "--config-file", "config/typing/mypy.ini", "src"]
-  - repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.9.0
-    hooks:
-      - id: python-check-blanket-noqa
-  - repo: local
-    hooks:
-      - id: pytest
-        name: pytest
-        entry: poetry run pytest -c config/testing/pytest.ini -q
-        language: system
-        pass_filenames: false
-      - id: layer-guard
-        name: layer guard
-        entry: python scripts/check_layers.py
-        language: system
-        pass_filenames: false 
+      

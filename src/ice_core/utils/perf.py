@@ -23,12 +23,14 @@ class WeightedSemaphore:
         self._sem = sem
         self._weight = weight
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "WeightedSemaphore":
         for _ in range(self._weight):
             await self._sem.acquire()
         return self
 
-    async def __aexit__(self, exc_type, exc, tb):
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: object | None
+    ) -> bool:
         for _ in range(self._weight):
             self._sem.release()
         return False

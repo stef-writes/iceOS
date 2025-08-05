@@ -1,10 +1,13 @@
 """Internal proxy for WorkflowBuilder.map sugar."""
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ice_builder.dsl.workflow import WorkflowBuilder
 
 class _MapBuilderProxy:  # noqa: D401 – internal helper
-    def __init__(self, builder: "WorkflowBuilder", items_source: str) -> None:  # type: ignore[FWDREF]
+    def __init__(self, builder: "WorkflowBuilder", items_source: str) -> None:
         self._b = builder
         self._src = items_source
 

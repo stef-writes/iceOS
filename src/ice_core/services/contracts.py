@@ -120,13 +120,13 @@ class IBuilderService(Protocol):
 
 class NetworkStorage(ABC):
     @abstractmethod
-    async def get(self, spec_id: str) -> Optional[dict]:
+    async def get(self, spec_id: str) -> dict[str, Any] | None:
         pass
 
     @abstractmethod
-    async def put(self, spec_id: str, spec: dict) -> None:
+    async def put(self, spec_id: str, spec: dict[str, Any]) -> None:
         pass
 
     @abstractmethod
-    async def query(self, filter: str) -> List[dict]:
+    async def query(self, filter: str) -> list[dict[str, Any]]:
         pass

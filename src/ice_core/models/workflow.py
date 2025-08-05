@@ -31,12 +31,12 @@ class WorkflowProto(Protocol):
         """
         ...
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Serializes workflow to dict format for cross-layer transfer."""
         ...
 
     @classmethod
-    def from_dict(cls, data: dict) -> "WorkflowProto":
+    def from_dict(cls, data: dict[str, Any]) -> "WorkflowProto":
         """Deserializes workflow from dict format."""
         ...
 
@@ -58,7 +58,7 @@ class SubDAGResult(BaseModel):
         )
     """
 
-    workflow_data: dict = Field(
+    workflow_data: dict[str, Any] = Field(
         ..., description="Serialized workflow data using WorkflowProto.to_dict()"
     )
     idempotency_key: str = Field(

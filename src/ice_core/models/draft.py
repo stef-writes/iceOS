@@ -112,7 +112,7 @@ class RedisDraftStore(DraftStore):
         # Redis client returns Any (no type hints); cast for mypy strict
         from typing import Callable, cast
         from_url_typed = cast(Callable[..., "redis.Redis"], redis.from_url)
-        self._client = from_url_typed(self._redis_url, decode_responses=True)
+        self._client: Any = from_url_typed(self._redis_url, decode_responses=True)
 
     # ----------------------------- helpers ---------------------------------
     def _key(self, session_id: str) -> str:  # noqa: D401 – small util

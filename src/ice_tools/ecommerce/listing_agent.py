@@ -52,7 +52,8 @@ class ListingAgentTool(ToolBase):
     test_mode: bool = False
     upload: bool = Field(True, description="Whether to upload listing to marketplace")
 
-    async def _execute_impl(self, *, item: Dict[str, Any]) -> Dict[str, Any]:  # noqa: D401
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
+        item: dict[str, Any] = kwargs.get("item", {})
         # Accept alternate CSV column names for convenience -------------------
         key_map = {
             "Product Code/SKU": "sku",

@@ -11,11 +11,12 @@ class DemoSalesAgentAgentTool(ToolBase):
     name: str = "agent_tool::demo_sales_agent"
     description: str = "Agent wrapper tool"
 
-    async def _execute_impl(self, *, messages: List[Dict[str, str]]) -> Dict[str, Any]:  # noqa: D401
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # noqa: D401
         AgentCls = global_agent_registry.get_agent_class("demo_sales_agent")
         agent = AgentCls()
+        messages: list[dict[str, str]] = kwargs.get("messages", [])
         reply = await agent.run(messages=messages)
         return {"reply": reply}
 
 _instance = DemoSalesAgentAgentTool()
-registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)
+registry.register_instance(NodeType.TOOL, _instance.name, _instance)  # type: ignore[arg-type]

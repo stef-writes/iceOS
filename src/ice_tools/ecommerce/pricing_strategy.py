@@ -73,8 +73,8 @@ class PricingStrategyTool(ToolBase):
         return v
 
     # Core execution ----------------------------------------------------------
-    async def _execute_impl(self, *, cost: float) -> Dict[str, Any]:  # noqa: D401
-        cost_raw = cost
+    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:  # noqa: D401
+        cost_raw: Any | None = kwargs.get("cost")
         try:
             cost = float(cost_raw)
         except (TypeError, ValueError):
