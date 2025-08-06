@@ -15,6 +15,7 @@ make dev        # optional – starts API, good for blueprint validation
 python examples/seller_assistant_live.py
 ```
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -38,23 +39,23 @@ if not os.getenv("OPENAI_API_KEY"):
 # iceOS imports -------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-import ice_orchestrator  # Import to register executors
 from ice_builder.dsl.workflow import WorkflowBuilder
-from ice_tools.toolkits.ecommerce import EcommerceToolkit
 from ice_core.services import ServiceLocator
 from ice_orchestrator.workflow import Workflow as _WF
+from ice_tools.toolkits.ecommerce import EcommerceToolkit
 
 # Register toolkit with live settings (real OpenAI, no marketplace upload)
 EcommerceToolkit(test_mode=False, upload=True).register()
 
-CSV_PATH_DEFAULT = (
-    Path("src/ice_tools/toolkits/ecommerce/Supply Yard - Overflow Items - Sheet1.csv").resolve()
-)
+CSV_PATH_DEFAULT = Path(
+    "src/ice_tools/toolkits/ecommerce/Supply Yard - Overflow Items - Sheet1.csv"
+).resolve()
 
 
 # ---------------------------------------------------------------------------
 # Workflow construction -----------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 def build_workflow(csv_path: Path) -> _WF:  # type: ignore[name-defined]
     """Construct the end-to-end workflow."""
@@ -126,6 +127,7 @@ def build_workflow(csv_path: Path) -> _WF:  # type: ignore[name-defined]
 # Main entry-point ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 async def main() -> None:  # pragma: no cover – example script
     key = os.getenv("OPENAI_API_KEY")
     if not key or not key.startswith("sk-"):
@@ -148,7 +150,10 @@ async def main() -> None:  # pragma: no cover – example script
     try:
         mock_url = result.output.get("mock_server", {}).get("url")  # type: ignore[index]
         if mock_url:
-            import httpx, json as _json
+            import json as _json
+
+            import httpx
+
             postings = httpx.get(mock_url, timeout=5).json()
             out_dir = Path(__file__).parent / "output"
             out_dir.mkdir(exist_ok=True)

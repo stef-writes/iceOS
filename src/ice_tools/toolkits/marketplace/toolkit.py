@@ -38,10 +38,10 @@ class MarketplaceToolkit(BaseToolkit):
 
     def get_tools(self, *, include_extras: bool = False) -> List[ToolBase]:
         """Instantiate all marketplace tools."""
-        
+
         human_trigger = HumanTriggerTool()
         listing_updater = ListingStatusUpdaterTool()
-        
+
         return [
             human_trigger,
             listing_updater,
@@ -49,7 +49,4 @@ class MarketplaceToolkit(BaseToolkit):
 
     def get_agents(self) -> List[str]:
         """Return list of agent names in this toolkit."""
-        return [
-            "marketplace_conversation_agent",
-            "listing_status_agent"
-        ] 
+        return ["marketplace_conversation_agent", "listing_status_agent"]

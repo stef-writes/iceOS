@@ -152,6 +152,9 @@ class MarketplaceClientTool(ToolBase):
 
 # Auto-registration -----------------------------------------------------------
 _instance = MarketplaceClientTool(
-    endpoint_url=os.getenv("ICE_MARKETPLACE_ENDPOINT", "https://example.com/api/listings"), test_mode=False
+    endpoint_url=os.getenv(
+        "ICE_MARKETPLACE_ENDPOINT", "https://example.com/api/listings"
+    ),
+    test_mode=False,
 )
 registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]

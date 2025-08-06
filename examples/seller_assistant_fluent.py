@@ -28,14 +28,15 @@ if fallback_env.is_file():
 # ---------------------------------------------------------------------------
 
 import ice_orchestrator  # noqa: F401 – registers executors
-import ice_tools
-from ice_core.unified_registry import registry
 from ice_core.models.enums import NodeType
+from ice_core.unified_registry import registry
 from ice_tools.toolkits.ecommerce.listing_agent import ListingAgentTool
-registry._instances.setdefault(NodeType.TOOL, {})["listing_agent"] = ListingAgentTool(test_mode=False, upload=True)  # noqa: F401 – recursive import registers built-in tools
-from ice_orchestrator.workflow import Workflow
-from ice_core.models.node_models import ToolNodeConfig
 
+registry._instances.setdefault(NodeType.TOOL, {})["listing_agent"] = ListingAgentTool(
+    test_mode=False, upload=True
+)  # noqa: F401 – recursive import registers built-in tools
+from ice_core.models.node_models import ToolNodeConfig
+from ice_orchestrator.workflow import Workflow
 from ice_tools.toolkits.ecommerce import EcommerceToolkit
 
 # Register toolkit (offline / test-mode)
@@ -47,8 +48,7 @@ EcommerceToolkit(test_mode=False, upload=True).register()
 # ---------------------------------------------------------------------------
 
 CSV_PATH_DEFAULT = Path(
-    "src/ice_tools/toolkits/ecommerce/"
-    "Supply Yard - Overflow Items - Sheet1.csv"
+    "src/ice_tools/toolkits/ecommerce/" "Supply Yard - Overflow Items - Sheet1.csv"
 ).resolve()
 
 
@@ -76,7 +76,7 @@ def build_seller_workflow(csv_path: Path | None = None) -> Workflow:  # noqa: D4
 
     # 3. LoopNode – run listing_agent for every CSV row -------------------
     from ice_core.models.node_models import LoopNodeConfig
-    
+
     # Create the listing_agent node for the loop body
     listing_agent_node = ToolNodeConfig(
         id="listing_agent_inner",
@@ -84,9 +84,9 @@ def build_seller_workflow(csv_path: Path | None = None) -> Workflow:  # noqa: D4
         type="tool",
         tool_name="listing_agent",
         tool_args={"item": "{{ item }}"},  # Use loop variable
-        dependencies=[]
+        dependencies=[],
     )
-    
+
     # Create the loop node with proper body
     listing_loop = LoopNodeConfig(
         id="listing_loop",
@@ -96,7 +96,7 @@ def build_seller_workflow(csv_path: Path | None = None) -> Workflow:  # noqa: D4
         item_var="item",  # Variable name for current item
         body=[listing_agent_node],  # Nodes to execute for each item
         max_iterations=100,  # Safety limit
-        dependencies=["load_csv", "mock_server"]
+        dependencies=["load_csv", "mock_server"],
     )
 
     # 4. Aggregator – summarise loop results ------------------------------
@@ -118,6 +118,7 @@ def build_seller_workflow(csv_path: Path | None = None) -> Workflow:  # noqa: D4
 # ---------------------------------------------------------------------------
 # Main entry-point -----------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 async def main() -> None:  # pragma: no cover – demo script
     workflow = build_seller_workflow()

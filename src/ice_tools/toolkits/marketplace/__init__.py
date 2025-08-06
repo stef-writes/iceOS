@@ -5,9 +5,7 @@ conversation memory, and listing status management.
 """
 
 # Import agents to register them
-from . import conversation_agent
-from . import listing_status_agent
-
+from . import conversation_agent, listing_status_agent
 from .toolkit import MarketplaceToolkit
 
-__all__ = ["MarketplaceToolkit"] 
+__all__ = ["MarketplaceToolkit"]

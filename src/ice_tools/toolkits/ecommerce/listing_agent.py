@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 class ListingAgentTool(ToolBase):
     """End-to-end listing: price → copy → marketplace upload.
-    
+
     Context-first design: accepts any parameters and extracts what it needs.
     """
 
@@ -49,13 +49,13 @@ class ListingAgentTool(ToolBase):
 
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         """Execute with context-first approach - accept any parameters."""
-        
+
         # Extract item from context - could be direct or from loop
         item = self._extract_item(kwargs)
-        
+
         # Normalize item data for consistent processing
         item = self._normalize_item(item)
-        
+
         # Validate we have required fields
         self._validate_item(item)
 
@@ -111,25 +111,25 @@ class ListingAgentTool(ToolBase):
 
     def _extract_item(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Extract item from various context structures."""
-        
+
         # Direct item parameter
         if "item" in context:
             return context["item"]
-        
+
         # Loop variable with different names
         for key in ["product", "row", "record"]:
             if key in context and isinstance(context[key], dict):
                 return context[key]
-        
+
         # If context itself looks like an item
         if "Product/Item" in context or "name" in context:
             return context
-            
+
         # Check nested structures
         for key, value in context.items():
             if isinstance(value, dict) and ("Product/Item" in value or "name" in value):
                 return value
-                
+
         raise ValidationError(
             "Could not find item data in context. Expected 'item' parameter or "
             "item-like structure with 'name' or 'Product/Item' field."
@@ -137,7 +137,7 @@ class ListingAgentTool(ToolBase):
 
     def _normalize_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize various item formats to consistent structure."""
-        
+
         # Map common CSV column names
         key_map = {
             "Product Code/SKU": "sku",
@@ -145,40 +145,42 @@ class ListingAgentTool(ToolBase):
             "Suggested Price": "cost",
             "Cost": "cost",
         }
-        
+
         normalized: Dict[str, Any] = {}
         for k, v in item.items():
             if k in key_map:
                 normalized[key_map[k]] = v
             else:
                 normalized[k] = v
-        
+
         # Clean up cost field
         if isinstance(normalized.get("cost"), str):
             import re
+
             match = re.search(r"([0-9]+(?:\.[0-9]+)?)", normalized["cost"])
             if match:
                 normalized["cost"] = float(match.group(1))
             else:
                 # If no number found, try to extract any numeric value
                 import re
+
                 numbers = re.findall(r"([0-9]+(?:\.[0-9]+)?)", normalized["cost"])
                 if numbers:
                     normalized["cost"] = float(numbers[0])
                 else:
                     # Default to minimum cost if no number found
                     normalized["cost"] = 1.0
-        
+
         # Auto-generate SKU if missing
         if "sku" not in normalized:
             import hashlib
             import re
-            
+
             base_name = str(normalized.get("name", "item"))
             slug = re.sub(r"[^A-Za-z0-9]+", "-", base_name).strip("-").lower()
             sku_hash = hashlib.sha1(base_name.encode()).hexdigest()[:6]
             normalized["sku"] = f"{slug}-{sku_hash}"[:30]
-            
+
         return normalized
 
     def _validate_item(self, item: Dict[str, Any]) -> None:

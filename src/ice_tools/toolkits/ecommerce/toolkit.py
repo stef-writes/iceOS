@@ -10,6 +10,7 @@ in Python demos.
 This concrete implementation lives in **ice_tools** (tool layer):
 core contains only the *abstract* `BaseToolkit`.
 """
+
 from __future__ import annotations
 
 from typing import List
@@ -19,6 +20,8 @@ from pydantic import Field, PositiveFloat
 from ice_core.base_tool import ToolBase
 from ice_core.toolkits.base import BaseToolkit
 
+from ..common.csv_loader import CSVLoaderTool
+
 # Import tool classes _lazily_ so static analysers see the names but we avoid
 # side-effects on module import (tools register themselves when the class is
 # *instantiated*, not at import time).
@@ -26,10 +29,7 @@ from .aggregator import AggregatorTool
 from .listing_agent import ListingAgentTool
 from .marketplace_client import MarketplaceClientTool
 from .pricing_strategy import PricingStrategyTool
-from .title_description_generator import (
-    TitleDescriptionGeneratorTool,
-)
-from ..common.csv_loader import CSVLoaderTool
+from .title_description_generator import TitleDescriptionGeneratorTool
 
 __all__: list[str] = ["EcommerceToolkit"]
 
@@ -74,7 +74,9 @@ class EcommerceToolkit(BaseToolkit):
     # Factory – create fresh tool instances each call
     # ------------------------------------------------------------------
 
-    def get_tools(self, *, include_extras: bool = False) -> List[ToolBase]:  # noqa: D401
+    def get_tools(
+        self, *, include_extras: bool = False
+    ) -> List[ToolBase]:  # noqa: D401
         """Instantiate every tool in the bundle with shared config applied."""
 
         # CSV loader is config-free; path/delimiter are runtime inputs.
