@@ -68,10 +68,10 @@ gaffer.egg-info/
 
 # Runtime data
 data/
-data/context_store.json
+#data/context_store.json
 
 # Track only source .py files in data tools package (exclude pyc, __pycache__)
-!src/ice_sdk/tools/data/*.py
+#!src/ice_tools/toolkits/*.py
 
 # Database
 *.db

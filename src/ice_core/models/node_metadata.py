@@ -13,12 +13,12 @@ __all__: list[str] = [
     "NodeMetadata",
 ]
 
+
 class NodeMetadata(BaseModel):
     """Metadata model for node versioning and ownership.
 
-    This is a near verbatim copy of the former *ice_sdk.models.node_models.NodeMetadata*
-    to kick-off the migration.  Once downstream code switches to this definition
-    the legacy one will be deprecated and removed.
+    This model provides metadata for node execution including timestamps,
+    duration tracking, and ownership information.
     """
 
     node_id: str = Field(..., description="Unique node identifier")

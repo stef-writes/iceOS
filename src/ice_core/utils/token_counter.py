@@ -1,5 +1,5 @@
 """
-Token counting utilities for different model providers (moved from ice_sdk.runtime).
+Token counting utilities for different model providers.
 """
 
 from typing import Dict, List
@@ -9,6 +9,7 @@ import tiktoken
 from ice_core.models import ModelProvider
 
 __all__ = ["TokenCounter"]
+
 
 class TokenCounter:
     """Token counting utility for different model providers"""

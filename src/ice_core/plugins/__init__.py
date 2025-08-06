@@ -1,8 +1,7 @@
-"""Plugin discovery utilities relocated from *ice_sdk.plugin_discovery*.
+"""Plugin discovery utilities.
 
-Importing from ``ice_core.plugins.discovery`` is the new, canonical path.
-During the transition we simply re-export the existing helpers so that any
-remaining imports keep working until they are updated.
+Importing from ``ice_core.plugins.discovery`` is the canonical path.
+This module provides utilities for discovering and loading plugins.
 """
 
 from __future__ import annotations

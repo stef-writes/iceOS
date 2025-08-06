@@ -6,7 +6,7 @@
 
 3. Event names follow `source.eventVerb` (e.g. webhook.userCreated).
 
-4. Never import from `app.*` inside `ice_sdk.*` (layer boundary).
+4. Never import from `app.*` inside `ice_core.*` (layer boundary).
 
 5. Prefer async/await; long I/O must not block the event loop.
 

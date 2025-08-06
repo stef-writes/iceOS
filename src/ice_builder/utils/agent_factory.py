@@ -12,11 +12,12 @@ from ice_core.models import AgentNodeConfig, LLMConfig, ModelProvider, ToolConfi
 
 __all__ = ["AgentFactory"]
 
+
 class AgentFactory:
     """Centralized factory for AgentNodeConfig creation.
 
     Example:
-        >>> from ice_sdk.utils.agent_factory import AgentFactory
+        >>> from ice_builder.utils.agent_factory import AgentFactory
         >>> cfg = AgentFactory.create_default(
         ...     system_prompt="You are a helpful assistant.",
         ...     tools=["search_tool", "calculator"]
@@ -30,11 +31,11 @@ class AgentFactory:
 
     @classmethod
     def create_default(
-        cls, 
+        cls,
         system_prompt: str,
         tools: list[str] | None = None,
         model: str | None = None,
-        max_retries: int = 3
+        max_retries: int = 3,
     ) -> AgentNodeConfig:
         """Create an AgentNodeConfig with project-wide defaults.
 

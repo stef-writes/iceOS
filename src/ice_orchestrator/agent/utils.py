@@ -1,8 +1,8 @@
 """Utility helpers for agent-related operations (internal use).
 
-Moved from *ice_sdk.utils.agents.utils* to the dedicated *agents* package.
+This module provides pure helper functions for agent-related operations.
 This module must NOT introduce external side-effects; it only provides pure
-helper functions shared by the *ice_sdk.agents* package.
+helper functions for agent operations.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from typing import Any, Dict, cast
 __all__: list[str] = ["extract_json"]
 
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE | re.DOTALL)
+
 
 def extract_json(raw: str) -> Dict[str, Any]:  # – util name
     """Return ``dict`` parsed from *raw* string.
@@ -28,9 +29,11 @@ def extract_json(raw: str) -> Dict[str, Any]:  # – util name
     # `json.loads` returns Any; cast to the expected mapping type for callers.
     return cast(Dict[str, Any], json.loads(raw))
 
+
 # ----------------------------------------
 # Outline helpers -----------------------------------------------------------
 # ----------------------------------------
+
 
 def parse_llm_outline(raw: str) -> Dict[str, str]:  # – util name
     """Return a dict with a single ``outline`` key extracted from *raw*.
@@ -58,6 +61,7 @@ def parse_llm_outline(raw: str) -> Dict[str, str]:  # – util name
 
     cleaned = _FENCE_RE.sub("", raw).strip()
     return {"outline": cleaned}
+
 
 # Public re-export -----------------------------------------------------------
 __all__.append("parse_llm_outline")

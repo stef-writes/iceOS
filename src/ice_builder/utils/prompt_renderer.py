@@ -1,10 +1,11 @@
-"""Prompt rendering helpers (moved from ice_sdk.runtime)."""
+"""Prompt rendering helpers."""
 
 from __future__ import annotations
 
 from typing import Any, Dict, cast
 
 __all__ = ["render_prompt"]
+
 
 async def render_prompt(template: str, context: Dict[str, Any]) -> str:
     try:

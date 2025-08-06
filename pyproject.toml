@@ -43,7 +43,7 @@ exclude = ["examples", "tests", "scripts"]
 # ---------------------------------------------------------------------------
 
 [tool.poetry.plugins."proto"]
-"orchestrator/v1alpha/network.proto" = "ice_sdk.protocols.mcp.models:NetworkSpec"
+"orchestrator/v1alpha/network.proto" = "ice_core.protocols.mcp.models:NetworkSpec"
 
 [build-system]
 requires = [
@@ -65,7 +65,7 @@ addopts = """
     --verbose
     --tb=short
     --strict-markers
-    --cov=ice_sdk
+    --cov=ice_core
     --cov=ice_orchestrator
     --cov=ice_api
     --cov=ice_builder
@@ -259,7 +259,6 @@ dev = [
 # elsewhere, but errors are silenced for their own source files.
 typeCheckingMode = "basic"
 exclude = [
-  "src/ice_sdk",
   "src/ice_orchestrator",
 ]
 reportMissingTypeStubs = false
@@ -291,25 +290,3 @@ exclude = [
 "tests/**/*" = ["E402", "F401", "F841"]  # noqa: imports-after-code & unused vars in tests
 "scripts/**/*" = ["E402"]  # noqa: imports-after-code in top-level scripts
 
-[project.entry-points."ice_sdk.tools"]
-csv_reader = "ice_sdk.tools.system.csv_reader_tool:CSVReaderTool"
-jinja_render = "ice_sdk.tools.system.jinja_render_tool:JinjaRenderTool"
-summarizer = "ice_sdk.tools.system.summarizer_tool:SummarizerTool"
-insights = "ice_sdk.tools.system.insights_tool:InsightsTool"
-json_merge = "ice_sdk.tools.system.json_merge_tool:JSONMergeTool"
-markdown_to_html = "ice_sdk.tools.system.markdown_to_html_tool:MarkdownToHTMLTool"
-rows_validator = "ice_sdk.tools.system.rows_validator_tool:RowsValidatorTool"
-line_item_generator = "ice_sdk.tools.system.line_item_generator_tool:LineItemGeneratorTool"
-sleep = "ice_sdk.tools.system.sleep_tool:SleepTool"
-computer = "ice_sdk.tools.system.computer_tool:ComputerTool"
-csv_writer = "ice_sdk.tools.system.csv_writer_tool:CSVWriterTool"
-
-[project.entry-points."ice_sdk.agents"]
-# third-party packages register: foo_agent = "mypkg.foo:MyAgent"
-budget_advisor = "ice_sdk.agents.budget_advisor_agent:BudgetAdvisorAgent"
-
-[project.entry-points."ice_sdk.units"]
-summarise_then_render = "ice_sdk.units.summarise_then_render_unit:SummariseThenRenderUnit"
-
-[project.entry-points."ice_sdk.chains"]
-inventory_summary = "ice_sdk.chains.inventory_summary_chain:InventorySummaryChain"

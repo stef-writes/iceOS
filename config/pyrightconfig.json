@@ -4,7 +4,7 @@
       "root": "./",
       "extraPaths": [
         "./services",
-        "./src/ice_sdk"
+        "./src/ice_core"
       ]
     }
   ],
@@ -33,7 +33,6 @@
   "pythonVersion": "3.10",
   "typeCheckingMode": "basic",
   "exclude": [
-    "src/ice_sdk",
     "src/ice_orchestrator",
     "tests",
     ".venv",

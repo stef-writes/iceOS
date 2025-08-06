@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional
 
-from packaging import version  # runtime dependency provided by poetry
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .enums import ModelProvider
@@ -21,12 +20,13 @@ _logger = logging.getLogger(__name__)
 # Helper – convert provider/model → semantic version
 # ---------------------------------------------------------------------------
 
+
 def parse_model_version(
     model_name: str, provider: ModelProvider = ModelProvider.OPENAI
 ) -> str:
     """Return semantic version string for *model_name*.
 
-    Replicates the lookup logic originally hosted in *ice_sdk.models.config*.
+    Provides lookup logic for model versioning across different providers.
     Only models that appear in tests/CI are enumerated; new providers can be
     added with a straightforward ``elif``.
     """
@@ -83,9 +83,11 @@ def parse_model_version(
 
     raise ValueError(f"Unsupported provider: {provider}")
 
+
 # ---------------------------------------------------------------------------
 # Message template ----------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 class MessageTemplate(BaseModel):
     """Prompt / message template with version gating."""
@@ -152,15 +154,20 @@ class MessageTemplate(BaseModel):
         """Return ``True`` when *model_name* meets *min_model_version*."""
         try:
             from packaging.version import Version
+
             model_ver = Version(parse_model_version(model_name, provider))
-            min_ver = Version(parse_model_version(self.min_model_version, self.provider))
+            min_ver = Version(
+                parse_model_version(self.min_model_version, self.provider)
+            )
             return model_ver >= min_ver
         except ValueError:
             return False
 
+
 # ---------------------------------------------------------------------------
 # LLM configuration ---------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 class LLMConfig(BaseModel):
     """Provider-specific configuration for LLM calls."""
@@ -178,11 +185,11 @@ class LLMConfig(BaseModel):
     frequency_penalty: Optional[float] = None
     presence_penalty: Optional[float] = None
     stop_sequences: Optional[list[str]] = None
-    
+
     # Provider-specific settings
     openai_api_version: Optional[str] = None
     anthropic_version: Optional[str] = None
-    
+
     custom_parameters: Dict[str, Any] = Field(
         default_factory=dict, description="Provider-specific parameters"
     )

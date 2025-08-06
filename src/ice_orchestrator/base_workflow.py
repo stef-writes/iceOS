@@ -2,10 +2,10 @@ from __future__ import annotations
 
 # ruff: noqa: E402
 
-"""Abstract orchestration base helpers (moved from *ice_sdk.orchestrator*).
+"""Abstract orchestration base helpers.
 
-No functional changes – path only.  All downstream imports should use
-``ice_orchestrator.base_workflow``.
+This module provides the base workflow functionality for orchestrating
+node execution and managing workflow state.
 """
 
 from abc import ABC, abstractmethod
@@ -29,6 +29,7 @@ class FailurePolicy(str, Enum):
     HALT = "halt_on_first_error"
     CONTINUE_POSSIBLE = "continue_if_possible"
     ALWAYS = "always_continue"
+
 
 class BaseWorkflow(ABC):
     """Abstract base class for all Workflow (formerly ScriptChain) types."""

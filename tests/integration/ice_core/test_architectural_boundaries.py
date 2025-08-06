@@ -1,8 +1,8 @@
 """Architectural boundary tests.
 
 These tests validate that the iceOS layer architecture is respected:
-- ice_core cannot import from ice_sdk or ice_orchestrator  
-- ice_sdk cannot import from ice_orchestrator
+- ice_core cannot import from ice_orchestrator or ice_api
+- ice_builder cannot import from ice_orchestrator or ice_api
 - ice_api imports are properly managed
 - Layer violations are caught early
 """
@@ -53,7 +53,7 @@ class TestLayerBoundaries:
     def test_ice_core_no_upward_imports(self, project_root: Path):
         """Test that ice_core doesn't import from higher layers."""
         ice_core_dir = project_root / "ice_core"
-        forbidden_prefixes = ["ice_sdk", "ice_orchestrator", "ice_api"]
+        forbidden_prefixes = ["ice_orchestrator", "ice_api"]
 
         violations = []
 
@@ -73,9 +73,9 @@ class TestLayerBoundaries:
 
         assert not violations, f"Layer boundary violations found: {violations}"
 
-    def test_ice_sdk_no_orchestrator_imports(self, project_root: Path):
-        """Test that ice_sdk doesn't import from orchestrator layer (with exceptions for workflow building)."""
-        ice_sdk_dir = project_root / "ice_sdk"
+    def test_ice_builder_no_orchestrator_imports(self, project_root: Path):
+        """Test that ice_builder doesn't import from orchestrator layer (with exceptions for workflow building)."""
+        ice_builder_dir = project_root / "ice_builder"
         forbidden_prefixes = ["ice_orchestrator", "ice_api"]
 
         # Allow specific exceptions for legitimate interfaces
@@ -85,7 +85,7 @@ class TestLayerBoundaries:
 
         violations = []
 
-        for py_file in get_all_python_files(ice_sdk_dir):
+        for py_file in get_all_python_files(ice_builder_dir):
             imports = get_imports_from_file(py_file)
 
             for import_name in imports:
@@ -97,7 +97,7 @@ class TestLayerBoundaries:
                                 {
                                     "file": str(py_file.relative_to(project_root)),
                                     "import": import_name,
-                                    "violation": f"ice_sdk importing from {forbidden}",
+                                    "violation": f"ice_builder importing from {forbidden}",
                                 }
                             )
 
@@ -236,7 +236,7 @@ class TestProtocolCompliance:
 
         violations = []
 
-        for layer in ["ice_sdk", "ice_orchestrator"]:
+        for layer in ["ice_builder", "ice_orchestrator"]:
             layer_dir = project_root / layer
             if not layer_dir.exists():
                 continue
@@ -256,7 +256,7 @@ class TestProtocolCompliance:
 
         # Allow some violations for backward compatibility modules
         allowed_files = [
-            "ice_sdk/registry/",  # Backward compatibility modules
+            "ice_builder/registry/",  # Backward compatibility modules
             "scripts/migrate_to_unified_registry.py",
         ]
 
@@ -275,7 +275,7 @@ class TestProtocolCompliance:
         # Look for proper exception usage patterns
         exception_violations = []
 
-        for layer_dir in [project_root / "ice_core", project_root / "ice_sdk"]:
+        for layer_dir in [project_root / "ice_core", project_root / "ice_builder"]:
             if not layer_dir.exists():
                 continue
 
@@ -355,7 +355,7 @@ class TestMemoryAndPerformance:
         # Look for optional imports that should be lazy-loaded
         optional_patterns = ["try:", "ImportError", "except ImportError:"]
 
-        layers_with_optional = ["ice_sdk", "ice_orchestrator", "ice_api"]
+        layers_with_optional = ["ice_builder", "ice_orchestrator", "ice_api"]
 
         for layer in layers_with_optional:
             layer_dir = project_root / layer

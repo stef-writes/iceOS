@@ -1,4 +1,4 @@
-"""Scoped variant of :class:`ice_sdk.context.store.ContextStore`.
+"""Scoped variant of :class:`ice_orchestrator.context.store.ContextStore`.
 
 Keeps data isolated by prefixing every *node_id* with a caller-supplied
 *scope* (commonly a tenant or workspace slug).  Drop-in replacement for
@@ -14,6 +14,7 @@ from .store import ContextStore
 __all__: list[str] = [
     "ScopedContextStore",
 ]
+
 
 class ScopedContextStore(ContextStore):
     """ContextStore that namespaces keys inside a user-defined *scope*.

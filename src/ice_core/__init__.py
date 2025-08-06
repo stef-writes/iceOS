@@ -3,7 +3,7 @@
 This package SHOULD contain *only* pure, side-effect-free business-domain
 objects: dataclasses / pydantic models, stateless services, policies and
 exceptions.  It MUST NOT import from any higher layer such as ``app`` or
-``ice_sdk``.
+``ice_orchestrator``.
 
 Example
 -------
@@ -18,7 +18,6 @@ __all__: list[str] = [
     "memory",
     "unified_registry",
     "validation",
-
     "toolkits",
 ]
 

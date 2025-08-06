@@ -1,10 +1,10 @@
 [importlinter]
-root_package = ice_sdk
+root_package = ice_core
 
-[contract: sdk-no-app]
-name = SDK must not import app layer
+[contract: core-no-app]
+name = Core must not import app layer
 type = forbidden
 source_modules =
-    ice_sdk
+    ice_core
 forbidden_modules =
     ice_api 

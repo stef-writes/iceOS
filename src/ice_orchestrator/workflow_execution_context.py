@@ -2,9 +2,10 @@ from __future__ import annotations
 
 # ruff: noqa: E402
 
-"""WorkflowExecutionContext relocated from *ice_sdk.orchestrator*.
+"""WorkflowExecutionContext for managing workflow execution state.
 
-No behavioural changes; path-only refactor.
+This module provides context management for workflow execution including
+state persistence, validation settings, and user preferences.
 """
 
 import asyncio
@@ -14,6 +15,7 @@ from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 class _BulkSaveProtocol(Protocol):  # pragma: no cover – duck-typing helper
     async def bulk_save(self, data: List[Tuple[str, Dict[str, Any]]]) -> None: ...
+
 
 class WorkflowExecutionContext:
     """Workflow-scoped execution preferences and safety flags."""

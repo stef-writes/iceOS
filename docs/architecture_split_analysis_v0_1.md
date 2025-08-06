@@ -12,7 +12,7 @@
    • Touching a module? Leave it cleaner: zero mypy errors, stronger docstrings, no TODOs.
 
 3. **Respect package boundaries**
-   • No `app.*` imports inside `ice_sdk.*` (Rule 4). Cross-layer calls only via `services/*` (Rule 11). `check_layers.py` enforces this automatically.
+   • No `app.*` imports inside `ice_core.*` (Rule 4). Cross-layer calls only via `services/*` (Rule 11). `check_layers.py` enforces this automatically.
 
 4. **Strict typing everywhere**
    • New packages include a `py.typed` marker and expose an explicit `__all__`.  

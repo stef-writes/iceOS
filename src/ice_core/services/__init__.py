@@ -1,16 +1,15 @@
 """Core-level service locator and dependency-injection helpers.
 
-This module relocates the *ServiceLocator* previously hosted under
-``ice_sdk.services.locator`` into the **core** layer so that:
+This module provides the *ServiceLocator* for dependency injection and service
+registration across the iceOS architecture.
 
-1. Lower layers (core, builder) can depend on the locator without importing
-   from the now-retired *ice_sdk* package.
-2. Upper layers (orchestrator, api) can continue to register concrete
-   services at runtime without layer violations.
+The ServiceLocator allows:
+1. Lower layers (core, builder) to register and access services
+2. Upper layers (orchestrator, api) to register concrete services at runtime
+3. Cross-layer communication through stable service interfaces
 
-The implementation is imported verbatim to avoid any functional drift.
-Once all call-sites have been migrated to ``ice_core.services``, the old
-proxy module in *ice_sdk* will be deleted.
+The implementation is designed to avoid layer violations while providing
+flexible service discovery and dependency injection.
 """
 
 from __future__ import annotations

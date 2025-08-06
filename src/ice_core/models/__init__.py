@@ -2,7 +2,7 @@
 
 These Pydantic models are generated from JSON Schema specs under the *schemas/*
 folder or hand-written when appropriate.  They **must not** import from
-higher-level packages such as *ice_sdk* or *ice_orchestrator*.
+higher-level packages such as *ice_orchestrator* or *ice_api*.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ __all__: list[str] = [
     "INode",
     "NodeExecutionResult",
     # Types
-    "NodeType", 
+    "NodeType",
     "BaseNodeConfig",
     "RetryPolicy",
     # Existing exports

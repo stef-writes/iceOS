@@ -4,10 +4,9 @@ from __future__ import annotations
 
 """Lightweight in-memory cache for core-level consumers.
 
-This file restores the original *ice_core.cache* public surface relied upon by
-`ice_orchestrator.workflow.Workflow`.  The implementation is identical to the
-version now living in *ice_sdk.cache* but duplicated here to avoid upward
-imports across layer boundaries (Rule 12).
+This file provides the original *ice_core.cache* public surface relied upon by
+`ice_orchestrator.workflow.Workflow`.  The implementation provides thread-safe
+LRU caching for workflow execution.
 """
 
 from collections import OrderedDict
@@ -15,6 +14,7 @@ from threading import Lock
 from typing import Any, Optional
 
 __all__: list[str] = ["LRUCache", "global_cache"]
+
 
 class LRUCache:  # – simple helper
     """Thread-safe LRU cache suitable for unit tests and single-process runs."""
@@ -46,9 +46,11 @@ class LRUCache:  # – simple helper
         with self._lock:
             self._store.clear()
 
+
 # Singleton instance ---------------------------------------------------------
 
 _global_cache: Optional[LRUCache] = None
+
 
 def global_cache() -> LRUCache:
     """Return process-wide shared LRU cache instance."""

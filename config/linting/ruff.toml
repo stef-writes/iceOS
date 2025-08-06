@@ -31,12 +31,6 @@ extend-exclude = [
 "src/ice_orchestrator/graph/dependency_graph.py" = ["E722", "F841"]
 "src/ice_orchestrator/memory/episodic.py" = ["E722"]
 "src/ice_orchestrator/validation/chain_validator.py" = ["F821"]
-"src/ice_sdk/services/initialization.py" = ["F401"]
-"src/ice_sdk/tools/builtin/auto_workflow_hooks.py" = ["F821", "F822"]
-"src/ice_sdk/tools/core/csv_tool.py" = ["F823"]
-"src/ice_sdk/tools/db/*.py" = ["F811"]
-"src/ice_sdk/tools/system/markdown_to_html_tool.py" = ["F811"]
-"src/ice_sdk/tools/web/search_tool.py" = ["F811"]
 "tests/integration/ice_api/test_mcp_models.py" = ["F841"]
 "tests/integration/ice_core/test_architectural_boundaries.py" = ["F841"]
 "tests/integration/test_working_patterns.py" = ["F401"]
@@ -49,4 +43,4 @@ extend-exclude = [
 "src/ice_orchestrator/workflow.py" = ["F841"]
 
 [lint.isort]
-known-first-party = ["ice_sdk", "ice_orchestrator", "frosty"]
+known-first-party = ["ice_core", "ice_orchestrator", "ice_builder", "ice_cli", "ice_client", "ice_tools"]

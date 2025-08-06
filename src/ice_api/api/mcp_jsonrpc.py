@@ -3,7 +3,7 @@
 This provides authentic MCP compliance by exposing iceOS capabilities through
 the standardized MCP protocol. Maps our orchestration platform to MCP interfaces:
 
-- Tools: ice_sdk tools + agents + workflows + chains
+- Tools: ice_tools + agents + workflows + chains
 - Resources: Blueprint templates + documentation + data sources  
 - Prompts: Pre-defined workflow templates and agent configurations
 

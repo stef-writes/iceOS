@@ -1,8 +1,6 @@
 """Authoring-time utilities for Frosty and other blueprint builders.
 
-This namespace supersedes the old *ice_sdk.utils* package.  For a smooth
-transition we re-export commonly used helpers so existing callers keep working
-until imports are updated.
+This namespace provides utilities for building and authoring workflows.
 """
 
 from __future__ import annotations
