@@ -14,6 +14,7 @@ Think of it as the narrow slice of Airflow you actually need for LLM apps, minus
 * 🔄 **Loop / recursive** execution with automatic context propagation
 * 🧰 **Toolkits** – pluggable bundles of ready-made tools (`csv_loader`, `pricing_strategy`, …)
 * 📦 **Single-process dev mode** – run everything locally before you deploy anything
+* 🏭 **Factory Pattern** – fresh instances for every execution, no singleton state
 
 > Status: **Alpha** – APIs change without notice.  CI passes; demos run end-to-end.
 
@@ -68,6 +69,11 @@ $ python examples/seller_assistant_direct.py
 # Real OpenAI calls – requires OPENAI_API_KEY
 $ export OPENAI_API_KEY="sk-..."
 $ python examples/seller_assistant_live.py
+
+# Create new factory-based components
+$ ice new tool my_tool
+$ ice new agent my_agent
+$ ice new llm-operator my_llm
 ```
 
 Expected output (truncated):

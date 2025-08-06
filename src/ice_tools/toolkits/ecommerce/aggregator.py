@@ -117,6 +117,12 @@ class AggregatorTool(ToolBase):
         }
 
 
+# Factory function for creating AggregatorTool instances
+def create_aggregator_tool(max_items: int = 1000) -> AggregatorTool:
+    """Create an AggregatorTool with the specified configuration."""
+    return AggregatorTool(max_items=max_items)
+
 # Auto-registration ---------------------------------------------------------
-_instance = AggregatorTool()
-registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("aggregator", "ice_tools.toolkits.ecommerce.aggregator:create_aggregator_tool")

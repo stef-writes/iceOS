@@ -256,6 +256,10 @@ class ComponentDefinition(BaseModel):
     description: str = Field(..., description="Component description")
     
     # For tools - Python code or config
+    tool_factory_code: Optional[str] = Field(
+        None,
+        description="Python code defining a *factory function* that returns ToolBase"
+    )
     tool_class_code: Optional[str] = Field(
         None, 
         description="Python code defining the tool class (must inherit from ToolBase)"
@@ -303,7 +307,7 @@ class ComponentDefinition(BaseModel):
     def validate_type_specific_fields(self) -> "ComponentDefinition":
         """Ensure type-specific fields are provided."""
         if self.type == "tool":
-            if not self.tool_class_code and not self.tool_input_schema:
+            if not (self.tool_factory_code or self.tool_class_code or self.tool_input_schema):
                 raise ValueError("Tool definition requires either tool_class_code or schemas")
         elif self.type == "agent":
             if not self.agent_system_prompt and not self.agent_tools:

@@ -32,9 +32,13 @@ from ice_core.models.enums import NodeType
 from ice_core.unified_registry import registry
 from ice_tools.toolkits.ecommerce.listing_agent import ListingAgentTool
 
-registry._instances.setdefault(NodeType.TOOL, {})["listing_agent"] = ListingAgentTool(
-    test_mode=False, upload=True
-)  # noqa: F401 – recursive import registers built-in tools
+# Import to trigger factory registration
+import ice_tools.toolkits.ecommerce.listing_agent  # noqa: F401
+import ice_tools.toolkits.ecommerce.aggregator  # noqa: F401
+import ice_tools.toolkits.ecommerce.facebook_formatter  # noqa: F401
+import ice_tools.toolkits.common.api_poster  # noqa: F401
+import ice_tools.toolkits.common.mock_http_bin  # noqa: F401
+import ice_tools.toolkits.common.csv_loader  # noqa: F401
 from ice_core.models.node_models import ToolNodeConfig
 from ice_orchestrator.workflow import Workflow
 from ice_tools.toolkits.ecommerce import EcommerceToolkit

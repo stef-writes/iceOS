@@ -632,7 +632,37 @@ async def validate_component_definition(
                 # For tools, we need to create a dynamic tool instance
                 # This is a simplified version - in production you'd want more sophisticated
                 # dynamic class creation
-                if definition.tool_class_code:
+                if definition.tool_factory_code:
+                    # Dynamically load factory and register
+                    import types, sys, uuid, inspect
+                    from ice_core.base_tool import ToolBase
+                    from ice_core.unified_registry import register_tool_factory
+
+                    mod_name = f"dynamic_tool_factory_{definition.name}_{uuid.uuid4().hex[:8]}"
+                    module = types.ModuleType(mod_name)
+                    exec(definition.tool_factory_code, module.__dict__)
+                    sys.modules[mod_name] = module
+
+                    # Pick first callable that returns ToolBase when invoked without args
+                    factory_obj = None
+                    for obj_name, obj in module.__dict__.items():
+                        if callable(obj) and not obj_name.startswith("__"):
+                            try:
+                                candidate = obj()
+                                if isinstance(candidate, ToolBase):
+                                    factory_obj = obj
+                                    break
+                            except Exception:
+                                continue
+                    if factory_obj is None:
+                        raise ValueError("No valid factory function returning ToolBase found in tool_factory_code")
+
+                    import_path = f"{mod_name}:{factory_obj.__name__}"
+                    register_tool_factory(definition.name, import_path)
+                    result.registered = True
+                    result.registry_name = definition.name
+
+                elif definition.tool_class_code:
                     # Execute the code to create the tool class
                     namespace: Dict[str, Any] = {}
                     exec(definition.tool_class_code, namespace)

@@ -33,11 +33,11 @@ ice_core  ← may import stdlib & third-party libs
 Unit test `tests/integration/ice_core/test_architectural_boundaries.py` fails if
 a forbidden import is detected.
 
-## Creating a new Tool (example)
+## Creating a new Tool (Factory Pattern)
 
 ```python
 from ice_core.base_tool import ToolBase
-from ice_core.unified_registry import registry, NodeType
+from ice_core.unified_registry import register_tool_factory
 
 class EchoTool(ToolBase):
     """Return whatever arguments are passed in."""
@@ -47,8 +47,12 @@ class EchoTool(ToolBase):
     async def _execute_impl(self, **kwargs):
         return kwargs
 
-# Register one instance so workflows can reference tool_name="echo"
-registry.register_instance(NodeType.TOOL, EchoTool.name, EchoTool())
+# Factory function for creating fresh instances
+def create_echo_tool(**kwargs):
+    return EchoTool(**kwargs)
+
+# Register factory for fresh instances on each execution
+register_tool_factory("echo", "my_module:create_echo_tool")
 ```
 
 ## Running tests & linters (package-only)

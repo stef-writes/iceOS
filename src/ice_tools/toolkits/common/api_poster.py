@@ -99,11 +99,12 @@ class APIPosterTool(ToolBase):
         return {}
 
 
-# ---------------------------------------------------------------------------
-# Auto-registration ---------------------------------------------------------
-# ---------------------------------------------------------------------------
-from ice_core.unified_registry import registry  # noqa: E402
-from ice_core.models.enums import NodeType  # noqa: E402
+# Factory function for creating APIPosterTool instances
+def create_api_poster_tool() -> APIPosterTool:
+    """Create an APIPosterTool instance."""
+    return APIPosterTool()
 
-_instance = APIPosterTool()
-registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
+# Auto-registration -----------------------------------------------------------
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("api_poster", "ice_tools.toolkits.common.api_poster:create_api_poster_tool")

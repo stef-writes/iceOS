@@ -62,9 +62,12 @@ class FacebookFormatterTool(ToolBase):
         }
 
 
-# Auto-register ----------------------------------------------------------------
-from ice_core.unified_registry import registry  # noqa: E402
-from ice_core.models.enums import NodeType  # noqa: E402
+# Factory function for creating FacebookFormatterTool instances
+def create_facebook_formatter_tool() -> FacebookFormatterTool:
+    """Create a FacebookFormatterTool instance."""
+    return FacebookFormatterTool()
 
-_instance = FacebookFormatterTool()
-registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
+# Auto-registration -----------------------------------------------------------
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("facebook_formatter", "ice_tools.toolkits.ecommerce.facebook_formatter:create_facebook_formatter_tool")

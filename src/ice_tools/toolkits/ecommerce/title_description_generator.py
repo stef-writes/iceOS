@@ -89,6 +89,20 @@ class TitleDescriptionGeneratorTool(ToolBase):
             return {"title": title, "description": desc}
 
 
+# Factory function for creating TitleDescriptionGeneratorTool instances
+def create_title_description_generator_tool(
+    model: str = "gpt-4o",
+    temperature: float = 0.7,
+    test_mode: bool = False
+) -> TitleDescriptionGeneratorTool:
+    """Create a TitleDescriptionGeneratorTool with the specified configuration."""
+    return TitleDescriptionGeneratorTool(
+        model=model,
+        temperature=temperature,
+        test_mode=test_mode
+    )
+
 # Auto-registration -----------------------------------------------------------
-_instance = TitleDescriptionGeneratorTool(test_mode=False)
-registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("title_description_generator", "ice_tools.toolkits.ecommerce.title_description_generator:create_title_description_generator_tool")

@@ -62,10 +62,12 @@ class ListingStatusUpdaterTool(ToolBase):
         return update_result
 
 
+# Factory function for creating ListingStatusUpdaterTool instances
+def create_listing_status_updater_tool() -> ListingStatusUpdaterTool:
+    """Create a ListingStatusUpdaterTool instance."""
+    return ListingStatusUpdaterTool()
+
 # Auto-registration -----------------------------------------------------------
-try:
-    _instance = ListingStatusUpdaterTool()
-    registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
-except Exception:
-    # Tool already registered, skip
-    pass
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("listing_status_updater", "ice_tools.toolkits.marketplace.listing_status_updater_tool:create_listing_status_updater_tool")

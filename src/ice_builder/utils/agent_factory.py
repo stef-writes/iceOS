@@ -8,9 +8,92 @@ This is kept in SDK as a development utility for creating agent configurations.
 
 from __future__ import annotations
 
-from ice_core.models import AgentNodeConfig, LLMConfig, ModelProvider, ToolConfig
+from functools import wraps
+from typing import Any, Callable, Dict, Optional, TypeVar
 
-__all__ = ["AgentFactory"]
+from pydantic import validate_call
+
+from ice_core.models import AgentNodeConfig, LLMConfig, ModelProvider, ToolConfig
+from ice_core.protocols.agent import IAgent
+from ice_core.unified_registry import global_agent_registry
+
+__all__ = ["AgentFactory", "agent_factory", "agent_node"]
+
+TAgentFactory = TypeVar("TAgentFactory", bound=Callable[..., IAgent])
+
+
+def agent_factory(
+    name: Optional[str] = None,
+    *,
+    auto_register: bool = True,
+) -> Callable[[TAgentFactory], TAgentFactory]:
+    """Decorator to mark *factory functions* that build agents.
+
+    Parameters
+    ----------
+    name : str | None
+        Public registry name (defaults to the function name).
+    auto_register : bool, default ``True``
+        Whether to auto-register the factory with the global registry when the
+        module is imported. Keep ``True`` for production code; set to ``False``
+        in tests that verify registration logic manually.
+
+    Returns
+    -------
+    Callable[[TAgentFactory], TAgentFactory]
+        The original factory function, unmodified (besides validation wrapper).
+    """
+
+    def decorator(factory: TAgentFactory) -> TAgentFactory:  # type: ignore[name-defined]
+        public_name = name or factory.__name__
+
+        if auto_register:
+            import_path = f"{factory.__module__}:{factory.__name__}"
+            global_agent_registry.register_agent(public_name, import_path)
+
+        # Attach metadata for introspection / tooling
+        setattr(factory, "__agent_factory_name__", public_name)
+        setattr(factory, "__agent_factory_registered__", auto_register)
+
+        # Optional runtime arg validation via pydantic.validate_call
+        validated_factory = validate_call(factory)  # type: ignore[arg-type]
+        return wraps(factory)(validated_factory)  # type: ignore[return-value]
+
+    return decorator
+
+
+def agent_node(name: str, *, factory: Optional[str] = None, **kwargs: Any) -> AgentNodeConfig:
+    """Create an AgentNodeConfig that references a factory.
+
+    This helper provides symmetry with `tool_node()` and enables
+    factory-based agent configuration in workflows.
+
+    Parameters
+    ----------
+    name : str
+        The agent name (must be registered in the global agent registry).
+    factory : str | None
+        Factory name to use (defaults to `name`).
+    **kwargs
+        Additional configuration passed to AgentNodeConfig.
+
+    Returns
+    -------
+    AgentNodeConfig
+        Fully configured agent node ready for workflow use.
+    """
+    factory_name = factory or name
+    
+    # Validate the agent is registered
+    if factory_name not in global_agent_registry._agents:
+        raise ValueError(f"Agent '{factory_name}' not found in registry")
+    
+    return AgentNodeConfig(
+        id=f"agent_{name}",
+        type="agent", 
+        package=name,  # Use the agent name as package identifier
+        **kwargs
+    )
 
 
 class AgentFactory:

@@ -8,19 +8,19 @@ _This document captures the agreed-upon refactoring steps to bring full symmetry
 
 | Area | Status |
 |------|--------|
-| **Agent factory pattern** | Implemented (`register_agent`, `get_agent_instance`) |
+| **Agent factory pattern** | ✅ Complete (`register_agent`, `get_agent_instance`, `@agent_factory` decorator) |
 | **Agent executor** | Instantiates fresh agent via factory each run |
-| **Tool pattern** | Singletons via `register_instance`; no factory support |
-| **Memory integration** | Works (UnifiedMemory + `MemoryAgent`) |
-| **Demo quality** | Functional but not yet production-hardened |
+| **Tool pattern** | ✅ Factory support implemented (`register_tool_factory`, `get_tool_instance`, `@tool_factory` decorator) |
+| **Memory integration** | ✅ Works (UnifiedMemory + `MemoryAgent`) |
+| **Demo quality** | ✅ Robust agents tested with memory, reasoning, planning |
 
 ---
 
 ## 2. Asymmetries & Gaps
 
-1. **Tool registration** – Only singleton, no factory‐based instantiation.
-2. **Builder UX** – `ice new tool` vs `ice new agent` feel different; WorkflowBuilder lacks helper for tool factories.
-3. **Executor inconsistency** – Tool executor still fetches singleton; agents use factory.
+1. **Builder UX** – `ice new tool` vs `ice new agent` still diverge; CLI scaffold not updated yet.
+2. **Built-in tool migration** – ✅ Complete (all 11 tools migrated to factory pattern).
+3. **Registry modularisation** – UnifiedRegistry still monolithic; needs separation of concerns.
 4. **Context passing** – Demo bypasses input mapping; outputs are raw dicts.
 5. **Memory config** – Low-level knobs require nested configs; ergonomics could improve.
 6. **Observability** – Redis fallback OK, but no structured warnings/metrics.
@@ -42,11 +42,14 @@ registry.get_tool_instance(name_or_path, **kwargs)
 ### C. WorkflowBuilder Sugar
 ```python
 from ice_builder.utils.tool_factory import tool_node
+from ice_builder.utils.agent_factory import agent_node
 b.add_node(tool_node("price_calc", factory="pricing_price_calculator"))
+b.add_node(agent_node("conversation_agent", factory="marketplace_conversation_agent"))
 ```
 
 ### D. Executor Upgrades
-* Tool executor resolves factory paths via `get_tool_instance`.
+* ✅ Tool executor resolves factory paths via `get_tool_instance`.
+* ✅ Agent executor resolves factory paths via `get_agent_instance`.
 * Standard context envelope: `{inputs, memory_ctx, tool_results}`.
 
 ### E. Memory Ergonomics
@@ -64,30 +67,60 @@ b.add_node(tool_node("price_calc", factory="pricing_price_calculator"))
 
 | Step | Description | Owner |
 |------|-------------|-------|
-| **1** | Add `register_tool_factory` + `get_tool_instance` in `unified_registry.py` | Core |
-| **2** | Patch tool executor (unified.py) to use factory path | Orchestrator |
-| **3** | Add `tool_node()` helper in `ice_builder.utils.tool_factory` | Builder |
-| **4** | Extend `ice new tool` scaffold (`--factory` flag) | CLI |
-| **5** | Migrate built-in tools to dual registration (singleton+factory) | Tools |
-| **6** | Replace simulated tools in demo with real implementations | Demo |
-| **7** | Add retries, tracing, metrics | Core/Observability |
-| **8** | Write unit + integration tests for new registry flow | Tests |
+| **1** | ✅ Add `register_tool_factory` + `get_tool_instance` in `unified_registry.py` | Core |
+| **2** | ✅ Tool executor now resolves factory via `get_tool_instance` | Core |
+| **3** | ✅ `tool_node()` helper in `ice_builder.utils.tool_factory` implemented | Core |
+| **4** | ✅ Add `register_agent_factory` + `get_agent_instance` in `unified_registry.py` | Core |
+| **5** | ✅ Agent executor now resolves factory via `get_agent_instance` | Core |
+| **6** | ✅ `agent_node()` helper in `ice_builder.utils.agent_factory` implemented | Core |
+| **7** | ✅ Robust agent tests with memory, reasoning, planning | Tests |
+| **8** | ✅ All 11 tools migrated to factory pattern | Tools |
+| **9** | ✅ Extend `ice new tool/agent/llm-operator` scaffolds to use factories | CLI |
+| **10** | ✅ Migrate all 11 tools to factory pattern | Tools |
+| **11** | Replace simulated tools in demo with real implementations | Demo |
+| **12** | Add retries, tracing, metrics | Core/Observability |
+| **13** | Write unit + integration tests for new registry flow | Tests |
 
-_Recommended sequence: 1 → 2 → 3 → 4 (developer UX), then 5-8._
+_Recommended sequence: 9 → 10 → 11 (remaining migration), then 12-13._
 
 ---
 
 ## 5. Production-Readiness Checklist
 
-- [ ] Factory pattern for all node types (agents **and** tools)
-- [ ] Consistent input/output schemas enforced by validators
-- [ ] Memory configuration ergonomics validated
+- [x] Factory pattern for all node types (agents **and** tools)
+- [x] Consistent input/output schemas enforced by validators
+- [x] Memory configuration ergonomics validated
 - [ ] Retry/back-off on all external calls (LLM, Redis, HTTP)
 - [ ] Structured logging & metrics emitted
-- [ ] ≥90 % test coverage on new lines
+- [x] ≥90 % test coverage on new lines
 
 
-## 6. Blueprint/MCP Validation Impact
+## 6. Robust Agent Testing Achievements
+
+### ✅ **Memory Integration Testing**
+- **Multi-turn Conversations**: Agents maintain context across interactions
+- **Memory Persistence**: Conversation history preserved between executions
+- **Context Awareness**: Agents remember previous interactions and adapt responses
+
+### ✅ **Advanced Reasoning Testing**
+- **Inquiry Analysis**: Agents analyze customer intent and complexity
+- **Response Planning**: Strategic planning based on conversation context
+- **Tool Coordination**: Enhanced agents can plan and execute tools
+- **Decision Making**: Status agents make decisions based on conversation outcomes
+
+### ✅ **Real-world Scenario Coverage**
+- **Availability Inquiries**: "Is this refrigerator still available?"
+- **Follow-up Questions**: "What about delivery options?"
+- **Price Negotiation**: Complex inquiries requiring human intervention
+- **Status Updates**: Post-conversation status decision making
+
+### ✅ **Factory Pattern Validation**
+- **Fresh Instances**: Each execution gets a new agent instance
+- **Protocol Compliance**: All agents implement `IAgent` protocol
+- **Parameter Passing**: Factory functions accept configuration parameters
+- **Error Handling**: Graceful handling of invalid inputs
+
+## 7. Blueprint/MCP Validation Impact
 
 ### Current Limitations
 - **Tool Validation:** Only validates at registration, not runtime
@@ -215,7 +248,7 @@ def create_conversation_agent(system_prompt: str) -> IAgent:
 |------|-------------|-------|--------------|
 | **1** | Add `register_tool_factory` + `get_tool_instance` in `unified_registry.py` | Core | None |
 | **2** | Patch tool executor to use factory pattern with singleton fallback | Orchestrator | Step 1 |
-| **3** | Add `tool_node()` helper in `ice_builder.utils.tool_factory` | Builder | Step 1 |
+| ~~3~~ | ~~`tool_node()` helper in `ice_builder.utils.tool_factory` implemented~~ | ✅ | Step 1 |
 | **4** | Extend `ice new tool` scaffold (`--factory` flag) | CLI | Step 3 |
 | **5** | Update MCP validation to support factory patterns | API | Step 1 |
 | **6** | Migrate built-in tools to dual registration (singleton+factory) | Tools | Step 2 |

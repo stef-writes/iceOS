@@ -229,6 +229,26 @@ class ListingAgentTool(ToolBase):
         }
 
 
+# Factory function for creating ListingAgentTool instances
+def create_listing_agent_tool(
+    test_mode: bool = False, 
+    upload: bool = True, 
+    margin_percent: float = 25.0,
+    model: str = "gpt-4o",
+    endpoint_url: str = "https://example.com/api/listings",
+    api_key: str | None = None
+) -> ListingAgentTool:
+    """Create a ListingAgentTool with the specified configuration."""
+    return ListingAgentTool(
+        test_mode=test_mode,
+        upload=upload,
+        margin_percent=margin_percent,
+        model=model,
+        endpoint_url=endpoint_url,
+        api_key=api_key
+    )
+
 # Auto-registration -----------------------------------------------------------
-_instance = ListingAgentTool(test_mode=False, upload=True)
-registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("listing_agent", "ice_tools.toolkits.ecommerce.listing_agent:create_listing_agent_tool")

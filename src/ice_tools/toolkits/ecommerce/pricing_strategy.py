@@ -122,6 +122,20 @@ class PricingStrategyTool(ToolBase):
         return {"price": float(final_price)}
 
 
+# Factory function for creating PricingStrategyTool instances
+def create_pricing_strategy_tool(
+    margin_percent: float = 25.0,
+    min_price: float = 0.99,
+    decimal_places: int = 2
+) -> PricingStrategyTool:
+    """Create a PricingStrategyTool with the specified configuration."""
+    return PricingStrategyTool(
+        margin_percent=margin_percent,
+        min_price=min_price,
+        decimal_places=decimal_places
+    )
+
 # Auto-registration -----------------------------------------------------------
-_instance = PricingStrategyTool()  # default config
-registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("pricing_strategy", "ice_tools.toolkits.ecommerce.pricing_strategy:create_pricing_strategy_tool")

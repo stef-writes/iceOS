@@ -91,6 +91,17 @@ class CSVLoaderTool(ToolBase):
         }
 
 
+# Factory function for creating CSVLoaderTool instances
+def create_csv_loader_tool(path: str = "/dev/null", delimiter: str = ",", encoding: str = "utf-8", max_rows: Optional[int] = None) -> CSVLoaderTool:
+    """Create a CSVLoaderTool with the specified configuration."""
+    return CSVLoaderTool(
+        path=path,
+        delimiter=delimiter,
+        encoding=encoding,
+        max_rows=max_rows
+    )
+
 # Auto-registration -----------------------------------------------------------
-_instance = CSVLoaderTool(path="/dev/null")  # dummy path for registration only
-registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("csv_loader", "ice_tools.toolkits.common.csv_loader:create_csv_loader_tool")

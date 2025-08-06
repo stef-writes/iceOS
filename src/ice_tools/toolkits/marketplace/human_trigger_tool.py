@@ -68,10 +68,12 @@ class HumanTriggerTool(ToolBase):
         }
 
 
+# Factory function for creating HumanTriggerTool instances
+def create_human_trigger_tool() -> HumanTriggerTool:
+    """Create a HumanTriggerTool instance."""
+    return HumanTriggerTool()
+
 # Auto-registration -----------------------------------------------------------
-try:
-    _instance = HumanTriggerTool()
-    registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
-except Exception:
-    # Tool already registered, skip
-    pass
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("human_trigger", "ice_tools.toolkits.marketplace.human_trigger_tool:create_human_trigger_tool")

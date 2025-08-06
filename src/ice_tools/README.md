@@ -2,8 +2,8 @@
 
 This package ships **reference implementations** that are used by the example
 workflows and the test-suite.  Importing `ice_tools` triggers an automatic
-recursive import so every class decorated with `@tool` registers itself with
-the global registry **exactly once**.
+recursive import so every tool registers its factory function with
+the global registry for fresh instances on each execution.
 
 ```python
 import ice_tools          # one-liner – all tools now discoverable
@@ -53,8 +53,8 @@ from ice_tools.toolkits.ecommerce import EcommerceToolkit
 EcommerceToolkit(test_mode=True, upload=False).register()
 ```
 
-`register()` instantiates each ToolBase subclass with shared config and adds
-them to the unified registry.  Override settings (model, margin, upload) per
+`register()` registers factory functions for each ToolBase subclass with shared config.
+Fresh instances are created on each execution. Override settings (model, margin, upload) per
 workflow as required.
 
 ---

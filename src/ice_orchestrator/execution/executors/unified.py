@@ -166,7 +166,7 @@ async def tool_executor(
             pass  # package optional in some deployments
 
         # Get tool instance from registry using ITool protocol
-        tool = registry.get_instance(NodeType.TOOL, cfg.tool_name)
+        tool = registry.get_tool_instance(cfg.tool_name, **cfg.tool_args)
 
         # Clean context: unwrap NodeExecutionResult objects to their .output for template rendering
         from ice_core.models import NodeExecutionResult as _NER
@@ -388,8 +388,8 @@ async def agent_executor(
     start_time = datetime.utcnow()
 
     try:
-        # Get agent from registry using package name
-        agent = registry.get_instance(NodeType.AGENT, cfg.package)
+        # Get fresh agent instance via factory pattern
+        agent = registry.get_agent_instance(cfg.package)
 
         # Direct execution - agents are trusted and need full access
         agent_output: Any = await agent.execute(ctx)

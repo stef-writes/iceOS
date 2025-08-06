@@ -62,6 +62,12 @@ class Registry(BaseModel):
     _agents: Dict[str, str] = PrivateAttr(
         default_factory=dict
     )  # Maps agent names to import paths
+    _tool_factories: Dict[str, str] = PrivateAttr(
+        default_factory=dict
+    )  # Maps tool names to factory import paths
+    _tool_factory_cache: Dict[str, Callable[..., INode]] = PrivateAttr(
+        default_factory=dict
+    )
 
     def register_class(
         self, node_type: NodeType, name: str, implementation: Type[INode]
@@ -76,6 +82,14 @@ class Registry(BaseModel):
     def register_instance(
         self, node_type: NodeType, name: str, instance: INode, validate: bool = True
     ) -> None:
+        """Register a singleton instance (DEPRECATED - use factory pattern instead)."""
+        import warnings
+        warnings.warn(
+            f"register_instance is deprecated for {node_type.value}. "
+            f"Use register_tool_factory/register_agent_factory instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         """Register a node instance (for singletons like tools).
 
         Args:
@@ -128,6 +142,14 @@ class Registry(BaseModel):
         return self._nodes[node_type][name]
 
     def get_instance(self, node_type: NodeType, name: str) -> INode:
+        """Get a singleton instance (DEPRECATED - use factory pattern instead)."""
+        import warnings
+        warnings.warn(
+            f"get_instance is deprecated for {node_type.value}. "
+            f"Use get_tool_instance/get_agent_instance instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         """Get or create a node instance."""
         # Return existing instance if available
         if node_type in self._instances and name in self._instances[node_type]:
@@ -414,6 +436,98 @@ class Registry(BaseModel):
         self._instances.setdefault(NodeType.AGENT, {})[name] = cls  # type: ignore[arg-type,assignment]
         return cls
 
+    def get_agent_instance(self, name: str, **kwargs: Any) -> INode:
+        """Instantiate an agent via its registered factory and return *fresh* instance.
+
+        The factory must return an object that implements the agent protocol and passes
+        validation. No instance caching is done – callers receive a new,
+        isolated agent each time.
+        """
+        if name not in self._agents:
+            raise KeyError(f"Agent {name} not found")
+
+        # Get the factory function and call it
+        import_path = self._agents[name]
+        module_str, attr = import_path.split(":", 1)
+        import importlib
+
+        module = importlib.import_module(module_str)
+        factory = getattr(module, attr)
+        if not callable(factory):
+            raise TypeError(f"Factory {import_path} is not callable")
+
+        agent_instance = factory(**kwargs)
+
+        # Validate the instance implements the expected protocol
+        from ice_core.protocols.agent import IAgent
+        if not isinstance(agent_instance, IAgent):
+            raise TypeError(f"Factory for {name} did not return an IAgent instance")
+
+        # Run idempotent validate() if the agent exposes it
+        if hasattr(agent_instance, "validate") and callable(agent_instance.validate):
+            # Check if validate is a coroutine
+            import asyncio
+            if asyncio.iscoroutinefunction(agent_instance.validate):
+                # Skip async validation for now - would need async context
+                pass
+            else:
+                agent_instance.validate()
+
+        return agent_instance
+
+    # ------------------------------------------------------------------
+    # Tool factory helpers ---------------------------------------------
+    # ------------------------------------------------------------------
+    def register_tool_factory(self, name: str, import_path: str) -> None:
+        """Register a tool factory import path (``module:create_func``)."""
+        if name in self._tool_factories:
+            if self._tool_factories[name] == import_path:
+                return  # idempotent
+            raise RegistryError(f"Tool factory {name} already registered with different path")
+        self._tool_factories[name] = import_path
+
+    def get_tool_instance(self, name: str, **kwargs: Any) -> INode:
+        """Instantiate a tool via its registered factory and return *fresh* instance.
+
+        The factory must return an object that inherits ``ToolBase`` and passes
+        validation.  No instance caching is done – callers receive a new,
+        isolated tool each time.
+        """
+        if name not in self._tool_factories:
+            raise KeyError(f"Tool factory {name} not found")
+
+        # Resolve factory callable (cached for performance)
+        if name in self._tool_factory_cache:
+            factory = self._tool_factory_cache[name]
+        else:
+            module_str, attr = self._tool_factories[name].split(":", 1)
+            import importlib
+
+            module = importlib.import_module(module_str)
+            factory = getattr(module, attr)
+            if not callable(factory):
+                raise TypeError(f"Factory {self._tool_factories[name]} is not callable")
+            self._tool_factory_cache[name] = factory  # Cache for next call
+
+        tool_instance = factory(**kwargs)
+
+        from ice_core.base_tool import ToolBase  # Local to avoid circular import
+
+        if not isinstance(tool_instance, ToolBase):
+            raise TypeError(f"Factory for {name} did not return a ToolBase instance")
+
+        # Run idempotent validate() if the tool exposes it
+        if hasattr(tool_instance, "validate") and callable(tool_instance.validate):
+            # Skip Pydantic's validate method which requires a value argument
+            if not hasattr(tool_instance.validate, "__self__"):
+                tool_instance.validate()
+
+        return tool_instance
+
+    def available_tool_factories(self) -> List[Tuple[str, str]]:
+        """List registered tool factories with their import paths."""
+        return [(name, path) for name, path in sorted(self._tool_factories.items())]
+
     def available_agents(self) -> List[Tuple[str, str]]:
         """List all registered agents with their import paths."""
         return [(name, path) for name, path in sorted(self._agents.items())]
@@ -450,6 +564,19 @@ def get_executor(node_type: str) -> ExecCallable:
     """Get executor for a node type."""
     return registry.get_executor(node_type)
 
+# ------------------------------------------------------------------
+# Factory helpers (module-level wrappers) ---------------------------
+# ------------------------------------------------------------------
+
+def register_tool_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a tool factory at module level for callers that don’t need class access."""
+    registry.register_tool_factory(name, import_path)
+
+
+def get_tool_instance(name: str, **kwargs: Any) -> INode:  # noqa: D401
+    """Convenience wrapper around ``Registry.get_tool_instance``."""
+    return registry.get_tool_instance(name, **kwargs)
+
 
 # Direct access to the registry - no backward compatibility needed
 global_agent_registry = registry
@@ -461,6 +588,8 @@ __all__ = [
     "Registry",
     "registry",
     "register_node",
+    "register_tool_factory",
+    "get_tool_instance",
     "get_executor",
     "NodeExecutor",
     "global_agent_registry",

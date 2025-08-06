@@ -150,11 +150,29 @@ class MarketplaceClientTool(ToolBase):
         return {"listing_id": listing_id, "raw_response": data}
 
 
+# Factory function for creating MarketplaceClientTool instances
+def create_marketplace_client_tool(
+    endpoint_url: str | None = None,
+    test_mode: bool = False,
+    api_key: str | None = None
+) -> MarketplaceClientTool:
+    """Create a MarketplaceClientTool with the specified configuration."""
+    if endpoint_url is None:
+        endpoint_url = os.getenv("ICE_MARKETPLACE_ENDPOINT", "https://example.com/api/listings")
+    
+    api_key_secret = None
+    if api_key is not None:
+        api_key_secret = SecretStr(api_key)
+    elif os.getenv("ICE_MARKETPLACE_API_KEY"):
+        api_key_secret = SecretStr(os.getenv("ICE_MARKETPLACE_API_KEY", ""))
+    
+    return MarketplaceClientTool(
+        endpoint_url=endpoint_url,
+        test_mode=test_mode,
+        api_key=api_key_secret
+    )
+
 # Auto-registration -----------------------------------------------------------
-_instance = MarketplaceClientTool(
-    endpoint_url=os.getenv(
-        "ICE_MARKETPLACE_ENDPOINT", "https://example.com/api/listings"
-    ),
-    test_mode=False,
-)
-registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
+from ice_core.unified_registry import register_tool_factory
+
+register_tool_factory("marketplace_client", "ice_tools.toolkits.ecommerce.marketplace_client:create_marketplace_client_tool")
