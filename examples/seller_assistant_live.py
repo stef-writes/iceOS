@@ -45,7 +45,7 @@ from ice_core.services import ServiceLocator
 from ice_orchestrator.workflow import Workflow as _WF
 
 # Register toolkit with live settings (real OpenAI, no marketplace upload)
-EcommerceToolkit(test_mode=False, upload=False).register()
+EcommerceToolkit(test_mode=False, upload=True).register()
 
 CSV_PATH_DEFAULT = (
     Path("src/ice_tools/toolkits/ecommerce/Supply Yard - Overflow Items - Sheet1.csv").resolve()

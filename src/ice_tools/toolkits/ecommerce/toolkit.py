@@ -52,10 +52,10 @@ class EcommerceToolkit(BaseToolkit):
         25.0, description="Desired profit margin (0-100)"
     )
     test_mode: bool = Field(
-        True, description="Run tools in offline mode (no network I/O)"
+        False, description="Run tools in offline mode (no network I/O)"
     )
     upload: bool = Field(
-        False,
+        True,
         description="Whether to POST listings to marketplace (requires API key)",
     )
 

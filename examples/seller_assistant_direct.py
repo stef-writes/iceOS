@@ -84,23 +84,34 @@ async def main():
         name="Post Item",
         type="tool",
         tool_name="api_poster",
-        tool_args={"mock": True},  # Context-aware - will find url and payload
+        tool_args={},  # Context-aware - will find url and payload
         dependencies=[]  # No deps - mock_server context comes from parent
     )
 
 
     
-    # Replace loop with loop_tool
-    loop_tool = ToolNodeConfig(
+    # Use proper LoopNodeConfig instead of LoopTool
+    from ice_core.models.node_models import LoopNodeConfig
+    
+    # Create the listing_agent node for the loop body
+    listing_agent_node = ToolNodeConfig(
+        id="listing_agent_inner",
+        name="Create Listing",
+        type="tool",
+        tool_name="listing_agent",
+        tool_args={"item": "{{ item }}"},  # Use loop variable
+        dependencies=[]
+    )
+    
+    # Create the loop node with proper body
+    loop_node = LoopNodeConfig(
         id="listing_loop",
         name="Listing Loop",
-        type="tool",
-        tool_name="loop_tool",
-        tool_args={
-            "items": "{{ load_csv.rows }}",  # Pass rows list
-            "tool": "listing_agent",
-            "item_var": "item",
-        },
+        type="loop",
+        items_source="load_csv.rows",  # Source of items to iterate
+        item_var="item",  # Variable name for current item
+        body=[listing_agent_node],  # Nodes to execute for each item
+        max_iterations=100,  # Safety limit
         dependencies=["load_csv"]
     )
 
@@ -113,7 +124,7 @@ async def main():
         dependencies=["listing_loop"],
     )
 
-    nodes = [load_csv, mock_server, loop_tool, summarize]
+    nodes = [load_csv, mock_server, loop_node, summarize]
     
     print(f"Created {len(nodes)} nodes")
     

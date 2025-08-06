@@ -8,5 +8,5 @@ from ice_tools.toolkits.ecommerce.listing_agent import ListingAgentTool
 
 registry._instances.setdefault(NodeType.TOOL, {})
 registry._instances[NodeType.TOOL][TitleDescriptionGeneratorTool.name] = TitleDescriptionGeneratorTool(test_mode=False)
-registry._instances[NodeType.TOOL][ListingAgentTool.name] = ListingAgentTool(test_mode=False, upload=False)
+registry._instances[NodeType.TOOL][ListingAgentTool.name] = ListingAgentTool(test_mode=False, upload=True)
 print("Registry bootstrapped with live instances.")

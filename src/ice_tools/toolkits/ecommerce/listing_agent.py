@@ -159,6 +159,15 @@ class ListingAgentTool(ToolBase):
             match = re.search(r"([0-9]+(?:\.[0-9]+)?)", normalized["cost"])
             if match:
                 normalized["cost"] = float(match.group(1))
+            else:
+                # If no number found, try to extract any numeric value
+                import re
+                numbers = re.findall(r"([0-9]+(?:\.[0-9]+)?)", normalized["cost"])
+                if numbers:
+                    normalized["cost"] = float(numbers[0])
+                else:
+                    # Default to minimum cost if no number found
+                    normalized["cost"] = 1.0
         
         # Auto-generate SKU if missing
         if "sku" not in normalized:
@@ -219,5 +228,5 @@ class ListingAgentTool(ToolBase):
 
 
 # Auto-registration -----------------------------------------------------------
-_instance = ListingAgentTool(test_mode=True, upload=False)
+_instance = ListingAgentTool(test_mode=False, upload=True)
 registry.register_instance(NodeType.TOOL, _instance.name, _instance, validate=False)  # type: ignore[arg-type]
