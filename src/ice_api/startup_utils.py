@@ -15,7 +15,7 @@ from types import ModuleType
 from typing import Any, Dict, Tuple
 
 from ice_core.models.enums import NodeType
-from ice_core.unified_registry import global_agent_registry, registry
+from ice_core.registry import global_agent_registry, registry
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +46,7 @@ def print_startup_banner(app_version: str, git_sha: str | None = None) -> None:
 # ---------------------------------------------------------------------------
 # Component validation helpers
 # ---------------------------------------------------------------------------
+
 
 def _validate_tool(name: str) -> Tuple[bool, str]:
     try:
@@ -78,6 +79,7 @@ def validate_registered_components() -> Dict[str, Any]:
 # Demo loading utilities
 # ---------------------------------------------------------------------------
 
+
 def timed_import(module_path: str) -> Tuple[float, ModuleType | None, Exception | None]:
     """Import *module_path* while measuring wall-time."""
     start = time.perf_counter()
@@ -99,4 +101,4 @@ __all__ = [
     "summarise_demo_load",
     "timed_import",
     "READY_FLAG",
-] 
+]

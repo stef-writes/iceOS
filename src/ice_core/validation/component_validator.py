@@ -65,7 +65,7 @@ async def validate_tool_definition(
                     
                     # Check for _execute_impl method
                     for item in node.body:
-                        if isinstance(item, ast.FunctionDef) and item.name == "_execute_impl":
+                        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)) and item.name == "_execute_impl":
                             has_execute_impl = True
                             # Could add more checks on method signature here
             

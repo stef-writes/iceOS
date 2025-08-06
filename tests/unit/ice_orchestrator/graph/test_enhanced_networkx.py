@@ -11,7 +11,7 @@ This test suite validates:
 from datetime import datetime
 from typing import Any, List
 
-from ice_core.graph.dependency_graph import DependencyGraph
+from ice_orchestrator.graph.dependency_graph import DependencyGraph
 from ice_core.models.llm import LLMConfig
 from ice_core.models.node_metadata import NodeMetadata
 from ice_core.models.node_models import (

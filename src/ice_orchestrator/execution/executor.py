@@ -83,6 +83,9 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                 end_time=datetime.utcnow(),
                 duration=0.0,
                 error_type=type(exc).__name__,
+                owner="system",
+                description=f"Node {node_id} validation failed",
+                provider=getattr(node, "provider", None),
             )
 
             # Fail fast per FailurePolicy.HALT else return failure result ----
@@ -312,6 +315,11 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                             version="1.0.0",
                             start_time=datetime.utcnow(),
                             end_time=datetime.utcnow(),
+                            duration=0.0,
+                            owner="system",
+                            description=f"Node {node_id} execution result",
+                            provider=getattr(node, "provider", None),
+                            error_type=None,
                         ),
                         execution_time=0.0,
                     )
@@ -371,19 +379,22 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                 else:  # If output was None after all processing, return failure
                     result = NodeExecutionResult(  # type: ignore[call-arg]
                         success=False,
-                        error="Executor returned empty output"
-                    )
-                    result.metadata = NodeMetadata(  # type: ignore[call-arg]
-                        node_id=node_id,
-                        node_type=str(getattr(node, "type", "")),
-                        name=getattr(node, "name", None),
-                        version="1.0.0",
-                        start_time=datetime.utcnow(),
-                        end_time=datetime.utcnow(),
-                        duration=0.0,
-                        error_type=(
-                            type(last_error).__name__ if last_error else "UnknownError"
-                        ),
+                        error="Executor returned empty output",
+                        metadata=NodeMetadata(  # type: ignore[call-arg]
+                            node_id=node_id,
+                            node_type=str(getattr(node, "type", "")),
+                            name=getattr(node, "name", None),
+                            version="1.0.0",
+                            start_time=datetime.utcnow(),
+                            end_time=datetime.utcnow(),
+                            duration=0.0,
+                            error_type=(
+                                type(last_error).__name__ if last_error else "UnknownError"
+                            ),
+                            owner="system",
+                            description=f"Node {node_id} returned empty output",
+                            provider=getattr(node, "provider", None),
+                        )
                     )
                     result.budget_status = self.budget.get_status()
                     return result
@@ -435,6 +446,9 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
             duration=0.0,
             error_type=type(last_error).__name__ if last_error else "UnknownError",
             retry_count=attempt,
+            owner="system",
+            description=f"Node {node_id} retry limit exceeded",
+            provider=getattr(node, "provider", None),
         )
 
         if chain.failure_policy.name == "HALT":  # safeguard – avoid circular import

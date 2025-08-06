@@ -49,6 +49,13 @@ nav:
       - Node Selection Guide: guides/node_selection.md
   - Reference:
       - CLI Commands: reference/cli.md
+  - Packages:
+      - ice_core: packages/ice_core.md
+      - ice_orchestrator: packages/ice_orchestrator.md
+      - ice_builder: packages/ice_builder.md
+      - ice_cli: packages/ice_cli.md
+      - ice_client: packages/ice_client.md
+      - ice_tools: packages/ice_tools.md
       - REST API: reference/api.md
       - Architecture Internals: reference/architecture.md
       - Health-check Matrix: reference/healthchecks.md

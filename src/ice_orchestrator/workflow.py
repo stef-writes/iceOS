@@ -34,8 +34,8 @@ from opentelemetry import trace  # type: ignore[import-not-found]
 from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
 
 from ice_core.base_tool import ToolBase
-from ice_core.graph.dependency_graph import DependencyGraph
-from ice_core.graph.level_resolver import BranchGatingResolver
+from ice_orchestrator.graph.dependency_graph import DependencyGraph
+from ice_orchestrator.graph.level_resolver import BranchGatingResolver
 from ice_core.models import (
     ChainExecutionResult,
     ConditionNodeConfig,
@@ -1167,6 +1167,30 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             stats["tokens"] = result.usage.total_tokens
             
         return stats
+
+    async def execute_node_config(
+        self, node_config: "NodeConfig", input_data: Dict[str, Any], parent_id: Optional[str] = None
+    ) -> NodeExecutionResult:
+        """Execute a node configuration directly (for nested nodes)."""
+        from ice_core.models import NodeConfig
+        
+        # Create a temporary hierarchical ID for this nested node
+        temp_id = f"{parent_id}.{node_config.id}" if parent_id else node_config.id
+        
+        # Temporarily add the node to our nodes dict for execution
+        original_node = self.nodes.get(temp_id)
+        self.nodes[temp_id] = node_config
+        
+        try:
+            # Execute using the standard execute_node method
+            result = await self.execute_node(temp_id, input_data)
+            return result
+        finally:
+            # Clean up: restore original state
+            if original_node is not None:
+                self.nodes[temp_id] = original_node
+            else:
+                self.nodes.pop(temp_id, None)
 
     async def execute_node(
         self, node_id: str, input_data: Dict[str, Any]

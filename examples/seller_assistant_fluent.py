@@ -1,116 +1,129 @@
-"""Seller Assistant - Fluent API Demo
+"""Seller Assistant - Fluent API demo using LoopTool
 
-This demonstrates how a user would naturally build and run an e-commerce workflow.
-The system should handle all validation, error reporting, and execution automatically.
+This version avoids the fragile LoopNode by using the context-aware `loop_tool`
+which simply runs `listing_agent` for every CSV row and returns the list of
+results.  The orchestrator still sees one node, so we keep the “each node runs
+exactly once” contract while getting reliable batched execution.
 """
+
 from __future__ import annotations
 
 import asyncio
 import json
 from pathlib import Path
 
-from ice_orchestrator.workflow import Workflow
-from ice_core.models.node_models import ToolNodeConfig, LoopNodeConfig
-from ice_core.models.enums import NodeType
+from dotenv import load_dotenv
 
-# Ensure tools are loaded
+# ---------------------------------------------------------------------------
+# Environment ----------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+load_dotenv()
+fallback_env = Path("config/dev.env.example")
+if fallback_env.is_file():
+    load_dotenv(dotenv_path=fallback_env)
+
+# ---------------------------------------------------------------------------
+# iceOS imports --------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+import ice_orchestrator  # noqa: F401 – registers executors
 import ice_tools
+from ice_core.unified_registry import registry
+from ice_core.models.enums import NodeType
+from ice_tools.toolkits.ecommerce.listing_agent import ListingAgentTool
+registry._instances.setdefault(NodeType.TOOL, {})["listing_agent"] = ListingAgentTool(test_mode=False, upload=False)  # noqa: F401 – recursive import registers built-in tools
+from ice_orchestrator.workflow import Workflow
+from ice_core.models.node_models import ToolNodeConfig
+
+from ice_tools.toolkits.ecommerce import EcommerceToolkit
+
+# Register toolkit (offline / test-mode)
+EcommerceToolkit(test_mode=False, upload=False).register()
 
 
-async def build_seller_workflow() -> Workflow:
-    """Build a seller assistant workflow using the fluent API."""
-    
-    # Create workflow with empty nodes initially
-    wf = Workflow(nodes=[], name="Seller Assistant", version="1.0")
-    
-    # Add CSV loader node
-    csv_path = Path("src/ice_tools/ecommerce/Supply Yard - Overflow Items - Sheet1.csv").resolve()
-    wf.add_node(
-        ToolNodeConfig(
-            id="load_csv",
-            name="Load Product CSV",
-            type="tool",
-            tool_name="csv_loader",
-            tool_args={"path": str(csv_path), "delimiter": ","}
-        )
-    )
-    
-    # Add loop to process each item
-    wf.add_node(
-        LoopNodeConfig(
-            id="process_items",
-            name="Process Each Product",
-            type="loop",
-            items_source="load_csv.rows",
-            item_var="product",
-            body_nodes=["create_listing"],
-            dependencies=["load_csv"]
-        )
-    )
-    
-    # Add listing agent inside loop
-    wf.add_node(
-        ToolNodeConfig(
-            id="create_listing",
-            name="Create Marketplace Listing",
-            type="tool",
-            tool_name="listing_agent",
-            tool_args={
-                "item": "{{ product }}",
-                "margin_percent": 25.0,
-                "model": "gpt-4o",
-                "test_mode": True
-            }
-        )
-    )
-    
-    # Add aggregator to summarize results
-    wf.add_node(
-        ToolNodeConfig(
-            id="summarize",
-            name="Summarize Results",
-            type="tool", 
-            tool_name="aggregator",
-            tool_args={"results": "{{ process_items.* }}"},
-            dependencies=["process_items"]
-        )
-    )
-    
-    return wf
+# ---------------------------------------------------------------------------
+# Workflow builder -----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+CSV_PATH_DEFAULT = Path(
+    "src/ice_tools/toolkits/ecommerce/"
+    "Supply Yard - Overflow Items - Sheet1.csv"
+).resolve()
 
 
-async def main():
-    """Run the seller assistant workflow."""
-    
-    print("Building Seller Assistant workflow...")
-    workflow = await build_seller_workflow()
-    
-    # Validate the workflow
-    try:
-        workflow.validate()
-        print("✅ Workflow validated successfully!")
-    except Exception as e:
-        print(f"❌ Workflow validation failed: {e}")
-        # The system should tell us exactly what's wrong
-        return
-    
-    # Execute the workflow
-    print("\nExecuting workflow...")
-    try:
-        result = await workflow.execute()
-        
-        # Extract the final output
-        if hasattr(result, 'output'):
-            output = result.output
-        else:
-            output = result
-            
-        print("\n✅ Workflow completed successfully!")
-        print(f"\nResults: {json.dumps(output, indent=2)}")
-        
-    except Exception as e:
-        print(f"❌ Workflow execution failed: {e}")
-        # The system should provide clear error messages about what went wrong
+def build_seller_workflow(csv_path: Path | None = None) -> Workflow:  # noqa: D401
+    """Build the seller assistant workflow using LoopTool."""
+
+    csv_path = csv_path or CSV_PATH_DEFAULT
+
+    # 1. Load CSV rows ----------------------------------------------------
+    load_csv = ToolNodeConfig(
+        id="load_csv",
+        name="Load Product CSV",
+        type="tool",
+        tool_name="csv_loader",
+        tool_args={"path": str(csv_path), "delimiter": ","},
+    )
+
+    # 2. Mock HTTP bin server (used by listing_agent -> marketplace_client)
+    mock_server = ToolNodeConfig(
+        id="mock_server",
+        name="Start Mock Server",
+        type="tool",
+        tool_name="mock_http_bin",
+    )
+
+    # 3. LoopTool – run listing_agent for every CSV row -------------------
+    listing_loop = ToolNodeConfig(
+        id="listing_loop",
+        name="Listing Loop",
+        type="tool",
+        tool_name="loop_tool",
+        tool_args={
+            "items": "{{ load_csv.rows }}",  # Jinja template resolved by executor
+            "tool": "listing_agent",
+            "item_var": "product",
+        },
+        dependencies=["load_csv", "mock_server"],  # ensure rows + mock URL in context
+    )
+
+    # 4. Aggregator – summarise loop results ------------------------------
+    summarize = ToolNodeConfig(
+        id="summarize",
+        name="Summarize Results",
+        type="tool",
+        tool_name="aggregator",
+        tool_args={},  # context-aware – finds listing_loop output
+        dependencies=["listing_loop"],
+    )
+
+    # Assemble workflow ----------------------------------------------------
+    nodes = [load_csv, mock_server, listing_loop, summarize]
+    workflow = Workflow(nodes=nodes, name="Seller Assistant (LoopTool)", version="1.0")
+    return workflow
+
+
+# ---------------------------------------------------------------------------
+# Main entry-point -----------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+async def main() -> None:  # pragma: no cover – demo script
+    workflow = build_seller_workflow()
+
+    # Validate -----------------------------------------------------------
+    print("Validating workflow…")
+    workflow.validate()
+    print("✅ Validation passed!\n")
+
+    # Execute ------------------------------------------------------------
+    print("Executing workflow… (offline mode – no real API calls)")
+    result = await workflow.execute()
+
+    # Pretty print -------------------------------------------------------
+    output = result.output or {}
+    print("\n=== Aggregated results ===")
+    print(json.dumps(output.get("summarize", {}), indent=2))
 
 
 if __name__ == "__main__":

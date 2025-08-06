@@ -1,8 +1,0 @@
-src/ice_builder/utils/llm_adapter.py:38:            self._svc = ServiceLocator.get("llm_service_impl")
-src/ice_builder/dsl/workflow.py:295:            get_workflow_proto = ServiceLocator.get("workflow_proto")
-src/ice_core/services/locator.py:16:    >>> service = ServiceLocator.get("my_service")
-src/ice_core/services/locator.py:51:    return ServiceLocator.get("workflow_proto")
-Binary file src/ice_core/services/__pycache__/locator.cpython-310.pyc matches
-src/ice_core/services/network_service.py:39:        cls = ServiceLocator.get("network_coordinator_cls")
-src/ice_core/services/tool_service.py:33:        delegate = ServiceLocator.get(self._delegate_key)
-Binary file src/ice_tools/__pycache__/hello.cpython-310.pyc matches

@@ -5,7 +5,7 @@ FastAPI application entry point
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Dict, List, cast
+from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, cast
 
 import structlog
 from dotenv import load_dotenv
@@ -197,10 +197,10 @@ add_exception_handlers(app)
 # Add request context for structured logging
 @app.middleware("http")
 async def add_request_context(
-    request: Request, call_next: Callable[[Request], Response]
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
     structlog.contextvars.bind_contextvars(path=request.url.path, method=request.method)
-    response = call_next(request)
+    response = await call_next(request)
     structlog.contextvars.clear_contextvars()
     return response
 
@@ -279,7 +279,7 @@ async def ready_check() -> Dict[str, str]:
 async def meta_components() -> Dict[str, Any]:
     """Return counts of registered components for dashboards."""
     from ice_core.models.enums import NodeType
-    from ice_core.unified_registry import global_agent_registry, registry
+    from ice_core.registry import global_agent_registry, registry
 
     return {
         "tools": [n for _, n in registry.list_nodes(NodeType.TOOL)],
@@ -328,7 +328,7 @@ async def list_tools(tool_service: Any = Depends(get_tool_service)) -> List[str]
 @app.get("/v1/agents", response_model=List[str], tags=["discovery"])
 async def list_agents() -> List[str]:
     """Return all registered agent names."""
-    from ice_core.unified_registry import registry
+    from ice_core.registry import registry
 
     return list(registry._agents.keys())
 
@@ -337,7 +337,7 @@ async def list_agents() -> List[str]:
 async def list_workflows() -> List[str]:
     """Return all registered workflow names."""
     from ice_core.models import NodeType
-    from ice_core.unified_registry import registry
+    from ice_core.registry import registry
 
     return [name for _, name in registry.list_nodes(NodeType.WORKFLOW)]
 
@@ -345,7 +345,7 @@ async def list_workflows() -> List[str]:
 @app.get("/v1/chains", response_model=List[str], tags=["discovery"])
 async def list_chains() -> List[str]:
     """Return all registered chain names."""
-    from ice_core.unified_registry import global_chain_registry
+    from ice_core.registry import global_chain_registry
 
     return [name for name, _ in global_chain_registry.available_chains()]
 
@@ -353,7 +353,7 @@ async def list_chains() -> List[str]:
 @app.get("/api/v1/executors", response_model=Dict[str, str], tags=["discovery"])
 async def list_executors() -> Dict[str, str]:
     """Return all registered executors."""
-    from ice_core.unified_registry import registry
+    from ice_core.registry import registry
 
     return {k: v.__name__ for k, v in registry._executors.items()}
 
@@ -361,4 +361,4 @@ async def list_executors() -> Dict[str, str]:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(cast(Any, app), host="0.0.0.0", port=8000)

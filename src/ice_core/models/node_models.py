@@ -439,8 +439,14 @@ class ConditionNodeConfig(BaseNodeConfig):
     expression: str = Field(
         ..., description="Boolean expression evaluated against context"
     )
-    true_branch: List[str] = Field(default_factory=list)
-    false_branch: Optional[List[str]] = Field(default=None)
+    true_path: List["NodeConfig"] = Field(
+        default_factory=list,
+        description="Nodes to execute when expression is true"
+    )
+    false_path: Optional[List["NodeConfig"]] = Field(
+        default=None,
+        description="Nodes to execute when expression is false"
+    )
 
 
 @mcp_tier("Blueprint for embedded workflows")
@@ -479,7 +485,9 @@ class LoopNodeConfig(BaseNodeConfig):
         ..., description="Context key containing items to iterate over"
     )
     item_var: str = Field(default="item", description="Variable name for current item")
-    body_nodes: List[str] = Field(..., description="Node IDs to execute for each item")
+    body: List["NodeConfig"] = Field(
+        ..., description="Nodes to execute for each item"
+    )
     max_iterations: Optional[int] = Field(
         None, description="Maximum iterations allowed"
     )
@@ -497,8 +505,8 @@ class ParallelNodeConfig(BaseNodeConfig):
 
     type: Literal["parallel"] = "parallel"
 
-    branches: List[List[str]] = Field(
-        ..., description="List of branches, each containing node IDs to execute"
+    branches: List[List["NodeConfig"]] = Field(
+        ..., description="List of branches, each containing nodes to execute"
     )
     max_concurrency: Optional[int] = Field(
         None, description="Maximum concurrent branches (None = unlimited)"
@@ -601,8 +609,10 @@ class CodeNodeConfig(BaseNodeConfig):
 # Discriminated union & helpers
 # ---------------------------------------------------------------------------
 
-NodeConfig = Annotated[
-    Union[
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    NodeConfig = Union[
         ToolNodeConfig,
         LLMOperatorConfig,
         AgentNodeConfig,
@@ -612,9 +622,22 @@ NodeConfig = Annotated[
         ParallelNodeConfig,
         RecursiveNodeConfig,
         CodeNodeConfig,
-    ],
-    Field(discriminator="type"),
-]
+    ]
+else:
+    NodeConfig = Annotated[
+        Union[
+            ToolNodeConfig,
+            LLMOperatorConfig,
+            AgentNodeConfig,
+            ConditionNodeConfig,
+            WorkflowNodeConfig,
+            LoopNodeConfig,
+            ParallelNodeConfig,
+            RecursiveNodeConfig,
+            CodeNodeConfig,
+        ],
+        Field(discriminator="type"),
+    ]
 
 # ---------------------------------------------------------------------------
 # Execution results -------------------------------------------------------
@@ -886,3 +909,8 @@ __all__: list[str] = [
     "NodeConfig",
     "NodeMetadata",  # Re-export from node_metadata module
 ]
+
+# Rebuild models to resolve forward references
+ConditionNodeConfig.model_rebuild()
+LoopNodeConfig.model_rebuild()
+ParallelNodeConfig.model_rebuild()

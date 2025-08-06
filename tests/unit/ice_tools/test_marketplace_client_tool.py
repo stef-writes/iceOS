@@ -9,8 +9,8 @@ from typing import Dict
 
 import pytest
 
-import ice_tools.ecommerce.marketplace_client  # noqa: F401 – side-effect registration
-from ice_tools.ecommerce.marketplace_client import MarketplaceClientTool
+import ice_tools.toolkits.ecommerce.marketplace_client  # noqa: F401 – side-effect registration
+from ice_tools.toolkits.ecommerce.marketplace_client import MarketplaceClientTool
 
 
 @pytest.mark.asyncio

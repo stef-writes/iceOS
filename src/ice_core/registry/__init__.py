@@ -4,6 +4,11 @@ Contains registries for various core components like prompt templates.
 """
 
 from ice_core.exceptions import RegistryError
+from ice_core.unified_registry import (
+    global_agent_registry,
+    global_chain_registry,
+    registry,
+)
 
 from .prompt_template import (
     PromptTemplateRegistry,
@@ -14,6 +19,9 @@ from .prompt_template import (
 __all__ = [
     "RegistryError",
     "PromptTemplateRegistry",
-    "global_prompt_template_registry", 
+    "global_prompt_template_registry",
     "register_prompt_template",
-] 
+    "registry",
+    "global_agent_registry",
+    "global_chain_registry",
+]

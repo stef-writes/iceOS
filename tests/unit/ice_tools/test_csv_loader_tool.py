@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ice_tools.csv_loader import CSVLoaderTool
+from ice_tools.toolkits.common.csv_loader import CSVLoaderTool
 
 
 @pytest.mark.asyncio

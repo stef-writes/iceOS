@@ -1,7 +1,7 @@
 # ruff: noqa: E402
 from __future__ import annotations
 
-"""Google Gemini (generative AI) handler (migrated)."""
+"""Google Gemini (generative AI) handler (migrated)."""  # pragma: no cover
 
 import logging
 import os

@@ -24,4 +24,13 @@ class WorkflowLike(Protocol):
     async def execute_node(self, node_id: str, context: dict[str, Any]) -> Any:  # pragma: no cover
         ...
 
+    async def execute_node_config(
+        self,
+        node_config: Any,
+        context: dict[str, Any],
+        *,
+        parent_id: str | None = None,
+    ) -> Any:  # pragma: no cover – orchestration internals
+        ...
+
  

@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 __all__ = ["render_prompt"]
 
 async def render_prompt(template: str, context: Dict[str, Any]) -> str:
     try:
-        from jinja2 import Template  # type: ignore
+        from jinja2 import Template
 
-        return Template(template).render(**context)
+        rendered: Any = Template(template).render(**context)
+        return cast(str, rendered)
     except ModuleNotFoundError:
         pass
     except Exception:

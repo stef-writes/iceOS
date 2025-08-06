@@ -11,22 +11,25 @@ NEW (2025-07):
       subclasses of a future ``LongRunningToolBase`` that stream intermediate
       updates; for now the flag is always *False*.
 """
+
 from __future__ import annotations
 
 from typing import List
 
 from ice_core.models.enums import NodeType
 from ice_core.models.mcp import PartialBlueprint, PartialNodeSpec
-from ice_core.unified_registry import registry
+from ice_core.registry import registry
 
 __all__: list[str] = [
     "create_partial_blueprint",
     "append_tool_node",
 ]
 
+
 def create_partial_blueprint(name: str) -> PartialBlueprint:
     """Return a new *empty* ``PartialBlueprint`` with the provided *name*."""
     return PartialBlueprint(schema_version="1.1.0", metadata={"name": name})
+
 
 def append_tool_node(
     blueprint: PartialBlueprint,

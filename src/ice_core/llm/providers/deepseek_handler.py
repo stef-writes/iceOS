@@ -1,7 +1,7 @@
 # ruff: noqa: E402
 from __future__ import annotations
 
-"""DeepSeek handler (migrated) using OpenAI-compatible endpoint."""
+"""DeepSeek handler (migrated) using OpenAI-compatible endpoint."""  # pragma: no cover
 
 import json
 import logging

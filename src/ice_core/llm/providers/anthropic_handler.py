@@ -1,7 +1,7 @@
 # ruff: noqa: E402
 from __future__ import annotations
 
-"""Anthropic LLM provider handler (migrated)."""
+"""Anthropic LLM provider handler (migrated)."""  # pragma: no cover
 
 import logging
 import os

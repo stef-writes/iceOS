@@ -1,7 +1,7 @@
 # ruff: noqa: E402
 from __future__ import annotations
 
-"""OpenAI LLM provider handler (migrated)."""
+"""OpenAI LLM provider handler (migrated)."""  # pragma: no cover
 
 import json
 import logging

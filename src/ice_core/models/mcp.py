@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import datetime as _dt
 import uuid
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, field_validator
 
 # ---------------------------------------------------------------------------
 # Blueprint & nodes ----------------------------------------------------------
@@ -36,9 +36,9 @@ class Blueprint(BaseModel):
 
     blueprint_id: str = Field(default_factory=lambda: f"bp_{uuid.uuid4().hex[:8]}")
     schema_version: str = Field(
-        "1.1.0",
+        "1.2.0",
         description="Semver blueprint schema version",
-        json_schema_extra={"example": "1.1.0"}
+        json_schema_extra={"example": "1.2.0"}
     )
     nodes: List[NodeSpec] = Field(
         ...,  # At least one node required (runtime validator asserts)
@@ -54,15 +54,17 @@ class Blueprint(BaseModel):
         """Return user-facing name for blueprint (draft_name metadata fallback)."""
         return str(self.metadata.get("draft_name", self.blueprint_id))
 
-    @model_validator(mode='after')
-    def validate_dependencies(cls, values: Any) -> Any:
-        """Ensure no circular dependencies and valid node references"""
-        node_ids = {n.id for n in values.nodes}
-        for node in values.nodes:
+    @field_validator("nodes", mode="after")
+    def _validate_node_dependencies(cls, nodes: List[NodeSpec]) -> List[NodeSpec]:
+        """Ensure no circular dependencies and valid node references."""
+        node_ids = {n.id for n in nodes}
+        for node in nodes:
             for dep in node.dependencies:
                 if dep not in node_ids:
-                    raise ValueError(f"Node {node.id} references missing dependency {dep}")
-        return values
+                    raise ValueError(
+                        f"Node {node.id} references missing dependency {dep}"
+                    )
+        return nodes
 
     # ------------------------------------------------------------------
     # Validation helpers -------------------------------------------------

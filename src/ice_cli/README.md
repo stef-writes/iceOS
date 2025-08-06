@@ -1,62 +1,71 @@
 # ice_cli – Command-Line Interface for iceOS
 
-`ice` is the primary developer tool for interacting with a running iceOS stack.
-It wraps the REST / WebSocket API and local helpers so you can push, run and
-inspect workflows without writing scripts.
+`ice_cli` exposes a **single entry-point executable** named `ice` that wraps
+common developer workflows: scaffolding, running blueprints, exporting JSON
+schemas, and pushing workflows to the API layer.
 
 ```
 $ ice --help
+Usage: ice [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+
 Commands:
-  push          Upload a Blueprint JSON file
-  run           Start an execution and stream output
-  list          List tools, blueprints, executions
-  doctor        Run repo health-checks (lint, type, test)
-  network …     Forward to runtime network sub-commands
+  export-schemas  Dump all JSON Schemas under schemas/generated/
+  new             Scaffold new project components (tools/agents/workflows)
+  push            Upload blueprint/workflow JSON to remote ice_api
+  run             Execute a blueprint YAML locally
 ```
 
-## Installation
-```
-poetry install --with dev     # or pip install -e .
-```
-The `ice` entry-point is installed via the `ice_cli.cli:cli` Typer app.
+Implementation lives in `src/ice_cli/commands/*.py` and uses **Click** – no
+additional runtime dependencies.
 
-## Scaffolder quick-start
-Generate fully-typed components without manual boiler-plate:
+---
+
+## 1. Scaffolding quick-start
 
 ```bash
-# Create a deterministic tool
-ice new tool pricing_calc_tool --description "Compute sale price"
+# Generate a new Tool skeleton in src/acme_tools/
+$ ice new tool --name acme_discount --description "Apply ACME discount" --output-dir src/acme_tools
 
-# Create an agent and expose it as a tool
-ice new agent support_chat_agent --system-prompt "You are support." --tools search_tool
-ice new agent-tool support_chat_agent
-
-# Stateless LLM operator (single-shot generation)
-ice new llm-operator summarize_text --model gpt-4o
+# Resulting files:
+#   src/acme_tools/acme_discount.py
+#   tests/unit/acme_tools/test_acme_discount.py
 ```
 
-Each command writes to `src/ice_tools/generated/…` and components auto-register on import – no extra wiring required.
+Other scaffold sub-commands: `agent`, `agent-tool`, `llm-operator`.
 
-## Typical workflow
+---
+
+## 2. Running a blueprint
+
 ```bash
-make dev-up                  # start Redis & API in background
+# Execute in offline/test mode (default)
+$ ice run examples/blueprints/seller_assistant.yaml
 
-# Build a Blueprint with the SDK or Frosty
-python examples/hello_workflow.py > hello.json
-
-# Upload and execute
-ice push hello.json          # prints Blueprint ID and stores it locally
-ice run --last               # streams execution status until completion
+# Live mode
+$ ICE_TEST_MODE=0 ice run examples/blueprints/seller_assistant.yaml
 ```
 
-## Environment variables
-| Variable          | Description                                | Default                    |
-|-------------------|--------------------------------------------|----------------------------|
-| `ICEOS_API_URL`   | Base URL for the iceOS API                 | `http://localhost:8000`    |
-| `ICEOS_API_TOKEN` | Bearer token (once auth middleware added)  | *not required in dev mode* |
+`ice run` internally calls `ice_builder` to parse YAML → `Workflow` and then
+hands execution to `ice_orchestrator`.
 
-## Developer notes
-* `ice_cli` **only** imports from `ice_core` for shared models and uses
-  `httpx` for network calls – no cross-layer violations.
-* New sub-commands should live in `src/ice_cli/commands/` and be registered
-  in `ice_cli.cli` to keep the main entry-point lean.
+---
+
+## 3. Exporting JSON-Schemas
+
+```bash
+$ ice export-schemas
+# Schemas written to schemas/generated/* (used by backend validator)
+```
+
+---
+
+## Development notes
+
+* CLI startup must stay under **100 ms** (cold) – avoid heavy imports.
+* All commands defer to underlying packages; `ice_cli` itself holds **no
+  business logic**.
+* Integration tests live in `tests/unit/ice_cli/*`.

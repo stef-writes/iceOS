@@ -40,9 +40,29 @@ import json
 # Version-lock helpers ------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-def _calculate_version_lock(bp: Blueprint) -> str:  # noqa: D401
-    """Return SHA-256 hash of the blueprint's JSON representation."""
-    payload = bp.model_dump(mode="json", exclude_none=True)
+def _calculate_version_lock(bp: Blueprint | Any) -> str:  # noqa: D401
+    """Return SHA-256 hash of the blueprint JSON, resilient to FastAPI/Pydantic callbacks.
+
+    FastAPI may call this helper while still inside a *model_validator* where
+    ``bp`` is actually a :class:`pydantic.ValidationInfo` instance.  In that
+    case we attempt to grab the underlying ``data``; if unavailable we bail
+    out with an empty string so the request fails deterministically upstream.
+    """
+    # Fast path – already a Blueprint instance
+    if hasattr(bp, "model_dump"):
+        payload = bp.model_dump(mode="json", exclude_none=True)  # type: ignore[arg-type]
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+    # Handle Pydantic v2 ValidationInfo wrapper transparently (runtime optional)
+    data_obj = getattr(bp, "data", None) if hasattr(bp, "data") else None
+    if data_obj is not None and hasattr(data_obj, "model_dump"):
+        payload = data_obj.model_dump(mode="json", exclude_none=True)  # type: ignore[arg-type]
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+    # Fallback – unknown type, return deterministic empty hash so caller fails
+    return "0" * 64
+
+    payload = bp.model_dump(mode="json", exclude_none=True)  # type: ignore[arg-type]
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 

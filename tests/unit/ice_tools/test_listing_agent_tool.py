@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pytest
 
-import ice_tools.ecommerce.listing_agent  # noqa: F401 – side-effect registration
-from ice_tools.ecommerce.listing_agent import ListingAgentTool
+import ice_tools.toolkits.ecommerce.listing_agent  # noqa: F401 – side-effect registration
+from ice_tools.toolkits.ecommerce.listing_agent import ListingAgentTool
 
 
 @pytest.mark.asyncio

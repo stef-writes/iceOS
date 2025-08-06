@@ -168,7 +168,7 @@ class LLMService:
                 )
 
             # Result type preserved by our annotations above but *asyncio.wait_for*
-            # strips it in stubs – cast to silence MyPy when needed.
+            # strips it in stubs – *await* ensures correct type here.
             return result_any
         except (
             openai_error.RateLimitError,  # type: ignore[attr-defined]

@@ -9,11 +9,13 @@ At runtime the real implementation is provided by the orchestrator and
 registered in the `ServiceLocator` under the key ``tool_execution_service``.
 The proxy simply forwards every call to that registered instance.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from ice_core.services import ServiceLocator
+from ice_core.protocols.runtime_factories import ToolExecutionServiceProtocol
+from ice_core.runtime import tool_execution_service
 
 
 class ToolService:  # pylint: disable=too-few-public-methods
@@ -23,19 +25,21 @@ class ToolService:  # pylint: disable=too-few-public-methods
     logic lives in :pyclass:`ice_orchestrator.services.tool_execution_service.ToolExecutionService`.
     """
 
-    _delegate_key: str = "tool_execution_service"
+    _delegate_instance: ToolExecutionServiceProtocol | None = None
 
     # ---------------------------------------------------------------------
     # Convenience getters --------------------------------------------------
     # ---------------------------------------------------------------------
     @property
-    def _delegate(self) -> Any:  # type: ignore[return-annotation]
-        delegate = ServiceLocator.get(self._delegate_key)
-        if delegate is None:
-            raise RuntimeError(
-                "ToolExecutionService is not registered – orchestrator not initialised?"
-            )
-        return delegate
+    def _delegate(self) -> ToolExecutionServiceProtocol:
+        if self._delegate_instance is None:
+            if tool_execution_service is None:
+                raise RuntimeError(
+                    "`tool_execution_service` not set. The orchestrator layer must assign "
+                    "ice_core.runtime.tool_execution_service at start-up."
+                )
+            self._delegate_instance = tool_execution_service
+        return self._delegate_instance
 
     # ------------------------------------------------------------------
     # Public API mirrors the real service --------------------------------
@@ -47,11 +51,11 @@ class ToolService:  # pylint: disable=too-few-public-methods
         context: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """Forward to runtime service."""
-        return await self._delegate.execute_tool(tool_name, inputs, context)  # type: ignore[arg-type, no-any-return]
+        return await self._delegate.execute_tool(tool_name, inputs, context)
 
     def list_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return metadata for all registered tools."""
-        return self._delegate.list_tools()  # type: ignore[no-any-return]
+        return self._delegate.list_tools()
 
     def available_tools(self) -> list[str]:  # noqa: D401 – helper alias
         """Return a flat list of available tool names.

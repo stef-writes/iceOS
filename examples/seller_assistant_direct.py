@@ -5,11 +5,30 @@ import asyncio
 import json
 from pathlib import Path
 
+from dotenv import load_dotenv
+# Load env vars from .env then fallback file for demo secrets
+load_dotenv()
+fallback_env = Path("config/dev.env.example")
+if fallback_env.is_file():
+    load_dotenv(dotenv_path=fallback_env)
+
 from ice_core.models.node_models import ToolNodeConfig, LoopNodeConfig
 from ice_orchestrator.workflow import Workflow
 
-# Ensure tools are loaded
+# Import orchestrator to register executors
+import ice_orchestrator  # This registers all node executors
+
+# Ensure tools are loaded and register e-commerce toolkit
 import ice_tools
+from ice_core.unified_registry import registry
+from ice_core.models.enums import NodeType
+from ice_tools.toolkits.ecommerce.listing_agent import ListingAgentTool
+# Ensure real listing_agent (test_mode False) overwrites default
+registry._instances.setdefault(NodeType.TOOL, {})["listing_agent"] = ListingAgentTool(test_mode=False, upload=False)
+from ice_tools.toolkits.ecommerce import EcommerceToolkit
+
+# Register a toolkit instance with default config (offline)
+EcommerceToolkit(test_mode=False, upload=False).register()
 
 
 async def main():
@@ -18,7 +37,7 @@ async def main():
     print("Creating nodes...")
     
     # Create nodes with all fields
-    csv_path = Path("src/ice_tools/ecommerce/Supply Yard - Overflow Items - Sheet1.csv").resolve()
+    csv_path = Path("src/ice_tools/toolkits/ecommerce/Supply Yard - Overflow Items - Sheet1.csv").resolve()
     
     load_csv = ToolNodeConfig(
         id="load_csv",
@@ -29,39 +48,72 @@ async def main():
         dependencies=[]
     )
     
-    process_loop = LoopNodeConfig(
-        id="process_loop",
-        name="Process Items",
-        type="loop",
-        items_source="load_csv.rows",
-        item_var="item",
-        body_nodes=["listing_agent"],
-        dependencies=["load_csv"]
+    # Start a mock HTTP bin server for posting demo payloads
+    mock_server = ToolNodeConfig(
+        id="mock_server",
+        name="Start Mock Server",
+        type="tool",
+        tool_name="mock_http_bin",
+        tool_args={},
+        dependencies=[]
     )
-    
+
+    # Listing agent first so we can reference its output
     listing_agent = ToolNodeConfig(
         id="listing_agent",
         name="Create Listing",
         type="tool",
         tool_name="listing_agent",
-        tool_args={
-            "margin_percent": 25.0,
-            "model": "gpt-4o",
-            "test_mode": True
-        },
-        dependencies=[]
+        tool_args={"item": "{{ item }}"},  # Explicit mapping
+        dependencies=[]  # No deps - executed sequentially in loop
     )
+
+    # Format payload for Facebook Marketplace
+    fb_format = ToolNodeConfig(
+        id="fb_format",
+        name="Format FB Payload",
+        type="tool",
+        tool_name="facebook_formatter",
+        tool_args={},  # Context-aware - will find listing_agent output
+        dependencies=[]  # No deps - executed sequentially after listing_agent
+    )
+
+    # POST payload to mock server
+    post_item = ToolNodeConfig(
+        id="post_item",
+        name="Post Item",
+        type="tool",
+        tool_name="api_poster",
+        tool_args={"mock": True},  # Context-aware - will find url and payload
+        dependencies=[]  # No deps - mock_server context comes from parent
+    )
+
+
     
-    aggregator = ToolNodeConfig(
-        id="aggregate",
-        name="Aggregate Results",
+    # Replace loop with loop_tool
+    loop_tool = ToolNodeConfig(
+        id="listing_loop",
+        name="Listing Loop",
+        type="tool",
+        tool_name="loop_tool",
+        tool_args={
+            "items": "{{ load_csv.rows }}",  # Pass rows list
+            "tool": "listing_agent",
+            "item_var": "item",
+        },
+        dependencies=["load_csv"]
+    )
+
+    summarize = ToolNodeConfig(
+        id="summarize",
+        name="Summarize Results",
         type="tool",
         tool_name="aggregator",
-        tool_args={"results": "{{ process_loop.* }}"},
-        dependencies=["process_loop"]
+        tool_args={},
+        dependencies=["listing_loop"],
     )
-    
-    nodes = [load_csv, process_loop, listing_agent, aggregator]
+
+    nodes = [load_csv, mock_server, loop_tool, summarize]
     
     print(f"Created {len(nodes)} nodes")
     
@@ -102,6 +154,28 @@ async def main():
         print(f"❌ Execution failed: {type(e).__name__}: {e}")
         import traceback
         traceback.print_exc()
+        return
+
+    # ------------------------------------------------------------------
+    # Persist mock postings for inspection ------------------------------
+    # ------------------------------------------------------------------
+    try:
+        mock_url = result.output["mock_server"]["url"]  # type: ignore[index]
+        import httpx, json as _json
+        postings = httpx.get(mock_url, timeout=5).json()
+
+        out_dir = Path(__file__).parent / "output"
+        out_dir.mkdir(exist_ok=True)
+        out_file = out_dir / "listings_direct.json"
+        out_file.write_text(_json.dumps(postings, indent=2))
+        # Also save original CSV rows for comparison
+        rows_file = out_dir / "input_rows.json"
+        rows_file.write_text(_json.dumps(result.output["load_csv"]["rows"], indent=2))  # type: ignore[index]
+        print(f"\n📄 Mock postings written to {out_file.relative_to(Path.cwd())}")
+        print(f"📄 Input rows written to {rows_file.relative_to(Path.cwd())}")
+        print(f"🔗 Browse live at {mock_url}")
+    except Exception as e:
+        print(f"(Could not fetch/write mock postings: {e})")
 
 
 if __name__ == "__main__":

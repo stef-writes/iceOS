@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pytest
 
-import ice_tools.title_description_generator  # noqa: F401 – side-effect registration
-from ice_tools.title_description_generator import TitleDescriptionGeneratorTool
+import ice_tools  # noqa: F401 – ensure toolkit auto-registration
+from ice_tools.toolkits.ecommerce.title_description_generator import TitleDescriptionGeneratorTool
 
 
 @pytest.mark.asyncio

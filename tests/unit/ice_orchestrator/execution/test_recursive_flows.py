@@ -218,7 +218,7 @@ class TestWorkflowRecursiveExecution:
     
     def test_cycle_detection_allows_recursive_cycles(self):
         """Test that cycle detection allows properly configured recursive cycles."""
-        from ice_core.graph.dependency_graph import DependencyGraph
+        from ice_orchestrator.graph.dependency_graph import DependencyGraph
         from ice_core.models import AgentNodeConfig
 
         # Create nodes with a recursive cycle
@@ -245,7 +245,7 @@ class TestWorkflowRecursiveExecution:
     def test_cycle_detection_blocks_invalid_cycles(self):
         """Test that cycle detection blocks improperly configured cycles."""
         from ice_core.exceptions import CycleDetectionError as CircularDependencyError
-        from ice_core.graph.dependency_graph import DependencyGraph
+        from ice_orchestrator.graph.dependency_graph import DependencyGraph
         from ice_core.models import AgentNodeConfig
 
         # Create nodes with an invalid cycle (no recursive node)

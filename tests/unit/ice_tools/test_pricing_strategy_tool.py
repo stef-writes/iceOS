@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from ice_tools.ecommerce.pricing_strategy import PricingStrategyTool
+from ice_tools.toolkits.ecommerce.pricing_strategy import PricingStrategyTool
 
 
 @pytest.mark.asyncio

@@ -1,15 +1,8 @@
-"""LLM-related domain models shared across the code-base.
-
-These definitions are extracted from *ice_sdk.models.config* so that higher
-layers can depend on a stable, framework-agnostic contract without importing
-ice_sdk.* (which would violate layering rules).
-"""
-
 from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from packaging import version  # runtime dependency provided by poetry
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -158,10 +151,9 @@ class MessageTemplate(BaseModel):
     ) -> bool:
         """Return ``True`` when *model_name* meets *min_model_version*."""
         try:
-            model_ver = version.parse(parse_model_version(model_name, provider))
-            min_ver = version.parse(
-                parse_model_version(self.min_model_version, self.provider)
-            )
+            from packaging.version import Version
+            model_ver = Version(parse_model_version(model_name, provider))
+            min_ver = Version(parse_model_version(self.min_model_version, self.provider))
             return model_ver >= min_ver
         except ValueError:
             return False

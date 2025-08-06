@@ -31,13 +31,16 @@ router = APIRouter(prefix="/ws/mcp", tags=["mcp"])
 # Simple bearer-token auth helper
 # ---------------------------------------------------------------------------
 
+
 def _auth_token() -> str:
     return os.getenv("ICE_WS_BEARER", "dev-token")
+
 
 def _assert_auth(ws: WebSocket) -> None:
     proto = ws.headers.get("sec-websocket-protocol")
     if proto != _auth_token():
         raise WebSocketDisconnect(code=status.WS_1008_POLICY_VIOLATION)
+
 
 # ---------------------------------------------------------------------------
 # JSONSchema registry --------------------------------------------------------
@@ -89,13 +92,16 @@ _VALIDATORS = {name: Draft202012Validator(schema) for name, schema in _SCHEMAS.i
 _clients: set[WebSocket] = set()
 _broadcast_q: asyncio.Queue[str] = asyncio.Queue()
 
+
 async def _broadcast_worker() -> None:
     """Background task: pop messages from queue and fan-out to clients."""
     while True:
         msg = await _broadcast_q.get()
         disconnected: list[WebSocket] = []
         for ws in _clients:
-            if ws.application_state == WebSocketState.CONNECTED:
+            from typing import cast
+
+            if cast(Any, ws.application_state) == WebSocketState.CONNECTED:
                 try:
                     await ws.send_text(msg)
                 except Exception:
@@ -103,7 +109,9 @@ async def _broadcast_worker() -> None:
         for dead in disconnected:
             _clients.discard(dead)
 
+
 aio_bg_task: asyncio.Task[None] | None = None
+
 
 @router.websocket("/")
 async def mcp_ws(ws: WebSocket) -> None:  # – FastAPI handler

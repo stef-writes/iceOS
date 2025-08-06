@@ -12,7 +12,8 @@ layer boundaries.
 from pathlib import Path
 from typing import Any, Dict, List
 
-from ice_core.services import ServiceLocator
+from ice_core.protocols.runtime_factories import NetworkCoordinatorFactory
+from ice_core.runtime import network_coordinator_factory
 
 __all__ = ["NetworkService"]
 
@@ -26,26 +27,26 @@ class NetworkService:
     """Public façade for loading & executing network manifests."""
 
     def __init__(self) -> None:  # noqa: D401 – simple init
-        self._coordinator_cls = None
+        self._coordinator_cls: NetworkCoordinatorFactory | None = None
         self._initialized = False
 
     # ------------------------------------------------------------------
-    # Internal helpers                                                   
+    # Internal helpers
     # ------------------------------------------------------------------
 
     def _ensure_initialized(self) -> None:
         if self._initialized:
             return
-        cls = ServiceLocator.get("network_coordinator_cls")
-        if cls is None:
+        if network_coordinator_factory is None:
             raise RuntimeError(
-                "NetworkCoordinator not registered – call initialize_orchestrator() first."
+                "`network_coordinator_factory` not set. The orchestrator layer must assign "
+                "ice_core.runtime.network_coordinator_factory at start-up."
             )
-        self._coordinator_cls = cls
+        self._coordinator_cls = network_coordinator_factory  # type: ignore[assignment]
         self._initialized = True
 
     # ------------------------------------------------------------------
-    # Execution helpers                                                  
+    # Execution helpers
     # ------------------------------------------------------------------
 
     async def execute(
@@ -64,24 +65,28 @@ class NetworkService:
         self._ensure_initialized()
         if self._coordinator_cls is None:
             raise RuntimeError("NetworkCoordinator not registered")
-        coord = self._coordinator_cls.from_file(Path(manifest_path))
+        coord = self._coordinator_cls.from_file(Path(manifest_path))  # type: ignore[arg-type]
         if scheduled:
             # Respect schedules
             await coord.execute_scheduled(loop_forever=loop_forever)
             return {}
         # One-off execution
         result = await coord.execute()
-        return result if isinstance(result, dict) else {} 
+        return result if isinstance(result, dict) else {}
 
     # ------------------------------------------------------------------
-    # Legacy spec CRUD stubs – no-op for now                            
+    # Legacy spec CRUD stubs – no-op for now
     # ------------------------------------------------------------------
 
-    async def create_network_spec(self, spec: Dict[str, Any]) -> str:  # pragma: no cover
+    async def create_network_spec(
+        self, spec: Dict[str, Any]
+    ) -> str:  # pragma: no cover
         """Stub to satisfy older API layers – returns fake ID."""
         import uuid
 
         return str(uuid.uuid4())
 
-    async def list_network_specs(self, filter: str = "") -> List[Dict[str, Any]]:  # pragma: no cover
-        return [] 
+    async def list_network_specs(
+        self, filter: str = ""
+    ) -> List[Dict[str, Any]]:  # pragma: no cover
+        return []

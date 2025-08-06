@@ -58,9 +58,9 @@ from ice_core.models.mcp import (
     RunRequest,
     RunResult,
 )
+from ice_core.registry import global_agent_registry, registry
 from ice_core.services import ServiceLocator
 from ice_core.services.contracts import IWorkflowService
-from ice_core.unified_registry import global_agent_registry, registry
 
 # Import execution guard to allow orchestrator runtime during MCP execution
 
@@ -160,7 +160,7 @@ async def create_blueprint(bp: Blueprint) -> BlueprintAck:
     if visualization_data:
         blueprint_data["visualization"] = json.dumps(visualization_data)
 
-    redis.hset(_bp_key(bp.blueprint_id), mapping=blueprint_data)
+    await redis.hset(_bp_key(bp.blueprint_id), mapping=blueprint_data)
     return BlueprintAck(blueprint_id=bp.blueprint_id, status="accepted")
 
 
@@ -229,7 +229,7 @@ async def get_blueprint_visualization(blueprint_id: str) -> Dict[str, Any]:
     #
     #     if visualization_result.get("status") == "success":
     #         # Cache the result for future requests
-    #         redis.hset(_bp_key(blueprint_id), "visualization", json.dumps(visualization_result))
+    #         await redis.hset(_bp_key(blueprint_id), "visualization", json.dumps(visualization_result))
     #         return visualization_result
     #     else:
     #         raise HTTPException(500, detail=f"Visualization generation failed: {visualization_result.get('error', 'Unknown error')}")
@@ -257,7 +257,7 @@ async def create_partial_blueprint(
         partial.add_node(initial_node)
 
     redis = get_redis()
-    redis.hset(
+    await redis.hset(
         _partial_bp_key(partial.blueprint_id),
         mapping={"json": partial.model_dump_json()},
     )
@@ -297,7 +297,7 @@ async def update_partial_blueprint(
         partial._validate_incremental()
 
     # Save updated state
-    redis.hset(
+    await redis.hset(
         _partial_bp_key(partial.blueprint_id),
         mapping={"json": partial.model_dump_json()},
     )
@@ -322,12 +322,12 @@ async def finalize_partial_blueprint(blueprint_id: str) -> BlueprintAck:
         raise HTTPException(400, str(e))
 
     # Save as regular blueprint
-    redis.hset(
+    await redis.hset(
         _bp_key(blueprint.blueprint_id), mapping={"json": blueprint.model_dump_json()}
     )
 
     # Clean up partial
-    redis.hdel(_partial_bp_key(blueprint_id), "json")
+    await redis.hdel(_partial_bp_key(blueprint_id), "json")
 
     return BlueprintAck(blueprint_id=blueprint.blueprint_id, status="accepted")
 
@@ -640,12 +640,12 @@ async def validate_component_definition(
                     # Find the tool class in namespace
                     tool_class = None
                     for name, obj in namespace.items():
-                        if inspect.isclass(obj) and issubclass(obj, ToolBase):
+                        if inspect.isclass(obj) and issubclass(obj, ToolBase) and obj is not ToolBase and not inspect.isabstract(obj):
                             tool_class = obj
                             break
 
                     if tool_class:
-                        tool_instance = tool_class()
+                        tool_instance = tool_class()  # type: ignore[call-arg]
                         registry.register_instance(NodeType.TOOL, definition.name, tool_instance)  # type: ignore[arg-type]
                         result.registered = True
                         result.registry_name = definition.name
@@ -780,7 +780,8 @@ async def create_design_session() -> Dict[str, Any]:
 async def get_design_session(session_id: str) -> Dict[str, Any]:
     """Get current state of a design session."""
     redis = get_redis()
-    session_data = await redis.hgetall(f"design_session:{session_id}")  # type: ignore[misc]
+    raw_session = await redis.hgetall(f"design_session:{session_id}")  # type: ignore[misc]
+    session_data: Dict[str, Any] = dict(raw_session)
 
     if not session_data:
         raise HTTPException(404, f"Design session {session_id} not found")
@@ -801,7 +802,7 @@ async def get_design_session(session_id: str) -> Dict[str, Any]:
         session_data.get("registered_components", "[]")
     )
 
-    return cast(Dict[str, Any], session_data)
+    return session_data
 
 
 @router.post("/blueprints/design-session/{session_id}/register-component")
@@ -810,7 +811,8 @@ async def register_session_component(
 ) -> Dict[str, Any]:
     """Track that a component was registered in this design session."""
     redis = get_redis()
-    session_data = await redis.hgetall(f"design_session:{session_id}")  # type: ignore[misc]
+    raw_session = await redis.hgetall(f"design_session:{session_id}")  # type: ignore[misc]
+    session_data: Dict[str, Any] = dict(raw_session)
 
     if not session_data:
         raise HTTPException(404, f"Design session {session_id} not found")

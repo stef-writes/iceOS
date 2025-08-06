@@ -21,7 +21,7 @@ class ToolBase(BaseModel, ABC):
     description: str = ""
     
     @abstractmethod
-    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
+    async def _execute_impl(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         """Override in subclasses to provide tool-specific logic."""
         pass
     

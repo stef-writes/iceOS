@@ -1,98 +1,165 @@
 # iceOS – Intelligent Orchestration Platform
 
----
-## Repository at a Glance
-| Layer | Path | Role |
-|-------|------|------|
-| **Builder DSL** | `src/ice_builder/` | Fluent DSL and toolkits for programmatic blueprint authoring |
-| **MCP API (Compiler)** | `src/ice_api/` | Validates `Blueprint`s / `ComponentDefinition`s, performs budget checks, streams events |
-| **Orchestrator (Runtime)** | `src/ice_orchestrator/` | DAG execution engine with parallelism, retries, metrics, memory & LLM providers |
-| **Core Models & Protocols** | `src/ice_core/` | Pydantic configs, typed exceptions, protocol definitions, unified registry |
-| **CLI** | `src/ice_cli/` | One-line helpers (blueprint execution, schema export, doctor, …) |
+> *No-fluff, fully-typed, test-driven micro-framework for composable AI/LLM workflows in Python 3.10.*
 
 ---
-## Key Features
-* **12 first-class node types** – tool • llm • agent • condition • workflow • loop • parallel • recursive • code • human • monitor • swarm  
-  Defined in [`ice_core.models.node_models`](src/ice_core/models/node_models.py).
-* **Unified memory subsystem** – working (RAM/Redis), episodic (Redis), semantic (vector/SQLite) & procedural stores, all addressable through `ice_core.memory.*`.
-* **Incremental design-time validation** – `PartialBlueprint` → `Blueprint` with schema-level and cross-node checks before runtime.
-* **Selective WASM sandboxing** – untrusted *code* and *condition* nodes run in a locked-down environment; trusted nodes keep full Python power.
-* **Structured logging & OpenTelemetry** – every run emits rich, provider-agnostic telemetry out-of-the-box.
-* **Cost & token accounting** – per-node and aggregate budgets enforced at compile-time and monitored at runtime.
-* **Extensible registries** – declarative plugin manifests enable deterministic, offline operation (`docs/generated/manifest_auto.md`).
+
+## 1. What is iceOS?
+
+iceOS is an **experimental DAG orchestrator** and supporting toolkit that lets you describe multi-step workflows – CSV ingestion → pricing → copywriting → HTTP POST – entirely in Python **or** YAML blueprints.  Nodes are executed asynchronously, inputs/outputs are validated with Pydantic, and every public-facing API is covered by strict typing & tests.
+
+Think of it as the narrow slice of Airflow you actually need for LLM apps, minus heavyweight scheduling cruft – plus first-class support for:
+
+* ✨ **LLM nodes** (OpenAI, Anthropic, DeepSeek)
+* 🔄 **Loop / recursive** execution with automatic context propagation
+* 🧰 **Toolkits** – pluggable bundles of ready-made tools (`csv_loader`, `pricing_strategy`, …)
+* 📦 **Single-process dev mode** – run everything locally before you deploy anything
+
+> Status: **Alpha** – APIs change without notice.  CI passes; demos run end-to-end.
 
 ---
-## Installation
-iceOS uses [Poetry](https://python-poetry.org/) for dependency management.  Ensure Python ≥ 3.10 is available, then run:
+
+## 2. Requirements
+
+* Python **3.10** (3.11 works but isn’t CI-gated yet)
+* `make` & a modern C compiler (for `uvicorn`, `httpx` wheels)
+* Optional: Docker (for sandboxing Kuyamux WASM tests)
+
+---
+
+## 3. Installation (editable dev mode)
 
 ```bash
-# clone & enter the repo
-$ git clone https://github.com/<your-org>/iceOS.git && cd iceOS
-# create virtual-env, install core + dev extras, set up git hooks
-$ make setup
+# Clone
+$ git clone https://github.com/your-org/iceOS.git
+$ cd iceOS
+
+# Create & activate virtualenv (any tool – here: venv)
+$ python -m venv .venv
+$ source .venv/bin/activate
+
+# Install Python deps (PEP-517 via Poetry)
+$ pip install poetry==1.8.*
+$ poetry install --sync
+
+# Add src/ to editable path so examples can do `import ice_orchestrator`
+$ pip install -e .
 ```
 
-> **Hint** – `make help` lists every available target.
+Environment variables (copy `.env.example` to `.env` or export manually):
+
+```env
+# Required only for live demos
+OPENAI_API_KEY="sk-..."
+ICE_TEST_MODE=1   # set to 0 for live network calls
+```
 
 ---
-## Quick Start
+
+## 4. Quick Start – run the Seller Assistant demo
+
 ```bash
-# 1️⃣ Run the test-suite (optional but recommended)
-$ make test
+# Offline, synthetic LLM responses (fast)
+$ python examples/seller_assistant_fluent.py
 
-# 2️⃣ Spin up Redis & start the API (Docker required for the Redis helper)
-$ make dev               # starts Redis (via Docker) + hot-reloaded API
+# Same but declarative builder API
+$ python examples/seller_assistant_direct.py
 
-# 3️⃣ Copy the environment template and add your API keys (optional but recommended)
-$ cp config/dev.env.example .env
-
-# 4️⃣ Execute a blueprint (local runtime)
-$ poetry run ice run-blueprint examples/hello_world.json
+# Real OpenAI calls – requires OPENAI_API_KEY
+$ export OPENAI_API_KEY="sk-..."
+$ python examples/seller_assistant_live.py
 ```
 
-Need a blueprint?  Generate one programmatically:
-```python
-from ice_builder.dsl import workflow, tool
-from ice_builder.dsl.network import save_blueprint
+Expected output (truncated):
 
-with workflow("hello") as wf:
-    echo = tool("echo", message="Hello iceOS!")
-
-save_blueprint(wf, "examples/hello_world.json")
+```jsonc
+{
+  "total": 9,
+  "success": 9,
+  "failures": 0,
+  "items": [
+    { "listing_id": "LOC-refrigerator-...", "price": 750.0, ... },
+    ... 8 more items ...
+  ]
+}
 ```
+
+The live run additionally starts a local FastAPI *mock HTTP bin*; browse the stored payloads at the printed URL.
 
 ---
-## Project Layout (high level)
-```text
-src/
- ├─ ice_core/          # Shared models, utils, registries, memory
- ├─ ice_orchestrator/  # Execution engine (+ agents, tools, providers)
- ├─ ice_api/           # Compiler / validation API (FastAPI JSON-RPC + stdio)
- ├─ ice_builder/       # Authoring DSL + natural-language pipeline
- ├─ ice_cli/           # Thin Click wrapper around common tasks
- └─ ice_client/        # Async client for remote orchestrator
-```
-A full, generated layout with every file is available in `docs/generated/architecture_auto.md`.
 
----
-## Documentation
-* **Generated docs** – `docs/generated/*`
-* **Generated API & schema docs** – `docs/generated/*`
-* **Roadmap** – `docs/Looking_Forward/iceos-comprehensive_vision_roadmap.md`
+## 5. Running the Test-Suite + linters
 
-The Markdown site can be built locally with:
 ```bash
-$ make docs   # outputs to ./site/
+# Unit + integration tests (pytest-xdist)
+$ make test          # alias for: pytest -n auto tests/
+
+# Type-check (strict) & style
+$ mypy --strict src/
+$ ruff check src/
 ```
 
----
-## Contributing
-Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) for coding standards, architectural boundaries and CI requirements.  Highlights:
-1. **Strict typing** – `mypy --strict` must pass.
-2. **Coverage ≥ 90 %** on changed lines.
-3. Use **Google-style doc-strings** & **Pydantic models** for all public APIs.
-4. External side-effects live only inside *Tool* implementations.
+Coverage must be ≥ 90 % on changed lines; CI will reject lower.
 
 ---
-## License
-iceOS is released under the MIT License – see [`LICENSE`](LICENSE) for details.
+
+## 6. Package overview
+
+| Package | What lives here |
+|---------|-----------------|
+| `ice_core` | Pure-Python domain models, validation, metrics, registry & core tool abstractions |
+| `ice_orchestrator` | DAG execution engine, node executors, retry logic |
+| `ice_builder` | Authoring DSL + fluent `WorkflowBuilder` helper |
+| `ice_cli` | `ice` command-line utility (`ice scaffold`, `ice run`, …) |
+| `ice_client` | Thin HTTP/JSON-RPC client for remote orchestrator clusters |
+| `ice_tools` | Built-in toolkits – e-commerce demo, common utilities |
+
+Docs for each live in the corresponding `README.md` files.
+
+---
+
+## 7. Architecture layers (design → compile → run)
+
+| Phase | Tier | Responsibility | Code/Service |
+|-------|------|----------------|--------------|
+| Design-time | Canvas UI (future) | Human sketches workflow via spatial + NL interface | *Frontend repo* (yet to be open-sourced) |
+| Compile-time | MCP API / Validator | Convert partial blueprints into **frozen, validated** JSON specs; static checks, ID uniqueness, schema validation | `ice_api`, `ice_builder`, schemas/ |
+| Run-time | DAG Engine | Execute the compiled blueprint asynchronously; retries, context propagation, metrics | `ice_orchestrator` + workers |
+
+Data flows strictly **left → right**; each layer depends only on the one below it (`interface → orchestrator → core`).  This yields:
+
+* Early failure – compile-time catches errors before any costly LLM calls.
+* Horizontal scalability – run-time workers scale independently.
+* Stable contract – only the JSON Blueprint schema is shared across tiers.
+
+---
+
+## 8. Developing new tools
+
+1. **Subclass** `ice_core.base_tool.ToolBase`.
+2. Implement `_execute_impl(**kwargs) → dict` (async).
+3. Add Pydantic **config fields** for static parameters.
+4. Optionally override `get_input_schema` / `get_output_schema`.
+5. Register instance once:  
+   ```python
+   registry.register_instance(NodeType.TOOL, tool.name, tool)
+   ```
+
+External side-effects *must* stay inside `_execute_impl`.
+
+---
+
+## 9. Contributing
+
+* Fork → feature branch → PR – follow **mypy strict** & **ruff**.
+* Each new node/tool requires tests ≥ 90 % coverage.
+* No `# type: ignore` in core layers.
+* No marketing language in docs – facts only.
+
+Full guidelines in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+---
+
+## 10. License
+
+`Apache-2.0`.  See [`LICENSE`](LICENSE).

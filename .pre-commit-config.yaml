@@ -20,5 +20,7 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
+        pass_filenames: false
+        additional_dependencies: ["pydantic==2.7.0", "types-redis", "types-tenacity", "types-Jinja2"]
         args: ["--strict", "--config-file", "config/typing/mypy.ini", "src"]
       

@@ -5,6 +5,16 @@ from typing import Any, Callable, Dict, List, Optional, cast
 from ice_core.models import ModelProvider
 from ice_core.models.node_models import ContextFormat, ContextRule
 
+# Allowed basic type names for schema validation (no runtime eval used)
+TYPE_NAME_MAP: Dict[str, type] = {
+    "int": int,
+    "str": str,
+    "float": float,
+    "bool": bool,
+    "list": list,
+    "dict": dict,
+}
+
 
 class BaseContextFormatter:
     """Abstract base class for context formatters."""
@@ -16,6 +26,7 @@ class BaseContextFormatter:
         format_specs: Optional[Dict[str, Any]] = None,
     ) -> str:
         raise NotImplementedError
+
 
 class ContextFormatter(BaseContextFormatter):
     """Handles formatting of context data for nodes, with hooks and optional schema validation."""
@@ -116,6 +127,7 @@ class ContextFormatter(BaseContextFormatter):
         for key, typ in schema.items():
             if key not in content:
                 return False
-            if not isinstance(content[key], eval(typ)):
+            expected_type = TYPE_NAME_MAP.get(typ)
+            if expected_type is None or not isinstance(content[key], expected_type):
                 return False
         return True

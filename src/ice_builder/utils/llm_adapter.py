@@ -13,29 +13,30 @@ except Exception:
 
 from pydantic import BaseModel, Field
 
+# LLMService imported directly; ServiceLocator removed
+from ice_core.llm.service import LLMService
 from ice_core.models import LLMConfig, ModelProvider
 
-# LLMService is retrieved via ServiceLocator
-from ice_core.services import ServiceLocator
-
 __all__: list[str] = ["LLMServiceAdapter"]
+
 
 class CompletionRequest(BaseModel):
     prompt: str
     model: str = Field(default="gpt-4o")
     max_tokens: int = Field(default=2000, ge=1, le=4096)
 
+
 class LLMServiceAdapter:
     """Simple wrapper around `LLMService` with sync helper."""
 
     def __init__(self) -> None:
-        self._svc = None  # Will be lazily loaded from ServiceLocator
-    
+        self._svc: LLMService | None = None
+
     @property
     def _service(self) -> Any:
         """Lazy load the LLM service from ServiceLocator."""
         if self._svc is None:
-            self._svc = ServiceLocator.get("llm_service_impl")
+            self._svc = LLMService()
         return self._svc
 
     async def generate_async(
@@ -59,5 +60,3 @@ class LLMServiceAdapter:
         return asyncio.run(
             self.generate_async(prompt, model=model, max_tokens=max_tokens)
         )
-
-ServiceLocator.register("llm_service", LLMServiceAdapter())
