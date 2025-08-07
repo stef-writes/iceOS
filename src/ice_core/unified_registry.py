@@ -436,7 +436,7 @@ class Registry(BaseModel):
         self._instances.setdefault(NodeType.AGENT, {})[name] = cls  # type: ignore[arg-type,assignment]
         return cls
 
-    def get_agent_instance(self, name: str, **kwargs: Any) -> INode:
+    def get_agent_instance(self, name: str, **kwargs: Any) -> IAgent:
         """Instantiate an agent via its registered factory and return *fresh* instance.
 
         The factory must return an object that implements the agent protocol and passes

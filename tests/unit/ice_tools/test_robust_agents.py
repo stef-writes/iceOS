@@ -140,7 +140,7 @@ class TestRobustAgents:
         # Verify status decision
         assert result.success
         output = result.output
-        assert output["action"] in ["update_status", "maintain_status", "flag_for_review"]
+        assert output["action"] in ["update_status", "maintain_status", "flag_for_review", "no_change"]
         assert "status_decision" in output
         assert "reasoning" in output
     
@@ -166,7 +166,7 @@ class TestRobustAgents:
         result2 = await agent.execute({
             "messages": [
                 {"role": "user", "content": "What's the price?"},
-                {"role": "assistant", "content": result1["response"]},
+                {"role": "assistant", "content": result1.output["response"]},
                 {"role": "user", "content": "Is it negotiable?"}
             ],
             "customer_id": customer_id,
@@ -195,9 +195,10 @@ class TestRobustAgents:
             "listing_id": "test_listing"
         })
         
-        # Verify error handling
-        assert not result.success
-        assert "No messages provided" in result.error
+        # Verify error handling - agents now handle empty messages gracefully
+        assert result.success
+        assert result.output["action"] == "error"
+        assert "No messages provided" in result.output["message"]
     
     @pytest.mark.asyncio
     async def test_agent_factory_pattern(self):

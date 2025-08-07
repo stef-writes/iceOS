@@ -89,8 +89,10 @@ async def test_tool_executor_placeholder(monkeypatch):
     mock_tool = Mock()
     mock_tool.execute = AsyncMock(return_value={"echoed": "bar"})
 
-    # Register the mock tool
-    registry.register_instance(NodeType.TOOL, "echo_tool", mock_tool, validate=False)
+            # Register the mock tool with factory pattern
+        def create_echo_tool(**kwargs):
+            return mock_tool
+        registry.register_tool_factory("echo_tool", "tests.unit.ice_orchestrator.execution.test_builtin_executors:create_echo_tool")
 
     cfg = ToolNodeConfig(
         id="tool1",
@@ -130,8 +132,10 @@ async def test_agent_executor():
     mock_agent = Mock()
     mock_agent.execute = AsyncMock(return_value={"response": "Agent executed"})
 
-    # Register the mock agent
-    registry.register_instance(NodeType.AGENT, "test_agent", mock_agent)
+            # Register the mock agent with factory pattern
+        def create_test_agent(**kwargs):
+            return mock_agent
+        registry.register_agent_factory("test_agent", "tests.unit.ice_orchestrator.execution.test_builtin_executors:create_test_agent")
 
     cfg = AgentNodeConfig(
         id="agent1",
