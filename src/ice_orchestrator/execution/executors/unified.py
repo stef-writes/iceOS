@@ -389,7 +389,7 @@ async def agent_executor(
 
     try:
         # Get fresh agent instance via factory pattern
-        agent = registry.get_agent_instance(cfg.package)
+        agent: Any = registry.get_agent_instance(cfg.package)
 
         # Direct execution - agents are trusted and need full access
         agent_output: Any = await agent.execute(ctx)
@@ -649,13 +649,16 @@ async def loop_executor(
     start_time = datetime.utcnow()
 
     # --- Normalise cfg ---------------------------------------------------
+    from typing import Optional, cast
+
+    iterator_path: Optional[str]  # Allow None for fallback branch
     if isinstance(cfg, LoopNodeConfig):
         iterator_path = cfg.items_source
         max_iterations = cfg.max_iterations
         body = cfg.body
         item_var = cfg.item_var or "item"
     else:  # fallback for loose dict-like config
-        iterator_path = getattr(cfg, "items_source", None)
+        iterator_path = cast(Optional[str], getattr(cfg, "items_source", None))
         max_iterations = getattr(cfg, "max_iterations", 100)
         body = getattr(cfg, "body", [])
         item_var = getattr(cfg, "item_var", "item")

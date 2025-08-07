@@ -24,6 +24,7 @@ from ice_core.exceptions import RegistryError
 from ice_core.models import INode, NodeConfig, NodeExecutionResult
 from ice_core.models.enums import NodeType
 from ice_core.protocols.workflow import WorkflowLike
+from ice_core.protocols.agent import IAgent
 
 # Type aliases for node executors
 ExecCallable = Callable[
@@ -578,6 +579,11 @@ def get_tool_instance(name: str, **kwargs: Any) -> INode:  # noqa: D401
     return registry.get_tool_instance(name, **kwargs)
 
 
+def register_agent_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register an agent factory at module level for callers that don't need class access."""
+    registry.register_agent(name, import_path)
+
+
 # Direct access to the registry - no backward compatibility needed
 global_agent_registry = registry
 global_chain_registry = registry
@@ -589,6 +595,7 @@ __all__ = [
     "registry",
     "register_node",
     "register_tool_factory",
+    "register_agent_factory",
     "get_tool_instance",
     "get_executor",
     "NodeExecutor",

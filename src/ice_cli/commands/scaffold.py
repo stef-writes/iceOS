@@ -290,6 +290,7 @@ def scaffold_agent(name: str, description: str, system_prompt: str, tools: tuple
 def scaffold_agent_tool(agent_name: str, output_dir: Path) -> None:  # noqa: D401
     """Generate tool wrapper around an existing agent."""
     class_prefix = _snake_to_pascal(agent_name)
+    module_path = f"ice_tools.generated.{agent_name}_tool"
     rel = _create_from_template(
         "agent-tool",
         f"{agent_name}_tool",
@@ -297,6 +298,7 @@ def scaffold_agent_tool(agent_name: str, output_dir: Path) -> None:  # noqa: D40
         output_dir,
         agent_name=agent_name,
         class_name=class_prefix,
+        module_path=module_path,
     )
     click.echo(f"✅ Created {rel}")
 
