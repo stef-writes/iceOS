@@ -9,7 +9,7 @@ These tests validate that the iceOS layer architecture is respected:
 
 import ast
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import List, Set
 
 import pytest
 
@@ -150,35 +150,13 @@ class TestLayerBoundaries:
 
 import pytest
 
+## Removed obsolete ServiceLocator pattern tests (pattern removed from codebase)
 
-@pytest.mark.skip(reason="ServiceLocator pattern removed – obsolete test")
-class TestServiceLocatorPattern:
-    """Test that ServiceLocator is used correctly for cross-layer communication."""
 
+class TestCoreLayerIndependence:
     @pytest.fixture
     def project_root(self) -> Path:
         return Path(__file__).parent.parent.parent.parent / "src"
-
-    def test_service_locator_usage_in_api(self, project_root: Path):
-        """Test that API layer uses ServiceLocator for cross-layer services."""
-        ice_api_dir = project_root / "ice_api"
-
-        # Skip if API dir doesn't exist
-        if not ice_api_dir.exists():
-            pytest.skip("ice_api directory not found")
-
-        # Look for files that should use ServiceLocator
-        service_locator_files = []
-
-        for py_file in get_all_python_files(ice_api_dir):
-            content = py_file.read_text()
-
-            # Check for ServiceLocator usage
-            if "ServiceLocator" in content:
-                service_locator_files.append(str(py_file.relative_to(project_root)))
-
-        # ServiceLocator should be used in API layer for service initialization
-        assert service_locator_files, "ServiceLocator should be used in ice_api layer"
 
     def test_core_layer_independence(self, project_root: Path):
         """Test that core layer remains completely independent."""
@@ -205,16 +183,7 @@ class TestServiceLocatorPattern:
         ), f"Core layer has forbidden dependencies: {forbidden_imports}"
 
 
-class TestCircularImportPrevention:
-    """Test prevention of circular imports."""
-
-    @pytest.fixture
-    def project_root(self) -> Path:
-        return Path(__file__).parent.parent.parent.parent / "src"
-
-    def test_no_circular_imports_within_layers(self, project_root: Path):
-        """Circular import check removed – deprecated."""
-        return
+## Removed deprecated circular import check (no longer meaningful)
 
 
 class TestProtocolCompliance:

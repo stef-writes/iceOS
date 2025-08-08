@@ -1,5 +1,3 @@
-import json
-
 from fastapi.testclient import TestClient
 
 from ice_api.main import app
@@ -27,6 +25,7 @@ def _create_sample_blueprint():
 # ---------------------------------------------------------------------------
 # DELETE ---------------------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 def test_delete_blueprint_happy_path():
     blueprint_id, lock = _create_sample_blueprint()
@@ -75,6 +74,7 @@ def test_delete_conflict():
 # PUT ------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 def test_put_blueprint_happy_path():
     blueprint_id, lock = _create_sample_blueprint()
     new_payload = {
@@ -122,6 +122,7 @@ def test_put_conflict():
 # ---------------------------------------------------------------------------
 # CLONE ----------------------------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 def test_clone_blueprint():
     blueprint_id, _ = _create_sample_blueprint()

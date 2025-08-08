@@ -1,13 +1,13 @@
 import pytest
 
 from ice_core.models.enums import ModelProvider
-from ice_core.models.node_models import LLMConfig, LLMOperatorConfig, ToolNodeConfig
+from ice_core.models.node_models import LLMConfig, LLMNodeConfig, ToolNodeConfig
 
 pytestmark = [pytest.mark.unit]
 
 
 def test_llm_node_auto_output_schema():
-    cfg = LLMOperatorConfig(
+    cfg = LLMNodeConfig(
         id="ai1",
         type="llm",
         model="gpt-4o",
@@ -29,4 +29,4 @@ def test_tool_node_missing_schema_raises():
         output_schema={},
     )
     with pytest.raises(ValueError):
-        cfg.runtime_validate() 
+        cfg.runtime_validate()

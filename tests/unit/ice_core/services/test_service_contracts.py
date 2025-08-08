@@ -18,5 +18,7 @@ def test_node_service_invalid_contract(monkeypatch):
         lambda _: ServiceContract(version="", name="bad"),
     )
 
-    with pytest.raises(ValueError):
-        NodeService("bad") 
+    from ice_core.exceptions import ValidationError
+
+    with pytest.raises(ValidationError):
+        NodeService("bad")

@@ -15,7 +15,9 @@ def _public_view(record: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @router.websocket("/executions/{execution_id}")
-async def websocket_execution_updates(websocket: WebSocket, execution_id: str) -> None:  # noqa: D401
+async def websocket_execution_updates(
+    websocket: WebSocket, execution_id: str
+) -> None:  # noqa: D401
     await websocket.accept()
 
     app = websocket.app  # FastAPI app instance
@@ -35,7 +37,8 @@ async def websocket_execution_updates(websocket: WebSocket, execution_id: str) -
             # Wait for an update event
             await record["_event"].wait()
             record["_event"].clear()
-            await websocket.send_text(json.dumps(_public_view(record)))
+            payload = _public_view(record)
+            await websocket.send_text(json.dumps(payload))
             if record["status"] in {"completed", "failed"}:
                 await websocket.close()
                 break

@@ -7,7 +7,7 @@
   "categories": {
     "node_configs": [
       "node_configs/ToolNodeConfig.json",
-      "node_configs/LLMOperatorConfig.json",
+      "node_configs/LLMNodeConfig.json",
       "node_configs/AgentNodeConfig.json",
       "node_configs/ConditionNodeConfig.json",
       "node_configs/WorkflowNodeConfig.json",

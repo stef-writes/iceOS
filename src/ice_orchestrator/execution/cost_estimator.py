@@ -9,12 +9,13 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from ice_core.costs import TokenCostCalculator
-from ice_core.models import LLMOperatorConfig, NodeConfig, ToolNodeConfig
+from ice_core.models import LLMNodeConfig, NodeConfig, ToolNodeConfig
 
 
 @dataclass
 class NodeCostEstimate:
     """Cost estimate for a single node."""
+
     node_id: str
     node_type: str
     min_cost: float
@@ -24,7 +25,7 @@ class NodeCostEstimate:
     api_calls: int = 1
     confidence: float = 0.8  # 0-1 confidence in estimate
     notes: Optional[List[str]] = None
-    
+
     def __post_init__(self) -> None:
         if self.notes is None:
             self.notes = []
@@ -33,6 +34,7 @@ class NodeCostEstimate:
 @dataclass
 class WorkflowCostEstimate:
     """Cost estimate for entire workflow."""
+
     total_min_cost: float
     total_max_cost: float
     total_avg_cost: float
@@ -42,7 +44,7 @@ class WorkflowCostEstimate:
     node_estimates: Dict[str, NodeCostEstimate]
     warnings: List[str]
     assumptions: List[str]
-    
+
     def to_user_friendly(self) -> Dict[str, Any]:
         """Convert to user-friendly format for UI display."""
         return {
@@ -50,23 +52,27 @@ class WorkflowCostEstimate:
             "estimated_tokens": f"{self.total_token_estimate:,}",
             "estimated_duration": f"{self.duration_estimate_seconds:.1f}s",
             "api_calls": self.total_api_calls,
-            "confidence": "high" if all(e.confidence > 0.7 for e in self.node_estimates.values()) else "medium",
+            "confidence": (
+                "high"
+                if all(e.confidence > 0.7 for e in self.node_estimates.values())
+                else "medium"
+            ),
             "warnings": self.warnings,
             "breakdown": {
                 node_id: {
                     "type": est.node_type,
                     "cost": f"${est.avg_cost:.4f}",
                     "tokens": est.token_estimate,
-                    "notes": est.notes
+                    "notes": est.notes,
                 }
                 for node_id, est in self.node_estimates.items()
-            }
+            },
         }
 
 
 class WorkflowCostEstimator:
     """Estimates workflow execution costs before running."""
-    
+
     # Default token estimates by node type when we can't calculate exactly
     DEFAULT_TOKEN_ESTIMATES = {
         "llm": {"min": 500, "avg": 1500, "max": 4000},
@@ -75,7 +81,7 @@ class WorkflowCostEstimator:
         "condition": {"min": 0, "avg": 0, "max": 0},
         "workflow": {"min": 1000, "avg": 3000, "max": 8000},
     }
-    
+
     # Execution time estimates (seconds)
     DURATION_ESTIMATES = {
         "llm": {"min": 0.5, "avg": 2.0, "max": 5.0},
@@ -84,14 +90,12 @@ class WorkflowCostEstimator:
         "condition": {"min": 0.01, "avg": 0.05, "max": 0.1},
         "workflow": {"min": 2.0, "avg": 10.0, "max": 30.0},
     }
-    
+
     def __init__(self) -> None:
         self.cost_calculator = TokenCostCalculator()
-        
+
     def estimate_workflow_cost(
-        self,
-        nodes: List[NodeConfig],
-        context_size_estimate: int = 1000
+        self, nodes: List[NodeConfig], context_size_estimate: int = 1000
     ) -> WorkflowCostEstimate:
         """Estimate cost for entire workflow."""
         node_estimates = {}
@@ -99,27 +103,27 @@ class WorkflowCostEstimator:
         assumptions = [
             f"Assuming ~{context_size_estimate} tokens of context per node",
             "Costs based on current provider pricing",
-            "Actual costs may vary based on dynamic inputs"
+            "Actual costs may vary based on dynamic inputs",
         ]
-        
+
         # Estimate each node
         for node in nodes:
             estimate = self._estimate_node_cost(node, context_size_estimate)
             node_estimates[node.id] = estimate
-            
+
             if estimate.confidence < 0.5:
                 warnings.append(f"Low confidence estimate for {node.id}")
-                
+
         # Calculate totals
         total_min = sum(e.min_cost for e in node_estimates.values())
         total_max = sum(e.max_cost for e in node_estimates.values())
         total_avg = sum(e.avg_cost for e in node_estimates.values())
         total_tokens = sum(e.token_estimate or 0 for e in node_estimates.values())
         total_calls = sum(e.api_calls for e in node_estimates.values())
-        
+
         # Estimate duration (considering some parallelism)
         duration_by_level = self._estimate_duration_by_level(nodes, node_estimates)
-        
+
         return WorkflowCostEstimate(
             total_min_cost=total_min,
             total_max_cost=total_max,
@@ -129,33 +133,30 @@ class WorkflowCostEstimator:
             duration_estimate_seconds=duration_by_level,
             node_estimates=node_estimates,
             warnings=warnings,
-            assumptions=assumptions
+            assumptions=assumptions,
         )
-        
+
     def _estimate_node_cost(
-        self,
-        node: NodeConfig,
-        context_size: int
+        self, node: NodeConfig, context_size: int
     ) -> NodeCostEstimate:
         """Estimate cost for a single node."""
         node_type = node.type
-        
-        if isinstance(node, LLMOperatorConfig):
+
+        if isinstance(node, LLMNodeConfig):
             return self._estimate_llm_cost(node, context_size)
         elif isinstance(node, ToolNodeConfig):
             return self._estimate_tool_cost(node)
         else:
             # Generic estimation
             token_est = self.DEFAULT_TOKEN_ESTIMATES.get(
-                node_type, 
-                {"min": 100, "avg": 500, "max": 1000}
+                node_type, {"min": 100, "avg": 500, "max": 1000}
             )
-            
+
             avg_tokens = token_est["avg"] + context_size
-            
+
             # Assume GPT-3.5 pricing as default
             cost_per_token = 0.002 / 1000  # $0.002 per 1K tokens
-            
+
             return NodeCostEstimate(
                 node_id=node.id,
                 node_type=node_type,
@@ -164,37 +165,60 @@ class WorkflowCostEstimator:
                 avg_cost=avg_tokens * cost_per_token,
                 token_estimate=int(avg_tokens),
                 confidence=0.5,
-                notes=[f"Generic estimate for {node_type} node"]
+                notes=[f"Generic estimate for {node_type} node"],
             )
-            
+
     def _estimate_llm_cost(
-        self,
-        node: LLMOperatorConfig,
-        context_size: int
+        self, node: LLMNodeConfig, context_size: int
     ) -> NodeCostEstimate:
         """Estimate cost for LLM node."""
         # Calculate prompt tokens
         prompt_tokens = int(len(node.prompt.split()) * 1.3)  # Rough tokenization
         prompt_tokens += context_size
-        
+
         # Estimate output tokens
         max_tokens = node.max_tokens or 1000
         avg_output_tokens = int(max_tokens * 0.7)  # Assume 70% usage
-        
+
         total_tokens = int(prompt_tokens + avg_output_tokens)
-        
+
         # Get model-specific pricing
         model = node.model
         provider = node.llm_config.provider or "openai"
-        
+
         try:
             cost = self.cost_calculator.calculate_cost(
                 model=model,
                 input_tokens=prompt_tokens,
                 output_tokens=avg_output_tokens,
-                provider=provider
+                provider=provider,
             )
-            
+
+            # Deterministic non-zero floor for allowed models to avoid "free" estimates
+            if cost == 0.0:
+                try:
+                    from ice_core.models.model_registry import (  # local import to avoid cycles
+                        is_allowed_model,
+                    )
+
+                    if is_allowed_model(model):
+                        floor = 0.001  # USD – conservative floor for preflight gating
+                        return NodeCostEstimate(
+                            node_id=node.id,
+                            node_type="llm",
+                            min_cost=floor * 0.5,
+                            max_cost=floor * 1.5,
+                            avg_cost=floor,
+                            token_estimate=total_tokens,
+                            confidence=0.7,
+                            notes=[
+                                f"Applied floor cost for {model} ({provider}) to avoid zero-cost preflight"
+                            ],
+                        )
+                except Exception:
+                    # If registry unavailable, fall through to zero-cost result
+                    pass
+
             return NodeCostEstimate(
                 node_id=node.id,
                 node_type="llm",
@@ -203,7 +227,7 @@ class WorkflowCostEstimator:
                 avg_cost=cost,
                 token_estimate=total_tokens,
                 confidence=0.8,
-                notes=[f"Using {model} via {provider}"]
+                notes=[f"Using {model} via {provider}"],
             )
         except Exception:
             # Fallback to generic estimate
@@ -215,9 +239,9 @@ class WorkflowCostEstimator:
                 avg_cost=0.005,
                 token_estimate=total_tokens,
                 confidence=0.3,
-                notes=["Could not determine exact model pricing"]
+                notes=["Could not determine exact model pricing"],
             )
-            
+
     def _estimate_tool_cost(self, node: ToolNodeConfig) -> NodeCostEstimate:
         """Estimate cost for tool node."""
         # Most tools don't have direct costs
@@ -230,26 +254,21 @@ class WorkflowCostEstimator:
             token_estimate=0,
             api_calls=0,
             confidence=1.0,
-            notes=[f"Tool: {node.tool_name}"]
+            notes=[f"Tool: {node.tool_name}"],
         )
-        
+
     def _estimate_duration_by_level(
-        self,
-        nodes: List[NodeConfig],
-        estimates: Dict[str, NodeCostEstimate]
+        self, nodes: List[NodeConfig], estimates: Dict[str, NodeCostEstimate]
     ) -> float:
         """Estimate total duration considering parallel execution."""
         # Group nodes by level (simplified - would need real DAG)
         total_duration = 0.0
-        
+
         for node in nodes:
             node_type = node.type
-            duration = self.DURATION_ESTIMATES.get(
-                node_type,
-                {"avg": 1.0}
-            )["avg"]
-            
+            duration = self.DURATION_ESTIMATES.get(node_type, {"avg": 1.0})["avg"]
+
             # Assume some parallelism reduces total time
             total_duration += duration * 0.7
-            
-        return total_duration 
+
+        return total_duration

@@ -26,7 +26,7 @@ from ice_core.models import (  # Node configurations; Other node types; MCP mode
     ContextRule,
     HumanNodeConfig,
     InputMapping,
-    LLMOperatorConfig,
+    LLMNodeConfig,
     LoopNodeConfig,
     MonitorNodeConfig,
     NodeExecutionResult,
@@ -53,7 +53,7 @@ from ice_core.models.mcp import (
 SCHEMA_MODELS: Dict[str, Type[BaseModel]] = {
     # Node configurations (ordered by importance)
     "ToolNodeConfig": ToolNodeConfig,
-    "LLMOperatorConfig": LLMOperatorConfig,
+    "LLMNodeConfig": LLMNodeConfig,
     "AgentNodeConfig": AgentNodeConfig,
     "ConditionNodeConfig": ConditionNodeConfig,
     "WorkflowNodeConfig": WorkflowNodeConfig,
@@ -124,7 +124,7 @@ def get_schema_categories() -> Dict[str, List[str]]:
     return {
         "node_configs": [
             "ToolNodeConfig",
-            "LLMOperatorConfig",
+            "LLMNodeConfig",
             "AgentNodeConfig",
             "ConditionNodeConfig",
             "WorkflowNodeConfig",

@@ -9,7 +9,6 @@ from typing import List
 import click
 
 from ice_core.exceptions import RegistryError
-from ice_core.models.enums import NodeType
 from ice_core.models.plugins import ComponentEntry, PluginsManifest
 from ice_core.registry import registry
 
@@ -27,15 +26,12 @@ def _collect_components() -> List[ComponentEntry]:
     entries: List[ComponentEntry] = []
 
     # Tools -----------------------------------------------------------------
-    for name in registry.list_tools():
-        tool = registry.get_instance(NodeType.TOOL, name)
-        cls = tool.__class__
-        import_path = f"{cls.__module__}:{cls.__name__}"
+    for name, factory_path in registry.available_tool_factories():
         entries.append(
             ComponentEntry(
                 node_type="tool",
                 name=name,
-                import_path=import_path,  # type: ignore[arg-type]
+                import_path=factory_path,  # type: ignore[arg-type]
             )
         )
 
@@ -50,9 +46,14 @@ def _collect_components() -> List[ComponentEntry]:
         )
 
     # Workflows --------------------------------------------------------------
-    for name, _ in registry.available_chains():
-        # We cannot reliably resolve import path; skip in MVP
-        continue
+    for name, factory_path in registry.available_workflow_factories():
+        entries.append(
+            ComponentEntry(
+                node_type="workflow",
+                name=name,
+                import_path=factory_path,  # type: ignore[arg-type]
+            )
+        )
 
     return entries
 

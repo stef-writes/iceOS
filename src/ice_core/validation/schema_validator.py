@@ -12,6 +12,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models.mcp import Blueprint  # noqa: WPS433  – runtime import
     from ice_core.models.node_models import NodeConfig
 
+
 class SchemaValidator:  # – internal utility
     """Validates node outputs against declared schemas."""
 
@@ -35,13 +36,15 @@ class SchemaValidator:  # – internal utility
 
         # Treat only *None* or an explicitly empty dict as "no schema".
         if schema is None or (isinstance(schema, dict) and len(schema) == 0):
-            from ice_core.models.node_models import LLMOperatorConfig  # local import
+            from ice_core.models.node_models import LLMNodeConfig  # local import
 
-            if isinstance(node, LLMOperatorConfig):
+            if isinstance(node, LLMNodeConfig):
                 # Gracefully accept; treat as passthrough text.
                 return True
 
-            raise ValueError(
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError(
                 f"Node '{getattr(node, 'id', '?')}' lacks output_schema despite mandatory policy."
             )
 
@@ -52,7 +55,9 @@ class SchemaValidator:  # – internal utility
 
             ok, errs = is_valid_schema_dict(schema)
             if not ok:
-                raise ValueError(
+                from ice_core.exceptions import ValidationError
+
+                raise ValidationError(
                     f"Invalid output_schema for node '{getattr(node, 'id', '?')}' – {'; '.join(errs)}"
                 )
 
@@ -79,13 +84,13 @@ class SchemaValidator:  # – internal utility
         # 1. Pydantic model --------------------------------------------------
         # ------------------------------------------------------------------
         try:
-            from pydantic import BaseModel, ValidationError
+            from pydantic import BaseModel
 
             if isinstance(schema, type) and issubclass(schema, BaseModel):
                 try:
                     schema.model_validate(output)  # type: ignore[arg-type]
                     return True
-                except ValidationError:
+                except Exception:
                     return False
         except Exception:
             # Pydantic may not be importable in constrained envs – fall back.
@@ -104,19 +109,24 @@ class SchemaValidator:  # – internal utility
         # Unknown schema format – consider valid to avoid false negatives
         return True
 
+
 # ---------------------------------------------------------------------------
 # Custom exceptions ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 class CircularDependencyError(ValueError):
     """Raised when a blueprint contains circular dependencies."""
+
 
 class InvalidSchemaVersionError(ValueError):
     """Raised when a blueprint's declared schema version is unsupported."""
 
+
 # ---------------------------------------------------------------------------
 # Blueprint-level validation --------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 async def validate_blueprint(blueprint: "Blueprint") -> None:  # type: ignore[FWDref]
     """Validate a ``Blueprint`` object.
@@ -141,10 +151,14 @@ async def validate_blueprint(blueprint: "Blueprint") -> None:  # type: ignore[FW
 
     # Lazy import to avoid cross-layer dependency at module import time
 
-    if blueprint.schema_version != "1.1.0":  # Hardcoded until next minor bump
-        raise InvalidSchemaVersionError(
-            f"Unsupported schema_version '{blueprint.schema_version}'. "
-            "Expected '1.1.0'."
+    # Accept a small set of supported schema versions to allow forward
+    # compatibility between model defaults and validator policy.
+    supported_versions: set[str] = {"1.1.0", "1.2.0"}
+    if blueprint.schema_version not in supported_versions:
+        from ice_core.exceptions import BlueprintVersionError
+
+        raise BlueprintVersionError(
+            blueprint.schema_version, sorted(supported_versions)
         )
 
     # ------------------------------------------------------------------

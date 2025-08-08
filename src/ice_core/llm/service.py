@@ -1,4 +1,5 @@
 """High-level LLM service for managing provider interactions."""
+
 from __future__ import annotations
 
 import asyncio
@@ -30,6 +31,7 @@ except Exception:  # pragma: no cover
     openai_error = _OpenAIErrorModule()  # type: ignore[var-annotated]
 
 logger = logging.getLogger(__name__)
+
 
 class LLMService:
     """High-level helper for synchronous/asynchronous LLM calls.

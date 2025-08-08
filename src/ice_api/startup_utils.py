@@ -14,7 +14,6 @@ from datetime import datetime
 from types import ModuleType
 from typing import Any, Dict, Tuple
 
-from ice_core.models.enums import NodeType
 from ice_core.registry import global_agent_registry, registry
 
 logger = logging.getLogger(__name__)
@@ -50,7 +49,8 @@ def print_startup_banner(app_version: str, git_sha: str | None = None) -> None:
 
 def _validate_tool(name: str) -> Tuple[bool, str]:
     try:
-        tool = registry.get_instance(NodeType.TOOL, name)
+        # Instantiate via factory to validate real tool behavior
+        tool = registry.get_tool_instance(name)
         if hasattr(tool, "get_input_schema"):
             tool.get_input_schema()
         if hasattr(tool, "get_output_schema"):
@@ -63,15 +63,17 @@ def _validate_tool(name: str) -> Tuple[bool, str]:
 def validate_registered_components() -> Dict[str, Any]:
     """Validate registry contents; returns summary dict."""
     failed_tools: Dict[str, str] = {}
-    for _, tool_name in registry.list_nodes(NodeType.TOOL):
+    # Prefer factory-registered tools for validation
+    tool_names = [name for name, _ in registry.available_tool_factories()]
+    for tool_name in tool_names:
         ok, err = _validate_tool(tool_name)
         if not ok:
             failed_tools[tool_name] = err
     return {
         "tool_failures": failed_tools,
-        "tool_count": len(list(registry.list_nodes(NodeType.TOOL))),
+        "tool_count": len(tool_names),
         "agent_count": len(global_agent_registry.available_agents()),
-        "workflow_count": len(list(registry.list_nodes(NodeType.WORKFLOW))),
+        "workflow_count": len(registry.available_workflow_factories()),
     }
 
 

@@ -23,7 +23,7 @@ __all__: list[str] = [
     # AppConfig removed - runtime config doesn't belong in core layer
     "NodeConfig",
     "ToolNodeConfig",
-    "LLMOperatorConfig",
+    "LLMNodeConfig",
     "AgentNodeConfig",
     "ConditionNodeConfig",
     "WorkflowNodeConfig",
@@ -80,7 +80,7 @@ from .node_models import (
     ContextRule,
     HumanNodeConfig,
     InputMapping,
-    LLMOperatorConfig,
+    LLMNodeConfig,
     LoopNodeConfig,
     MonitorNodeConfig,
     NodeConfig,

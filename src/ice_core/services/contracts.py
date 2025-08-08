@@ -75,7 +75,9 @@ class NodeService(MicroserviceContract):
         """
 
         if not self._contract.version:
-            raise ValueError("ServiceContract.version must be a non-empty string")
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError("ServiceContract.version must be a non-empty string")
 
 
 @runtime_checkable

@@ -3,8 +3,7 @@
 from typing import Callable, Optional, Type
 
 from ice_core.base_tool import ToolBase
-from ice_core.models.enums import NodeType
-from ice_core.registry import registry
+from ice_core.unified_registry import register_tool_factory
 
 
 def tool(
@@ -51,11 +50,11 @@ def tool(
                 ]
             ).lstrip("_")
 
-        # Auto-register if requested
+        # Auto-register a factory if requested
         if auto_register:
-            # Create an instance for registration
-            tool_instance = cls()
-            registry.register_instance(NodeType.TOOL, tool_name, tool_instance, validate=validate)  # type: ignore[arg-type]
+            # Expect a module-level factory named create_<tool_name>
+            import_path = f"{cls.__module__}:create_{tool_name}"
+            register_tool_factory(tool_name, import_path)
 
         return cls
 

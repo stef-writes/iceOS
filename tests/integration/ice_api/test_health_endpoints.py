@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 
 from ice_api.main import app

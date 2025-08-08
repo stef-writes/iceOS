@@ -1,5 +1,3 @@
-import json
-
 from fastapi.testclient import TestClient
 
 from ice_api.main import app
@@ -8,11 +6,7 @@ client = TestClient(app)
 
 
 def _create_sample_blueprint():
-    payload = {
-        "name": "hello",
-        "nodes": [{"id": "n1", "type": "tool"}],
-        "metadata": {}
-    }
+    payload = {"name": "hello", "nodes": [{"id": "n1", "type": "tool"}], "metadata": {}}
     res = client.post(
         "/api/v1/blueprints/",
         json=payload,
@@ -28,7 +22,11 @@ def _create_sample_blueprint():
 
 def test_create_requires_header():
     payload = {"name": "b", "nodes": [], "metadata": {}}
-    res = client.post("/api/v1/blueprints/", json=payload, headers={"Authorization": "Bearer demo-token"})
+    res = client.post(
+        "/api/v1/blueprints/",
+        json=payload,
+        headers={"Authorization": "Bearer demo-token"},
+    )
     assert res.status_code == 428
 
 

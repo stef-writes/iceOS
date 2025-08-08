@@ -55,8 +55,9 @@ class BaseWorkflow(ABC):
         # Identifiers ----------------------------------------------------
         self.run_id = run_id
         self.session_id = session_id or uuid4().hex
-        # Event emitter --------------------------------------------------
-        self._emit_event = event_emitter
+        # Legacy event emitter (deprecated) no longer used by Workflow internals.
+        # Kept for compatibility with MCP SSE wiring but not referenced.
+        self._emit_event = None
         self.use_cache = use_cache
 
         self.nodes = {node.id: node for node in nodes}

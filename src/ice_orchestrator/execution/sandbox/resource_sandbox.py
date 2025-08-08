@@ -17,9 +17,9 @@ import contextlib
 import platform
 import resource
 from types import TracebackType
+from typing import Optional, Type
 
 from ice_core.metrics import SANDBOX_CPU_SECONDS, SANDBOX_MAX_RSS_BYTES
-from typing import Optional, Type
 
 # Optional seccomp import (Linux only)
 try:
@@ -31,6 +31,7 @@ except ModuleNotFoundError:  # pragma: no cover
 from typing import Awaitable, TypeVar
 
 T = TypeVar("T")
+
 
 class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"]):
     """Resource limiter for executor coroutines."""
@@ -86,7 +87,9 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
                 SANDBOX_CPU_SECONDS.observe(max(cpu_end - self._cpu_start, 0.0))
             if self._rss_start is not None:
                 # ru_maxrss is kilobytes on Linux, bytes on macOS/BSD.
-                rss_bytes = rss_end * 1024 if resource.getpagesize() == 4096 else rss_end
+                rss_bytes = (
+                    rss_end * 1024 if resource.getpagesize() == 4096 else rss_end
+                )
                 # ru_maxrss is already cumulative (peak), so take end value.
                 SANDBOX_MAX_RSS_BYTES.observe(rss_bytes)
         except Exception:
@@ -122,7 +125,9 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
             pass
         # RLIMIT_CPU
         try:
-            resource.setrlimit(resource.RLIMIT_CPU, (self._cpu_seconds, self._cpu_seconds))
+            resource.setrlimit(
+                resource.RLIMIT_CPU, (self._cpu_seconds, self._cpu_seconds)
+            )
         except (ValueError, OSError):
             pass
         # Disable core dumps

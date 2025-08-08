@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 if TYPE_CHECKING:
     from ._map_proxy import _MapBuilderProxy
 
 from ice_core.models import (
     LLMConfig,
-    LLMOperatorConfig,
+    LLMNodeConfig,
     ModelProvider,
     NodeConfig,
     ToolNodeConfig,
@@ -23,7 +23,11 @@ class WorkflowBuilder:
 
     def __init__(self, name: str):
         self.name = name
-        self.nodes: List[NodeConfig] = []
+        # Accept extended node configs (human/monitor) for authoring time
+        from ice_core.models.node_models import HumanNodeConfig, MonitorNodeConfig
+
+        ExtendedNodeConfig = Union[NodeConfig, HumanNodeConfig, MonitorNodeConfig]
+        self.nodes: List[ExtendedNodeConfig] = []
         self.edges: List[tuple[str, str]] = []
 
     def add_tool(
@@ -59,11 +63,11 @@ class WorkflowBuilder:
         )
 
         self.nodes.append(
-            LLMOperatorConfig(
+            LLMNodeConfig(
                 id=node_id,
                 type="llm",  # Use string literal as expected
                 model=model,
-                prompt=prompt,  # LLMOperatorConfig expects 'prompt' not 'prompt_template'
+                prompt=prompt,  # LLMNodeConfig expects 'prompt' not 'prompt_template'
                 llm_config=llm_config,
                 name=node_id,
                 input_selection=None,
@@ -224,6 +228,74 @@ class WorkflowBuilder:
                 input_selection=None,
                 output_selection=None,
                 **code_kwargs,
+            )
+        )
+        return self
+
+    def add_human(
+        self,
+        node_id: str,
+        prompt_message: str = "Approve?",
+        **human_kwargs: Any,
+    ) -> "WorkflowBuilder":
+        """Add a human approval node."""
+        from ice_core.models import HumanNodeConfig
+
+        self.nodes.append(
+            HumanNodeConfig(
+                id=node_id,
+                type="human",
+                prompt_message=prompt_message,
+                name=node_id,
+                input_selection=None,
+                output_selection=None,
+                **human_kwargs,
+            )
+        )
+        return self
+
+    def add_monitor(
+        self,
+        node_id: str,
+        metric_expression: str,
+        action_on_trigger: Literal["alert_only", "pause", "abort"] = "alert_only",
+        **monitor_kwargs: Any,
+    ) -> "WorkflowBuilder":
+        """Add a monitor node for metric evaluation and optional alerts."""
+        from ice_core.models import MonitorNodeConfig
+
+        self.nodes.append(
+            MonitorNodeConfig(
+                id=node_id,
+                type="monitor",
+                metric_expression=metric_expression,
+                action_on_trigger=action_on_trigger,  # runtime Literal validated by model
+                name=node_id,
+                input_selection=None,
+                output_selection=None,
+                **monitor_kwargs,
+            )
+        )
+        return self
+
+    def add_swarm(
+        self,
+        node_id: str,
+        agents: List[Any],
+        **swarm_kwargs: Any,
+    ) -> "WorkflowBuilder":
+        """Add a swarm node with a list of agent role specs."""
+        from ice_core.models import SwarmNodeConfig
+
+        self.nodes.append(
+            SwarmNodeConfig(
+                id=node_id,
+                type="swarm",
+                agents=agents,  # type: ignore[arg-type]
+                name=node_id,
+                input_selection=None,
+                output_selection=None,
+                **swarm_kwargs,
             )
         )
         return self

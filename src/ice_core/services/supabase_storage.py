@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Any
+from typing import TYPE_CHECKING, Any
 
 from ice_core.services.contracts import NetworkStorage
 
 if TYPE_CHECKING:  # pragma: no cover – optional dependency
     import supabase
+
 
 class SupabaseNetworkStorage(NetworkStorage):
     """Supabase-backed implementation of the *NetworkStorage* port.

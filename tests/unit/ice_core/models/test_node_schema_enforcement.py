@@ -1,7 +1,7 @@
 import pytest
 
 from ice_core.models.enums import ModelProvider
-from ice_core.models.node_models import LLMConfig, LLMOperatorConfig, ToolNodeConfig
+from ice_core.models.node_models import LLMConfig, LLMNodeConfig, ToolNodeConfig
 
 pytestmark = [pytest.mark.unit]
 
@@ -20,7 +20,7 @@ def test_tool_without_schema_raises() -> None:
 
 
 def test_llm_without_output_schema_defaults() -> None:
-    cfg = LLMOperatorConfig(
+    cfg = LLMNodeConfig(
         id="llm1",
         type="llm",
         model="gpt-4o",
@@ -32,4 +32,4 @@ def test_llm_without_output_schema_defaults() -> None:
 
     # Should not raise and should set default
     cfg.runtime_validate()
-    assert cfg.output_schema == {"text": "string"} 
+    assert cfg.output_schema == {"text": "string"}

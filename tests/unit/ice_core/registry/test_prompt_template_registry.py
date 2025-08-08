@@ -33,7 +33,9 @@ def test_duplicate_registration_raises() -> None:
     registry = PromptTemplateRegistry()
     tmpl = make_template()
     registry.register("dup", tmpl)
-    with pytest.raises(ValueError):
+    from ice_core.exceptions import RegistryError
+
+    with pytest.raises(RegistryError):
         registry.register("dup", tmpl)
 
 
@@ -55,5 +57,7 @@ def test_register_decorator() -> None:
 
 
 def test_missing_template_raises_keyerror() -> None:
-    with pytest.raises(KeyError):
-        global_prompt_template_registry.get("does.not.exist") 
+    from ice_core.exceptions import RegistryError
+
+    with pytest.raises(RegistryError):
+        global_prompt_template_registry.get("does.not.exist")

@@ -7,12 +7,14 @@ from typing import Any
 
 __all__ = ["estimate_complexity", "WeightedSemaphore"]
 
+
 def estimate_complexity(node_cfg: Any) -> int:  # – generic for now
     # Avoid cross-layer imports – infer complexity heuristically -------------
     cls_name = getattr(getattr(node_cfg, "__class__", None), "__name__", "")
-    if cls_name == "LLMOperatorConfig":
+    if cls_name == "LLMNodeConfig":
         return 2
     return 1
+
 
 class WeightedSemaphore:
     """Async context-manager that acquires *weight* slots from *sem*."""
@@ -29,7 +31,10 @@ class WeightedSemaphore:
         return self
 
     async def __aexit__(
-        self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: object | None
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: object | None,
     ) -> bool:
         for _ in range(self._weight):
             self._sem.release()

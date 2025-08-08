@@ -25,7 +25,7 @@ from ice_builder.nl import (  # noqa: F401
 )
 
 # Frequently-used node model classes (optional convenience) -------------------
-from ice_core.models import LLMOperatorConfig as LLMOperatorConfig  # noqa: F401
+from ice_core.models import LLMNodeConfig as LLMNodeConfig  # noqa: F401
 from ice_core.models import ToolNodeConfig as ToolNodeConfig  # noqa: F401
 
 # MCP / Blueprint models for JSON-only generation ----------------------------
@@ -45,7 +45,7 @@ __all__: list[str] = [
     "append_tool_node",
     # Optional helpers
     "ToolNodeConfig",
-    "LLMOperatorConfig",
+    "LLMNodeConfig",
     "NodeSpec",
     "PartialNodeSpec",
     "Blueprint",

@@ -33,6 +33,7 @@ context_type_manager: Any = SimpleNamespace(
     register_context_key=lambda *args, **kwargs: None,
 )
 
+
 class ChainValidator:  # – internal utility
     def __init__(
         self,
@@ -132,10 +133,10 @@ class ChainValidator:  # – internal utility
         """
 
         errors: List[str] = []
-        from ice_core.models.node_models import LLMOperatorConfig
+        from ice_core.models.node_models import LLMNodeConfig
 
         for node in self.nodes.values():
-            if not isinstance(node, LLMOperatorConfig):
+            if not isinstance(node, LLMNodeConfig):
                 continue  # Only AI nodes have prompts
 
             tmpl: str = getattr(node, "prompt", "") or ""
@@ -171,7 +172,7 @@ class ChainValidator:  # – internal utility
         for node in chain.nodes:  # type: ignore[attr-defined]
             # Get tool metadata lazily to avoid heavy imports when unused
             from ice_core.models.tool import get_tool_class  # local import
-            
+
             tool_cls = get_tool_class(node.type)
             input_schema = tool_cls.get_input_schema()
 

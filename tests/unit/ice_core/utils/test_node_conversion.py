@@ -33,7 +33,6 @@ pytestmark = [pytest.mark.unit]
             "workflow",
             {"workflow_ref": "dummy"},
         ),
-
         (
             "code",
             {"code": "output['result'] = 42", "language": "python"},
@@ -57,5 +56,12 @@ def test_convert_node_spec_accepts_canonical_types(node_type: str, extra: dict) 
 )
 def test_convert_node_spec_rejects_legacy_aliases(node_type: str) -> None:
     spec = NodeSpec(id="n_bad", type=node_type)
-    with pytest.raises(ValueError):
-        convert_node_spec(spec) 
+    from ice_core.exceptions import UnknownNodeTypeError, ValidationError
+
+    expected_exc = (
+        UnknownNodeTypeError
+        if node_type in {"ai", "prebuilt", "subdag"}
+        else ValidationError
+    )
+    with pytest.raises(expected_exc):
+        convert_node_spec(spec)

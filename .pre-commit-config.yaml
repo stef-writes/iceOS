@@ -18,9 +18,13 @@ repos:
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
+    hooks: []
+
+  - repo: local
     hooks:
       - id: mypy
+        name: mypy
+        entry: poetry run mypy --config-file config/typing/mypy.ini src
+        language: system
         pass_filenames: false
-        additional_dependencies: ["pydantic==2.7.0", "types-redis", "types-Jinja2"]
-        args: ["--strict", "--config-file", "config/typing/mypy.ini", "src"]
       

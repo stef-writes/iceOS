@@ -26,7 +26,6 @@ extend-exclude = [
 "src/ice_api/api/mcp.py" = ["F811"]
 "scripts/verify_dead_code.py" = ["F841"]
 "src/ice_orchestrator/context/graph_analyzer.py" = ["E741"]
-"src/ice_orchestrator/execution/executors/unified.py" = ["F823"]
 "src/ice_orchestrator/execution/wasm_executor.py" = ["F821", "F841"]
 "src/ice_orchestrator/graph/dependency_graph.py" = ["E722", "F841"]
 "src/ice_orchestrator/memory/episodic.py" = ["E722"]

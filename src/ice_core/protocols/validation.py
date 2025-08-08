@@ -16,6 +16,7 @@ The decorator serves two use-cases:
 Having a single decorator makes it obvious (and testable) that *every* runtime
 component entering the orchestrator conforms to a strict, audited contract.
 """
+
 from __future__ import annotations
 
 import inspect
@@ -53,8 +54,8 @@ def _validate_executor_callable(fn: Any) -> None:
     # over-restricting existing code but validate when present.
     return_type = sig.return_annotation
     if (
-        return_type is not inspect.Signature.empty and
-        return_type is not NodeExecutionResult
+        return_type is not inspect.Signature.empty
+        and return_type is not NodeExecutionResult
     ):
         raise TypeError(
             f"Executor {fn.__qualname__} must return ice_core.models.NodeExecutionResult"
@@ -65,9 +66,11 @@ def _validate_executor_callable(fn: Any) -> None:
 # Public decorator
 # ---------------------------------------------------------------------------
 
+
 @runtime_checkable
 class _Protocolish(Protocol):
     """Anything that can be treated as a runtime-checkable typing Protocol."""
+
     ...
 
 
@@ -89,7 +92,9 @@ def validated_protocol(proto: str | type[_Protocolish]) -> Callable[[F], F]:
         try:
             protocol = mapping[proto]
         except KeyError as err:
-            raise ValueError(
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError(
                 f"Unknown protocol alias '{proto}'. Valid options: {sorted(mapping)}"
             ) from err
     else:
@@ -101,6 +106,7 @@ def validated_protocol(proto: str | type[_Protocolish]) -> Callable[[F], F]:
             # Delegate to existing utility for class validation.
             enforce_protocol(protocol)(target)  # type: ignore[arg-type]
             from typing import cast
+
             return cast(F, target)
 
         # Otherwise assume a callable executor.

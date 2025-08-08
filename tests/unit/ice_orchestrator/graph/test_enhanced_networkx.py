@@ -11,14 +11,10 @@ This test suite validates:
 from datetime import datetime
 from typing import Any, List
 
-from ice_orchestrator.graph.dependency_graph import DependencyGraph
 from ice_core.models.llm import LLMConfig
 from ice_core.models.node_metadata import NodeMetadata
-from ice_core.models.node_models import (
-    AgentNodeConfig,
-    LLMOperatorConfig,
-    ToolNodeConfig,
-)
+from ice_core.models.node_models import AgentNodeConfig, LLMNodeConfig, ToolNodeConfig
+from ice_orchestrator.graph.dependency_graph import DependencyGraph
 
 
 class TestEnhancedNetworkXUtilization:
@@ -33,23 +29,19 @@ class TestEnhancedNetworkXUtilization:
                 tool_name="csv_reader",
                 dependencies=[],
                 metadata=NodeMetadata(
-                    node_id="csv_reader",
-                    node_type="tool",
-                    estimated_cost=0.05
-                )
+                    node_id="csv_reader", node_type="tool", estimated_cost=0.05
+                ),
             ),
-            LLMOperatorConfig(
-                id="analyzer", 
+            LLMNodeConfig(
+                id="analyzer",
                 type="llm",
                 model="gpt-4",
                 prompt="Analyze this data",
                 llm_config=LLMConfig(),
                 dependencies=["csv_reader"],
                 metadata=NodeMetadata(
-                    node_id="analyzer",
-                    node_type="llm", 
-                    estimated_cost=0.25
-                )
+                    node_id="analyzer", node_type="llm", estimated_cost=0.25
+                ),
             ),
             AgentNodeConfig(
                 id="smart_agent",
@@ -58,29 +50,25 @@ class TestEnhancedNetworkXUtilization:
                 tools=[],
                 dependencies=["analyzer"],
                 metadata=NodeMetadata(
-                    node_id="smart_agent",
-                    node_type="agent",
-                    estimated_cost=0.50
-                )
+                    node_id="smart_agent", node_type="agent", estimated_cost=0.50
+                ),
             ),
             ToolNodeConfig(
                 id="report_generator",
-                type="tool", 
+                type="tool",
                 tool_name="report_generator",
                 dependencies=["analyzer", "smart_agent"],
                 metadata=NodeMetadata(
-                    node_id="report_generator",
-                    node_type="tool",
-                    estimated_cost=0.10
-                )
-            )
+                    node_id="report_generator", node_type="tool", estimated_cost=0.10
+                ),
+            ),
         ]
 
     def test_rich_node_attributes_storage(self):
         """Test that rich node attributes are properly stored."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         # Test basic attributes
         csv_node = graph.graph.nodes["csv_reader"]
         assert csv_node["node_type"] == "tool"
@@ -88,17 +76,17 @@ class TestEnhancedNetworkXUtilization:
         assert csv_node["execution_state"] == "pending"
         assert csv_node["execution_count"] == 0
         assert csv_node["success_rate"] == 1.0
-        
+
         # Test performance attributes
         assert csv_node["estimated_cost"] == 0.0  # No estimated_cost in NodeMetadata
         assert csv_node["parallel_safe"] == True  # Tools are parallel safe
         assert csv_node["cacheable"] == True
-        
+
         # Test canvas attributes
         assert csv_node["canvas_cluster"] == "data_processing"  # CSV tools
         assert csv_node["suggested_color"] == "#4CAF50"  # Green for tools
         assert csv_node["complexity_score"] == 1.0  # Tools have low complexity
-        
+
         # Test metadata
         assert isinstance(csv_node["created_at"], datetime)
         assert "tool" in csv_node["tags"]
@@ -108,20 +96,20 @@ class TestEnhancedNetworkXUtilization:
         """Test that different node types get appropriate attributes."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         # Tool node
         tool_node = graph.graph.nodes["csv_reader"]
         assert tool_node["parallel_safe"] == True
         assert tool_node["complexity_score"] == 1.0
         assert tool_node["suggested_color"] == "#4CAF50"
-        
-        # LLM node  
+
+        # LLM node
         llm_node = graph.graph.nodes["analyzer"]
         assert llm_node["parallel_safe"] == True
         assert llm_node["complexity_score"] == 2.0
         assert llm_node["suggested_color"] == "#2196F3"
         assert llm_node["io_bound"] == True
-        
+
         # Agent node
         agent_node = graph.graph.nodes["smart_agent"]
         assert agent_node["parallel_safe"] == False  # Agents not parallel safe
@@ -133,29 +121,31 @@ class TestEnhancedNetworkXUtilization:
         """Test that rich edge attributes are properly stored."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         # Test edge from csv_reader to analyzer
         edge_data = graph.graph.edges["csv_reader", "analyzer"]
-        
+
         # Basic edge attributes
         assert edge_data["dependency_type"] == "data_flow"
-        assert isinstance(edge_data["critical_path"], bool)  # Computed during construction
+        assert isinstance(
+            edge_data["critical_path"], bool
+        )  # Computed during construction
         assert edge_data["parallel_safe"] == True
-        
+
         # Data flow attributes
         assert edge_data["estimated_data_size"] in ["small", "medium", "large"]
         assert isinstance(edge_data["latency_sensitive"], bool)
-        
+
         # Performance tracking
         assert edge_data["avg_transfer_time"] == 0.0
         assert edge_data["total_data_transferred"] == 0
         assert edge_data["transfer_count"] == 0
-        
+
         # Canvas attributes
         assert edge_data["edge_weight"] == 1.0
         assert edge_data["edge_style"] == "default"
         assert edge_data["edge_color"] == "#666666"
-        
+
         # Metadata
         assert isinstance(edge_data["created_at"], datetime)
 
@@ -163,55 +153,61 @@ class TestEnhancedNetworkXUtilization:
         """Test advanced NetworkX algorithm integration."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         # Test critical path detection
         critical_path = graph.get_critical_path()
         assert isinstance(critical_path, list)
         # Should include high-complexity nodes (agent)
-        
+
         # Test bottleneck detection
         bottlenecks = graph.get_bottleneck_nodes()
         assert isinstance(bottlenecks, list)
-        
+
         # Test parallel execution groups
         parallel_groups = graph.get_parallel_execution_groups()
         assert isinstance(parallel_groups, dict)
-        
+
         # Check that each level has proper categorization
         for level, group_data in parallel_groups.items():
             assert "parallel_safe" in group_data
             assert "sequential_only" in group_data
             assert "total" in group_data
-            assert group_data["total"] == len(group_data["parallel_safe"]) + len(group_data["sequential_only"])
+            assert group_data["total"] == len(group_data["parallel_safe"]) + len(
+                group_data["sequential_only"]
+            )
 
     def test_optimization_insights(self):
         """Test comprehensive optimization insights generation."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         insights = graph.get_optimization_insights()
-        
+
         # Basic metrics
         assert insights["total_nodes"] == 4
-        assert insights["total_edges"] == 4  # csv->analyzer, analyzer->agent, analyzer->report, agent->report
+        assert (
+            insights["total_edges"] == 4
+        )  # csv->analyzer, analyzer->agent, analyzer->report, agent->report
         assert insights["max_depth"] >= 0
-        
+
         # Advanced insights
         assert "critical_path" in insights
         assert "bottlenecks" in insights
         assert "parallel_opportunities" in insights
         assert "complexity_distribution" in insights
         assert "execution_insights" in insights
-        
+
         # Test complexity distribution
         complexity_dist = insights["complexity_distribution"]
         assert complexity_dist["low"] >= 0  # Tools
         assert complexity_dist["medium"] >= 0  # LLM
         assert complexity_dist["high"] >= 0  # Agent
-        
+
         # Test execution insights
         exec_insights = insights["execution_insights"]
-        assert exec_insights["estimated_total_cost"] == 0.0  # No estimated_cost in NodeMetadata
+        assert (
+            exec_insights["estimated_total_cost"] == 0.0
+        )  # No estimated_cost in NodeMetadata
         assert exec_insights["avg_execution_time"] == 0.0  # No executions yet
         assert exec_insights["cacheable_nodes"] >= 0
         assert exec_insights["io_bound_nodes"] >= 0
@@ -220,17 +216,17 @@ class TestEnhancedNetworkXUtilization:
         """Test execution statistics tracking and updates."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         # Initial state
         node_data = graph.graph.nodes["csv_reader"]
         assert node_data["execution_count"] == 0
         assert node_data["avg_execution_time"] == 0.0
         assert node_data["success_rate"] == 1.0
         assert node_data["execution_state"] == "pending"
-        
+
         # Simulate execution
         graph.update_execution_stats("csv_reader", 1.5, True)
-        
+
         # Check updates
         updated_data = graph.graph.nodes["csv_reader"]
         assert updated_data["execution_count"] == 1
@@ -239,10 +235,10 @@ class TestEnhancedNetworkXUtilization:
         assert updated_data["execution_state"] == "completed"
         assert updated_data["last_execution_time"] == 1.5
         assert isinstance(updated_data["last_updated"], datetime)
-        
+
         # Simulate failure
         graph.update_execution_stats("csv_reader", 2.0, False, "Test error")
-        
+
         # Check failure updates
         failed_data = graph.graph.nodes["csv_reader"]
         assert failed_data["execution_count"] == 2
@@ -255,26 +251,26 @@ class TestEnhancedNetworkXUtilization:
         """Test data transfer statistics tracking."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         # Initial state
         edge_data = graph.graph.edges["csv_reader", "analyzer"]
         assert edge_data["transfer_count"] == 0
         assert edge_data["avg_transfer_time"] == 0.0
         assert edge_data["total_data_transferred"] == 0
-        
+
         # Simulate data transfer
         graph.update_data_transfer_stats("csv_reader", "analyzer", 0.1, 1024)
-        
+
         # Check updates
         updated_edge = graph.graph.edges["csv_reader", "analyzer"]
         assert updated_edge["transfer_count"] == 1
         assert updated_edge["avg_transfer_time"] == 0.1
         assert updated_edge["total_data_transferred"] == 1024
         assert isinstance(updated_edge["last_used"], datetime)
-        
+
         # Simulate another transfer
         graph.update_data_transfer_stats("csv_reader", "analyzer", 0.2, 512)
-        
+
         # Check rolling averages
         final_edge = graph.graph.edges["csv_reader", "analyzer"]
         assert final_edge["transfer_count"] == 2
@@ -285,31 +281,31 @@ class TestEnhancedNetworkXUtilization:
         """Test intelligent canvas layout hints generation."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         layout_hints = graph.get_canvas_layout_hints()
-        
+
         # Should have hints for all nodes
         assert len(layout_hints) == 4
-        
+
         for node_id, hints in layout_hints.items():
             # Position data
             assert "position" in hints
             assert "x" in hints["position"]
             assert "y" in hints["position"]
-            
+
             # Styling data
             assert "styling" in hints
             assert "color" in hints["styling"]
             assert "size" in hints["styling"]
             assert "cluster" in hints["styling"]
-            
+
             # Metadata
             assert "metadata" in hints
             assert "level" in hints["metadata"]
             assert "centrality" in hints["metadata"]
             assert "is_bottleneck" in hints["metadata"]
             assert "parallel_safe" in hints["metadata"]
-            
+
             # Connections
             assert "connections" in hints
             assert "inputs" in hints["connections"]
@@ -319,20 +315,20 @@ class TestEnhancedNetworkXUtilization:
         """Test comprehensive data export for external analysis."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         export_data = graph.export_for_analysis()
-        
+
         # Top-level structure
         assert "graph_data" in export_data
         assert "metrics" in export_data
         assert "layout_hints" in export_data
         assert "analysis_timestamp" in export_data
-        
+
         # Graph data structure
         graph_data = export_data["graph_data"]
         assert "nodes" in graph_data
         assert "edges" in graph_data
-        
+
         # Nodes data
         nodes_data = graph_data["nodes"]
         assert len(nodes_data) == 4
@@ -341,7 +337,7 @@ class TestEnhancedNetworkXUtilization:
             assert "node_type" in node
             assert "config" in node
             assert "complexity_score" in node
-            
+
         # Edges data
         edges_data = graph_data["edges"]
         assert len(edges_data) == 4
@@ -355,30 +351,50 @@ class TestEnhancedNetworkXUtilization:
         """Test analysis on a more complex graph structure."""
         # Create a more complex graph with multiple paths
         complex_nodes = [
-            ToolNodeConfig(id="input1", type="tool", tool_name="reader1", dependencies=[]),
-            ToolNodeConfig(id="input2", type="tool", tool_name="reader2", dependencies=[]),
-            ToolNodeConfig(id="processor1", type="tool", tool_name="proc1", dependencies=["input1"]),
-            ToolNodeConfig(id="processor2", type="tool", tool_name="proc2", dependencies=["input2"]),
-            LLMOperatorConfig(id="analyzer", type="llm", model="gpt-4", prompt="analyze", llm_config=LLMConfig(), 
-                            dependencies=["processor1", "processor2"]),
-            AgentNodeConfig(id="agent", type="agent", package="test", dependencies=["analyzer"]),
-            ToolNodeConfig(id="output", type="tool", tool_name="writer", 
-                         dependencies=["analyzer", "agent"])
+            ToolNodeConfig(
+                id="input1", type="tool", tool_name="reader1", dependencies=[]
+            ),
+            ToolNodeConfig(
+                id="input2", type="tool", tool_name="reader2", dependencies=[]
+            ),
+            ToolNodeConfig(
+                id="processor1", type="tool", tool_name="proc1", dependencies=["input1"]
+            ),
+            ToolNodeConfig(
+                id="processor2", type="tool", tool_name="proc2", dependencies=["input2"]
+            ),
+            LLMNodeConfig(
+                id="analyzer",
+                type="llm",
+                model="gpt-4",
+                prompt="analyze",
+                llm_config=LLMConfig(),
+                dependencies=["processor1", "processor2"],
+            ),
+            AgentNodeConfig(
+                id="agent", type="agent", package="test", dependencies=["analyzer"]
+            ),
+            ToolNodeConfig(
+                id="output",
+                type="tool",
+                tool_name="writer",
+                dependencies=["analyzer", "agent"],
+            ),
         ]
-        
+
         graph = DependencyGraph(complex_nodes)
-        
+
         # Test that complex analysis works
         insights = graph.get_optimization_insights()
         assert insights["total_nodes"] == 7
         assert insights["max_depth"] >= 3  # Should have good depth
-        
+
         # Test parallel opportunities
         parallel_groups = graph.get_parallel_execution_groups()
         level_0 = parallel_groups[0]  # Should have input1, input2
         assert level_0["total"] == 2
         assert len(level_0["parallel_safe"]) == 2  # Both inputs can run in parallel
-        
+
         # Test critical path includes high-complexity nodes
         critical_path = graph.get_critical_path()
         assert len(critical_path) > 0
@@ -387,7 +403,7 @@ class TestEnhancedNetworkXUtilization:
         """Test intelligent canvas clustering based on node types and tools."""
         nodes = self.create_test_nodes()
         graph = DependencyGraph(nodes)
-        
+
         # Test cluster assignments
         clusters = {}
         for node_id in graph.graph.nodes():
@@ -395,12 +411,12 @@ class TestEnhancedNetworkXUtilization:
             if cluster not in clusters:
                 clusters[cluster] = []
             clusters[cluster].append(node_id)
-        
+
         # Should have meaningful clusters
         assert "data_processing" in clusters  # CSV reader
-        assert "ai_processing" in clusters    # LLM analyzer  
-        assert "agents" in clusters           # Smart agent
-        
+        assert "ai_processing" in clusters  # LLM analyzer
+        assert "agents" in clusters  # Smart agent
+
         # Test cluster makes sense
         assert "csv_reader" in clusters["data_processing"]
         assert "analyzer" in clusters["ai_processing"]
@@ -412,17 +428,23 @@ class TestEnhancedNetworkXUtilization:
         empty_graph = DependencyGraph([])
         assert empty_graph.get_optimization_insights()["total_nodes"] == 0
         assert empty_graph.get_canvas_layout_hints() == {}
-        
+
         # Single node
-        single_node = [ToolNodeConfig(id="solo", type="tool", tool_name="solo_tool", dependencies=[])]
+        single_node = [
+            ToolNodeConfig(
+                id="solo", type="tool", tool_name="solo_tool", dependencies=[]
+            )
+        ]
         single_graph = DependencyGraph(single_node)
         insights = single_graph.get_optimization_insights()
         assert insights["total_nodes"] == 1
         assert insights["total_edges"] == 0
-        
+
         # Update stats for non-existent node (should not crash)
         single_graph.update_execution_stats("nonexistent", 1.0, True)
-        single_graph.update_data_transfer_stats("nonexistent", "also_nonexistent", 1.0, 100)
+        single_graph.update_data_transfer_stats(
+            "nonexistent", "also_nonexistent", 1.0, 100
+        )
 
     def test_performance_characteristics(self):
         """Test that enhanced NetworkX operations are performant."""
@@ -431,32 +453,36 @@ class TestEnhancedNetworkXUtilization:
         # Create larger graph for performance testing
         large_nodes = []
         for i in range(100):
-            deps = [f"node_{j}" for j in range(max(0, i-3), i)]  # Each node depends on 3 previous
-            large_nodes.append(ToolNodeConfig(
-                id=f"node_{i}",
-                type="tool", 
-                tool_name=f"tool_{i}",
-                dependencies=deps
-            ))
-        
+            deps = [
+                f"node_{j}" for j in range(max(0, i - 3), i)
+            ]  # Each node depends on 3 previous
+            large_nodes.append(
+                ToolNodeConfig(
+                    id=f"node_{i}",
+                    type="tool",
+                    tool_name=f"tool_{i}",
+                    dependencies=deps,
+                )
+            )
+
         # Test construction performance
         start_time = time.time()
         large_graph = DependencyGraph(large_nodes)
         construction_time = time.time() - start_time
         assert construction_time < 5.0  # Should construct quickly
-        
+
         # Test analysis performance
         start_time = time.time()
         insights = large_graph.get_optimization_insights()
         analysis_time = time.time() - start_time
         assert analysis_time < 2.0  # Should analyze quickly
-        
+
         # Test layout hints performance
         start_time = time.time()
         layout_hints = large_graph.get_canvas_layout_hints()
         layout_time = time.time() - start_time
         assert layout_time < 3.0  # Should generate layout quickly
-        
+
         # Verify correctness with large graph
         assert insights["total_nodes"] == 100
-        assert len(layout_hints) == 100 
+        assert len(layout_hints) == 100

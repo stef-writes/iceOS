@@ -1,7 +1,7 @@
 import pytest
 
 from ice_core.models.enums import ModelProvider
-from ice_core.models.node_models import LLMConfig, LLMOperatorConfig, ToolNodeConfig
+from ice_core.models.node_models import LLMConfig, LLMNodeConfig, ToolNodeConfig
 from ice_core.validation.schema_validator import SchemaValidator
 
 pytestmark = [pytest.mark.unit]
@@ -16,12 +16,15 @@ def test_validator_raises_for_tool_without_schema() -> None:
         output_schema={},
     )
 
-    with pytest.raises(ValueError):
+    # Implementation raises domain-specific ValidationError; align test
+    from ice_core.exceptions import ValidationError
+
+    with pytest.raises(ValidationError):
         SchemaValidator.is_output_valid(node, {})
 
 
 def test_validator_ok_for_llm_without_schema() -> None:
-    node = LLMOperatorConfig(
+    node = LLMNodeConfig(
         id="n2",
         type="llm",
         model="gpt-4o",
@@ -31,4 +34,4 @@ def test_validator_ok_for_llm_without_schema() -> None:
     )
 
     # should not raise and return True
-    assert SchemaValidator.is_output_valid(node, "hello") is True 
+    assert SchemaValidator.is_output_valid(node, "hello") is True

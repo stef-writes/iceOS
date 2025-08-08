@@ -33,6 +33,7 @@ if TYPE_CHECKING:  # pragma: no cover
 tracer = trace.get_tracer(__name__)
 logger = structlog.get_logger(__name__)
 
+
 class NodeExecutor:  # – internal utility extracted from ScriptChain
     """Execute individual nodes with retry, caching & tracing.
 
@@ -56,12 +57,24 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
         orchestration semantics (cache, retries, validation, etc.)."""
 
         chain = self.chain  # local alias for brevity
-        emit = getattr(chain, "_emit_event", None)
-        if callable(emit):
-            emit(
-                "workflow.nodeStarted",
-                {"run_id": getattr(chain, "run_id", None), "node_id": node_id},
+        # Emit start event via async handler when available
+        try:
+            from ice_orchestrator.execution.workflow_events import (
+                NodeStarted as _NodeStarted,
             )
+
+            wf_id = str(getattr(chain, "chain_id", ""))
+            run_id = str(getattr(chain, "run_id", ""))
+            await chain._event_handler.emit(
+                _NodeStarted(  # type: ignore[attr-defined]
+                    workflow_id=wf_id,
+                    run_id=run_id,
+                    node_id=node_id,
+                    node_run_id=f"{run_id}_{node_id}",
+                )
+            )
+        except Exception:
+            pass
         node = chain.nodes.get(node_id)
         if node is None:
             raise ValueError(f"Node '{node_id}' not found in chain configuration")
@@ -102,7 +115,6 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
         # Persist *input_data* to the context store --------------------
         # --------------------------------------------------------------
         _ctx_cur = chain.context_manager.get_context()
-        exec_id = _ctx_cur.execution_id if _ctx_cur is not None else None
 
         # Store input data but ensure it's serializable
         # Skip storing inputs as they may contain NodeExecutionResult objects
@@ -117,7 +129,9 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
         base_backoff: float
         if policy is not None:
             # New structured policy overrides legacy scalar fields
-            max_retries = int(getattr(policy, "max_attempts", 1)) - 1  # attempts after first run
+            max_retries = (
+                int(getattr(policy, "max_attempts", 1)) - 1
+            )  # attempts after first run
             base_backoff = float(getattr(policy, "backoff_seconds", 0.0))
             backoff_strategy = str(getattr(policy, "backoff_strategy", "exponential"))
         else:
@@ -135,7 +149,7 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
             if backoff_strategy == "linear":
                 return base_backoff * idx
             # exponential (default)
-            return float(base_backoff * (2 ** idx))
+            return float(base_backoff * (2**idx))
 
         last_error: Exception | None = None
         result_raw: Any | None = None
@@ -177,11 +191,15 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
 
                         with tracer.start_as_current_span(
                             "node.execute",
-                            attributes={"node_id": node_id, "node_type": str(getattr(node, "type", ""))},
+                            attributes={
+                                "node_id": node_id,
+                                "node_type": str(getattr(node, "type", "")),
+                            },
                         ):
                             from ice_orchestrator.execution.sandbox.resource_sandbox import (
                                 ResourceSandbox,
                             )
+
                             timeout = getattr(node, "timeout_seconds", 30) or 30
                             async with ResourceSandbox(timeout_seconds=timeout) as sbx:
                                 result_raw = await sbx.run_with_timeout(
@@ -192,12 +210,11 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                         last_error = exc  # remember last
                         if attempt == max_retries:
                             from ice_core.metrics import EXEC_FAILED
+
                             EXEC_FAILED.inc()
                             raise
                         await asyncio.sleep(_calc_backoff(attempt))
-                # --------------------------------------------------
-
-
+                    # --------------------------------------------------
 
                     # If the executor already returned a fully-formed
                     # NodeExecutionResult, we can short-circuit all further
@@ -249,6 +266,7 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
 
                 # Unwrap NodeExecutionResult to its semantic output first
                 from ice_core.models import NodeExecutionResult as _NER
+
                 if isinstance(result_raw, _NER):
                     raw_out = result_raw.output
                 else:
@@ -258,17 +276,27 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                 processed_output = self._coerce_output(node, raw_out)
 
                 # Store in cache if enabled & succeeded -------------
+                # (Cache write elided for now)
 
-                # Emit finished event after successful execution
-                if callable(emit):
-                    emit(
-                        "workflow.nodeFinished",
-                        {
-                            "run_id": getattr(chain, "run_id", None),
-                            "node_id": node_id,
-                            "success": True,
-                        },
+                # Emit finished event via async handler when available
+                try:
+                    from ice_orchestrator.execution.workflow_events import (
+                        NodeCompleted as _NodeCompleted,
                     )
+
+                    wf_id = str(getattr(chain, "chain_id", ""))
+                    run_id = str(getattr(chain, "run_id", ""))
+                    await chain._event_handler.emit(
+                        _NodeCompleted(  # type: ignore[attr-defined]
+                            workflow_id=wf_id,
+                            run_id=run_id,
+                            node_id=node_id,
+                            node_run_id=f"{run_id}_{node_id}",
+                            # duration_seconds will be recorded by handler/sink; include minimal metadata here
+                        )
+                    )
+                except Exception:
+                    pass
 
                 # ------------------------------------------------------------------
                 # Apply *output_mappings* to make aliased keys available ----------
@@ -291,7 +319,9 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                                 if isinstance(getattr(node, "output_schema", None), dict):  # type: ignore[attr-defined]
                                     schema_dict = node.output_schema  # type: ignore[attr-defined]
                                     if schema_dict and isinstance(schema_dict, dict):
-                                        expected_type = next(iter(schema_dict.values()), None)
+                                        expected_type = next(
+                                            iter(schema_dict.values()), None
+                                        )
                                 if expected_type and not isinstance(
                                     value, expected_type
                                 ):
@@ -389,12 +419,14 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                             end_time=datetime.utcnow(),
                             duration=0.0,
                             error_type=(
-                                type(last_error).__name__ if last_error else "UnknownError"
+                                type(last_error).__name__
+                                if last_error
+                                else "UnknownError"
                             ),
                             owner="system",
                             description=f"Node {node_id} returned empty output",
                             provider=getattr(node, "provider", None),
-                        )
+                        ),
                     )
                     result.budget_status = self.budget.get_status()
                     return result
@@ -404,18 +436,27 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                 if attempt >= max_retries:
                     break
 
-                # Emit retrying event so consumers can update UI/logs -------
-                if callable(emit):
-                    emit(
-                        "workflow.nodeRetrying",
-                        {
-                            "run_id": getattr(chain, "run_id", None),
-                            "node_id": node_id,
-                            "attempt": attempt + 1,
-                            "max_attempts": max_retries + 1,
-                            "error": str(exc),
-                        },
+                # Emit retrying event via async handler (best-effort)
+                try:
+                    from ice_orchestrator.execution.workflow_events import (
+                        NodeFailed as _FailEvt,
                     )
+
+                    wf_id = str(getattr(chain, "chain_id", ""))
+                    run_id = str(getattr(chain, "run_id", ""))
+                    await chain._event_handler.emit(
+                        _FailEvt(  # type: ignore[attr-defined]
+                            workflow_id=wf_id,
+                            run_id=run_id,
+                            node_id=node_id,
+                            error_type=type(exc).__name__,
+                            error_message=str(exc),
+                            retry_attempt=attempt + 1,
+                            will_retry=True,
+                        )
+                    )
+                except Exception:
+                    pass
 
                 if base_backoff <= 0:
                     wait_seconds: float = 0.0
@@ -425,7 +466,7 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                     elif backoff_strategy == "linear":
                         wait_seconds = base_backoff * (attempt + 1)
                     else:  # exponential default
-                        wait_seconds = base_backoff * (2 ** attempt)
+                        wait_seconds = base_backoff * (2**attempt)
 
                 if wait_seconds > 0:
                     await asyncio.sleep(wait_seconds)

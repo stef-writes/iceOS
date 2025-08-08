@@ -26,13 +26,13 @@ from __future__ import annotations
 
 import asyncio
 import datetime as _dt
-import inspect
 import json
 import logging
 import uuid
 from typing import Any, Dict, List, Optional, cast
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel, Field
 
 # Try to import EventSourceResponse, fallback if not available
 try:
@@ -44,7 +44,6 @@ logger = logging.getLogger(__name__)
 
 # Redis helper
 from ice_api.redis_client import get_redis
-from ice_core.base_tool import ToolBase
 from ice_core.models import NodeType
 from ice_core.models.mcp import (
     Blueprint,
@@ -73,6 +72,8 @@ def _get_workflow_service() -> IWorkflowService:
 
 
 router = APIRouter(tags=["mcp"])
+from ice_api.dependencies import rate_limit
+from ice_api.security import require_auth
 
 # ---------------------------------------------------------------------------
 # In-memory stores – good enough for MVP; swap with DB / Redis later --------
@@ -153,6 +154,15 @@ async def create_blueprint(bp: Blueprint) -> BlueprintAck:
     #     logger.warning("Failed to generate blueprint visualization: %s", str(ve))
     #     validation_context["warnings"].append(f"Visualization generation failed: {str(ve)}")
 
+    # Enforce content-addressable Blueprint IDs (sha256 over normalized JSON)
+    import hashlib
+
+    normalized = bp.model_dump_json()
+    content_id = f"bp_{hashlib.sha256(normalized.encode()).hexdigest()[:12]}"
+
+    # Overwrite provided id with content-derived id for immutability
+    bp.blueprint_id = content_id
+
     redis = get_redis()
     blueprint_data = {"json": bp.model_dump_json()}
 
@@ -184,6 +194,12 @@ async def get_blueprint(blueprint_id: str) -> Dict[str, Any]:
             logger.warning(
                 "Failed to parse visualization data for blueprint %s", blueprint_id
             )
+
+    # Add computed content hash for observability and verification
+    import hashlib
+
+    normalized = blueprint.model_dump_json()
+    result["content_id"] = f"bp_{hashlib.sha256(normalized.encode()).hexdigest()[:12]}"
 
     return result
 
@@ -246,8 +262,13 @@ async def get_blueprint_visualization(blueprint_id: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-@router.post("/blueprints/partial", response_model=PartialBlueprint)
+@router.post(
+    "/blueprints/partial",
+    response_model=PartialBlueprint,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
 async def create_partial_blueprint(
+    request: Request,
     initial_node: Optional[PartialNodeSpec] = None,
 ) -> PartialBlueprint:
     """Create a new partial blueprint for incremental construction."""
@@ -257,26 +278,48 @@ async def create_partial_blueprint(
         partial.add_node(initial_node)
 
     redis = get_redis()
+    # Persist with optimistic version-lock stored alongside JSON
+    import hashlib
+    import json as _json
+
+    lock = hashlib.sha256(
+        _json.dumps(
+            partial.model_dump(mode="json", exclude_none=True), sort_keys=True
+        ).encode()
+    ).hexdigest()
     await redis.hset(
         _partial_bp_key(partial.blueprint_id),
-        mapping={"json": partial.model_dump_json()},
+        mapping={"json": partial.model_dump_json(), "lock": lock},
     )
 
     return partial
 
 
-@router.put("/blueprints/partial/{blueprint_id}")
+@router.put(
+    "/blueprints/partial/{blueprint_id}",
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
 async def update_partial_blueprint(
-    blueprint_id: str, update: PartialBlueprintUpdate
+    request: Request, blueprint_id: str, update: PartialBlueprintUpdate
 ) -> PartialBlueprint:
     """Update a partial blueprint - add/remove/modify nodes."""
     redis = get_redis()
     raw_json = await redis.hget(_partial_bp_key(blueprint_id), "json")  # type: ignore[misc]
+    server_lock = await redis.hget(_partial_bp_key(blueprint_id), "lock")  # type: ignore[misc]
 
     if not raw_json:
         raise HTTPException(404, f"Partial blueprint {blueprint_id} not found")
 
     partial = PartialBlueprint.model_validate_json(raw_json)
+
+    # Optimistic lock enforcement using X-Version-Lock header
+    client_lock = request.headers.get("X-Version-Lock")
+    if client_lock is None:
+        raise HTTPException(status_code=428, detail="Missing X-Version-Lock header")
+    if not server_lock or client_lock != server_lock:
+        raise HTTPException(
+            status_code=409, detail="Partial blueprint version conflict"
+        )
 
     if update.action == "add_node" and update.node:
         partial.add_node(update.node)
@@ -297,31 +340,101 @@ async def update_partial_blueprint(
         partial._validate_incremental()
 
     # Save updated state
+    # Save updated state with new version lock
+    import hashlib
+    import json as _json
+
+    new_lock = hashlib.sha256(
+        _json.dumps(
+            partial.model_dump(mode="json", exclude_none=True), sort_keys=True
+        ).encode()
+    ).hexdigest()
     await redis.hset(
         _partial_bp_key(partial.blueprint_id),
-        mapping={"json": partial.model_dump_json()},
+        mapping={"json": partial.model_dump_json(), "lock": new_lock},
     )
+
+    # Expose new lock via header for client to use
+    # (FastAPI response object not passed here; clients should GET session to fetch lock)
 
     return partial
 
 
-@router.post("/blueprints/partial/{blueprint_id}/finalize")
-async def finalize_partial_blueprint(blueprint_id: str) -> BlueprintAck:
+@router.post(
+    "/blueprints/partial/{blueprint_id}/finalize",
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def finalize_partial_blueprint(
+    request: Request, blueprint_id: str
+) -> BlueprintAck:
     """Convert partial blueprint to executable blueprint."""
     redis = get_redis()
     raw_json = await redis.hget(_partial_bp_key(blueprint_id), "json")  # type: ignore[misc]
+    server_lock = await redis.hget(_partial_bp_key(blueprint_id), "lock")  # type: ignore[misc]
 
     if not raw_json:
         raise HTTPException(404, f"Partial blueprint {blueprint_id} not found")
 
     partial = PartialBlueprint.model_validate_json(raw_json)
 
+    # Require lock header to avoid finalizing stale state
+    client_lock = request.headers.get("X-Version-Lock")
+    if client_lock is None:
+        raise HTTPException(status_code=428, detail="Missing X-Version-Lock header")
+    if not server_lock or client_lock != server_lock:
+        raise HTTPException(
+            status_code=409, detail="Partial blueprint version conflict"
+        )
+
+    # If the partial has no nodes, fail fast with a clear message before preflight
+    if not partial.nodes:
+        raise HTTPException(400, "Partial blueprint has no nodes to finalize")
+
     try:
         blueprint = partial.to_blueprint()
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    # Save as regular blueprint
+    # Governance preflight: schema + safety + budget estimate
+    try:
+        from ice_core.validation.schema_validator import validate_blueprint
+
+        await validate_blueprint(blueprint)
+    except Exception as ve:
+        raise HTTPException(400, f"Blueprint schema validation failed: {ve}")
+
+    # Budget estimate (best-effort)
+    try:
+        from ice_core.utils.node_conversion import convert_node_specs
+        from ice_orchestrator.execution.cost_estimator import WorkflowCostEstimator
+
+        node_cfgs = convert_node_specs(blueprint.nodes)
+        estimator = WorkflowCostEstimator()
+        est = estimator.estimate_workflow_cost(node_cfgs)
+
+        from ice_orchestrator.config import runtime_config
+
+        if (
+            runtime_config.org_budget_usd is not None
+            and est.total_avg_cost > runtime_config.org_budget_usd
+        ):
+            raise HTTPException(
+                402,  # Payment Required (budget exceeded)
+                detail=f"Estimated cost ${est.total_avg_cost:.2f} exceeds budget ${runtime_config.org_budget_usd:.2f}",
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        # Ignore estimator errors – preflight is best-effort
+        pass
+
+    # Save as regular blueprint with content-addressable id
+    import hashlib
+
+    normalized = blueprint.model_dump_json()
+    content_id = f"bp_{hashlib.sha256(normalized.encode()).hexdigest()[:12]}"
+    blueprint.blueprint_id = content_id
+
     await redis.hset(
         _bp_key(blueprint.blueprint_id), mapping={"json": blueprint.model_dump_json()}
     )
@@ -330,6 +443,185 @@ async def finalize_partial_blueprint(blueprint_id: str) -> BlueprintAck:
     await redis.hdel(_partial_bp_key(blueprint_id), "json")
 
     return BlueprintAck(blueprint_id=blueprint.blueprint_id, status="accepted")
+
+
+@router.get(
+    "/blueprints/partial/{blueprint_id}",
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def get_partial_blueprint(
+    blueprint_id: str, response: Response
+) -> Dict[str, Any]:  # noqa: D401
+    """Return stored PartialBlueprint JSON and expose current lock in header."""
+    redis = get_redis()
+    raw_json = await redis.hget(_partial_bp_key(blueprint_id), "json")  # type: ignore[misc]
+    if not raw_json:
+        raise HTTPException(404, f"Partial blueprint {blueprint_id} not found")
+    lock = await redis.hget(_partial_bp_key(blueprint_id), "lock")  # type: ignore[misc]
+    if lock:
+        response.headers["X-Version-Lock"] = str(lock)
+    pb = PartialBlueprint.model_validate_json(raw_json)
+    return pb.model_dump()
+
+
+# ---------------------------------------------------------------------------
+# Suggestions (deterministic MVP) -------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class SuggestRequest(BaseModel):
+    """Request for suggestions for next nodes.
+
+    Args:
+        top_k: Maximum number of suggestions to return
+        allowed_types: Optional filter of node types to include
+        commit: If true, persist summary suggestions and roll lock (requires X-Version-Lock)
+    """
+
+    top_k: int = Field(default=5, ge=1, le=20)
+    allowed_types: Optional[List[str]] = None
+    commit: bool = False
+
+
+class Suggestion(BaseModel):
+    type: str
+    reason: str
+    confidence: float = Field(ge=0.0, le=1.0, default=0.6)
+    template: Optional[Dict[str, Any]] = None
+
+
+class SuggestResponse(BaseModel):
+    suggestions: List[Suggestion]
+    context: Dict[str, Any] = Field(default_factory=dict)
+
+
+def _compute_suggestions(
+    partial: PartialBlueprint, allowed: Optional[List[str]], top_k: int
+) -> SuggestResponse:
+    """Deterministic, rule-based suggestions based on the current partial blueprint."""
+    allowed_set = set(
+        [
+            t.lower()
+            for t in (allowed or ["tool", "llm", "condition", "loop", "parallel"])
+        ]
+    )
+
+    node_types = [getattr(n, "type", "") for n in partial.nodes]
+    has_list_hint = any(
+        isinstance(n, PartialNodeSpec)
+        and (
+            (
+                n.pending_outputs
+                and any(
+                    "list" in x.lower() or "items" in x.lower()
+                    for x in n.pending_outputs
+                )
+            )
+            or (
+                n.pending_inputs
+                and any(
+                    "list" in x.lower() or "items" in x.lower()
+                    for x in n.pending_inputs
+                )
+            )
+        )
+        for n in partial.nodes
+    )
+
+    suggestions: List[Suggestion] = []
+
+    def maybe_add(
+        t: str,
+        reason: str,
+        conf: float = 0.6,
+        template: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if t.lower() in allowed_set:
+            suggestions.append(
+                Suggestion(type=t, reason=reason, confidence=conf, template=template)
+            )
+
+    # Basic heuristics -------------------------------------------------------
+    if node_types:
+        maybe_add(
+            "llm",
+            "Process outputs from previous nodes for summarization or transformation",
+            0.65,
+        )
+        maybe_add("tool", "Connect a downstream tool to use generated data", 0.6)
+
+    if len(node_types) >= 2:
+        maybe_add("parallel", "Split independent branches for concurrency", 0.55)
+
+    # If there is a list-like hint, suggest loop
+    if has_list_hint:
+        maybe_add("loop", "Iterate over a collection output to process items", 0.7)
+
+    # If multiple nodes present, suggest condition to gate branches
+    if len(node_types) >= 1:
+        maybe_add("condition", "Gate execution based on a boolean or expression", 0.5)
+
+    # Trim to top_k
+    suggestions = suggestions[:top_k]
+
+    context = {
+        "node_count": len(node_types),
+        "has_list_hint": has_list_hint,
+    }
+    return SuggestResponse(suggestions=suggestions, context=context)
+
+
+@router.post(
+    "/blueprints/partial/{blueprint_id}/suggest",
+    response_model=SuggestResponse,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def suggest_next_nodes(
+    request: Request,
+    blueprint_id: str,
+    body: Optional[SuggestRequest] = None,
+) -> SuggestResponse:
+    """Return deterministic suggestions for next nodes based on partial blueprint.
+
+    - No side effects by default.
+    - If body.commit==True, requires X-Version-Lock and persists a summary to partial.next_suggestions.
+    """
+    redis = get_redis()
+    raw_json = await redis.hget(_partial_bp_key(blueprint_id), "json")  # type: ignore[misc]
+    if not raw_json:
+        raise HTTPException(404, f"Partial blueprint {blueprint_id} not found")
+    partial = PartialBlueprint.model_validate_json(raw_json)
+
+    req = body or SuggestRequest()
+    resp = _compute_suggestions(partial, req.allowed_types, req.top_k)
+
+    if req.commit:
+        server_lock = await redis.hget(_partial_bp_key(blueprint_id), "lock")  # type: ignore[misc]
+        client_lock = request.headers.get("X-Version-Lock")
+        if client_lock is None:
+            raise HTTPException(status_code=428, detail="Missing X-Version-Lock header")
+        if not server_lock or client_lock != server_lock:
+            raise HTTPException(
+                status_code=409, detail="Partial blueprint version conflict"
+            )
+
+        # Persist a human-readable summary to next_suggestions and roll lock
+        summary: List[str] = [f"{s.type}: {s.reason}" for s in resp.suggestions]
+        partial.next_suggestions = summary
+        import hashlib
+        import json as _json
+
+        new_lock = hashlib.sha256(
+            _json.dumps(
+                partial.model_dump(mode="json", exclude_none=True), sort_keys=True
+            ).encode()
+        ).hexdigest()
+        await redis.hset(
+            _partial_bp_key(partial.blueprint_id),
+            mapping={"json": partial.model_dump_json(), "lock": new_lock},
+        )
+
+    return resp
 
 
 @router.post("/runs", response_model=RunAck, status_code=status.HTTP_202_ACCEPTED)
@@ -634,11 +926,17 @@ async def validate_component_definition(
                 # dynamic class creation
                 if definition.tool_factory_code:
                     # Dynamically load factory and register
-                    import types, sys, uuid, inspect
+                    import inspect
+                    import sys
+                    import types
+                    import uuid
+
                     from ice_core.base_tool import ToolBase
                     from ice_core.unified_registry import register_tool_factory
 
-                    mod_name = f"dynamic_tool_factory_{definition.name}_{uuid.uuid4().hex[:8]}"
+                    mod_name = (
+                        f"dynamic_tool_factory_{definition.name}_{uuid.uuid4().hex[:8]}"
+                    )
                     module = types.ModuleType(mod_name)
                     exec(definition.tool_factory_code, module.__dict__)
                     sys.modules[mod_name] = module
@@ -655,7 +953,9 @@ async def validate_component_definition(
                             except Exception:
                                 continue
                     if factory_obj is None:
-                        raise ValueError("No valid factory function returning ToolBase found in tool_factory_code")
+                        raise ValueError(
+                            "No valid factory function returning ToolBase found in tool_factory_code"
+                        )
 
                     import_path = f"{mod_name}:{factory_obj.__name__}"
                     register_tool_factory(definition.name, import_path)
@@ -670,13 +970,30 @@ async def validate_component_definition(
                     # Find the tool class in namespace
                     tool_class = None
                     for name, obj in namespace.items():
-                        if inspect.isclass(obj) and issubclass(obj, ToolBase) and obj is not ToolBase and not inspect.isabstract(obj):
+                        if (
+                            inspect.isclass(obj)
+                            and issubclass(obj, ToolBase)
+                            and obj is not ToolBase
+                            and not inspect.isabstract(obj)
+                        ):
                             tool_class = obj
                             break
 
                     if tool_class:
-                        tool_instance = tool_class()  # type: ignore[call-arg]
-                        registry.register_instance(NodeType.TOOL, definition.name, tool_instance)  # type: ignore[arg-type]
+                        # Register a simple factory pointing to the class itself
+                        import_path = (
+                            f"dynamic_tools.{tool_class.__name__}:{tool_class.__name__}"
+                        )
+                        # Create a temporary module for import path stability
+                        import sys
+                        import types
+
+                        mod = types.ModuleType("dynamic_tools")
+                        setattr(mod, tool_class.__name__, tool_class)
+                        sys.modules["dynamic_tools"] = mod
+                        from ice_core.unified_registry import register_tool_factory
+
+                        register_tool_factory(definition.name, import_path)
                         result.registered = True
                         result.registry_name = definition.name
                 else:
@@ -699,12 +1016,25 @@ async def validate_component_definition(
                 if definition.workflow_nodes:
                     # Use ServiceLocator to get Workflow class without direct import
                     try:
+                        # Build a simple factory that returns a configured workflow object
+                        import sys
+                        import types
+
+                        from ice_core.unified_registry import register_workflow_factory
+
                         Workflow = ServiceLocator.get("workflow_proto")
-                        workflow = Workflow(
-                            nodes=definition.workflow_nodes, name=definition.name
-                        )
-                        registry.register_instance(
-                            NodeType.WORKFLOW, definition.name, workflow
+
+                        def _factory(**kwargs: Any) -> Any:  # type: ignore[no-redef]
+                            return Workflow(
+                                nodes=definition.workflow_nodes, name=definition.name
+                            )
+
+                        mod = types.ModuleType("dynamic_workflows")
+                        setattr(mod, f"create_{definition.name}", _factory)
+                        sys.modules["dynamic_workflows"] = mod
+                        register_workflow_factory(
+                            definition.name,
+                            f"dynamic_workflows:create_{definition.name}",
                         )
                         result.registered = True
                         result.registry_name = definition.name

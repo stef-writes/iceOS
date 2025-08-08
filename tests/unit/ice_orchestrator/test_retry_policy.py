@@ -1,17 +1,17 @@
-import asyncio
 from typing import Any, Dict
 
 import pytest
 from pydantic import BaseModel
 
 from ice_core.models.node_models import NodeExecutionResult, RetryPolicy
-from ice_core.unified_registry import register_node, registry
-from ice_orchestrator.execution.executor import NodeExecutor
+from ice_core.unified_registry import register_node
+from ice_orchestrator.execution.node_runtime_executor import NodeExecutor
 
 # ---------------------------------------------------------------------------
 # Dummy executor that fails twice, succeeds on third call
 # ---------------------------------------------------------------------------
 _attempt_counter = {"count": 0}
+
 
 @register_node("dummy")  # registers with unified registry
 async def _dummy_executor(_wf, _cfg, _ctx):  # noqa: D401 – test stub
@@ -19,6 +19,7 @@ async def _dummy_executor(_wf, _cfg, _ctx):  # noqa: D401 – test stub
     if _attempt_counter["count"] < 3:
         raise RuntimeError("temporary failure")
     from ice_core.models.node_metadata import NodeMetadata
+
     return NodeExecutionResult(  # type: ignore[call-arg]
         success=True,
         output={"ok": True},
@@ -67,7 +68,9 @@ class _FakeChain:
 class DummyNode(BaseModel):
     id: str = "n1"
     type: str = "dummy"
-    retry_policy: RetryPolicy = RetryPolicy(max_attempts=3, backoff_seconds=0.0, backoff_strategy="fixed")
+    retry_policy: RetryPolicy = RetryPolicy(
+        max_attempts=3, backoff_seconds=0.0, backoff_strategy="fixed"
+    )
     timeout_seconds: int = 5
     output_schema: dict = {}
 

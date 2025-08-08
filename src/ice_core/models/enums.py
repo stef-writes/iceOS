@@ -10,6 +10,7 @@ __all__: list[str] = [
     "MetricName",
 ]
 
+
 class ModelProvider(str, Enum):
     """Supported LLM providers."""
 
@@ -23,11 +24,11 @@ class ModelProvider(str, Enum):
 class MemoryGuarantee(str, Enum):
     """Guarantee characteristics offered by memory back-ends."""
 
-    EPHEMERAL = "ephemeral"      # in-proc only
-    SHORT_TERM = "short_term"    # persisted for session / hrs
-    TTL = "ttl"                  # deprecated alias for SHORT_TERM
-    DURABLE = "durable"          # survives restarts, replicated
-    VECTORISED = "vectorised"    # supports fixed-dim vector search
+    EPHEMERAL = "ephemeral"  # in-proc only
+    SHORT_TERM = "short_term"  # persisted for session / hrs
+    TTL = "ttl"  # deprecated alias for SHORT_TERM
+    DURABLE = "durable"  # survives restarts, replicated
+    VECTORISED = "vectorised"  # supports fixed-dim vector search
 
 
 class MetricName(str, Enum):
@@ -44,6 +45,7 @@ class MetricName(str, Enum):
 # NodeType enum (canonical runtime discriminator values) ---------------------
 # ---------------------------------------------------------------------------
 
+
 class NodeType(str, Enum):
     """Canonical discriminator strings for *NodeConfig.type* field.
 
@@ -51,7 +53,7 @@ class NodeType(str, Enum):
     """
 
     TOOL = "tool"  # deterministic tool implementation
-    LLM = "llm"  # single-prompt LLM operator (no tools)
+    LLM = "llm"  # stateless single-prompt LLM node (no tools)
     CONDITION = "condition"  # if/else branching
     AGENT = "agent"  # LLM + tools + memory
     WORKFLOW = "workflow"  # embed sub-workflows (merged unit/nested_chain)

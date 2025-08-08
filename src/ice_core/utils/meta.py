@@ -7,18 +7,24 @@ from __future__ import annotations
 
 import sys
 from types import ModuleType
-from typing import Any, Callable, TypeVar, overload
+from typing import Any, TypeVar
 
 __all__: list[str] = ["public"]
 
 _T = TypeVar("_T", bound=Any)
 
+
 def _get_module(obj: _T) -> ModuleType:  # pragma: no cover – trivial helper
     return sys.modules[obj.__module__]
 
-from typing import Union, Callable
 
-def public(obj: _T | None = None, *, name: str | None = None) -> Union[_T, Callable[[_T], _T]]:
+from typing import Callable as _Callable
+from typing import Union
+
+
+def public(
+    obj: _T | None = None, *, name: str | None = None
+) -> Union[_T, _Callable[[_T], _T]]:
     """Mark *obj* as part of the public API of its defining module."""
 
     def _decorator(target: _T) -> _T:

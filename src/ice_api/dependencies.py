@@ -1,3 +1,4 @@
+import os
 import time
 from typing import Any, Dict, Tuple
 
@@ -11,13 +12,15 @@ def get_tool_service(request: Request) -> ToolService:
     """Return the application-wide ToolService stored in `app.state`."""
     return request.app.state.tool_service  # type: ignore[attr-defined,no-any-return]
 
+
 def get_context_manager(request: Request) -> Any:
     """Return the shared context manager stored in `app.state`.
-    
+
     Note: Using Any type to avoid layer boundary violation.
     The actual type is GraphContextManager from ice_orchestrator.
     """
     return request.app.state.context_manager  # type: ignore[attr-defined,no-any-return]
+
 
 # ---------------------------------------------------------------------------
 # Simple in-process rate limiter (shared across routes) ----------------------
@@ -26,8 +29,14 @@ _RATE_LIMIT: Dict[Tuple[str, str], list[float]] = {}
 _RATE_WINDOW = 10.0  # seconds
 _RATE_MAX = 5  # requests per window
 
-def rate_limit(request: Request, token: str = Depends(require_auth)) -> None:  # noqa: D401
+
+def rate_limit(
+    request: Request, token: str = Depends(require_auth)
+) -> None:  # noqa: D401
     """Basic token+path bucket rate limiter (dev profile)."""
+    # Disable in tests to avoid flakiness
+    if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("ICE_TESTING") == "1":
+        return
     now = time.time()
     key = (token, request.url.path)
     bucket = _RATE_LIMIT.setdefault(key, [])

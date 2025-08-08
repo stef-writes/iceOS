@@ -144,13 +144,11 @@ class {class_name}(ToolBase):
         return result
 
 
-# Register the tool
-from ice_core.unified_registry import registry
-registry.register_instance(
-    NodeType.TOOL,
-    "{tool_name}",
-    {class_name}(),
-)'''
+def create_{tool_name}_tool(**kwargs: Any) -> {class_name}:
+    return {class_name}(**kwargs)
+
+from ice_core.unified_registry import register_tool_factory
+register_tool_factory("{tool_name}", "your_module_path:create_{tool_name}_tool")'''
 
         # Generate class name
         class_name = "".join(word.capitalize() for word in tool_spec["name"].split("_"))

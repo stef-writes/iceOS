@@ -206,7 +206,6 @@ async def add_request_context(
 
 
 # Include routers
-app.include_router(mcp_router, prefix="/api/v1/mcp", tags=["mcp"])
 from ice_api.api import drafts_router as _drafts_router
 
 app.include_router(_drafts_router)
@@ -241,6 +240,14 @@ app.include_router(
     execution_router,
     prefix="",
     tags=["executions"],
+    dependencies=[Depends(require_auth)],
+)
+
+# Secure MCP REST router behind auth
+app.include_router(
+    mcp_router,
+    prefix="/api/v1/mcp",
+    tags=["mcp"],
     dependencies=[Depends(require_auth)],
 )
 
@@ -291,7 +298,13 @@ async def meta_components() -> Dict[str, Any]:
 # Add real MCP JSON-RPC 2.0 endpoint
 from ice_api.api.mcp_jsonrpc import router as mcp_jsonrpc_router
 
-app.include_router(mcp_jsonrpc_router, prefix="/api/mcp", tags=["mcp-jsonrpc"])
+# Secure MCP JSON-RPC endpoint behind auth as well
+app.include_router(
+    mcp_jsonrpc_router,
+    prefix="/api/mcp",
+    tags=["mcp-jsonrpc"],
+    dependencies=[Depends(require_auth)],
+)
 
 
 # Root endpoint

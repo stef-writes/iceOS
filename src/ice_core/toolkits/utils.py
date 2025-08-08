@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Optional
 
-from ice_core.models.enums import NodeType
 from ice_core.toolkits.base import BaseToolkit
 from ice_core.unified_registry import Registry as _Registry
 from ice_core.unified_registry import registry as _global_registry
@@ -43,7 +42,6 @@ def register_toolkit(
         Number of tools registered.
     """
 
-
     if validate:
         toolkit.validate()
 
@@ -54,9 +52,23 @@ def register_toolkit(
         # Determine public name: <namespace>.<tool.name> unless namespace is "" or None.
         public_name = f"{ns}.{tool.name}" if ns else tool.name
 
-        # Register instance; reuse registry's built-in validation
-        from typing import Any, cast
-        registry.register_instance(NodeType.TOOL, public_name, cast(Any, tool))  # type: ignore[arg-type]
+        # Expect each tool class to expose a module-level factory named create_<name>
+        module_path = tool.__class__.__module__
+        factory_name = f"create_{tool.name}"
+        import_path = f"{module_path}:{factory_name}"
+
+        # Prefer explicit factory if present; otherwise register class as factory
+        try:
+            import importlib
+
+            mod = importlib.import_module(module_path)
+            if not hasattr(mod, factory_name):
+                import_path = f"{module_path}:{tool.__class__.__name__}"
+        except Exception:
+            # If we cannot import the module here, defer to registry and let it raise
+            pass
+
+        registry.register_tool_factory(public_name, import_path)
         count += 1
 
     return count

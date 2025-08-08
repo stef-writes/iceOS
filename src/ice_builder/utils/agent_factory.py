@@ -1,15 +1,15 @@
 """Helper factory for creating AgentNodeConfig instances.
 
 This module provides configuration builders for agents.
-Runtime agent execution has moved to ice_orchestrator.agent.
 
-This is kept in SDK as a development utility for creating agent configurations.
+Agents execute via the orchestrator's builtin agent executor; concrete agent
+implementations are registered via factories in core/registry.
 """
 
 from __future__ import annotations
 
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 from pydantic import validate_call
 
@@ -62,7 +62,9 @@ def agent_factory(
     return decorator
 
 
-def agent_node(name: str, *, factory: Optional[str] = None, **kwargs: Any) -> AgentNodeConfig:
+def agent_node(
+    name: str, *, factory: Optional[str] = None, **kwargs: Any
+) -> AgentNodeConfig:
     """Create an AgentNodeConfig that references a factory.
 
     This helper provides symmetry with `tool_node()` and enables
@@ -83,16 +85,18 @@ def agent_node(name: str, *, factory: Optional[str] = None, **kwargs: Any) -> Ag
         Fully configured agent node ready for workflow use.
     """
     factory_name = factory or name
-    
+
     # Validate the agent is registered
     if factory_name not in global_agent_registry._agents:
-        raise ValueError(f"Agent '{factory_name}' not found in registry")
-    
+        from ice_core.exceptions import ValidationError
+
+        raise ValidationError(f"Agent '{factory_name}' not found in registry")
+
     return AgentNodeConfig(
         id=f"agent_{name}",
-        type="agent", 
-        package=name,  # Use the agent name as package identifier
-        **kwargs
+        type="agent",
+        package=name,  # Use agent name; executor resolves via registry
+        **kwargs,
     )
 
 
@@ -141,7 +145,7 @@ class AgentFactory:
         return AgentNodeConfig(  # type: ignore[call-arg]
             id=f"agent_{id(system_prompt)}",  # Generate unique ID
             type="agent",
-            package="ice_orchestrator.agent.base.BaseAgent",  # Default agent package
+            package="default_agent",  # Resolved via agent registry
             llm_config=llm_config,
             agent_config={"system_prompt": system_prompt} if system_prompt else {},
             tools=[ToolConfig(name=tool, parameters={}) for tool in (tools or [])],  # type: ignore[arg-type]

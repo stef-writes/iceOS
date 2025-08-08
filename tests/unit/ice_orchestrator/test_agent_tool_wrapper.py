@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from ice_orchestrator.tools import AgentTool
+from ice_core.tools import AgentTool
 
 
 class FakeAgent:

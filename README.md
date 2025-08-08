@@ -109,6 +109,49 @@ Coverage must be ≥ 90 % on changed lines; CI will reject lower.
 
 ---
 
+## 5.1 Backend MVP status (Agentic Studio – server-side)
+
+The backend is production-grade for a no/low-code Agentic Studio MVP:
+
+- Blueprint lifecycle
+  - Redis-backed CRUD with optimistic locking and version headers
+  - Partial blueprints: create/get/update (with `X-Version-Lock`) and finalize
+  - Stateless suggest endpoint: read-only by default; `commit=true` requires lock
+
+- Executions
+  - Start/status/list/cancel endpoints; state persisted in Redis
+  - Per-node/workflow events collected in execution snapshots and streamed via WS
+
+- Governance
+  - Deterministic budget preflight: blocks over-budget runs with a non-zero floor for allowed LLM models (no GPT‑3.5)
+  - Compile-time schema validation prior to finalize/execute
+
+- Quality gates
+  - mypy `--strict`: clean; ruff/isort: clean; tests: green
+
+Key endpoints
+
+- `POST /api/v1/blueprints/` (X-Version-Lock: __new__) → id + lock
+- `GET /api/v1/blueprints/{id}` → body + X-Version-Lock
+- `PATCH|PUT|DELETE /api/v1/blueprints/{id}` (optimistic locking)
+- `POST /api/v1/mcp/blueprints/partial` → partial blueprint id
+- `GET /api/v1/mcp/blueprints/partial/{id}` → body + X-Version-Lock
+- `PUT /api/v1/mcp/blueprints/partial/{id}` (requires X-Version-Lock)
+- `POST /api/v1/mcp/blueprints/partial/{id}/finalize` (requires X-Version-Lock)
+- `POST /api/v1/mcp/blueprints/partial/{id}/suggest` (read-only; `commit=true` requires X-Version-Lock)
+- `POST /api/v1/executions/` → execution_id
+- `GET /api/v1/executions/{execution_id}`
+- `GET /api/v1/executions` (list)
+- `POST /api/v1/executions/{execution_id}/cancel`
+
+Notes
+
+- Rate limiting is disabled under tests to avoid flakiness; enabled in dev/prod
+- Budget preflight blocks with 402 when estimated avg cost exceeds `ORG_BUDGET_USD`
+- Allowed models exclude legacy GPT‑3.5 family; use `gpt-4o`/`gpt-4-turbo-*` etc.
+
+---
+
 ## 6. Package overview
 
 | Package | What lives here |
@@ -146,9 +189,10 @@ Data flows strictly **left → right**; each layer depends only on the one below
 2. Implement `_execute_impl(**kwargs) → dict` (async).
 3. Add Pydantic **config fields** for static parameters.
 4. Optionally override `get_input_schema` / `get_output_schema`.
-5. Register instance once:  
+5. Register a factory once:  
    ```python
-   registry.register_instance(NodeType.TOOL, tool.name, tool)
+   from ice_core.unified_registry import register_tool_factory
+   register_tool_factory(tool.name, "your_module_path:create_my_tool")
    ```
 
 External side-effects *must* stay inside `_execute_impl`.

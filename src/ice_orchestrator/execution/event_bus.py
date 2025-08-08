@@ -5,9 +5,10 @@ single place to fan-out execution events (node completed, workflow started …).
 It can later be swapped for Redis Streams, Kafka, or OTLP without touching
 calling code – only the internals of ``EventBus`` would change.
 """
+
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Protocol
+from typing import Any, Dict, List, Protocol
 
 __all__ = ["EventBus", "Subscriber"]
 

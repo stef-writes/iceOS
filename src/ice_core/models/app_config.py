@@ -11,6 +11,7 @@ __all__: list[str] = [
     "AppConfig",
 ]
 
+
 class AppConfig(BaseModel):
     """Top-level application configuration shared across layers."""
 
@@ -31,7 +32,9 @@ class AppConfig(BaseModel):
     @classmethod
     def _validate_version(cls, v: str) -> str:  # – validator
         if not re.fullmatch(r"^\d+\.\d+\.\d+$", v):
-            raise ValueError("Version must use semantic format (e.g., 1.2.3)")
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError("Version must use semantic format (e.g., 1.2.3)")
         return v
 
     @field_validator("environment")
@@ -40,7 +43,9 @@ class AppConfig(BaseModel):
         valid_envs = {"development", "testing", "staging", "production"}
         v_lower = v.lower()
         if v_lower not in valid_envs:
-            raise ValueError(
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError(
                 f"Invalid environment. Valid options: {', '.join(sorted(valid_envs))}"
             )
         return v_lower
@@ -51,7 +56,9 @@ class AppConfig(BaseModel):
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
         upper = v.upper()
         if upper not in valid_levels:
-            raise ValueError(
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError(
                 f"Invalid log level. Valid options: {', '.join(sorted(valid_levels))}"
             )
         return upper

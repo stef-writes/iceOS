@@ -7,7 +7,6 @@ httpx itself – no extra dependency needed.
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timedelta
 
 import httpx

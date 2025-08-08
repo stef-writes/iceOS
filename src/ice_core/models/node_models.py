@@ -330,8 +330,8 @@ class BaseNodeConfig(BaseModel):
 
 @mcp_tier("Blueprint for LLM text operations")
 @multi_granularity("node")
-class LLMOperatorConfig(BaseNodeConfig):
-    """LLM operator configuration - Pure text generation without tools.
+class LLMNodeConfig(BaseNodeConfig):
+    """LLM node configuration - Pure text generation without tools.
 
     WHY: For stateless, one-shot LLM operations. NO tool access.
     If you need tools, use AgentNodeConfig instead.
@@ -339,7 +339,7 @@ class LLMOperatorConfig(BaseNodeConfig):
     Use this for: Summarization, extraction, translation, single Q&A
     Use AgentNodeConfig for: Any LLM operation that needs tools or memory
 
-    In Frosty: "summarize in 3 bullets" → LLMOperatorConfig with template
+    In Frosty: "summarize in 3 bullets" → LLMNodeConfig with template
     """
 
     type: Literal["llm"] = "llm"  # discriminator
@@ -391,7 +391,7 @@ class AgentNodeConfig(BaseNodeConfig):
     memory across turns, unlike stateless LLM nodes.
 
     Use this for: Customer support, research tasks, iterative problem solving
-    Use LLMOperatorConfig for: Single-shot generation without memory needs
+    Use LLMNodeConfig for: Single-shot generation without memory needs
 
     In Frosty: "help me debug this issue" → AgentNodeConfig with memory
     """
@@ -440,12 +440,10 @@ class ConditionNodeConfig(BaseNodeConfig):
         ..., description="Boolean expression evaluated against context"
     )
     true_path: List["NodeConfig"] = Field(
-        default_factory=list,
-        description="Nodes to execute when expression is true"
+        default_factory=list, description="Nodes to execute when expression is true"
     )
     false_path: Optional[List["NodeConfig"]] = Field(
-        default=None,
-        description="Nodes to execute when expression is false"
+        default=None, description="Nodes to execute when expression is false"
     )
 
 
@@ -485,9 +483,7 @@ class LoopNodeConfig(BaseNodeConfig):
         ..., description="Context key containing items to iterate over"
     )
     item_var: str = Field(default="item", description="Variable name for current item")
-    body: List["NodeConfig"] = Field(
-        ..., description="Nodes to execute for each item"
-    )
+    body: List["NodeConfig"] = Field(..., description="Nodes to execute for each item")
     max_iterations: Optional[int] = Field(
         None, description="Maximum iterations allowed"
     )
@@ -614,7 +610,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     NodeConfig = Union[
         ToolNodeConfig,
-        LLMOperatorConfig,
+        LLMNodeConfig,
         AgentNodeConfig,
         ConditionNodeConfig,
         WorkflowNodeConfig,
@@ -627,7 +623,7 @@ else:
     NodeConfig = Annotated[
         Union[
             ToolNodeConfig,
-            LLMOperatorConfig,
+            LLMNodeConfig,
             AgentNodeConfig,
             ConditionNodeConfig,
             WorkflowNodeConfig,
@@ -886,7 +882,7 @@ __all__: list[str] = [
     "InputMapping",
     "ContextRule",
     "BaseNodeConfig",
-    "LLMOperatorConfig",
+    "LLMNodeConfig",
     "ToolNodeConfig",
     "AgentNodeConfig",
     "ConditionNodeConfig",

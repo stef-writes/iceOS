@@ -1,7 +1,5 @@
-import importlib
 import json
 import logging
-import os
 from types import ModuleType
 
 import pytest
@@ -24,6 +22,7 @@ def _reload_logging_module() -> ModuleType:
     for h in list(root.handlers):
         root.removeHandler(h)
     import importlib
+
     return importlib.reload(importlib.import_module("ice_core.utils.logging"))
 
 

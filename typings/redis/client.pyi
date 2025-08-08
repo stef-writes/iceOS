@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 class Pipeline:
     """Minimal stub for redis.client.Pipeline used by EpisodicMemory.
@@ -8,9 +8,6 @@ class Pipeline:
     """
 
     def hset(self, name: str, mapping: Dict[str, Any]) -> int: ...
-
     def expire(self, name: str, time: int) -> bool: ...
-
     def sadd(self, name: str, *values: Any) -> int: ...
-
     def execute(self) -> Any: ...

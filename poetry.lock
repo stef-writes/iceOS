@@ -6294,7 +6294,6 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more_it
 type = ["pytest-mypy"]
 
 [extras]
-dev = []
 embeddings = ["scikit-learn", "sentence-transformers", "torch"]
 llm-anthropic = ["anthropic"]
 llm-gemini = ["google-generativeai"]
@@ -6303,4 +6302,4 @@ llm-openai = ["openai", "tiktoken"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "64feb290a01feef3a22ba269aab2d66859f7c69b44cdb8c0a18a3b8bcd4b8e69"
+content-hash = "caa15928048c388f994816d59a713a3c0ac667f0f7cbe16d05b30814c5db7217"

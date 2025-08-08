@@ -22,7 +22,11 @@ __all__ = [
     "RegistryError",
     "ValidationError",
     "DimensionMismatchError",
+    "BlueprintVersionError",
+    "UnknownNodeTypeError",
+    "ToolFactoryResolutionError",
 ]
+
 
 class ErrorCode(IntEnum):
     """Stable error codes for high-level failure classes."""
@@ -46,6 +50,7 @@ class ErrorCode(IntEnum):
         }
         return mapping.get(self, mapping[ErrorCode.UNKNOWN])
 
+
 class CoreError(RuntimeError):
     """Base class for all custom iceOS errors.
 
@@ -66,6 +71,7 @@ class CoreError(RuntimeError):
         self.payload = payload
         super().__init__(message or code.describe())
 
+
 class CycleDetectionError(CoreError):
     """Raised when an agent–tool cycle is detected at runtime."""
 
@@ -76,9 +82,11 @@ class CycleDetectionError(CoreError):
             payload={"cycle": cycle_path},
         )
 
+
 # ----------------------------------------
 #  Layer boundary violation --------------------------------------------------
 # ----------------------------------------
+
 
 class LayerViolationError(CoreError):
     """Raised when lower-layer code imports or uses forbidden higher-layer modules."""
@@ -89,9 +97,10 @@ class LayerViolationError(CoreError):
 
 class SecurityViolationError(Exception):
     """Raised when a security violation is detected."""
-    
+
     def __init__(self, message: str):
         super().__init__(f"Security violation: {message}")
+
 
 class ScaffoldValidationError(CoreError):
     """Raised when generated scaffold fails JSON schema validation."""
@@ -135,6 +144,39 @@ class DimensionMismatchError(CoreError):
 
 class RegistryError(Exception):
     """Raised when registry operations fail."""
-    
+
     def __init__(self, message: str):
         super().__init__(f"Registry error: {message}")
+
+
+class BlueprintVersionError(CoreError):
+    """Raised when a blueprint declares an unsupported schema version."""
+
+    def __init__(self, version: str, supported: list[str]):
+        super().__init__(
+            ErrorCode.UNKNOWN,
+            f"Unsupported blueprint schema_version '{version}'. Supported: {supported}",
+            payload={"version": version, "supported": supported},
+        )
+
+
+class UnknownNodeTypeError(CoreError):
+    """Raised when a NodeSpec.type is not recognized during conversion."""
+
+    def __init__(self, node_type: str):
+        super().__init__(
+            ErrorCode.UNKNOWN,
+            f"Unknown node type '{node_type}'",
+            payload={"node_type": node_type},
+        )
+
+
+class ToolFactoryResolutionError(CoreError):
+    """Raised when a tool factory cannot be resolved or returns wrong type."""
+
+    def __init__(self, tool_name: str, details: str):
+        super().__init__(
+            ErrorCode.UNKNOWN,
+            f"Failed to instantiate tool '{tool_name}': {details}",
+            payload={"tool": tool_name},
+        )

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 import pytest
 
 from ice_core.base_tool import ToolBase
@@ -48,7 +46,9 @@ async def test_register_toolkit_creates_tools():
     num = register_toolkit(tk, registry=registry, validate=True)
     assert num == 1, "Exactly one tool should be registered"
 
-    assert registry.has_tool("dummy.dummy"), "Tool should be registered with namespace prefix"
+    assert registry.has_tool(
+        "dummy.dummy"
+    ), "Tool should be registered with namespace prefix"
 
     # Execute the tool to ensure it works end-to-end
     tool = registry.get_tool("dummy.dummy")

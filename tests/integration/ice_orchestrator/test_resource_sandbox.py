@@ -1,6 +1,5 @@
 import asyncio
 import os
-import platform
 import sys
 
 import pytest
@@ -9,7 +8,10 @@ from ice_orchestrator.execution.sandbox.resource_sandbox import ResourceSandbox
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(sys.platform == "darwin", reason="Resource sandbox stress tests skipped on macOS due to OS-level limits")
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Resource sandbox stress tests skipped on macOS due to OS-level limits",
+)
 async def test_big_allocation_memory_limit():
     """Allocating >512 MB should raise MemoryError or be killed within sandbox."""
 
@@ -28,7 +30,10 @@ async def test_big_allocation_memory_limit():
 
 
 @pytest.mark.asyncio
-@pytest.mark.skipif(sys.platform == "darwin", reason="Resource sandbox stress tests skipped on macOS due to OS-level limits")
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Resource sandbox stress tests skipped on macOS due to OS-level limits",
+)
 async def test_fork_bomb_cpu_limit():
     """Mass forking should be stopped by CPU or timeout limits."""
 
@@ -45,7 +50,11 @@ async def test_fork_bomb_cpu_limit():
             else:
                 os.waitpid(pid, 0)
 
-    sandbox = ResourceSandbox(timeout_seconds=3, cpu_limit_seconds=1, memory_limit_mb=256)
-    with pytest.raises((asyncio.TimeoutError, asyncio.CancelledError, ProcessLookupError)):
+    sandbox = ResourceSandbox(
+        timeout_seconds=3, cpu_limit_seconds=1, memory_limit_mb=256
+    )
+    with pytest.raises(
+        (asyncio.TimeoutError, asyncio.CancelledError, ProcessLookupError)
+    ):
         async with sandbox as sbx:
             await sbx.run_with_timeout(_fork_bomb())

@@ -15,6 +15,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = structlog.get_logger(__name__)
 
+
 class SafetyValidator:  # – internal utility
     """Safety validation helpers for ScriptChain."""
 
@@ -62,6 +63,8 @@ class SafetyValidator:  # – internal utility
             # Any other node type is not allowed to carry *allowed_tools* for
             # now.  Condition and Tool nodes should execute deterministically
             # without further nested tool calls.
-            raise ValueError(
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError(
                 f"Node '{node.id}' (type={node.type}) cannot declare allowed_tools"
             )

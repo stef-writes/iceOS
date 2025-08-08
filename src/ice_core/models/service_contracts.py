@@ -1,4 +1,4 @@
-from typing import Literal, Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -9,6 +9,7 @@ class EndpointSpec(BaseModel):
     request_schema: dict[str, Any]  # JSON Schema
     response_schema: dict[str, Any]
     cost_weight: float = 1.0
+
 
 class ServiceContract(BaseModel):
     """Defines a formal interface for cross-layer communication.

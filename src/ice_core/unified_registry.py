@@ -23,8 +23,8 @@ from pydantic import BaseModel, PrivateAttr
 from ice_core.exceptions import RegistryError
 from ice_core.models import INode, NodeConfig, NodeExecutionResult
 from ice_core.models.enums import NodeType
-from ice_core.protocols.workflow import WorkflowLike
 from ice_core.protocols.agent import IAgent
+from ice_core.protocols.workflow import WorkflowLike
 
 # Type aliases for node executors
 ExecCallable = Callable[
@@ -69,6 +69,49 @@ class Registry(BaseModel):
     _tool_factory_cache: Dict[str, Callable[..., INode]] = PrivateAttr(
         default_factory=dict
     )
+    # Workflow factory registry (module:function strings)
+    _workflow_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _workflow_factory_cache: Dict[str, Callable[..., "WorkflowLike"]] = PrivateAttr(
+        default_factory=dict
+    )
+    # LLM factory registry (module:function strings)
+    _llm_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _llm_factory_cache: Dict[str, Callable[..., Any]] = PrivateAttr(
+        default_factory=dict
+    )
+    # Control/advanced node factory registries
+    _condition_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _condition_factory_cache: Dict[str, Callable[..., Any]] = PrivateAttr(
+        default_factory=dict
+    )
+    _loop_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _loop_factory_cache: Dict[str, Callable[..., Any]] = PrivateAttr(
+        default_factory=dict
+    )
+    _parallel_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _parallel_factory_cache: Dict[str, Callable[..., Any]] = PrivateAttr(
+        default_factory=dict
+    )
+    _recursive_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _recursive_factory_cache: Dict[str, Callable[..., Any]] = PrivateAttr(
+        default_factory=dict
+    )
+    _code_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _code_factory_cache: Dict[str, Callable[..., Any]] = PrivateAttr(
+        default_factory=dict
+    )
+    _human_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _human_factory_cache: Dict[str, Callable[..., Any]] = PrivateAttr(
+        default_factory=dict
+    )
+    _monitor_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _monitor_factory_cache: Dict[str, Callable[..., Any]] = PrivateAttr(
+        default_factory=dict
+    )
+    _swarm_factories: Dict[str, str] = PrivateAttr(default_factory=dict)
+    _swarm_factory_cache: Dict[str, Callable[..., Any]] = PrivateAttr(
+        default_factory=dict
+    )
 
     def register_class(
         self, node_type: NodeType, name: str, implementation: Type[INode]
@@ -80,61 +123,7 @@ class Registry(BaseModel):
             raise RegistryError(f"Node {node_type.value}:{name} already registered")
         self._nodes[node_type][name] = implementation
 
-    def register_instance(
-        self, node_type: NodeType, name: str, instance: INode, validate: bool = True
-    ) -> None:
-        """Register a singleton instance (DEPRECATED - use factory pattern instead)."""
-        import warnings
-        warnings.warn(
-            f"register_instance is deprecated for {node_type.value}. "
-            f"Use register_tool_factory/register_agent_factory instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        """Register a node instance (for singletons like tools).
-
-        Args:
-            node_type: Type of node (TOOL, AGENT, etc.)
-            name: Unique name for the instance
-            instance: The instance to register
-            validate: Whether to validate before registration (default: True)
-                     Set to False for testing or internal use
-        """
-        # Validate before registration if requested
-        if validate and node_type == NodeType.TOOL:
-            # Basic validation - check if instance has required methods
-            from ice_core.base_tool import ToolBase
-            from ice_core.utils.registry_utils import validate_registry_entry
-
-            # Ensure the instance is a ToolBase subclass
-            if not isinstance(instance, ToolBase):
-                raise RegistryError(
-                    f"Tool '{name}' must subclass ice_core.base_tool.ToolBase"
-                )
-            if not hasattr(instance, "_execute_impl"):
-                raise RegistryError(
-                    f"Tool '{name}' must implement _execute_impl method"
-                )
-
-            # Run comprehensive validation
-            try:
-                validate_registry_entry(type(instance))
-            except Exception as e:
-                raise RegistryError(f"Tool '{name}' failed validation: {e}")
-            # Check for required attributes
-            if not hasattr(instance, "name"):
-                raise RegistryError(f"Tool '{name}' must have a 'name' attribute")
-
-            # For now, do synchronous validation
-            # Full async validation happens through MCP endpoints
-            # This is a compromise to avoid breaking existing sync code
-
-        # Original registration logic
-        if node_type not in self._instances:
-            self._instances[node_type] = {}  # type: ignore[assignment]
-        if name in self._instances[node_type]:
-            raise RegistryError(f"Instance {node_type.value}:{name} already registered")
-        self._instances[node_type][name] = instance  # type: ignore[assignment]
+    # Legacy instance registration removed – factories are the only path
 
     def get_class(self, node_type: NodeType, name: str) -> Type[INode]:
         """Get a registered node class."""
@@ -142,30 +131,7 @@ class Registry(BaseModel):
             raise RegistryError(f"Node class {node_type.value}:{name} not found")
         return self._nodes[node_type][name]
 
-    def get_instance(self, node_type: NodeType, name: str) -> INode:
-        """Get a singleton instance (DEPRECATED - use factory pattern instead)."""
-        import warnings
-        warnings.warn(
-            f"get_instance is deprecated for {node_type.value}. "
-            f"Use get_tool_instance/get_agent_instance instead.",
-            DeprecationWarning,
-            stacklevel=2
-        )
-        """Get or create a node instance."""
-        # Return existing instance if available
-        if node_type in self._instances and name in self._instances[node_type]:
-            return self._instances[node_type][name]
-
-        # Otherwise create from class
-        if node_type in self._nodes and name in self._nodes[node_type]:
-            instance = self._nodes[node_type][name]()
-            # Cache the new instance
-            if node_type not in self._instances:
-                self._instances[node_type] = {}  # type: ignore[assignment]
-            self._instances[node_type][name] = instance  # type: ignore[assignment]
-            return instance
-
-        raise RegistryError(f"Node {node_type.value}:{name} not found")
+    # Legacy instance retrieval removed – factories are the only path
 
     def list_nodes(
         self, node_type: Optional[NodeType] = None
@@ -225,24 +191,20 @@ class Registry(BaseModel):
 
     # Convenience methods for better API
     def list_tools(self) -> List[str]:
-        """List all registered tool names."""
-        if NodeType.TOOL in self._instances:
-            return list(self._instances[NodeType.TOOL].keys())
-        return []
+        """List all registered tool factory names."""
+        return [name for name, _ in self.available_tool_factories()]
 
     def list_agents(self) -> List[str]:
         """List all registered agent names."""
         return list(self._agents.keys())
 
     def get_tool(self, name: str) -> INode:
-        """Get a tool instance by name."""
-        return self.get_instance(NodeType.TOOL, name)
+        """Get a tool instance by name via factory."""
+        return self.get_tool_instance(name)
 
     def has_tool(self, name: str) -> bool:
-        """Check if a tool is registered."""
-        return (
-            NodeType.TOOL in self._instances and name in self._instances[NodeType.TOOL]
-        )
+        """Check if a tool factory is registered."""
+        return name in dict(self.available_tool_factories())
 
     # Chain registry methods
     def register_chain(self, name: str, chain: Any) -> None:
@@ -336,11 +298,28 @@ class Registry(BaseModel):
                                 )
                             self.register_class(NodeType.TOOL, name, obj)  # type: ignore[arg-type]
                         else:
+                            # Support instance export by wrapping with an auto-generated factory
                             if not isinstance(obj, ToolBase):
                                 raise RegistryError(
                                     f"Tool instance {imp_path} does not inherit ToolBase"
                                 )
-                            self.register_instance(NodeType.TOOL, name, obj, validate=False)  # type: ignore[arg-type]
+                            # Create a dynamic factory module for this object
+                            import sys
+                            import types
+
+                            mod_name = f"_dyn_tools_{name}"
+                            mod = types.ModuleType(mod_name)
+
+                            def _factory(**kwargs: Any) -> ToolBase:
+                                # Return a new instance of the same class if possible; else return the object itself
+                                try:
+                                    return obj.__class__(**kwargs)
+                                except Exception:
+                                    return obj
+
+                            setattr(mod, "create", _factory)
+                            sys.modules[mod_name] = mod
+                            self.register_tool_factory(name, f"{mod_name}:create")
                     except Exception as exc:
                         raise RegistryError(
                             f"Failed to import tool {name}: {exc}"
@@ -461,6 +440,7 @@ class Registry(BaseModel):
 
         # Validate the instance implements the expected protocol
         from ice_core.protocols.agent import IAgent
+
         if not isinstance(agent_instance, IAgent):
             raise TypeError(f"Factory for {name} did not return an IAgent instance")
 
@@ -468,6 +448,7 @@ class Registry(BaseModel):
         if hasattr(agent_instance, "validate") and callable(agent_instance.validate):
             # Check if validate is a coroutine
             import asyncio
+
             if asyncio.iscoroutinefunction(agent_instance.validate):
                 # Skip async validation for now - would need async context
                 pass
@@ -484,8 +465,22 @@ class Registry(BaseModel):
         if name in self._tool_factories:
             if self._tool_factories[name] == import_path:
                 return  # idempotent
-            raise RegistryError(f"Tool factory {name} already registered with different path")
+            raise RegistryError(
+                f"Tool factory {name} already registered with different path"
+            )
         self._tool_factories[name] = import_path
+        # Preload cache with a wrapper to create instances lazily
+        try:
+            module_str, attr = import_path.split(":", 1)
+            import importlib
+
+            module = importlib.import_module(module_str)
+            factory = getattr(module, attr)
+            if callable(factory):
+                self._tool_factory_cache[name] = factory  # type: ignore[assignment]
+        except Exception:
+            # Leave cache empty; instance resolution will import at first use
+            pass
 
     def get_tool_instance(self, name: str, **kwargs: Any) -> INode:
         """Instantiate a tool via its registered factory and return *fresh* instance.
@@ -495,7 +490,9 @@ class Registry(BaseModel):
         isolated tool each time.
         """
         if name not in self._tool_factories:
-            raise KeyError(f"Tool factory {name} not found")
+            from ice_core.exceptions import ToolFactoryResolutionError
+
+            raise ToolFactoryResolutionError(name, "factory not registered")
 
         # Resolve factory callable (cached for performance)
         if name in self._tool_factory_cache:
@@ -507,7 +504,11 @@ class Registry(BaseModel):
             module = importlib.import_module(module_str)
             factory = getattr(module, attr)
             if not callable(factory):
-                raise TypeError(f"Factory {self._tool_factories[name]} is not callable")
+                from ice_core.exceptions import ToolFactoryResolutionError
+
+                raise ToolFactoryResolutionError(
+                    name, "factory attribute is not callable"
+                )
             self._tool_factory_cache[name] = factory  # Cache for next call
 
         tool_instance = factory(**kwargs)
@@ -515,7 +516,11 @@ class Registry(BaseModel):
         from ice_core.base_tool import ToolBase  # Local to avoid circular import
 
         if not isinstance(tool_instance, ToolBase):
-            raise TypeError(f"Factory for {name} did not return a ToolBase instance")
+            from ice_core.exceptions import ToolFactoryResolutionError
+
+            raise ToolFactoryResolutionError(
+                name, "factory did not return a ToolBase instance"
+            )
 
         # Run idempotent validate() if the tool exposes it
         if hasattr(tool_instance, "validate") and callable(tool_instance.validate):
@@ -532,6 +537,307 @@ class Registry(BaseModel):
     def available_agents(self) -> List[Tuple[str, str]]:
         """List all registered agents with their import paths."""
         return [(name, path) for name, path in sorted(self._agents.items())]
+
+    # ------------------------------------------------------------------
+    # Workflow factory helpers -----------------------------------------
+    # ------------------------------------------------------------------
+    def register_workflow_factory(self, name: str, import_path: str) -> None:
+        """Register a workflow factory import path (``module:create_func``).
+
+        The factory must return an object implementing ``WorkflowLike`` with an
+        async ``execute(context: Dict[str, Any]) -> Any`` method and optional
+        idempotent ``validate()``.
+        """
+        if name in self._workflow_factories:
+            if self._workflow_factories[name] == import_path:
+                return  # idempotent
+            raise RegistryError(
+                f"Workflow factory {name} already registered with different path"
+            )
+        self._workflow_factories[name] = import_path
+
+    def get_workflow_instance(self, name: str, **kwargs: Any) -> "WorkflowLike":
+        """Instantiate a workflow via its registered factory and return a fresh instance.
+
+        Raises
+        ------
+        KeyError
+            If no workflow factory is registered under ``name``.
+        TypeError
+            If the resolved factory is not callable or returns an invalid object.
+        """
+        if name not in self._workflow_factories:
+            raise KeyError(f"Workflow factory not registered: {name}")
+
+        # Resolve and cache the factory callable
+        if name in self._workflow_factory_cache:
+            factory = self._workflow_factory_cache[name]
+        else:
+            module_str, attr = self._workflow_factories[name].split(":", 1)
+            import importlib
+
+            module = importlib.import_module(module_str)
+            factory = getattr(module, attr)
+            if not callable(factory):
+                raise TypeError(
+                    f"Workflow factory attribute is not callable: {self._workflow_factories[name]}"
+                )
+            self._workflow_factory_cache[name] = factory
+
+        instance = factory(**kwargs)
+
+        # Allow coroutine factories – caller (executor) will await the instance
+        try:
+            import inspect as _inspect
+
+            if _inspect.isawaitable(instance):
+                return instance  # type: ignore[return-value]
+        except Exception:
+            pass
+
+        # Minimal protocol validation – must expose async execute(ctx)
+        if not hasattr(instance, "execute") or not callable(
+            getattr(instance, "execute")
+        ):
+            raise TypeError(
+                f"Factory for workflow '{name}' did not return an instance with an execute() method"
+            )
+
+        # Run optional idempotent validate()
+        if hasattr(instance, "validate") and callable(getattr(instance, "validate")):
+            try:
+                instance.validate()  # type: ignore[call-arg]
+            except Exception as exc:  # pragma: no cover - defensive
+                raise TypeError(f"Workflow '{name}' failed validate(): {exc}") from exc
+
+        return instance
+
+    def available_workflow_factories(self) -> List[Tuple[str, str]]:
+        """List registered workflow factories with their import paths."""
+        return [(name, path) for name, path in sorted(self._workflow_factories.items())]
+
+    # ------------------------------------------------------------------
+    # LLM factory helpers ----------------------------------------------
+    # ------------------------------------------------------------------
+    def register_llm_factory(self, name: str, import_path: str) -> None:
+        """Register an LLM node factory (``module:create_func``).
+
+        The factory must return an object exposing a ``generate(llm_config, prompt, context)``
+        coroutine returning ``tuple[str, Optional[dict[str, int]], Optional[str]]``
+        (text, usage, error). This mirrors ``LLMService.generate`` for interchangeability.
+        """
+        if name in self._llm_factories:
+            if self._llm_factories[name] == import_path:
+                return
+            raise RegistryError(
+                f"LLM factory {name} already registered with different path"
+            )
+        self._llm_factories[name] = import_path
+
+    def get_llm_instance(self, name: str, **kwargs: Any) -> Any:
+        """Instantiate an LLM node helper via its factory and return a fresh instance.
+
+        Raises
+        ------
+        KeyError
+            If no LLM factory is registered under ``name``.
+        TypeError
+            If the resolved factory is not callable or returns an invalid object.
+        """
+        if name not in self._llm_factories:
+            raise KeyError(f"LLM factory not registered: {name}")
+
+        # Resolve and cache the factory callable
+        if name in self._llm_factory_cache:
+            factory = self._llm_factory_cache[name]
+        else:
+            module_str, attr = self._llm_factories[name].split(":", 1)
+            import importlib
+
+            module = importlib.import_module(module_str)
+            factory = getattr(module, attr)
+            if not callable(factory):
+                raise TypeError(
+                    f"LLM factory attribute is not callable: {self._llm_factories[name]}"
+                )
+            self._llm_factory_cache[name] = factory
+
+        instance = factory(**kwargs)
+
+        # Validate instance has a generate coroutine compatible with LLMService
+        generate_attr = getattr(instance, "generate", None)
+        if not callable(generate_attr):
+            raise TypeError(
+                f"Factory for LLM '{name}' did not return an instance with a generate() method"
+            )
+
+        return instance
+
+    # ------------------------------------------------------------------
+    # Generic helper to resolve factories from a map+cache --------------
+    # ------------------------------------------------------------------
+    def _resolve_factory(
+        self,
+        registry_map: Dict[str, str],
+        cache: Dict[str, Callable[..., Any]],
+        name: str,
+    ) -> Callable[..., Any]:
+        if name in cache:
+            return cache[name]
+        if name not in registry_map:
+            raise KeyError(name)
+        module_str, attr = registry_map[name].split(":", 1)
+        import importlib
+
+        module = importlib.import_module(module_str)
+        factory = getattr(module, attr)
+        if not callable(factory):
+            raise TypeError(f"Factory attribute is not callable: {registry_map[name]}")
+        cache[name] = factory
+        # Factory is callable but may be untyped; help mypy with a Callable[..., Any] signature
+        from typing import cast as _cast
+
+        return _cast(Callable[..., Any], factory)
+
+    # ------------------------------------------------------------------
+    # Condition factory helpers ----------------------------------------
+    # ------------------------------------------------------------------
+    def register_condition_factory(self, name: str, import_path: str) -> None:
+        if (
+            name in self._condition_factories
+            and self._condition_factories[name] != import_path
+        ):
+            raise RegistryError(
+                f"Condition factory {name} already registered with different path"
+            )
+        self._condition_factories[name] = import_path
+
+    def get_condition_instance(self, name: str, **kwargs: Any) -> Any:
+        factory = self._resolve_factory(
+            self._condition_factories, self._condition_factory_cache, name
+        )
+        return factory(**kwargs)
+
+    # ------------------------------------------------------------------
+    # Loop factory helpers ---------------------------------------------
+    # ------------------------------------------------------------------
+    def register_loop_factory(self, name: str, import_path: str) -> None:
+        if name in self._loop_factories and self._loop_factories[name] != import_path:
+            raise RegistryError(
+                f"Loop factory {name} already registered with different path"
+            )
+        self._loop_factories[name] = import_path
+
+    def get_loop_instance(self, name: str, **kwargs: Any) -> Any:
+        factory = self._resolve_factory(
+            self._loop_factories, self._loop_factory_cache, name
+        )
+        return factory(**kwargs)
+
+    # ------------------------------------------------------------------
+    # Parallel factory helpers -----------------------------------------
+    # ------------------------------------------------------------------
+    def register_parallel_factory(self, name: str, import_path: str) -> None:
+        if (
+            name in self._parallel_factories
+            and self._parallel_factories[name] != import_path
+        ):
+            raise RegistryError(
+                f"Parallel factory {name} already registered with different path"
+            )
+        self._parallel_factories[name] = import_path
+
+    def get_parallel_instance(self, name: str, **kwargs: Any) -> Any:
+        factory = self._resolve_factory(
+            self._parallel_factories, self._parallel_factory_cache, name
+        )
+        return factory(**kwargs)
+
+    # ------------------------------------------------------------------
+    # Recursive factory helpers ----------------------------------------
+    # ------------------------------------------------------------------
+    def register_recursive_factory(self, name: str, import_path: str) -> None:
+        if (
+            name in self._recursive_factories
+            and self._recursive_factories[name] != import_path
+        ):
+            raise RegistryError(
+                f"Recursive factory {name} already registered with different path"
+            )
+        self._recursive_factories[name] = import_path
+
+    def get_recursive_instance(self, name: str, **kwargs: Any) -> Any:
+        factory = self._resolve_factory(
+            self._recursive_factories, self._recursive_factory_cache, name
+        )
+        return factory(**kwargs)
+
+    # ------------------------------------------------------------------
+    # Code factory helpers ---------------------------------------------
+    # ------------------------------------------------------------------
+    def register_code_factory(self, name: str, import_path: str) -> None:
+        if name in self._code_factories and self._code_factories[name] != import_path:
+            raise RegistryError(
+                f"Code factory {name} already registered with different path"
+            )
+        self._code_factories[name] = import_path
+
+    def get_code_instance(self, name: str, **kwargs: Any) -> Any:
+        factory = self._resolve_factory(
+            self._code_factories, self._code_factory_cache, name
+        )
+        return factory(**kwargs)
+
+    # ------------------------------------------------------------------
+    # Human factory helpers --------------------------------------------
+    # ------------------------------------------------------------------
+    def register_human_factory(self, name: str, import_path: str) -> None:
+        if name in self._human_factories and self._human_factories[name] != import_path:
+            raise RegistryError(
+                f"Human factory {name} already registered with different path"
+            )
+        self._human_factories[name] = import_path
+
+    def get_human_instance(self, name: str, **kwargs: Any) -> Any:
+        factory = self._resolve_factory(
+            self._human_factories, self._human_factory_cache, name
+        )
+        return factory(**kwargs)
+
+    # ------------------------------------------------------------------
+    # Monitor factory helpers ------------------------------------------
+    # ------------------------------------------------------------------
+    def register_monitor_factory(self, name: str, import_path: str) -> None:
+        if (
+            name in self._monitor_factories
+            and self._monitor_factories[name] != import_path
+        ):
+            raise RegistryError(
+                f"Monitor factory {name} already registered with different path"
+            )
+        self._monitor_factories[name] = import_path
+
+    def get_monitor_instance(self, name: str, **kwargs: Any) -> Any:
+        factory = self._resolve_factory(
+            self._monitor_factories, self._monitor_factory_cache, name
+        )
+        return factory(**kwargs)
+
+    # ------------------------------------------------------------------
+    # Swarm factory helpers --------------------------------------------
+    # ------------------------------------------------------------------
+    def register_swarm_factory(self, name: str, import_path: str) -> None:
+        if name in self._swarm_factories and self._swarm_factories[name] != import_path:
+            raise RegistryError(
+                f"Swarm factory {name} already registered with different path"
+            )
+        self._swarm_factories[name] = import_path
+
+    def get_swarm_instance(self, name: str, **kwargs: Any) -> Any:
+        factory = self._resolve_factory(
+            self._swarm_factories, self._swarm_factory_cache, name
+        )
+        return factory(**kwargs)
 
 
 # Global registry instance
@@ -565,9 +871,11 @@ def get_executor(node_type: str) -> ExecCallable:
     """Get executor for a node type."""
     return registry.get_executor(node_type)
 
+
 # ------------------------------------------------------------------
 # Factory helpers (module-level wrappers) ---------------------------
 # ------------------------------------------------------------------
+
 
 def register_tool_factory(name: str, import_path: str) -> None:  # noqa: D401
     """Register a tool factory at module level for callers that don’t need class access."""
@@ -584,6 +892,114 @@ def register_agent_factory(name: str, import_path: str) -> None:  # noqa: D401
     registry.register_agent(name, import_path)
 
 
+def register_workflow_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a workflow factory at module level."""
+    registry.register_workflow_factory(name, import_path)
+
+
+def get_workflow_instance(name: str, **kwargs: Any) -> "WorkflowLike":  # noqa: D401
+    """Convenience wrapper for ``Registry.get_workflow_instance``."""
+    return registry.get_workflow_instance(name, **kwargs)
+
+
+def register_llm_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register an LLM node factory at module level."""
+    registry.register_llm_factory(name, import_path)
+
+
+def get_llm_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
+    """Convenience wrapper for ``Registry.get_llm_instance``."""
+    return registry.get_llm_instance(name, **kwargs)
+
+
+# Condition wrappers ---------------------------------------------------------
+def register_condition_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a condition node factory at module level."""
+    registry.register_condition_factory(name, import_path)
+
+
+def get_condition_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
+    """Convenience wrapper for ``Registry.get_condition_instance``."""
+    return registry.get_condition_instance(name, **kwargs)
+
+
+# Loop wrappers --------------------------------------------------------------
+def register_loop_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a loop node factory at module level."""
+    registry.register_loop_factory(name, import_path)
+
+
+def get_loop_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
+    """Convenience wrapper for ``Registry.get_loop_instance``."""
+    return registry.get_loop_instance(name, **kwargs)
+
+
+# Parallel wrappers ----------------------------------------------------------
+def register_parallel_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a parallel node factory at module level."""
+    registry.register_parallel_factory(name, import_path)
+
+
+def get_parallel_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
+    """Convenience wrapper for ``Registry.get_parallel_instance``."""
+    return registry.get_parallel_instance(name, **kwargs)
+
+
+# Recursive wrappers ---------------------------------------------------------
+def register_recursive_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a recursive node factory at module level."""
+    registry.register_recursive_factory(name, import_path)
+
+
+def get_recursive_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
+    """Convenience wrapper for ``Registry.get_recursive_instance``."""
+    return registry.get_recursive_instance(name, **kwargs)
+
+
+# Code wrappers --------------------------------------------------------------
+def register_code_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a code node factory at module level."""
+    registry.register_code_factory(name, import_path)
+
+
+def get_code_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
+    """Convenience wrapper for ``Registry.get_code_instance``."""
+    return registry.get_code_instance(name, **kwargs)
+
+
+# Human wrappers -------------------------------------------------------------
+def register_human_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a human node factory at module level."""
+    registry.register_human_factory(name, import_path)
+
+
+def get_human_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
+    """Convenience wrapper for ``Registry.get_human_instance``."""
+    return registry.get_human_instance(name, **kwargs)
+
+
+# Monitor wrappers -----------------------------------------------------------
+def register_monitor_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a monitor node factory at module level."""
+    registry.register_monitor_factory(name, import_path)
+
+
+def get_monitor_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
+    """Convenience wrapper for ``Registry.get_monitor_instance``."""
+    return registry.get_monitor_instance(name, **kwargs)
+
+
+# Swarm wrappers -------------------------------------------------------------
+def register_swarm_factory(name: str, import_path: str) -> None:  # noqa: D401
+    """Register a swarm node factory at module level."""
+    registry.register_swarm_factory(name, import_path)
+
+
+def get_swarm_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
+    """Convenience wrapper for ``Registry.get_swarm_instance``."""
+    return registry.get_swarm_instance(name, **kwargs)
+
+
 # Direct access to the registry - no backward compatibility needed
 global_agent_registry = registry
 global_chain_registry = registry
@@ -596,7 +1012,27 @@ __all__ = [
     "register_node",
     "register_tool_factory",
     "register_agent_factory",
+    "register_workflow_factory",
+    "register_llm_factory",
+    "register_condition_factory",
+    "register_loop_factory",
+    "register_parallel_factory",
+    "register_recursive_factory",
+    "register_code_factory",
+    "register_human_factory",
+    "register_monitor_factory",
+    "register_swarm_factory",
     "get_tool_instance",
+    "get_workflow_instance",
+    "get_llm_instance",
+    "get_condition_instance",
+    "get_loop_instance",
+    "get_parallel_instance",
+    "get_recursive_instance",
+    "get_code_instance",
+    "get_human_instance",
+    "get_monitor_instance",
+    "get_swarm_instance",
     "get_executor",
     "NodeExecutor",
     "global_agent_registry",

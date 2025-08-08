@@ -44,7 +44,9 @@ def parse_model_version(
         }
         if model_name in mapping:
             return mapping[model_name]
-        raise ValueError(f"Unsupported OpenAI model: {model_name}")
+        from ice_core.exceptions import ValidationError
+
+        raise ValidationError(f"Unsupported OpenAI model: {model_name}")
 
     elif provider == ModelProvider.ANTHROPIC:
         mapping = {
@@ -62,7 +64,9 @@ def parse_model_version(
         }
         if model_name in mapping:
             return mapping[model_name]
-        raise ValueError(f"Unsupported Anthropic model: {model_name}")
+        from ice_core.exceptions import ValidationError
+
+        raise ValidationError(f"Unsupported Anthropic model: {model_name}")
 
     elif provider == ModelProvider.GOOGLE:
         mapping = {
@@ -72,7 +76,9 @@ def parse_model_version(
         }
         if model_name in mapping:
             return mapping[model_name]
-        raise ValueError(f"Unsupported Google model: {model_name}")
+        from ice_core.exceptions import ValidationError
+
+        raise ValidationError(f"Unsupported Google model: {model_name}")
 
     elif provider == ModelProvider.DEEPSEEK:
         # DeepSeek keys can vary; return default until spec stabilises
@@ -81,7 +87,9 @@ def parse_model_version(
     elif provider == ModelProvider.CUSTOM:
         return "1.0.0"
 
-    raise ValueError(f"Unsupported provider: {provider}")
+    from ice_core.exceptions import ValidationError
+
+    raise ValidationError(f"Unsupported provider: {provider}")
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +135,9 @@ class MessageTemplate(BaseModel):
     def _validate_role(cls, v: str) -> str:  # – validator
         valid_roles = {"system", "user", "assistant"}
         if v not in valid_roles:
-            raise ValueError(
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError(
                 f"Invalid role. Valid roles: {', '.join(sorted(valid_roles))}"
             )
         return v
@@ -136,7 +146,9 @@ class MessageTemplate(BaseModel):
     @classmethod
     def _validate_version(cls, v: str) -> str:  # – validator
         if not re.fullmatch(r"^\d+\.\d+\.\d+$", v):
-            raise ValueError("Version must use semantic format (e.g., 1.2.3)")
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError("Version must use semantic format (e.g., 1.2.3)")
         return v
 
     @field_validator("min_model_version")
@@ -234,7 +246,9 @@ class LLMConfig(BaseModel):
             return v  # registry unavailable during early import; skip
 
         if not is_allowed_model(v):
-            raise ValueError(
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError(
                 f"Model '{v}' is not allowed. Banned models: {', '.join(sorted(BANNED_MODELS))}"
             )
         return v

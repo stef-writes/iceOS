@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, Any
 
 import grpc
 
@@ -16,6 +16,7 @@ else:  # Fallback so mypy/tests succeed without generated stubs
     network_pb2.CreateNetworkSpecResponse = type("CreateNetworkSpecResponse", (), {})
     network_pb2.ListNetworkSpecsResponse = type("ListNetworkSpecsResponse", (), {})
     network_pb2.GetNetworkSpecResponse = type("GetNetworkSpecResponse", (), {})
+
     class _DynResp:  # noqa: D401 – simple stub
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
@@ -29,6 +30,7 @@ else:  # Fallback so mypy/tests succeed without generated stubs
 
 BaseServicer: Any = getattr(network_pb2_grpc, "NetworkServiceServicer", object)
 
+
 class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
     """gRPC adapter that forwards requests to :class:`NetworkService`."""
 
@@ -39,7 +41,9 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
     # gRPC method handlers ------------------------------------------------
     # ------------------------------------------------------------------
 
-    async def CreateNetworkSpec(self, request: Any, context: grpc.aio.ServicerContext) -> Any:  # – protobuf naming
+    async def CreateNetworkSpec(
+        self, request: Any, context: grpc.aio.ServicerContext
+    ) -> Any:  # – protobuf naming
         try:
             spec_id = await self._service.create_network_spec(request.spec)  # type: ignore[arg-type]
             return network_pb2.CreateNetworkSpecResponse(spec_id=spec_id)  # type: ignore[attr-defined]
@@ -48,7 +52,9 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
             context.set_details(str(exc))
             return network_pb2.CreateNetworkSpecResponse()  # type: ignore[attr-defined]
 
-    async def ListNetworkSpecs(self, request: Any, context: grpc.aio.ServicerContext) -> Any:
+    async def ListNetworkSpecs(
+        self, request: Any, context: grpc.aio.ServicerContext
+    ) -> Any:
         try:
             specs = await self._service.list_network_specs(request.filter)  # type: ignore[attr-defined]
             return network_pb2.ListNetworkSpecsResponse(specs=specs)  # type: ignore[attr-defined]
@@ -57,7 +63,9 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
             context.set_details(str(exc))
             return network_pb2.ListNetworkSpecsResponse()  # type: ignore[attr-defined]
 
-    async def GetNetworkSpec(self, request: Any, context: grpc.aio.ServicerContext) -> Any:
+    async def GetNetworkSpec(
+        self, request: Any, context: grpc.aio.ServicerContext
+    ) -> Any:
         try:
             specs = await self._service.list_network_specs(filter=f"id={request.spec_id}")  # type: ignore[attr-defined]
             if not specs:
@@ -69,7 +77,9 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
             context.set_details(str(exc))
             return network_pb2.GetNetworkSpecResponse()  # type: ignore[attr-defined]
 
-    async def ExecuteNetwork(self, request: Any, context: grpc.aio.ServicerContext) -> Any:  # noqa: N802 – gRPC naming
+    async def ExecuteNetwork(
+        self, request: Any, context: grpc.aio.ServicerContext
+    ) -> Any:  # noqa: N802 – gRPC naming
         """Execute a network manifest located at *request.manifest_path*."""
 
         try:

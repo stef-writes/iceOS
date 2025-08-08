@@ -37,7 +37,9 @@ class TokenCounter:
         provider_encodings = cls.MODEL_ENCODINGS.get(provider, {})
         encoding = provider_encodings.get(model)
         if not encoding:
-            raise ValueError(
+            from ice_core.exceptions import ValidationError
+
+            raise ValidationError(
                 f"No encoding found for model {model} from provider {provider}"
             )
         return encoding
@@ -51,7 +53,9 @@ class TokenCounter:
                 encoding = tiktoken.get_encoding(cls.get_encoding_name(model, provider))
                 return len(encoding.encode(text))
             except Exception as e:
-                raise ValueError(
+                from ice_core.exceptions import ValidationError
+
+                raise ValidationError(
                     f"Error counting tokens for OpenAI model {model}: {str(e)}"
                 )
         else:
@@ -59,7 +63,9 @@ class TokenCounter:
                 encoding = tiktoken.get_encoding("cl100k_base")
                 return len(encoding.encode(text))
             except Exception as e:
-                raise ValueError(
+                from ice_core.exceptions import ValidationError
+
+                raise ValidationError(
                     f"Error counting tokens for provider {provider} model {model}: {str(e)}"
                 )
 

@@ -1,6 +1,4 @@
-[project]
-name = "iceos"
-version = "0.5.0-beta"
+ 
 
 [tool.poetry]
 name = "iceos"
@@ -54,35 +52,7 @@ requires = [
 ]
 build-backend = "poetry.core.masonry.api"
 
-[tool.pytest.ini_options]
-pythonpath = ["src", "."]
-asyncio_mode = "auto"
-testpaths = ["tests_smoke"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = """
-    --verbose
-    --tb=short
-    --strict-markers
-    --cov=ice_core
-    --cov=ice_orchestrator
-    --cov=ice_api
-    --cov=ice_builder
-    --cov-report=html
-    --cov-report=term-missing
-    --cov-fail-under=0
-    --cov-branch
-    --junitxml=tests/output/test-results.xml
-    --html=tests/output/test-report.html
-    --self-contained-html
-"""
-markers = [
-    "slow: slow-running tests (contract/property)",
-    "contract: contract tests against external services or containers",
-    "property: property-based tests via Hypothesis",
-    "integration: live integration tests requiring API keys",
-]
+ 
 
 [tool.black]
 line-length = 88
@@ -210,43 +180,6 @@ embeddings = [
   "sentence-transformers",
   "torch",
   "scikit-learn"
-]
-
-# Alias for test & lint dependencies when installing via `pip` instead of Poetry
-dev = [
-  "coverage",
-  "pytest",
-  "pytest-asyncio",
-  "pytest-benchmark",
-  "pytest-cov",
-  "pytest-html",
-  "pytest-metadata",
-  "pytest-mock",
-  "pytest-randomly",
-  "pytest-timeout",
-  "pytest-xdist",
-  "black",
-  "flake8",
-  "isort",
-  "mypy",
-  "ruff",
-  "types-PyYAML",
-  "pyright",
-  "import-linter",
-
-  "mutmut",
-  "testcontainers",
-
-  "questionary",
-  "mkdocs",
-  "mkdocs-material",
-  "mkdocstrings",
-  "mkdocstrings-python",
-  "mkdocs-include-markdown-plugin",
-  "mkdocs-autorefs",
-  "griffe",
-  "pre-commit",
-  "pip-audit",
 ]
 
 # ---------------------------------------------------------------------------

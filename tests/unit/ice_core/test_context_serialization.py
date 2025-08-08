@@ -1,10 +1,11 @@
 """Test that non-serialisable values raise SerializationError in context manager."""
+
 from __future__ import annotations
 
 import pytest
 
-from ice_orchestrator.context.manager import GraphContextManager
 from ice_core.exceptions import SerializationError
+from ice_orchestrator.context.manager import GraphContextManager
 
 
 class _Dummy:
