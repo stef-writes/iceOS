@@ -216,38 +216,66 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                         await asyncio.sleep(_calc_backoff(attempt))
                     # --------------------------------------------------
 
-                    # If the executor already returned a fully-formed
-                    # NodeExecutionResult, we can short-circuit all further
-                    # post-processing.  This avoids serialisation issues when
-                    # trying to treat the rich object as plain JSON.
-                    from ice_core.models import (
-                        NodeExecutionResult as _NER,  # local import
-                    )
+                # --------------------------------------------------
+                # If executor returned a NodeExecutionResult, preserve it ----
+                # --------------------------------------------------
+                from ice_core.models import NodeExecutionResult as _NER  # local import
 
-                    if isinstance(result_raw, _NER):
-                        # Allow budget tracking before returning ----------
-                        if node.type == "llm":
-                            cost = (
-                                getattr(result_raw.usage, "cost", 0.0)
-                                if result_raw.usage
-                                else 0.0
-                            )
-                            self.budget.register_llm_call(cost=cost)
-                        elif node.type == "agent":
-                            cost = (
-                                getattr(result_raw.usage, "cost", 0.0)
-                                if result_raw.usage
-                                else 0.0
-                            )
-                            self.budget.register_agent_call(cost=cost)
-                        elif node.type == "tool":
-                            self.budget.register_tool_execution()
-                        elif node.type == "workflow":
-                            self.budget.register_workflow_execution()
-                        elif node.type == "code":
-                            self.budget.register_code_execution()
+                if isinstance(result_raw, _NER):
+                    # Budget accounting before returning
+                    if node.type == "llm":
+                        cost = (
+                            getattr(result_raw.usage, "cost", 0.0)
+                            if getattr(result_raw, "usage", None)
+                            else 0.0
+                        )
+                        self.budget.register_llm_call(cost=cost)
+                    elif node.type == "agent":
+                        cost = (
+                            getattr(result_raw.usage, "cost", 0.0)
+                            if getattr(result_raw, "usage", None)
+                            else 0.0
+                        )
+                        self.budget.register_agent_call(cost=cost)
+                    elif node.type == "tool":
+                        self.budget.register_tool_execution()
+                    elif node.type == "workflow":
+                        self.budget.register_workflow_execution()
+                    elif node.type == "code":
+                        self.budget.register_code_execution()
 
-                        return result_raw
+                    return result_raw
+
+                # --------------------------------------------------
+                # Preserve executor-provided NodeExecutionResult ----
+                # (after inner retry loop completes)
+                # --------------------------------------------------
+                from ice_core.models import NodeExecutionResult as _NER
+
+                if isinstance(result_raw, _NER):
+                    # Budget accounting before returning
+                    if node.type == "llm":
+                        cost = (
+                            getattr(result_raw.usage, "cost", 0.0)
+                            if getattr(result_raw, "usage", None)
+                            else 0.0
+                        )
+                        self.budget.register_llm_call(cost=cost)
+                    elif node.type == "agent":
+                        cost = (
+                            getattr(result_raw.usage, "cost", 0.0)
+                            if getattr(result_raw, "usage", None)
+                            else 0.0
+                        )
+                        self.budget.register_agent_call(cost=cost)
+                    elif node.type == "tool":
+                        self.budget.register_tool_execution()
+                    elif node.type == "workflow":
+                        self.budget.register_workflow_execution()
+                    elif node.type == "code":
+                        self.budget.register_code_execution()
+
+                    return result_raw
 
                 # --------------------------------------------------
                 # Opportunistic JSON repair ------------------------

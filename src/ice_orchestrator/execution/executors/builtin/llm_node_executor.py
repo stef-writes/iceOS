@@ -4,12 +4,13 @@ from datetime import datetime
 from typing import Any, Dict
 
 import ice_core.llm.service as _llm_service_mod
-from ice_core.models import LLMNodeConfig, NodeExecutionResult
+from ice_core.models import LLMNodeConfig, NodeExecutionResult, UsageMetadata
 from ice_core.models.enums import ModelProvider
 from ice_core.models.llm import LLMConfig
 from ice_core.models.node_metadata import NodeMetadata
 from ice_core.protocols.workflow import WorkflowLike  # noqa: F401
 from ice_core.unified_registry import register_node, registry
+from ice_orchestrator.execution.executors.builtin.helpers import resolve_jinja_templates
 
 __all__ = ["llm_node_executor"]
 
@@ -23,11 +24,29 @@ async def llm_node_executor(
     start_time = datetime.utcnow()
 
     try:
+        # Render prompt with Jinja only (single templating path). Missing variables raise.
         try:
-            prompt_template = cfg.prompt or ""
-            prompt = prompt_template.format(**ctx)
-        except KeyError as exc:
-            raise ValueError(f"Missing template variable in prompt: {exc}") from exc
+            # Unwrap any NodeExecutionResult-like values in ctx to their .output for rendering
+            from ice_core.models import (
+                NodeExecutionResult as _NER,  # local import to avoid cycles
+            )
+
+            ctx_clean: Dict[str, Any] = {
+                k: (v.output if isinstance(v, _NER) and v.output is not None else v)
+                for k, v in ctx.items()
+            }
+            jinja_rendered = (
+                resolve_jinja_templates(cfg.prompt or "", ctx_clean)
+                if cfg.prompt
+                else ""
+            )
+            prompt = (
+                jinja_rendered
+                if isinstance(jinja_rendered, str)
+                else str(jinja_rendered)
+            )
+        except Exception as exc:
+            raise ValueError(f"Failed to render prompt: {exc}") from exc
 
         provider: ModelProvider | str = (
             cfg.llm_config.provider
@@ -74,7 +93,11 @@ async def llm_node_executor(
             return NodeExecutionResult(
                 success=False,
                 error=error,
-                output={},
+                output={
+                    "prompt": prompt,
+                    "model": cfg.model,
+                    "usage": usage or {},
+                },
                 metadata=NodeMetadata(
                     node_id=cfg.id,
                     node_type=cfg.type,
@@ -90,6 +113,21 @@ async def llm_node_executor(
                 ),
             )
 
+        # Build usage metadata if available
+        usage_meta = None
+        if usage:
+            try:
+                usage_meta = UsageMetadata(
+                    prompt_tokens=usage.get("prompt_tokens", 0),
+                    completion_tokens=usage.get("completion_tokens", 0),
+                    total_tokens=usage.get("total_tokens", 0),
+                    model=str(cfg.model),
+                    node_id=str(cfg.id),
+                    provider=provider,
+                )
+            except Exception:
+                usage_meta = None
+
         return NodeExecutionResult(
             success=True,
             output={
@@ -98,6 +136,7 @@ async def llm_node_executor(
                 "model": cfg.model,
                 "usage": usage or {},
             },
+            usage=usage_meta,
             metadata=NodeMetadata(
                 node_id=cfg.id,
                 node_type=cfg.type,

@@ -50,11 +50,16 @@ class WorkflowExecutionService:
             pass
 
         # Create workflow with proper initial context
+        # Merge provided inputs at the top level and also under the "inputs" key
+        # so prompts can access placeholders like {topic} without nesting.
+        initial_ctx = None
+        if inputs:
+            initial_ctx = {**inputs, "inputs": inputs}
         workflow = Workflow(
             nodes=node_configs,
             name=name,
             max_parallel=max_parallel,
-            initial_context={"inputs": inputs} if inputs else None,
+            initial_context=initial_ctx,
         )
 
         # Execute workflow
@@ -83,6 +88,8 @@ class WorkflowExecutionService:
         if inputs:
             ctx = workflow.context_manager.get_context(session_id="run")
             if ctx:
+                # Expose inputs both at top-level and nested under "inputs"
+                ctx.metadata.update(inputs)
                 ctx.metadata["inputs"] = inputs
 
         # Execute workflow

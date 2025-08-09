@@ -60,25 +60,31 @@ class ToolExecutionService:
     def _get_tool_instance(self, tool_name: str) -> Optional[INode]:
         """Get tool instance from unified registry.
 
-        Args:
-            tool_name: Name of the tool
-
-        Returns:
-            Tool instance or None if not found
+        Tries, in order:
+        1) Public factory API (register_tool_factory → get_tool_instance)
+        2) Pre-instantiated instances map
+        3) Class registry with direct instantiation
         """
-        # Try to get from unified registry
-        tool_instance = registry._instances.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[no-any-return]
+        # 1) Preferred: public factory resolution
+        try:
+            from ice_core.unified_registry import get_tool_instance as _get_via_factory
 
+            return _get_via_factory(tool_name)  # type: ignore[return-value]
+        except Exception:
+            pass
+
+        # 2) Legacy: pre-instantiated instance lookup
+        tool_instance = registry._instances.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[no-any-return]
         if tool_instance:
             return tool_instance
 
-        # Try to get class and instantiate
+        # 3) Legacy: class registry
         tool_class = registry._nodes.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[attr-defined]
         if tool_class:
             try:
                 return tool_class()  # type: ignore[no-any-return]
             except Exception:
-                pass
+                return None
 
         return None
 

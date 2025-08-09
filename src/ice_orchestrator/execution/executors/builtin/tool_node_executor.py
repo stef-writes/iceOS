@@ -43,7 +43,8 @@ async def tool_node_executor(
         # ------------------------------------------------------------------
         # 2. Retrieve concrete Tool instance from the registry --------------
         # ------------------------------------------------------------------
-        tool = registry.get_tool_instance(cfg.tool_name, **cfg.tool_args)
+        # Instantiate tool without per-run arguments; pass args only to execute()
+        tool = registry.get_tool_instance(cfg.tool_name)
 
         # ------------------------------------------------------------------
         # 3. Prepare a clean context & resolve Jinja templates --------------
@@ -57,7 +58,7 @@ async def tool_node_executor(
             for k, v in ctx.items()
         }
 
-        resolved_tool_args = resolve_jinja_templates(cfg.tool_args, ctx_clean)
+        resolved_tool_args = resolve_jinja_templates(cfg.tool_args or {}, ctx_clean)
 
         # Merge DAG context with explicit tool args and flatten helpful paths
         merged_inputs = {**resolved_tool_args, **ctx_clean}

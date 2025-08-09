@@ -320,8 +320,8 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                                     "Token ceiling exceeded (%s); aborting workflow.",
                                     self.token_ceiling,
                                 )
-                            errors.append("Token ceiling exceeded")
-                            break
+                                errors.append("Token ceiling exceeded")
+                                break
 
                     # ----------------------------------------------------------------------
                     # Record branch decision for *condition* nodes (always, not usage-only)
@@ -633,8 +633,12 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         try:
             current_ctx = self.context_manager.get_context()
             if current_ctx and current_ctx.metadata:
+                # Merge top-level inputs for direct placeholder access (e.g., {topic})
+                md = dict(current_ctx.metadata)
+                if isinstance(md.get("inputs"), dict):
+                    md = {**md.get("inputs", {}), **md}
                 # Preserve explicit mappings when keys overlap ----------------
-                merged = {**current_ctx.metadata, **node_ctx}
+                merged = {**md, **node_ctx}
                 return merged
         except Exception:  # – never break execution due to ctx issues
             pass

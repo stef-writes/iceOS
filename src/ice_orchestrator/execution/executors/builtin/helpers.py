@@ -42,17 +42,36 @@ def resolve_jinja_templates(
     try:
         import jinja2
 
-        env = jinja2.Environment(autoescape=False)
+        # Fail fast on unresolved variables in templates
+        env = jinja2.Environment(autoescape=False, undefined=jinja2.StrictUndefined)
 
         def _resolve(value: Any) -> Any:  # noqa: ANN401
             if isinstance(value, str) and "{{" in value and "}}" in value:
                 template = env.from_string(value)
-                return template.render(**context)
+                # Render against the cleaned base context that unwraps
+                # NodeExecutionResult-like dicts into their 'output'.
+                return template.render(**base_ctx)
             if isinstance(value, dict):
                 return {k: _resolve(v) for k, v in value.items()}
             if isinstance(value, list):
                 return [_resolve(v) for v in value]
             return value
+
+        # Ensure dependency outputs are addressable by id in context
+        # If a context key maps to a NodeExecutionResult-like dict, unwrap
+        base_ctx = {}
+        for k, v in context.items():
+            try:
+                if (
+                    isinstance(v, dict)
+                    and "success" in v
+                    and ("output" in v or "error" in v)
+                ):
+                    base_ctx[k] = v.get("output", v)
+                else:
+                    base_ctx[k] = v
+            except Exception:
+                base_ctx[k] = v
 
         return _resolve(data)
     except ModuleNotFoundError:

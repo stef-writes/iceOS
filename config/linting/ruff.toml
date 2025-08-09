@@ -43,3 +43,13 @@ extend-exclude = [
 
 [lint.isort]
 known-first-party = ["ice_core", "ice_orchestrator", "ice_builder", "ice_cli", "ice_client", "ice_tools"]
+
+# Ban Python str.format in critical runtime paths to prevent brace-collapsing.
+# Ruff's banned-api does not support glob-scoped modules here; we ban use globally
+# and rely on per-file ignores if needed.
+[lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+[[lint.flake8-tidy-imports.banned-api]]
+name = "builtins.str.format"
+msg = "Do not use str.format() for prompts/args; use Jinja-only rendering via resolve_jinja_templates/render_prompt."
