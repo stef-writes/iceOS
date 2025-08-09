@@ -75,7 +75,7 @@ anthropic = "0.19.0"
 # Patched versions resolving CVE-2024-24762 (FastAPI) and CVE-2024-24762 (python-multipart)
 fastapi = ">=0.109.1,<0.200"
 google-generativeai = "0.4.0"
-httpx = "<0.25.0,>=0.24.0"
+httpx = "0.24.1"
 # Optional deps for new tools -----------------------------
 jmespath = "^1.0.1"
 pypdf = "^3.17.0"
@@ -220,6 +220,6 @@ exclude = [
 
 # Per-file ignores – allow more relaxed style in tests & helper scripts
 [tool.ruff.per-file-ignores]
-"tests/**/*" = ["E402", "F401", "F841"]  # noqa: imports-after-code & unused vars in tests
-"scripts/**/*" = ["E402"]  # noqa: imports-after-code in top-level scripts
+"tests/**/*" = ["E402", "F401", "F841"]
+"scripts/**/*" = ["E402"]
 

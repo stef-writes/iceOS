@@ -8,7 +8,7 @@ install:
 	poetry install --with dev --no-interaction
 
 lint:
-	poetry run ruff check --config config/linting/ruff.toml src tests
+	poetry run ruff check src tests
 	poetry run isort --check-only src tests
 
 format:
@@ -30,6 +30,10 @@ serve:
 	PYTHONPATH=src uvicorn ice_api.main:app --port 8000 --reload
 
 dev: serve
+
+# Live verification (real LLM + SerpAPI if keys present)
+verify-live:
+	OPENAI_API_KEY=$$OPENAI_API_KEY SERPAPI_KEY=$$SERPAPI_KEY poetry run python scripts/verify_runtime.py
 
 stop-serve:
 	- lsof -ti tcp:8000 | xargs kill -9 || true
