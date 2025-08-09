@@ -76,6 +76,76 @@ $ ice new agent my_agent
 $ ice new llm-operator my_llm
 ```
 
+### 4.1 From zero to a running blueprint (authoring path)
+
+```bash
+# Create a minimal blueprint JSON
+$ ice blueprints new --name hello_world
+
+# Push to the API (requires token)
+$ ICE_API_TOKEN=dev-token ice push Blueprint.min.json --api http://localhost:8000 --token $ICE_API_TOKEN
+Blueprint ID: bp_...
+
+# Run and stream status (polling)
+$ ice run bp_... --api http://localhost:8000 --token $ICE_API_TOKEN --input text="hi"
+```
+
+#### Generate a new tool from the CLI
+
+```bash
+$ ice generate tool MyWriter --out-dir src/ice_tools/generated --description "Writes a short paragraph"
+# Tools generated under src/ice_tools/generated are auto-registered when the package is imported.
+```
+
+### 4.2 Compile a Python DSL file into Blueprint JSON
+
+```bash
+$ cat > examples/dsl_demo.py <<'PY'
+from ice_builder import WorkflowBuilder
+
+def build():
+    b = WorkflowBuilder("dsl_demo")
+    b.add_tool("echo", tool_name="echo_tool", text="hello")
+    return b.build()
+PY
+
+$ ice build examples/dsl_demo.py --output examples/dsl_demo.json
+$ ICE_API_TOKEN=dev-token ice push examples/dsl_demo.json --api http://localhost:8000 --token $ICE_API_TOKEN
+$ ice run <blueprint_id> --api http://localhost:8000 --token $ICE_API_TOKEN
+```
+
+#### Author-time preflight validation
+
+```python
+from ice_builder import WorkflowBuilder
+
+b = WorkflowBuilder("preflight_demo")
+b.add_tool("t1", tool_name="lookup_tool", query="renewable energy")
+issues = b.validate_resolvable()
+assert not issues, f"Found issues: {issues}"
+```
+
+### 4.3 Author a minimal YAML blueprint and build it
+
+```yaml
+# examples/minimal.yaml
+schema_version: "1.2.0"
+metadata:
+  draft_name: minimal_yaml
+nodes:
+  - id: n1
+    type: tool
+    name: echo
+    tool_name: echo_tool
+    dependencies: []
+```
+
+```bash
+$ ice build examples/minimal.yaml --output examples/minimal.json
+$ ICE_API_TOKEN=dev-token ice push examples/minimal.json --api http://localhost:8000 --token $ICE_API_TOKEN
+$ ice run <blueprint_id> --api http://localhost:8000 --token $ICE_API_TOKEN
+```
+
 Expected output (truncated):
 
 ```jsonc
@@ -106,6 +176,79 @@ $ ruff check src/
 ```
 
 Coverage must be ≥ 90 % on changed lines; CI will reject lower.
+
+---
+
+## 5.2 CLI reference
+
+All commands are subcommands of `ice`.
+
+- `ice doctor {lint|type|test|all}`: Run repo health checks via Makefile.
+- `ice new ...`: Scaffold components.
+  - `ice new tool NAME [--description --output-dir --dry-run]`
+  - `ice new agent NAME [--description --system-prompt --tools --output-dir]`
+  - Other scaffolds: `agent-tool`, `llm-node-tool`, `workflow`, `llm`, `condition`, `loop`, `parallel`, `recursive`, `code`, `human`, `monitor`, `swarm`.
+- `ice push FILE.json [--api URL --token TOKEN]`: Upload a blueprint JSON to the API; returns `blueprint_id` and caches it for `--last`.
+- `ice run [BLUEPRINT_ID] [--last] [--input k=v ...] [--api URL --token TOKEN]`: Start execution and stream status (polling) until completion.
+- `ice run-blueprint FILE.json [--remote URL --max-parallel N]`: Execute locally (default) or remotely (if `--remote`).
+- `ice blueprints new [--name NAME --output FILE]`: Create a minimal valid blueprint JSON.
+- `ice build SOURCE.py [--output FILE]`: Compile a Python DSL file with a `build()` function returning a Blueprint into JSON.
+- `ice plugins ...`: Manage plugin manifests (advanced).
+- `ice schemas export|import ...`: Export/import JSON Schemas for validation.
+
+Each command focuses on a single responsibility to keep the UX predictable and composable.
+
+---
+
+## 5.3 End-to-end authoring flow (user journeys)
+
+Below are the core stages a user goes through to build a robust system, with the corresponding commands and API endpoints.
+
+1) Discover
+   - Goal: understand available nodes/tools/agents/workflows and their schemas.
+   - API:
+     - `GET /api/v1/meta/nodes` – catalog (tools with schemas, agents, workflows, chains)
+     - `GET /api/v1/meta/nodes/types` – canonical node types
+     - `GET /api/v1/meta/nodes/{node_type}/schema` – Pydantic JSON Schema for config
+     - `GET /api/v1/meta/nodes/tool/{tool_name}` – tool details and schemas
+   - CLI: `ice blueprints new`, `ice build` (see examples above)
+
+2) Draft (design-time)
+   - Goal: create or open a collaborative draft and mutate it safely.
+   - API:
+     - `POST /api/v1/drafts/{session}` – create-or-get draft
+     - `GET /api/v1/drafts/{session}` – read
+     - `POST /api/v1/drafts/{session}/lock|position|instantiate` – mutate with optimistic versioning
+     - WS: `ws://.../ws/drafts/{session}` – live updates to all clients
+
+3) Validate/Compile (MCP compiler tier)
+   - Goal: convert partial blueprints into validated, frozen specs; catch errors early.
+   - API (MCP REST): `POST /api/v1/mcp/components/validate`, partial blueprint routes, `finalize`
+   - API (MCP JSON-RPC): `POST /api/mcp` methods: `initialize`, `components/validate`, `prompts/*`, `tools/*`, `network.execute`
+   - CLI: `ice build` (from DSL/YAML), `ice push` (upload JSON)
+
+4) Execute (runtime)
+   - Goal: start execution, observe live progress, and retrieve results.
+   - API:
+     - `POST /api/v1/executions` – start → `execution_id`
+     - `GET /api/v1/executions/{id}` – status/result
+     - `GET /api/v1/executions` – list
+     - `POST /api/v1/executions/{id}/cancel` – cancel
+     - WS: `ws://.../ws/executions/{id}` – live status (optional; CLI uses polling by default)
+   - CLI: `ice run <blueprint_id> [--input k=v]`
+
+5) Govern/Optimize
+   - Goal: enforce budget, get actionable suggestions and explanations.
+   - API:
+     - Budget preflight on `POST /api/v1/executions` (402 with details when over-limit)
+     - MCP suggestions: `.../blueprints/partial/{id}/suggest`, and node/graph analysis endpoints under MCP API
+
+6) Iterate
+   - Goal: apply changes safely with optimistic locks and re-run.
+   - API: blueprint CRUD with `X-Version-Lock` or `If-Match` (coming), drafts mutations.
+   - CLI: `ice push` (overwrites with lock), `ice run --last`.
+
+This flow keeps responsibilities clear (discover → draft → validate → execute → observe → iterate) and maps 1:1 to the CLI and API surfaces implemented in this repo.
 
 ---
 

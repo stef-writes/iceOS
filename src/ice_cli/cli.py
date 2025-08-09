@@ -334,6 +334,23 @@ from ice_cli.commands.plugins import plugins
 
 cli.add_command(plugins)  # type: ignore[arg-type]
 
+# ---------------------------------------------------------------------------
+# Blueprint helpers ----------------------------------------------------------
+# ---------------------------------------------------------------------------
+from ice_cli.commands.blueprints import blueprints as _blueprints_group
+
+cli.add_command(_blueprints_group)
+
+# Build command (DSL/YAML → Blueprint JSON)
+from ice_cli.commands.build import cli_build as _build_cmd
+
+cli.add_command(_build_cmd)
+
+# Generate group (tool scaffolding)
+from ice_cli.commands.generate import generate as _generate_group
+
+cli.add_command(_generate_group)
+
 # Allow "python -m ice_cli.cli ..." invocation ------------------------------
 if __name__ == "__main__":  # pragma: no cover
     cli()

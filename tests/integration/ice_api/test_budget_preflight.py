@@ -31,14 +31,14 @@ def test_finalize_blocked_when_estimate_exceeds_budget():
         # Create partial and attempt finalize without lock first (expect 428)
         res = client.post(
             "/api/v1/mcp/blueprints/partial",
-            headers={"Authorization": "Bearer demo-token"},
+            headers={"Authorization": "Bearer dev-token"},
         )
         assert res.status_code == 200
         pb_id = res.json()["blueprint_id"]
 
         get_pb = client.get(
             f"/api/v1/mcp/blueprints/partial/{pb_id}",
-            headers={"Authorization": "Bearer demo-token"},
+            headers={"Authorization": "Bearer dev-token"},
         )
         lock = get_pb.headers.get("X-Version-Lock")
         assert lock
@@ -46,7 +46,7 @@ def test_finalize_blocked_when_estimate_exceeds_budget():
     # Attempt finalize with lock – should 400 because partial has no nodes
     fin = client.post(
         f"/api/v1/mcp/blueprints/partial/{pb_id}/finalize",
-        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": lock},
+        headers={"Authorization": "Bearer dev-token", "X-Version-Lock": lock},
     )
     assert fin.status_code == 400
 
@@ -78,7 +78,7 @@ def test_run_blocked_when_estimate_exceeds_budget():
         create = client.post(
             "/api/v1/blueprints/",
             json=payload,
-            headers={"Authorization": "Bearer demo-token", "X-Version-Lock": "__new__"},
+            headers={"Authorization": "Bearer dev-token", "X-Version-Lock": "__new__"},
         )
         assert create.status_code == 201
         bp_id = create.json()["id"]
@@ -86,6 +86,6 @@ def test_run_blocked_when_estimate_exceeds_budget():
         start = client.post(
             "/api/v1/executions/",
             json={"payload": {"blueprint_id": bp_id}},
-            headers={"Authorization": "Bearer demo-token"},
+            headers={"Authorization": "Bearer dev-token"},
         )
         assert start.status_code in (400, 402)

@@ -15,7 +15,7 @@ def _create_sample_blueprint():
     res = client.post(
         "/api/v1/blueprints/",
         json=payload,
-        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": "__new__"},
+        headers={"Authorization": "Bearer dev-token", "X-Version-Lock": "__new__"},
     )
     assert res.status_code == 201, res.text
     data = res.json()
@@ -32,14 +32,14 @@ def test_delete_blueprint_happy_path():
 
     res = client.delete(
         f"/api/v1/blueprints/{blueprint_id}",
-        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": lock},
+        headers={"Authorization": "Bearer dev-token", "X-Version-Lock": lock},
     )
     assert res.status_code == 204
 
     # Getting it afterwards should 404
     res2 = client.get(
         f"/api/v1/blueprints/{blueprint_id}",
-        headers={"Authorization": "Bearer demo-token"},
+        headers={"Authorization": "Bearer dev-token"},
     )
     assert res2.status_code == 404
 
@@ -48,7 +48,7 @@ def test_delete_missing_header():
     blueprint_id, _ = _create_sample_blueprint()
     res = client.delete(
         f"/api/v1/blueprints/{blueprint_id}",
-        headers={"Authorization": "Bearer demo-token"},
+        headers={"Authorization": "Bearer dev-token"},
     )
     assert res.status_code == 428
 
@@ -60,12 +60,12 @@ def test_delete_conflict():
     client.patch(
         f"/api/v1/blueprints/{blueprint_id}",
         json={"nodes": [{"id": "n2", "type": "tool"}]},
-        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": lock},
+        headers={"Authorization": "Bearer dev-token", "X-Version-Lock": lock},
     )
 
     res = client.delete(
         f"/api/v1/blueprints/{blueprint_id}",
-        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": lock},
+        headers={"Authorization": "Bearer dev-token", "X-Version-Lock": lock},
     )
     assert res.status_code == 409
 
@@ -85,7 +85,7 @@ def test_put_blueprint_happy_path():
     res = client.put(
         f"/api/v1/blueprints/{blueprint_id}",
         json=new_payload,
-        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": lock},
+        headers={"Authorization": "Bearer dev-token", "X-Version-Lock": lock},
     )
     assert res.status_code == 200
     body = res.json()
@@ -98,7 +98,7 @@ def test_put_missing_header():
     res = client.put(
         f"/api/v1/blueprints/{blueprint_id}",
         json={"name": "x", "nodes": [], "metadata": {}},
-        headers={"Authorization": "Bearer demo-token"},
+        headers={"Authorization": "Bearer dev-token"},
     )
     assert res.status_code == 428
 
@@ -109,12 +109,12 @@ def test_put_conflict():
     client.patch(
         f"/api/v1/blueprints/{blueprint_id}",
         json={"nodes": [{"id": "n3", "type": "tool"}]},
-        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": lock},
+        headers={"Authorization": "Bearer dev-token", "X-Version-Lock": lock},
     )
     res = client.put(
         f"/api/v1/blueprints/{blueprint_id}",
         json={"name": "x", "nodes": [], "metadata": {}},
-        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": lock},
+        headers={"Authorization": "Bearer dev-token", "X-Version-Lock": lock},
     )
     assert res.status_code == 409
 
@@ -129,7 +129,7 @@ def test_clone_blueprint():
 
     res = client.post(
         f"/api/v1/blueprints/{blueprint_id}/clone",
-        headers={"Authorization": "Bearer demo-token"},
+        headers={"Authorization": "Bearer dev-token"},
     )
     assert res.status_code == 201
     body = res.json()

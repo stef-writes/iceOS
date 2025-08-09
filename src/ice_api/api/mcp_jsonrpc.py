@@ -39,7 +39,7 @@ from .mcp import get_result, start_run
 # Setup logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/mcp", tags=["mcp-jsonrpc"])
+router = APIRouter(tags=["mcp-jsonrpc"])
 
 
 # MCP Protocol Models with comprehensive validation
@@ -76,6 +76,9 @@ class MCPRequest(BaseModel):
             "prompts/get",
             "logging/setLevel",
             "network.execute",
+            # Extensions
+            "agents/list",
+            "agents/schema",
         }
         if v not in valid_methods:
             logger.warning(f"Unknown MCP method: {v}")
@@ -160,6 +163,32 @@ class MCPPrompt(BaseModel):
                 if "name" not in arg:
                     raise ValueError("Prompt argument must have 'name' field")
         return v
+
+
+# ------------------------------- Extensions ---------------------------------
+
+
+class AgentInfo(BaseModel):
+    name: str
+    import_path: str
+
+
+async def handle_agents_list() -> Dict[str, Any]:  # noqa: D401
+    agents = [
+        {
+            "name": name,
+            "importPath": path,
+        }
+        for name, path in global_agent_registry.available_agents()
+    ]
+    return {"agents": agents}
+
+
+async def handle_agents_schema(params: Dict[str, Any]) -> Dict[str, Any]:  # noqa: D401
+    from ice_core.models.node_models import AgentNodeConfig
+
+    schema = AgentNodeConfig.model_json_schema()
+    return {"schema": schema}
 
 
 # MCP Server capabilities - fully compliant with spec
@@ -274,6 +303,10 @@ async def mcp_jsonrpc_handler(request: Request) -> Union[MCPResponse, Dict[str, 
                 result = await handle_components_validate(mcp_request.params or {})
             elif mcp_request.method == "network.execute":
                 result = await handle_network_execute(mcp_request.params or {})
+            elif mcp_request.method == "agents/list":
+                result = await handle_agents_list()
+            elif mcp_request.method == "agents/schema":
+                result = await handle_agents_schema(mcp_request.params or {})
             else:
                 logger.warning(f"Unknown method: {mcp_request.method}")
                 return {

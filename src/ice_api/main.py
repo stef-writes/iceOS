@@ -5,7 +5,7 @@ FastAPI application entry point
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, cast
+from typing import Any, AsyncIterator, Awaitable, Callable, Dict, cast
 
 import structlog
 from dotenv import load_dotenv
@@ -23,7 +23,8 @@ except ModuleNotFoundError:  # pragma: no cover – OTEL optional
     _OTEL_AVAILABLE = False
 
 from ice_api.api.mcp import router as mcp_router
-from ice_api.dependencies import get_tool_service
+
+# keep import grouping minimal; remove unused service imports
 from ice_api.errors import add_exception_handlers
 from ice_api.redis_client import get_redis
 
@@ -66,6 +67,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     initialize_sdk()
     initialize_orchestrator()
 
+    # Ensure first-party generated tools are registered for runtime
+    try:
+        importlib.import_module("ice_tools.generated")
+    except Exception:
+        pass
+
     # ------------------------------------------------------------------
     # Progressive demo loader with timing --------------------------------
     # ------------------------------------------------------------------
@@ -103,6 +110,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             summarise_demo_load(label, seconds, False, str(exc))
 
     app.state.context_manager = ServiceLocator.get("context_manager")  # type: ignore[attr-defined]
+
+    # Register workflow execution service for API execution endpoints
+    try:
+        from ice_orchestrator.services.workflow_execution_service import (
+            WorkflowExecutionService,
+        )
+
+        ServiceLocator.register(
+            "workflow_execution_service", WorkflowExecutionService()
+        )
+    except Exception as reg_exc:  # pragma: no cover – defensive
+        logger.warning("Failed to register workflow_execution_service: %s", reg_exc)
 
     # Initialize tool service to bridge unified registry to API endpoints
     from ice_core.services.tool_service import ToolService
@@ -227,7 +246,11 @@ async def draft_updates(ws: WebSocket, session_id: str) -> None:
 
 
 from ice_api.api.blueprints import router as blueprint_router  # ensure module import
+from ice_api.api.catalog import router as catalog_router
+from ice_api.api.discovery import router as discovery_router
 from ice_api.api.executions import router as execution_router
+from ice_api.api.node_details import router as node_details_router
+from ice_api.api.registry_health import router as registry_health_router
 from ice_api.security import require_auth
 
 app.include_router(
@@ -241,6 +264,31 @@ app.include_router(
     prefix="",
     tags=["executions"],
     dependencies=[Depends(require_auth)],
+)
+
+# Discovery endpoints (moved out of main)
+app.include_router(
+    discovery_router,
+    prefix="",
+    tags=["discovery"],
+)
+
+app.include_router(
+    catalog_router,
+    prefix="",
+    tags=["catalog"],
+)
+
+app.include_router(
+    node_details_router,
+    prefix="",
+    tags=["catalog", "schemas"],
+)
+
+app.include_router(
+    registry_health_router,
+    prefix="",
+    tags=["discovery", "health"],
 )
 
 # Secure MCP REST router behind auth
@@ -282,19 +330,6 @@ async def ready_check() -> Dict[str, str]:
     return {"status": "ready" if su.READY_FLAG else "starting"}
 
 
-@app.get("/api/v1/meta/components", tags=["discovery"], response_model=Dict[str, Any])
-async def meta_components() -> Dict[str, Any]:
-    """Return counts of registered components for dashboards."""
-    from ice_core.models.enums import NodeType
-    from ice_core.registry import global_agent_registry, registry
-
-    return {
-        "tools": [n for _, n in registry.list_nodes(NodeType.TOOL)],
-        "agents": [n for n, _ in global_agent_registry.available_agents()],
-        "workflows": [n for _, n in registry.list_nodes(NodeType.WORKFLOW)],
-    }
-
-
 # Add real MCP JSON-RPC 2.0 endpoint
 from ice_api.api.mcp_jsonrpc import router as mcp_jsonrpc_router
 
@@ -331,44 +366,7 @@ async def health_check() -> Dict[str, str]:
         return {"status": "unhealthy", "error": str(e)}
 
 
-# Discovery endpoints
-@app.get("/api/v1/tools", response_model=List[str], tags=["discovery"])
-async def list_tools(tool_service: Any = Depends(get_tool_service)) -> List[str]:
-    """Return all registered tool names."""
-    return cast(List[str], tool_service.available_tools())
-
-
-@app.get("/v1/agents", response_model=List[str], tags=["discovery"])
-async def list_agents() -> List[str]:
-    """Return all registered agent names."""
-    from ice_core.registry import registry
-
-    return list(registry._agents.keys())
-
-
-@app.get("/v1/workflows", response_model=List[str], tags=["discovery"])
-async def list_workflows() -> List[str]:
-    """Return all registered workflow names."""
-    from ice_core.models import NodeType
-    from ice_core.registry import registry
-
-    return [name for _, name in registry.list_nodes(NodeType.WORKFLOW)]
-
-
-@app.get("/v1/chains", response_model=List[str], tags=["discovery"])
-async def list_chains() -> List[str]:
-    """Return all registered chain names."""
-    from ice_core.registry import global_chain_registry
-
-    return [name for name, _ in global_chain_registry.available_chains()]
-
-
-@app.get("/api/v1/executors", response_model=Dict[str, str], tags=["discovery"])
-async def list_executors() -> Dict[str, str]:
-    """Return all registered executors."""
-    from ice_core.registry import registry
-
-    return {k: v.__name__ for k, v in registry._executors.items()}
+# Discovery endpoints moved to ice_api.api.discovery
 
 
 if __name__ == "__main__":

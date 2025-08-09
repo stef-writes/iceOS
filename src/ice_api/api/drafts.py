@@ -1,4 +1,5 @@
 """Draft management API – author-time blueprint state."""
+
 from __future__ import annotations
 
 import hashlib
@@ -34,6 +35,7 @@ def _init_store() -> DraftStore:
     except RuntimeError:
         return InMemoryDraftStore()
 
+
 _store: DraftStore = _init_store()
 
 # ────────────────────────────────────────────────────────────
@@ -44,7 +46,10 @@ _RATE_LIMIT: Dict[Tuple[str, str], list[float]] = {}
 _RATE_WINDOW = 10.0
 _RATE_MAX = 5
 
-def rate_limit(request: Request, token: str = Depends(require_auth)) -> None:  # noqa: D401
+
+def rate_limit(
+    request: Request, token: str = Depends(require_auth)
+) -> None:  # noqa: D401
     key = (token, request.url.path)
     now = time.time()
     bucket = _RATE_LIMIT.setdefault(key, [])
@@ -54,6 +59,7 @@ def rate_limit(request: Request, token: str = Depends(require_auth)) -> None:  #
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
     _RATE_LIMIT[key].append(now)
 
+
 # ────────────────────────────────────────────────────────────
 # Request models
 # ────────────────────────────────────────────────────────────
@@ -62,19 +68,23 @@ def rate_limit(request: Request, token: str = Depends(require_auth)) -> None:  #
 class LockRequest(BaseModel):
     node_id: constr(min_length=1, max_length=64)  # type: ignore
 
+
 class PositionRequest(BaseModel):
     node_id: constr(min_length=1, max_length=64)  # type: ignore
     x: int = Field(..., ge=0, le=5000)
     y: int = Field(..., ge=0, le=5000)
+
 
 class InstantiateRequest(BaseModel):
     node_id: constr(min_length=1, max_length=64)  # type: ignore
     node_type: str = Field(...)
     extra: Dict[str, Any] | None = None
 
+
 # ────────────────────────────────────────────────────────────
 # Helper serialization
 # ────────────────────────────────────────────────────────────
+
 
 def _as_json(state: DraftState) -> Dict[str, Any]:
     return {
@@ -83,8 +93,13 @@ def _as_json(state: DraftState) -> Dict[str, Any]:
         "locked_nodes": state.locked_nodes,
         "node_positions": state.node_positions,
         "meta": state.meta,
-        "blueprint": state.last_blueprint.model_dump(mode="json") if state.last_blueprint else None,
+        "blueprint": (
+            state.last_blueprint.model_dump(mode="json")
+            if state.last_blueprint
+            else None
+        ),
     }
+
 
 async def _get_state(session_id: str) -> DraftState:
     state = await _store.load(session_id)
@@ -92,12 +107,17 @@ async def _get_state(session_id: str) -> DraftState:
         raise HTTPException(status_code=404, detail="Draft not found")
     return state
 
-async def _save_and_broadcast(session_id: str, state: DraftState, action: str) -> Dict[str, Any]:
+
+async def _save_and_broadcast(
+    session_id: str, state: DraftState, action: str
+) -> Dict[str, Any]:
     from ice_api.ws import draft_ws as _draft_ws
+
     await _store.save(session_id, state)
     DRAFT_MUTATION_TOTAL.labels(action=action).inc()
     await _draft_ws.broadcast(session_id, state)
     return _as_json(state)
+
 
 def _calculate_version_lock(state: DraftState) -> str:
     """Return SHA-256 hash of draft state (excluding existing version lock)."""
@@ -116,6 +136,7 @@ def _calculate_version_lock(state: DraftState) -> str:
 
 # Helper – optimistic-locking check for mutating routes
 
+
 def _require_match_version(request: Request, state: DraftState) -> None:  # noqa: D401
     client_lock = request.headers.get("X-Version-Lock")
     if client_lock is None:
@@ -125,31 +146,59 @@ def _require_match_version(request: Request, state: DraftState) -> None:  # noqa
     if client_lock != server_lock:
         raise HTTPException(status_code=409, detail="Draft version conflict")
 
+
 # ────────────────────────────────────────────────────────────
 # Routes
 # ────────────────────────────────────────────────────────────
 
+
+@router.post("/{session_id}", response_model=Dict[str, Any])
+async def create_or_get_draft(
+    session_id: str, _: None = Depends(rate_limit)
+) -> Dict[str, Any]:  # noqa: D401
+    """Ensure a draft exists for session and return its state.
+
+    If no draft exists, a new empty DraftState is created and persisted.
+    """
+    state = await _store.load(session_id)
+    if state is None:
+        state = DraftState()
+        await _store.save(session_id, state)
+    return _as_json(state)
+
+
 @router.get("/{session_id}", response_model=Dict[str, Any])
-async def get_draft(session_id: str, _: None = Depends(rate_limit)) -> Dict[str, Any]:  # noqa: D401
+async def get_draft(
+    session_id: str, _: None = Depends(rate_limit)
+) -> Dict[str, Any]:  # noqa: D401
     state = await _get_state(session_id)
     return _as_json(state)
 
+
 @router.post("/{session_id}/lock", response_model=Dict[str, Any])
-async def lock_node(session_id: str, req: LockRequest, _: None = Depends(rate_limit)) -> Dict[str, Any]:
+async def lock_node(
+    session_id: str, req: LockRequest, _: None = Depends(rate_limit)
+) -> Dict[str, Any]:
     state = await _get_state(session_id)
     if req.node_id not in state.locked_nodes:
         state.locked_nodes.append(req.node_id)
     state.meta.setdefault("status", {})[req.node_id] = "locked"
     return await _save_and_broadcast(session_id, state, "lock")
 
+
 @router.post("/{session_id}/position", response_model=Dict[str, Any])
-async def update_position(session_id: str, req: PositionRequest, _: None = Depends(rate_limit)) -> Dict[str, Any]:
+async def update_position(
+    session_id: str, req: PositionRequest, _: None = Depends(rate_limit)
+) -> Dict[str, Any]:
     state = await _get_state(session_id)
     state.node_positions[req.node_id] = (req.x, req.y)
     return await _save_and_broadcast(session_id, state, "position")
 
+
 @router.post("/{session_id}/instantiate", response_model=Dict[str, Any])
-async def instantiate_node(session_id: str, req: InstantiateRequest, _: None = Depends(rate_limit)) -> Dict[str, Any]:
+async def instantiate_node(
+    session_id: str, req: InstantiateRequest, _: None = Depends(rate_limit)
+) -> Dict[str, Any]:
     state = await _get_state(session_id)
     state.meta.setdefault("status", {})[req.node_id] = "real"
     # Bump semantic version stored in meta

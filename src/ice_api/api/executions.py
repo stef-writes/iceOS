@@ -66,7 +66,15 @@ async def _run_workflow_async(
     store: Dict[str, _ExecutionRecord],
 ) -> None:
     """Background task that executes the workflow and updates *store*."""
-    service = ServiceLocator.get("workflow_execution_service")
+    try:
+        service = ServiceLocator.get("workflow_execution_service")
+    except KeyError:
+        # Fallback: instantiate a local workflow execution service for tests/dev
+        from ice_orchestrator.services.workflow_execution_service import (
+            WorkflowExecutionService,
+        )
+
+        service = WorkflowExecutionService()
     record = store[execution_id]
     try:
         record["status"] = "running"

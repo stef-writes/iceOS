@@ -436,3 +436,74 @@ class WorkflowBuilder:
             lines.append(f"    {src} --> {dst};")
 
         return "\n".join(lines)
+
+    def validate_resolvable(self) -> list[str]:  # noqa: D401
+        """Return a list of warnings/errors if referenced tools/agents are not resolvable or disallowed.
+
+        This mirrors server-side validation minimally for authoring-time feedback:
+        - Ensures referenced tool factories exist in the unified registry
+        - Applies environment-driven allow/deny policy for tools and agents
+
+        Returns
+        -------
+        list[str]
+            Human-readable issues; empty list means no problems found.
+
+        Example
+        -------
+        >>> b = WorkflowBuilder("demo").add_tool("t1", tool_name="lookup_tool")
+        >>> issues = b.validate_resolvable()
+        >>> assert not issues
+        """
+        import importlib
+        import os
+        from typing import cast as _cast
+
+        from ice_core.unified_registry import global_agent_registry, registry
+
+        # Ensure generated tools are imported so factories register
+        try:  # side-effect import
+            importlib.import_module("ice_tools.generated")
+        except Exception:
+            pass
+
+        def _csv_env(name: str) -> set[str]:
+            raw = os.getenv(name, "").strip()
+            if not raw:
+                return set()
+            return {p.strip() for p in raw.split(",") if p.strip()}
+
+        allowed_tools = _csv_env("ICE_ALLOWED_TOOLS")
+        denied_tools = _csv_env("ICE_DENIED_TOOLS")
+        allowed_agents = _csv_env("ICE_ALLOWED_AGENTS")
+        denied_agents = _csv_env("ICE_DENIED_AGENTS")
+
+        issues: list[str] = []
+
+        for node in self.nodes:
+            node_type = _cast(str, getattr(node, "type", ""))
+            if node_type == "tool":
+                name = _cast(str | None, getattr(node, "tool_name", None))
+                if not name:
+                    # Placeholder nodes are allowed during drafting
+                    continue
+                if allowed_tools and name not in allowed_tools:
+                    issues.append(f"tool '{name}' denied by allow-list policy")
+                if name in denied_tools:
+                    issues.append(f"tool '{name}' explicitly denied by policy")
+                if not registry.has_tool(name):
+                    issues.append(f"tool '{name}' not registered in unified registry")
+
+            elif node_type == "agent":
+                pkg = _cast(str | None, getattr(node, "package", None))
+                if not pkg:
+                    continue
+                if allowed_agents and pkg not in allowed_agents:
+                    issues.append(f"agent '{pkg}' denied by allow-list policy")
+                if pkg in denied_agents:
+                    issues.append(f"agent '{pkg}' explicitly denied by policy")
+                # Registry tracks agents by name; if not present, warn
+                if pkg not in global_agent_registry.list_agents():
+                    issues.append(f"agent '{pkg}' not registered in unified registry")
+
+        return issues

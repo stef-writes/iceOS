@@ -11,7 +11,7 @@ def _create_sample_blueprint():
         "/api/v1/blueprints/",
         json=payload,
         headers={
-            "Authorization": "Bearer demo-token",
+            "Authorization": "Bearer dev-token",
             "X-Version-Lock": "__new__",
         },
     )
@@ -25,7 +25,7 @@ def test_create_requires_header():
     res = client.post(
         "/api/v1/blueprints/",
         json=payload,
-        headers={"Authorization": "Bearer demo-token"},
+        headers={"Authorization": "Bearer dev-token"},
     )
     assert res.status_code == 428
 
@@ -35,7 +35,7 @@ def test_create_conflict_header():
     res = client.post(
         "/api/v1/blueprints/",
         json=payload,
-        headers={"Authorization": "Bearer demo-token", "X-Version-Lock": "wrong"},
+        headers={"Authorization": "Bearer dev-token", "X-Version-Lock": "wrong"},
     )
     assert res.status_code == 409
 
@@ -47,7 +47,7 @@ def test_patch_happy_path():
     res = client.patch(
         f"/api/v1/blueprints/{blueprint_id}",
         json=patch_payload,
-        headers={"X-Version-Lock": lock, "Authorization": "Bearer demo-token"},
+        headers={"X-Version-Lock": lock, "Authorization": "Bearer dev-token"},
     )
     assert res.status_code == 200
     assert res.json()["id"] == blueprint_id
@@ -60,13 +60,13 @@ def test_patch_conflict():
     client.patch(
         f"/api/v1/blueprints/{blueprint_id}",
         json={"nodes": [{"id": "n1", "type": "__delete__"}]},
-        headers={"X-Version-Lock": lock, "Authorization": "Bearer demo-token"},
+        headers={"X-Version-Lock": lock, "Authorization": "Bearer dev-token"},
     )
 
     # second patch with old lock should fail
     res = client.patch(
         f"/api/v1/blueprints/{blueprint_id}",
         json={"nodes": []},
-        headers={"X-Version-Lock": lock, "Authorization": "Bearer demo-token"},
+        headers={"X-Version-Lock": lock, "Authorization": "Bearer dev-token"},
     )
     assert res.status_code == 409

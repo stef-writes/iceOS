@@ -9,7 +9,9 @@ from fastapi import APIRouter, Body, HTTPException, Request, status
 from pydantic import ValidationError
 
 from ice_api.redis_client import get_redis
+from ice_api.security import is_agent_allowed, is_tool_allowed
 from ice_core.models.mcp import Blueprint, NodeSpec
+from ice_core.unified_registry import registry
 
 router = APIRouter(prefix="/api/v1/blueprints", tags=["blueprints"])
 
@@ -89,6 +91,49 @@ def _calculate_version_lock(bp: Blueprint | Any) -> str:  # noqa: D401
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
+# ---------------------------------------------------------------------------
+# Registry resolvability and access validation -------------------------------
+# ---------------------------------------------------------------------------
+
+
+def _validate_resolvable_and_allowed(blueprint: Blueprint) -> None:
+    """Ensure all referenced tools/agents resolve and are allowed.
+
+    Raises 422 with precise details on first failure.
+    """
+    from fastapi import HTTPException
+
+    # Best-effort: ensure generated tools are imported so factories register
+    try:
+        import importlib
+
+        importlib.import_module("ice_tools.generated")
+    except Exception:
+        pass
+
+    # Validate tools
+    for node in blueprint.nodes:
+        if node.type == "tool":
+            name = getattr(node, "tool_name", None)
+            # Allow minimal placeholder tool nodes in CRUD tests and drafts
+            if not isinstance(name, str) or not name:
+                continue
+            if not registry.has_tool(name):
+                raise HTTPException(
+                    status_code=422, detail=f"Tool '{name}' is not registered"
+                )
+            if not is_tool_allowed(name):
+                raise HTTPException(
+                    status_code=403, detail=f"Tool '{name}' is not allowed"
+                )
+        elif node.type == "agent":
+            pkg = getattr(node, "package", None)
+            if isinstance(pkg, str) and pkg and not is_agent_allowed(pkg):
+                raise HTTPException(
+                    status_code=403, detail=f"Agent '{pkg}' is not allowed"
+                )
+
+
 def _assert_version_lock(request: Request, expected: str) -> None:  # noqa: D401
     """Validate *X-Version-Lock* header against *expected* value.
 
@@ -142,6 +187,9 @@ async def create_blueprint(  # noqa: D401 – API route
         blueprint = Blueprint.model_validate(payload)
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    # Enforce resolvability and access
+    _validate_resolvable_and_allowed(blueprint)
 
     blueprint_id = str(uuid.uuid4())
     await _save_blueprint(blueprint_id, blueprint)
@@ -203,6 +251,9 @@ async def patch_blueprint(  # noqa: D401
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
+    # Enforce resolvability and access
+    _validate_resolvable_and_allowed(bp)
+
     await _save_blueprint(blueprint_id, bp)
     return {"id": blueprint_id, "node_count": len(bp.nodes)}
 
@@ -259,6 +310,9 @@ async def replace_blueprint(  # noqa: D401
         bp = Blueprint.model_validate(payload)
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+    # Enforce resolvability and access
+    _validate_resolvable_and_allowed(bp)
 
     await _save_blueprint(blueprint_id, bp)
     new_lock = _calculate_version_lock(bp)

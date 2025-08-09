@@ -7,6 +7,7 @@ from ice_core.models import AgentNodeConfig, NodeExecutionResult
 from ice_core.models.node_metadata import NodeMetadata
 from ice_core.protocols.workflow import WorkflowLike  # noqa: F401
 from ice_core.unified_registry import register_node, registry
+from ice_orchestrator.services.agent_runtime import AgentRuntime
 
 __all__ = ["agent_node_executor"]
 
@@ -33,7 +34,10 @@ async def agent_node_executor(
         # ------------------------------------------------------------------
         # 2. Execute agent – trusted code has full DAG context --------------
         # ------------------------------------------------------------------
-        agent_output: Any = await agent.execute(ctx)
+        runtime = AgentRuntime()
+        agent_output: Any = await runtime.run(
+            agent, context=ctx, max_iterations=cfg.max_iterations
+        )
 
         if not isinstance(agent_output, dict):
             agent_output = {"result": agent_output}

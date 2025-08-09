@@ -56,9 +56,23 @@ class RetryPolicy(BaseModel):
         current attempt index (starting at 0).
     """
 
-    max_attempts: int = Field(3, ge=1)
-    backoff_strategy: Literal["fixed", "linear", "exponential"] = "exponential"
-    backoff_seconds: float = Field(1.0, ge=0.0)
+    max_attempts: int = Field(
+        3,
+        ge=1,
+        json_schema_extra={"ui:widget": "number", "ui:step": 1},
+    )
+    backoff_strategy: Literal["fixed", "linear", "exponential"] = Field(
+        "exponential",
+        json_schema_extra={
+            "ui:widget": "select",
+            "enum": ["fixed", "linear", "exponential"],
+        },
+    )
+    backoff_seconds: float = Field(
+        1.0,
+        ge=0.0,
+        json_schema_extra={"ui:widget": "number", "ui:step": 0.5},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -344,12 +358,34 @@ class LLMNodeConfig(BaseNodeConfig):
 
     type: Literal["llm"] = "llm"  # discriminator
 
-    model: str = Field(..., description="Model name, e.g. gpt-3.5-turbo")
+    model: str = Field(
+        ...,
+        description="Model name, e.g. gpt-4o, claude-3-5-sonnet, deepseek-chat",
+        json_schema_extra={
+            "ui:widget": "select",
+            "ui:placeholder": "gpt-4o",
+            "examples": [
+                "gpt-4o",
+                "gpt-4o-mini",
+                "claude-3-5-sonnet",
+                "deepseek-chat",
+            ],
+        },
+    )
     prompt: str = Field(..., description="Prompt template")
     llm_config: LLMConfig = Field(..., description="Provider-specific parameters")
 
-    temperature: float = 0.7
-    max_tokens: Optional[int] = None
+    temperature: float = Field(
+        0.7,
+        ge=0.0,
+        le=2.0,
+        json_schema_extra={"ui:widget": "slider", "ui:step": 0.1},
+    )
+    max_tokens: Optional[int] = Field(
+        default=None,
+        ge=1,
+        json_schema_extra={"ui:placeholder": "auto"},
+    )
 
     context_rules: Dict[str, ContextRule] = Field(default_factory=dict)
     format_specifications: Dict[str, Any] = Field(default_factory=dict)
@@ -377,8 +413,16 @@ class ToolNodeConfig(BaseNodeConfig):
 
     type: Literal["tool"] = "tool"
 
-    tool_name: str = Field(..., description="Registered name of the tool to invoke")
-    tool_args: Dict[str, Any] = Field(default_factory=dict)
+    tool_name: str = Field(
+        ...,
+        description="Registered name of the tool to invoke",
+        json_schema_extra={"ui:widget": "select"},
+    )
+    tool_args: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Arguments passed to the tool",
+        json_schema_extra={"ui:widget": "object-editor"},
+    )
 
 
 @mcp_tier("Blueprint for intelligent decision-making")

@@ -33,13 +33,22 @@ router = APIRouter(prefix="/ws/mcp", tags=["mcp"])
 
 
 def _auth_token() -> str:
-    return os.getenv("ICE_WS_BEARER", "dev-token")
+    # Reuse the same token as REST for consistency
+    return os.getenv("ICE_API_TOKEN", os.getenv("ICE_WS_BEARER", "dev-token"))
 
 
 def _assert_auth(ws: WebSocket) -> None:
+    # Accept either Sec-WebSocket-Protocol or Authorization: Bearer <token>
+    expected = _auth_token()
     proto = ws.headers.get("sec-websocket-protocol")
-    if proto != _auth_token():
-        raise WebSocketDisconnect(code=status.WS_1008_POLICY_VIOLATION)
+    auth = ws.headers.get("authorization")
+    if auth and auth.lower().startswith("bearer "):
+        token = auth.split(" ", 1)[1].strip()
+        if token == expected:
+            return
+    if proto == expected:
+        return
+    raise WebSocketDisconnect(code=status.WS_1008_POLICY_VIOLATION)
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +126,7 @@ aio_bg_task: asyncio.Task[None] | None = None
 async def mcp_ws(ws: WebSocket) -> None:  # – FastAPI handler
     """Bidirectional WS endpoint for live patch + telemetry messages."""
 
+    # Echo the expected subprotocol for clients that use it
     await ws.accept(subprotocol=_auth_token())
     try:
         _assert_auth(ws)

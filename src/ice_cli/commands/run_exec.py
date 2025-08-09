@@ -90,41 +90,19 @@ def cli_run(
     execution_id = resp.json()["execution_id"]
     click.echo(f"Execution ID: {execution_id}")
 
-    ws_url = (
-        api_url.replace("http", "ws", 1).rstrip("/") + f"/ws/executions/{execution_id}"
-    )
+    # Stream via simple polling loop (portable); WS support is optional via future flag
+    click.echo("Streaming status (polling)…")
+    import time
 
-    with httpx.Client() as client:
-        with client.stream(
-            "GET", f"{api_url.rstrip('/')}/api/v1/executions/{execution_id}"
-        ):
-            pass  # preflight
-
-    try:
-        with httpx.Client() as client:
-            with client.ws_connect(ws_url, timeout=60.0) as ws:  # type: ignore[attr-defined]
-                for msg in ws.iter_text():  # type: ignore[attr-defined]
-                    data = json.loads(msg)
-                    click.echo(json.dumps(data, indent=2))
-                    if data.get("status") in {"completed", "failed"}:
-                        if data.get("status") == "failed":
-                            sys.exit(1)
-                        break
-    except Exception as exc:  # noqa: BLE001
-        click.echo(f"WebSocket error: {exc}", err=True)
-        click.echo("Falling back to polling …")
-        # Fallback polling loop
-        while True:
-            status_resp = httpx.get(
-                f"{api_url.rstrip('/')}/api/v1/executions/{execution_id}",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-            status_data = status_resp.json()
-            click.echo(json.dumps(status_data, indent=2))
-            if status_data["status"] in {"completed", "failed"}:
-                if status_data["status"] == "failed":
-                    sys.exit(1)
-                break
-            import time
-
-            time.sleep(2)
+    while True:
+        status_resp = httpx.get(
+            f"{api_url.rstrip('/')}/api/v1/executions/{execution_id}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        status_data = status_resp.json()
+        click.echo(json.dumps(status_data, indent=2))
+        if status_data.get("status") in {"completed", "failed"}:
+            if status_data.get("status") == "failed":
+                sys.exit(1)
+            break
+        time.sleep(2)

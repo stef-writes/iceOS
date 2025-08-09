@@ -74,8 +74,17 @@ def initialize_orchestrator() -> None:
 
     try:
         importlib.import_module("ice_tools")
+        importlib.import_module("ice_tools.generated")
     except ModuleNotFoundError:
         # Package might be removed in minimal builds – ignore gracefully.
+        pass
+
+    # Load any entry-point declared nodes/tools
+    try:
+        from ice_core.unified_registry import registry as _reg
+
+        _reg.load_entry_points()
+    except Exception:
         pass
 
     # Import executor modules to register them with the execution system
