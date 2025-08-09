@@ -25,7 +25,7 @@ async def _run_flow() -> Dict[str, Any]:
                     "type": "llm",
                     "name": "echo",
                     "model": "gpt-4-turbo-2024-04-09",
-                    "prompt": "Echo: {topic}",
+                    "prompt": "Echo: {{ inputs.topic }}",
                     "llm_config": {"provider": "openai"},
                     "dependencies": [],
                 }
