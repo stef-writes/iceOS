@@ -23,9 +23,11 @@ class BranchContext(GraphContext):
     # Optional mutable store that can diverge from the parent session context
     branch_data: Dict[str, Any] = Field(default_factory=dict)
 
+
 # ---------------------------------------------------------------------
 # Async-first implementation ------------------------------------------
 # ---------------------------------------------------------------------
+
 
 class GraphContextManager(_SyncGraphContextManager):
     """Async-aware variant of :class:`GraphContextManager`.
@@ -101,5 +103,3 @@ class GraphContextManager(_SyncGraphContextManager):
 
     # Convenience alias so callers don't need to remember *async_* prefix
     execute_tool_async = async_execute_tool
-
-

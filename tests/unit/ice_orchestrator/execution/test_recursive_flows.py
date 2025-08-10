@@ -100,8 +100,8 @@ class TestRecursiveExecutor:
 
         result = await recursive_executor(mock_workflow, sample_recursive_config, ctx)
 
-        assert result.success == True
-        assert result.output["converged"] == False
+        assert result.success is True
+        assert result.output["converged"] is False
         assert result.output["reason"] == "max_iterations_reached"
         assert result.output["iterations"] == 10
 
@@ -117,8 +117,8 @@ class TestRecursiveExecutor:
 
         result = await recursive_executor(mock_workflow, sample_recursive_config, ctx)
 
-        assert result.success == True
-        assert result.output["converged"] == True
+        assert result.success is True
+        assert result.output["converged"] is True
         assert result.output["reason"] == "condition_met"
         assert result.output["iterations"] == 3
 
@@ -151,7 +151,7 @@ class TestRecursiveExecutor:
             )
 
             assert result.output["_recursive_iteration"] == 4
-            assert result.output["_can_recurse"] == True
+            assert result.output["_can_recurse"] is True
             assert result.output["_recursive_node_id"] == "negotiation_loop"
 
 

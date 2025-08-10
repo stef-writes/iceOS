@@ -1,4 +1,5 @@
 """Base node implementation."""
+
 from __future__ import annotations
 
 import time
@@ -12,43 +13,43 @@ from ice_core.protocols.node import INode
 
 class BaseNode(BaseModel, INode):
     """Base class for all node implementations.
-    
+
     Provides common execution flow, validation, and error handling.
     Subclasses should override _execute_impl with their specific logic.
     """
-    
+
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
-    
+
     async def validate(self) -> None:  # type: ignore[override]
         """Validate node configuration.
-        
+
         Default implementation relies on Pydantic validation.
         Override for custom validation logic.
         """
         # Pydantic handles field validation automatically
         pass
-    
+
     async def execute(self, inputs: Dict[str, Any]) -> NodeExecutionResult:
         """Execute the node with common error handling and timing."""
         start_time = time.time()
-        
+
         try:
             # Validate inputs
             self._validate_inputs(inputs)
-            
+
             # Execute implementation
             output = await self._execute_impl(inputs)
-            
+
             # Validate outputs
             self._validate_outputs(output)
-            
+
             return NodeExecutionResult(
                 success=True,
                 output=output,
                 execution_time=time.time() - start_time,
                 metadata=NodeMetadata(
-                    node_id=getattr(self, 'id', 'unknown'),
-                    node_type=getattr(self, 'type', 'unknown'),
+                    node_id=getattr(self, "id", "unknown"),
+                    node_type=getattr(self, "type", "unknown"),
                     version="1.0.0",
                     owner="system",
                     description=f"Execution of {self.__class__.__name__}",
@@ -56,8 +57,8 @@ class BaseNode(BaseModel, INode):
                     error_type=None,
                     start_time=None,
                     end_time=None,
-                    duration=None
-                )
+                    duration=None,
+                ),
             )
         except Exception as e:
             return NodeExecutionResult(
@@ -66,8 +67,8 @@ class BaseNode(BaseModel, INode):
                 error=str(e),
                 execution_time=time.time() - start_time,
                 metadata=NodeMetadata(
-                    node_id=getattr(self, 'id', 'unknown'),
-                    node_type=getattr(self, 'type', 'unknown'),
+                    node_id=getattr(self, "id", "unknown"),
+                    node_type=getattr(self, "type", "unknown"),
                     version="1.0.0",
                     owner="system",
                     description=f"Execution of {self.__class__.__name__}",
@@ -75,28 +76,28 @@ class BaseNode(BaseModel, INode):
                     provider=None,
                     start_time=None,
                     end_time=None,
-                    duration=None
-                )
+                    duration=None,
+                ),
             )
-    
+
     async def _execute_impl(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Override in subclasses to provide node-specific logic."""
         raise NotImplementedError(
             f"{self.__class__.__name__} must implement _execute_impl"
         )
-    
+
     def _validate_inputs(self, inputs: Dict[str, Any]) -> None:
         """Validate inputs against input schema.
-        
+
         Override to provide custom validation.
         """
         # Subclasses can implement schema validation
         pass
-    
+
     def _validate_outputs(self, outputs: Dict[str, Any]) -> None:
         """Validate outputs against output schema.
-        
+
         Override to provide custom validation.
         """
         # Subclasses can implement schema validation
-        pass 
+        pass

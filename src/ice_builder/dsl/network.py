@@ -39,7 +39,7 @@ class NetworkBuilder:
         }
 
     # ------------------------------------------------------------------
-    # Fluent setters                                                     
+    # Fluent setters
     # ------------------------------------------------------------------
 
     def set_global(self, **config: Any) -> "NetworkBuilder":
@@ -84,7 +84,7 @@ class NetworkBuilder:
         return self
 
     # ------------------------------------------------------------------
-    # Output helpers                                                     
+    # Output helpers
     # ------------------------------------------------------------------
 
     def build(self) -> Dict[str, Any]:
@@ -112,5 +112,7 @@ class NetworkBuilder:
         elif format_hint == "json":
             path.write_text(json.dumps(data, indent=2))
         else:
-            raise ValueError("Unsupported format – use yaml|yml|json or specify fmt param")
-        return path 
+            raise ValueError(
+                "Unsupported format – use yaml|yml|json or specify fmt param"
+            )
+        return path

@@ -978,7 +978,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
         graph_metrics = self.get_graph_metrics()
 
         # Analyze current node's position in graph
-        current_level = self.get_node_level(after_node_id)
+        # current_level = self.get_node_level(after_node_id)  # not used
         out_degree = len(impact_analysis["direct_dependents"])
 
         # Enhanced suggestions based on graph analysis

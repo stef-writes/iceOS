@@ -6,8 +6,6 @@ This module hosts the explicit registration of first-party tools to avoid
 import-time side effects and keeps `ice_core` free of `ice_tools` references.
 """
 
-from typing import Final
-
 from ice_core.unified_registry import register_tool_factory
 
 
@@ -19,6 +17,7 @@ def load_first_party_tools() -> int:
     """
     try:
         import pkgutil
+
         import ice_tools.generated as _gen
 
         count = 0
@@ -37,4 +36,3 @@ def load_first_party_tools() -> int:
         return count
     except ModuleNotFoundError:
         return 0
-

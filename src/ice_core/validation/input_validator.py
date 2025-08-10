@@ -7,6 +7,7 @@ returns the tuple `(ok, errors, coerced)` expected by ToolBase.
 It exists in a separate module so we can import it lazily from ToolBase
 without causing circular-import issues.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Tuple
@@ -15,7 +16,10 @@ from ice_core.utils.json_schema import validate_with_schema
 
 __all__: list[str] = ["validate_tool_inputs"]
 
-def validate_tool_inputs(schema: Dict[str, Any], inputs: Dict[str, Any]) -> Tuple[bool, List[str], Any]:
+
+def validate_tool_inputs(
+    schema: Dict[str, Any], inputs: Dict[str, Any]
+) -> Tuple[bool, List[str], Any]:
     """Validate *inputs* against *schema*.
 
     Parameters

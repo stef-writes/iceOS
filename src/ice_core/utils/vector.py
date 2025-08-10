@@ -2,6 +2,7 @@
 
 Currently provides dimensionality validation to enforce safety invariants.
 """
+
 from __future__ import annotations
 
 from typing import Sequence
@@ -9,7 +10,9 @@ from typing import Sequence
 from ice_core.exceptions import DimensionMismatchError
 
 
-def validate_embedding_dimension(embedding: Sequence[float], expected_dimension: int) -> None:
+def validate_embedding_dimension(
+    embedding: Sequence[float], expected_dimension: int
+) -> None:
     """Validate that *embedding* has *expected_dimension* elements.
 
     Args:

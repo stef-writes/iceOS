@@ -13,12 +13,14 @@ class User(BaseModel):
         """Check if user has specific role"""
         return role in self.roles
 
+
 class Chain(BaseModel):
     """Chain model for permission validation"""
 
     id: str
     name: str
     is_demo: bool = False
+
 
 def validate_chain_permissions(chain: Chain, user: User) -> bool:
     """Pre-execution check for demo chains"""

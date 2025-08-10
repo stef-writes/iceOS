@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 
 __all__ = ["setup_logger", "logger"]
 
+
 def setup_logger() -> logging.Logger:
     """Configure root logger with a sane default format only once."""
     logger = logging.getLogger()
@@ -36,6 +37,7 @@ def setup_logger() -> logging.Logger:
 
     def _build_json_formatter() -> logging.Formatter:  # noqa: D401
         import json
+
         try:
             from opentelemetry import trace  # type: ignore
         except ImportError:  # pragma: no cover – OTEL optional
@@ -111,5 +113,6 @@ def setup_logger() -> logging.Logger:
         logger.addHandler(_build_plain_handler())
 
     return logger
+
 
 logger = setup_logger()

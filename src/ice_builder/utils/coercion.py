@@ -25,6 +25,7 @@ def auto_coerce(value: Any, target_schema: Mapping[str, Any]) -> Any:
 
     return value  # Fallback to original value
 
+
 def schema_match(
     source_schema: Mapping[str, Any], target_schema: Mapping[str, Any]
 ) -> bool:

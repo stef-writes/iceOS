@@ -1,4 +1,5 @@
 """Base tool implementation."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -9,54 +10,55 @@ from pydantic import BaseModel, ConfigDict
 
 class ToolBase(BaseModel, ABC):
     """Base class for all tool implementations.
-    
+
     Tools are stateless, idempotent operations that may have side effects.
     They expose their capabilities through schemas and a standard execute method.
     """
-    
+
     model_config = ConfigDict(extra="forbid")
-    
+
     # Required attributes - must be set by subclasses
     name: str = ""
     description: str = ""
-    
+
     @abstractmethod
     async def _execute_impl(self, *args: Any, **kwargs: Any) -> Dict[str, Any]:
         """Override in subclasses to provide tool-specific logic."""
         pass
-    
+
     async def execute(
         self,
         **kwargs: Any,
     ) -> Dict[str, Any]:
         """Execute the tool with given inputs.
-        
+
         Subclasses should override _execute_impl.
         """
-        
+
         try:
             # Validate inputs
             self._validate_inputs(kwargs)
-            
+
             # Execute implementation
             result = await self._execute_impl(**kwargs)
-            
+
             # Enforce contract: tools must return plain dicts, not NodeExecutionResult
             from ice_core.models import NodeExecutionResult as _NER  # local import
+
             if isinstance(result, _NER):
                 raise RuntimeError(
                     f"{self.__class__.__name__} must return dict, got NodeExecutionResult"
                 )
-            
+
             # Validate outputs
             self._validate_outputs(result)
-            
+
             return result
-            
+
         except Exception:
             # Tools should handle their own errors appropriately
             raise
-    
+
     def _validate_inputs(self, inputs: Dict[str, Any]) -> None:
         """Validate *inputs* against the merged input schema.
 
@@ -94,7 +96,8 @@ class ToolBase(BaseModel, ABC):
                 )
 
                 raise IceValidationError(
-                    f"Output validation failed for tool '{self.name}': " + "; ".join(errors)
+                    f"Output validation failed for tool '{self.name}': "
+                    + "; ".join(errors)
                 )
 
     # ------------------------------------------------------------------
@@ -183,4 +186,4 @@ class ToolBase(BaseModel, ABC):
             "properties": {
                 "result": {},  # open schema – override for concrete tools
             },
-        } 
+        }

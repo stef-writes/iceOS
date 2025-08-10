@@ -33,5 +33,6 @@ class ContextTypeManager:
             if schema_match(schema, target_schema)  # From coercion utils
         ]
 
+
 # Singleton instance
 context_type_manager = ContextTypeManager()

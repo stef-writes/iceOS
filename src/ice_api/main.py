@@ -56,7 +56,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     # Initialize services through proper layer interfaces
     import importlib
-    initialize_orchestrator = importlib.import_module("ice_orchestrator").initialize_orchestrator
+
+    initialize_orchestrator = importlib.import_module(
+        "ice_orchestrator"
+    ).initialize_orchestrator
 
     # Initialize runtime orchestrator services
     initialize_orchestrator()
@@ -106,14 +109,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Prefer runtime-wired context manager
     app.state.context_manager = rt.context_manager  # type: ignore[attr-defined]
 
-    # Register workflow execution service for API execution endpoints
+    # Register workflow execution service for API execution endpoints without
+    # top-level import. Use runtime-wired service if present, else lazy import.
     try:
-        from ice_orchestrator.services.workflow_execution_service import (
-            WorkflowExecutionService,
-        )
+        if getattr(rt, "workflow_execution_service", None) is None:
+            from importlib import import_module
 
-        # Also expose via runtime slot
-        rt.workflow_execution_service = rt.workflow_execution_service or WorkflowExecutionService()
+            wes_cls = getattr(
+                import_module("ice_orchestrator.services.workflow_execution_service"),
+                "WorkflowExecutionService",
+            )
+            rt.workflow_execution_service = wes_cls()
     except Exception as reg_exc:  # pragma: no cover – defensive
         logger.warning("Failed to prepare workflow_execution_service: %s", reg_exc)
 

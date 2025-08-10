@@ -3,6 +3,7 @@
 Stores posted items in memory so front-end developers can fetch them without
 hitting a real Facebook endpoint.
 """
+
 from __future__ import annotations
 
 from typing import Any, List

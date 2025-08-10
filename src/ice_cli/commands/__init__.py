@@ -1,1 +1,1 @@
-"""CLI command implementations for iceOS.""" 
+"""CLI command implementations for iceOS."""

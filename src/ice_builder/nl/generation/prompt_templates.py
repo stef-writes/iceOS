@@ -3,6 +3,7 @@
 These templates guide the LLMs to produce consistent, parseable outputs that
 can be transformed into valid iceOS node configurations.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List
@@ -182,14 +183,18 @@ def format_planning_prompt(intent_data: Dict[str, Any]) -> str:
         f"- {node_type}: {desc}"
         for node_type, desc in describe_node_capabilities().items()
     )
-    
+
     return PLANNING_PROMPT.format(
         goal=intent_data["goal"],
         constraints=", ".join(intent_data.get("constraints", [])),
         inputs=", ".join(intent_data.get("inputs", [])),
         outputs=", ".join(intent_data.get("outputs", [])),
-        available_tools=", ".join(intent_data.get("available_tools", ["[none registered]"])),
-        suggested_tools=", ".join(intent_data.get("suggested_tools", ["[none suggested]"])),
+        available_tools=", ".join(
+            intent_data.get("available_tools", ["[none registered]"])
+        ),
+        suggested_tools=", ".join(
+            intent_data.get("suggested_tools", ["[none suggested]"])
+        ),
         node_capabilities=node_caps,
     )
 
@@ -211,13 +216,14 @@ def format_mermaid_prompt(nodes: List[Dict[str, Any]]) -> str:
 def format_code_prompt(nodes: List[Dict[str, Any]]) -> str:
     """Format the code generation prompt for nodes requiring code."""
     code_nodes = [
-        node for node in nodes
+        node
+        for node in nodes
         if node["type"] in ["code", "tool"] and not node.get("code")
     ]
-    
+
     nodes_desc = "\n".join(
         f"- {node['id']}: {node.get('description', 'Generate implementation')}"
         for node in code_nodes
     )
-    
+
     return CODE_GENERATION_PROMPT.format(code_nodes=nodes_desc)

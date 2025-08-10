@@ -9,8 +9,19 @@ The orchestrator layer handles all runtime execution including:
 - Context management
 """
 
+# Re-export for public API surface
+from typing import Any
+
 from ice_orchestrator.base_workflow import BaseWorkflow, FailurePolicy
-from ice_orchestrator.services.workflow_service import WorkflowService
+
+
+def __getattr__(name: str) -> Any:
+    if name == "WorkflowService":
+        from ice_orchestrator.services.workflow_service import WorkflowService
+
+        return WorkflowService
+    raise AttributeError(name)
+
 
 __all__ = [
     "BaseWorkflow",
@@ -32,17 +43,15 @@ def initialize_orchestrator() -> None:
     import os
     from pathlib import Path
 
-    from ice_core.llm.service import LLMService
     from ice_core import runtime as rt
-    from ice_orchestrator.plugins import load_first_party_tools
     from ice_orchestrator.context import GraphContextManager
+    from ice_orchestrator.plugins import load_first_party_tools
     from ice_orchestrator.services.network_coordinator import NetworkCoordinator
-    from ice_orchestrator.services.task_manager import NetworkTaskManager
     from ice_orchestrator.services.tool_execution_service import ToolExecutionService
     from ice_orchestrator.services.workflow_execution_service import (
         WorkflowExecutionService,
     )
-    from ice_orchestrator.services.workflow_service import WorkflowService
+    from ice_orchestrator.services.workflow_service import WorkflowService  # noqa: F401
     from ice_orchestrator.workflow import Workflow
 
     project_root = Path(os.getcwd())
@@ -58,7 +67,9 @@ def initialize_orchestrator() -> None:
     rt.workflow_execution_service = wes
 
     # Register tool service wrapper (runtime only)
-    from ice_core.services.tool_service import ToolService  # runtime-facing proxy
+    from ice_core.services.tool_service import (  # noqa: F401 runtime-facing proxy
+        ToolService,
+    )
 
     # ------------------------------------------------------------------
     # Built-in tools ----------------------------------------------------

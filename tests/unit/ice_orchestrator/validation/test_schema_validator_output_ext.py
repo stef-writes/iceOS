@@ -29,4 +29,4 @@ def test_schema_validator_output_mismatch():
         output_schema={"msg": "str", "count": "int"},
     )
     bad_output = {"msg": 123, "count": "five"}
-    assert SchemaValidator.is_output_valid(node, bad_output) is False 
+    assert SchemaValidator.is_output_valid(node, bad_output) is False

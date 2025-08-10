@@ -14,6 +14,7 @@ __all__ = [
     "TextProcessor",
 ]
 
+
 def deterministic_summariser(
     content: Any,
     *,
@@ -37,7 +38,9 @@ def deterministic_summariser(
         return text
     return text[: char_budget - 3] + "…"
 
+
 logger = logging.getLogger(__name__)
+
 
 class TextProcessor(BaseModel):  # type: ignore[misc]
     """Utility class wrapping common document-to-text helpers.

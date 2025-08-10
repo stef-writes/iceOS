@@ -11,6 +11,7 @@ Typical usage
 >>> result = await tester.run(workflow_dict)
 >>> assert result.success
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -117,4 +118,5 @@ class WorkflowTester:  # pylint: disable=too-few-public-methods
             LLMService.generate = self._orig_generate  # type: ignore[assignment]
             self._orig_generate = None
 
-__all__ = ["WorkflowTester"] 
+
+__all__ = ["WorkflowTester"]

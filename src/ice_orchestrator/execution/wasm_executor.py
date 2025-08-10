@@ -133,7 +133,7 @@ class WasmExecutor:
                 "code_size": len(code),
             },
         ) as span:
-            start_time = datetime.utcnow()
+            # Keep wall-clock anchor available if needed for future metrics
             execution_start = time.perf_counter()
 
             # Get resource limits for node type
@@ -156,10 +156,10 @@ class WasmExecutor:
                     node_id=node_id,
                 )
 
-                end_time = datetime.utcnow()
+                # end_time wall-clock captured by perf counter duration
                 duration = time.perf_counter() - execution_start
 
-                # Add telemetry
+                # Add telemetry (times captured via perf counter)
                 span.set_attribute("execution_time", duration)
                 span.set_attribute(
                     "memory_used_pages", result.get("_memory_used_pages", 0)
@@ -186,7 +186,6 @@ class WasmExecutor:
                 }
 
             except Exception as e:
-                end_time = datetime.utcnow()
                 duration = time.perf_counter() - execution_start
 
                 span.set_attribute("execution_time", duration)

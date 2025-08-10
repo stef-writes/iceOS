@@ -81,5 +81,6 @@ class RuntimeConfig(BaseModel):
             budget_fail_open=budget_fail_open,
         )
 
+
 # Global configuration instance
 runtime_config = RuntimeConfig.from_env()

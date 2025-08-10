@@ -28,6 +28,7 @@ ENABLE_NL_GENERATOR = os.getenv("ENABLE_NL_GENERATOR", "0") == "1"
 with suppress(ImportError):
     if ENABLE_NL_GENERATOR:
         from .nl import append_tool_node, create_partial_blueprint  # noqa: F401
+
         __all_extra: _List[str] = [
             "append_tool_node",
             "create_partial_blueprint",

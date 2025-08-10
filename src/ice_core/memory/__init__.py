@@ -16,9 +16,9 @@ __all__ = [
     "MemoryConfig",
     "MemoryEntry",
     "EpisodicMemory",
-    "ProceduralMemory", 
+    "ProceduralMemory",
     "SemanticMemory",
     "UnifiedMemory",
     "UnifiedMemoryConfig",
     "WorkingMemory",
-] 
+]

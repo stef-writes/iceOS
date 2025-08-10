@@ -4,6 +4,7 @@ Defines the minimal additional contract an *agent node* must satisfy beyond the
 core `INode` interface. Keeping this tiny avoids over-coupling while still
 providing compile-time guarantees that the orchestrator can rely on.
 """
+
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -24,7 +25,9 @@ class IAgent(Protocol):
     # ---------------------------------------------------------------------
 
     @abstractmethod
-    async def think(self, context: Dict[str, Any]) -> str:  # noqa: D401 – imperative verb fine
+    async def think(
+        self, context: Dict[str, Any]
+    ) -> str:  # noqa: D401 – imperative verb fine
         """Produce an internal reasoning trace / next action decision."""
 
     @abstractmethod

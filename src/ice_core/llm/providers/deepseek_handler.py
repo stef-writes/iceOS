@@ -20,6 +20,7 @@ __all__: list[str] = ["DeepSeekHandler"]
 
 DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 
+
 class DeepSeekHandler(BaseLLMHandler):
     async def generate_text(
         self,

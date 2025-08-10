@@ -47,4 +47,4 @@ def add_exception_handlers(app: FastAPI) -> None:
         )
 
 
-__all__ = ["APIError", "add_exception_handlers"] 
+__all__ = ["APIError", "add_exception_handlers"]

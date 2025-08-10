@@ -11,8 +11,16 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 
 from ice_api.redis_client import get_redis
 from ice_core.models.mcp import Blueprint
-from ice_core import runtime as rt
-from ice_orchestrator.execution.workflow_events import EventType
+
+
+# Duplicate event names locally to avoid app→orchestrator import
+class _Evt:
+    NODE_STARTED = "node.started"
+    NODE_COMPLETED = "node.completed"
+    NODE_FAILED = "node.failed"
+    WORKFLOW_STARTED = "workflow.started"
+    WORKFLOW_COMPLETED = "workflow.completed"
+
 
 router = APIRouter(prefix="/api/v1/executions", tags=["executions"])
 from typing import TypedDict, cast
@@ -68,10 +76,12 @@ async def _run_workflow_async(
     """Background task that executes the workflow and updates *store*."""
     # Resolve workflow execution service via runtime factories when available
     try:
-        from ice_orchestrator.services.workflow_execution_service import (
-            WorkflowExecutionService,
-        )
+        from importlib import import_module
 
+        WorkflowExecutionService = getattr(
+            import_module("ice_orchestrator.services.workflow_execution_service"),
+            "WorkflowExecutionService",
+        )
         service = WorkflowExecutionService()
     except Exception:
         # In minimal builds orchestrator may be unavailable
@@ -92,11 +102,11 @@ async def _run_workflow_async(
             try:
                 # Minimal mapping for UI: event, node_id, status/progress
                 if event_name in {
-                    EventType.NODE_STARTED.value,
-                    EventType.NODE_COMPLETED.value,
-                    EventType.NODE_FAILED.value,
-                    EventType.WORKFLOW_STARTED.value,
-                    EventType.WORKFLOW_COMPLETED.value,
+                    _Evt.NODE_STARTED,
+                    _Evt.NODE_COMPLETED,
+                    _Evt.NODE_FAILED,
+                    _Evt.WORKFLOW_STARTED,
+                    _Evt.WORKFLOW_COMPLETED,
                 }:
                     record.setdefault("events", []).append({"event": event_name, "payload": payload})  # type: ignore[attr-defined]
             except Exception:
@@ -104,15 +114,23 @@ async def _run_workflow_async(
 
         # Execute with event emitter if the service supports it
         try:
-            result = await service.execute(
-                nodes=[n.model_dump() for n in bp.nodes],  # type: ignore[list-item]
+            # Preferred path: execute from NodeSpec list
+            result = await service.execute_blueprint(
+                bp.nodes,
+                inputs=inputs,
                 name=f"run_{execution_id}",
-                run_id=execution_id,
-                event_emitter=_event_emitter,
             )
-        except AttributeError:
-            # Fallback to basic execution path
-            result = await service.execute_blueprint(bp.nodes, inputs=inputs, name=f"run_{execution_id}")  # type: ignore[arg-type]
+        except Exception:
+            # As a last resort, construct a Workflow and execute
+            from importlib import import_module
+
+            Workflow = getattr(import_module("ice_orchestrator.workflow"), "Workflow")
+            from ice_core.utils.node_conversion import convert_node_specs
+
+            wf = Workflow(
+                nodes=convert_node_specs(bp.nodes), name=f"run_{execution_id}"
+            )
+            result = await service.execute_workflow(wf, inputs=inputs)
         record["status"] = "completed"
         record["result"] = result.model_dump() if hasattr(result, "model_dump") else result  # type: ignore[assignment]
         record["_event"].set()
@@ -175,9 +193,17 @@ async def start_execution(  # noqa: D401 – API route
 
     # Governance preflight: estimate cost and enforce budget
     try:
+        from importlib import import_module
+
         from ice_core.utils.node_conversion import convert_node_specs
-        from ice_orchestrator.config import runtime_config
-        from ice_orchestrator.execution.cost_estimator import WorkflowCostEstimator
+
+        runtime_config = getattr(
+            import_module("ice_orchestrator.config"), "runtime_config"
+        )
+        WorkflowCostEstimator = getattr(
+            import_module("ice_orchestrator.execution.cost_estimator"),
+            "WorkflowCostEstimator",
+        )
 
         node_cfgs = convert_node_specs(blueprint.nodes)
         estimator = WorkflowCostEstimator()

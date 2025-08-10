@@ -41,7 +41,7 @@ class WorkflowService(IWorkflowService):
         # In-memory cache for executed workflows (very lightweight)
         self._workflow_cache: dict[str, Workflow] = {}
 
-# Tools are registered via explicit plugin loader during orchestrator init
+    # Tools are registered via explicit plugin loader during orchestrator init
 
     async def execute(
         self,

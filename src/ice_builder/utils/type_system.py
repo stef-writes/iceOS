@@ -6,8 +6,10 @@ from ice_core.models.node_models import NodeConfig
 
 T = TypeVar("T")
 
+
 class TypeCoercionError(ValueError):
     """Raised when automatic type coercion fails."""
+
 
 class TypeEnforcer:
     @classmethod

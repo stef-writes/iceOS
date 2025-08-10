@@ -32,4 +32,4 @@ __all__ = [
     "ContextFormatter",
     "ToolContext",
     "ContextTypeManager",
-] 
+]

@@ -1,4 +1,5 @@
 """Vector index protocol definition."""
+
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -30,7 +31,7 @@ class IVectorIndex(Protocol):
         actual = len(embedding)
         if actual != expected:
             raise DimensionMismatchError(expected, actual)
-    
+
     @abstractmethod
     async def upsert(
         self,
@@ -42,7 +43,7 @@ class IVectorIndex(Protocol):
         dedup: bool = False,
     ) -> None:
         """Insert or update a vector.
-        
+
         Args:
             scope: Namespace for the vector
             key: Unique identifier
@@ -51,7 +52,7 @@ class IVectorIndex(Protocol):
             dedup: Whether to deduplicate
         """
         ...
-    
+
     @abstractmethod
     async def query(
         self,
@@ -62,14 +63,14 @@ class IVectorIndex(Protocol):
         filter: Dict[str, Any] | None = None,
     ) -> List[Tuple[str, float]]:
         """Query for similar vectors.
-        
+
         Args:
             scope: Namespace to search in
             embedding: Query vector
             k: Number of results to return
             filter: Optional metadata filters
-            
+
         Returns:
             List of (key, similarity_score) tuples
         """
-        ... 
+        ...

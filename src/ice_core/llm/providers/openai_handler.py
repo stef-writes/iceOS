@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 __all__: list[str] = ["OpenAIHandler"]
 
+
 class OpenAIHandler(BaseLLMHandler):
     """Handler for OpenAI Chat Completions API."""
 

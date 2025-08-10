@@ -1,34 +1,20 @@
  
 
-[tool.poetry]
-name = "iceos"
-version = "0.5.0-beta"
-description = "iceOS – Intelligent Composable Environment platform"
-license = "MIT"
-authors = ["iceOS contributors <opensource@iceos.dev>"]
-readme = "README.md"
-
-# Tell Poetry we use src/ layout and enumerate the top-level packages.
-packages = [
-
-  { include = "ice_orchestrator", from = "src" },
-  { include = "ice_cli", from = "src" },
-  { include = "ice_api", from = "src" },
-  { include = "ice_core", from = "src" },
-  { include = "ice_builder", from = "src" },
-  { include = "ice_client", from = "src" },
-]
-
-# Include non-Python assets (JSON templates & default context store)
-include = [
-  "src/ice_api/templates/*.json",
-  "src/ice_api/data/*.json"
-]
-
-# Ensure demo/sample code isn't shipped in the production wheel. Only the
-# packages explicitly listed under *packages* are included, but this makes the
-# intent crystal-clear.
-exclude = ["examples", "tests", "scripts"]
+ [tool.poetry]
+ # Package discovery and layout remain managed by Poetry-specific settings
+ packages = [
+   { include = "ice_orchestrator", from = "src" },
+   { include = "ice_cli", from = "src" },
+   { include = "ice_api", from = "src" },
+   { include = "ice_core", from = "src" },
+   { include = "ice_builder", from = "src" },
+   { include = "ice_client", from = "src" },
+ ]
+ include = [
+   "src/ice_api/templates/*.json",
+   "src/ice_api/data/*.json"
+ ]
+ exclude = ["examples", "tests", "scripts"]
 
 # ---------------------------------------------------------------------------
 # NOTE: Configuration files have been organized into config/ directory:
@@ -40,8 +26,72 @@ exclude = ["examples", "tests", "scripts"]
 #      pytest -c config/testing/pytest.ini
 # ---------------------------------------------------------------------------
 
-[tool.poetry.plugins."proto"]
-"orchestrator/v1alpha/network.proto" = "ice_core.protocols.mcp.models:NetworkSpec"
+ [project.entry-points."proto"]
+ "orchestrator/v1alpha/network.proto" = "ice_core.protocols.mcp.models:NetworkSpec"
+
+[project]
+name = "iceos"
+version = "0.5.0"
+description = "iceOS – Intelligent Composable Environment platform"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+  { name = "iceOS contributors", email = "opensource@iceos.dev" }
+]
+requires-python = ">=3.10,<4.0"
+
+[project.scripts]
+ice = "ice_cli.cli:app"
+
+[project.optional-dependencies]
+llm_openai = ["openai", "tiktoken"]
+llm_anthropic = ["anthropic"]
+llm_gemini = ["google-generativeai"]
+# Optional heavy ML stack for vector memory & embeddings
+embeddings = [
+  "sentence-transformers",
+  "torch",
+  "scikit-learn"
+]
+
+dependencies = [
+  "redis>=4.6.0",
+  "aiohttp>=3.9.3",
+  "numpy>=1.26",
+  "alembic>=1.12.1",
+  "anthropic==0.19.0",
+  "fastapi>=0.109.1,<0.200",
+  "google-generativeai==0.4.0",
+  "httpx==0.24.1",
+  "jmespath>=1.0.1",
+  "pypdf>=3.17.0",
+  "networkx>=3.1",
+  "croniter>=2.0.0",
+  "openai==1.14.1",
+  "opentelemetry-api>=1.23.0",
+  "opentelemetry-sdk>=1.23.0",
+  "jsonschema>=4.22.0",
+  "PyYAML>=6.0",
+  "packaging>=23.2",
+  "pydantic>=2.7.0",
+  "python-dotenv>=1.0.0",
+  "setuptools>=78.1.1",
+  "sqlalchemy>=2.0.23",
+  "structlog>=24.1.0",
+  "annoy>=1.17.3",
+  "cryptography>=44.0.1",
+  "typer>=0.12.1",
+  "watchdog>=4.0.0",
+  "tenacity>=8.2.3",
+  "prometheus_client==0.19.0",
+  "tiktoken>=0.5.1",
+  "uvicorn>=0.24.0",
+  "wasmtime>=24.0.0",
+  "python-multipart>=0.0.18",
+  "rich>=13.6.0",
+  "nest_asyncio>=1.6.0",
+  "jinja2>=3.1.3",
+]
 
 [build-system]
 requires = [
@@ -65,61 +115,7 @@ multi_line_output = 3
 line_length = 88
 
 # Existing dependencies
-[tool.poetry.dependencies]
-python = "^3.10"
-redis = "^4.6.0"  # Async Redis client for blueprint & event persistence
-aiohttp = ">=3.9.3"  # Async HTTP client
-numpy = "^1.26"  # Pin to ABI-compatible line; NumPy 2.x breaks torch wheels
-alembic = "^1.12.1"
-anthropic = "0.19.0"
-# Patched versions resolving CVE-2024-24762 (FastAPI) and CVE-2024-24762 (python-multipart)
-fastapi = ">=0.109.1,<0.200"
-google-generativeai = "0.4.0"
-httpx = "0.24.1"
-# Optional deps for new tools -----------------------------
-jmespath = "^1.0.1"
-pypdf = "^3.17.0"
-networkx = "^3.1"
-croniter = "^2.0.0"
-openai = "1.14.1"
-opentelemetry-api = "^1.23.0"
-opentelemetry-sdk = "^1.23.0"
-jsonschema = "^4.22.0"
-PyYAML = "^6.0"
-packaging = "^23.2"
-pydantic = "^2.7.0"
-python-dotenv = "^1.0.0"
-# Heavy ML deps (optional)
-sentence-transformers = {version = "^2.6.0", optional = true}
-torch = {version = "^2.3.0", optional = true}
-scikit-learn = {version = "^1.5.0", optional = true}
-# Ensure build tooling is on a safe version (PYSEC-2025-49)
-setuptools = ">=78.1.1"
-# Ensure build tooling is on a safe version (PYSEC-2025-49)
-sqlalchemy = "^2.0.23"
-structlog = "^24.1.0"
-annoy = "^1.17.3"
-cryptography = "^44.0.1"
-typer = "^0.12.1"
-watchdog = "^4.0.0"
-tenacity = "^8.2.3"
-prometheus_client = "0.19.0"
-tiktoken = "^0.5.1"
-uvicorn = "^0.24.0"
-# WASM sandbox execution
-wasmtime = "^24.0.0"
-# Ensure build tooling is on a safe version (PYSEC-2025-49)
-python-multipart = "^0.0.18"
-rich = "^13.6.0"
-nest_asyncio = "^1.6.0"
-jinja2 = "^3.1.3"
-sse-starlette = {version = "^1.6.1", optional = true}
-
-# Nested dict traversal for validation helpers -----------------------------
-dpath = "^2.1.0"
-pandas = "^2.3.1"
-opentelemetry-instrumentation-fastapi = "^0.57b0"
-opentelemetry-instrumentation-logging = "^0.57b0"
+#[tool.poetry.dependencies]  # migrated to [project] section
 
 [tool.poetry.group.dev.dependencies]
 pip-licenses = "^4.3.2"
@@ -167,20 +163,7 @@ vulture = "^2.14"
 pydantic = {extras = ["mypy"], version = "^2.12.0a1", allow-prereleases = true}
 types-redis = {version = "^4.6.0.20241004", allow-prereleases = true}
 
-[tool.poetry.scripts]
-ice = "ice_cli.cli:app"
 
-[tool.poetry.extras]
-llm_openai = ["openai", "tiktoken"]
-llm_anthropic = ["anthropic"]
-llm_gemini = ["google-generativeai"]
-
-# Optional heavy ML stack for vector memory & embeddings
-embeddings = [
-  "sentence-transformers",
-  "torch",
-  "scikit-learn"
-]
 
 # ---------------------------------------------------------------------------
 # Static typing configuration (pyright) -------------------------------------

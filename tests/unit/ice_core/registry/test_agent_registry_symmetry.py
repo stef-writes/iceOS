@@ -1,4 +1,5 @@
 """Tests for agent registry symmetry helpers."""
+
 import sys
 from types import ModuleType
 

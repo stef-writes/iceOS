@@ -57,4 +57,4 @@ async def test_context_builder_missing_dep_raises():
     )
 
     with pytest.raises(CoreError):
-        _ = ContextBuilder.build_node_context(node, {}) 
+        _ = ContextBuilder.build_node_context(node, {})

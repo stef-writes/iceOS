@@ -190,8 +190,12 @@ def run_blueprint(
 
     if remote_url:
         # --- Remote execution via IceClient ---------------------------------
-        from ice_client import IceClient
+        # Lazy import to avoid top-level layering violation
+        from importlib import import_module
+
         from ice_core.models.mcp import Blueprint
+
+        IceClient = getattr(import_module("ice_client"), "IceClient")
 
         path = pathlib.Path(blueprint_path)
         data = json.loads(path.read_text())

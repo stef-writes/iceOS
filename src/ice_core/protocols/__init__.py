@@ -69,11 +69,12 @@ def enforce_protocol(protocol: type) -> Any:  # pragma: no cover – utility
 
     return decorator
 
+
 from .validation import validated_protocol  # noqa: E402  (import late)
 
 __all__ = [
     "INode",
-    "ITool", 
+    "ITool",
     "IRegistry",
     "IVectorIndex",
     "IEmbedder",
@@ -86,4 +87,4 @@ __all__ = [
     "IAgent",
     "IExecutor",
     "validated_protocol",
-] 
+]

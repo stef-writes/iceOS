@@ -19,6 +19,7 @@ __all__: list[str] = ["BaseLLMHandler"]
 # Shared logger so subclasses can inherit it easily --------------------------
 _logger = logging.getLogger(__name__)
 
+
 class BaseLLMHandler(ABC):
     """Abstract base class for concrete provider handlers."""
 

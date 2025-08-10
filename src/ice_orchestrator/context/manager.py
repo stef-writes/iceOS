@@ -9,9 +9,9 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 import networkx as nx
 from pydantic import BaseModel, Field
 
+from ice_core import runtime as rt
 from ice_core.base_tool import ToolBase
 from ice_core.models.enums import NodeType
-from ice_core import runtime as rt
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
@@ -28,6 +28,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
+
 class GraphContext(BaseModel):
     """Context for graph execution."""
 
@@ -36,6 +37,7 @@ class GraphContext(BaseModel):
     metadata: Dict[str, Any] = {}
     execution_id: Optional[str] = None
     start_time: datetime = Field(default_factory=datetime.utcnow)
+
 
 class GraphContextManager:
     """
@@ -79,7 +81,9 @@ class GraphContextManager:
         # Memory adapter ---------------------------------------------------
         self.memory: BaseMemory = memory or NullMemory()
         # 🚀 UNIFIED NESTED STRUCTURE: Better organization like registry pattern
-        self._nodes: Dict[NodeType, Dict[str, Union["AgentNode", ToolBase]]] = defaultdict(dict)
+        self._nodes: Dict[NodeType, Dict[str, Union["AgentNode", ToolBase]]] = (
+            defaultdict(dict)
+        )
         # Map of session_id -> GraphContext (acts as LRU cache) --------------
         self._contexts: "OrderedDict[str, GraphContext]" = OrderedDict()
         self._context: Optional[GraphContext] = None
@@ -239,7 +243,10 @@ class GraphContextManager:
                     serialised = json.dumps(content, ensure_ascii=False, default=str)
                 except TypeError as exc:
                     from ice_core.exceptions import SerializationError
-                    raise SerializationError(node_id=node_id, obj_type=type(content).__name__) from exc
+
+                    raise SerializationError(
+                        node_id=node_id, obj_type=type(content).__name__
+                    ) from exc
 
             current_tokens = TokenCounter.estimate_tokens(
                 serialised, model="", provider=ModelProvider.CUSTOM
@@ -265,10 +272,15 @@ class GraphContextManager:
 
         # Persist via underlying store --------------------------------------
         try:
-            self.store.update(node_id, content, execution_id=execution_id, schema=schema)
+            self.store.update(
+                node_id, content, execution_id=execution_id, schema=schema
+            )
         except TypeError as exc:
             from ice_core.exceptions import SerializationError
-            raise SerializationError(node_id=node_id, obj_type=type(content).__name__) from exc
+
+            raise SerializationError(
+                node_id=node_id, obj_type=type(content).__name__
+            ) from exc
 
     def get_node_context(self, node_id: str) -> Any:
         """Get context for a specific node."""
@@ -330,16 +342,18 @@ class GraphContextManager:
     def list_tools(self) -> List[str]:
         """🚀 List registered tool names from nested structure."""
         return list(self._nodes[NodeType.TOOL].keys())
-    
+
     # 🚀 NEW: High-performance analytics methods
-    def get_nodes_by_type(self, node_type: NodeType) -> Dict[str, Union["AgentNode", ToolBase]]:
+    def get_nodes_by_type(
+        self, node_type: NodeType
+    ) -> Dict[str, Union["AgentNode", ToolBase]]:
         """Get all nodes of a specific type - perfect for monitoring!"""
         return dict(self._nodes.get(node_type, {}))
-    
+
     def get_registered_node_types(self) -> List[NodeType]:
         """List all node types that have registrations - great for dashboard!"""
         return list(self._nodes.keys())
-    
+
     def get_registration_summary(self) -> Dict[str, Dict[str, Any]]:
         """🚀 Get comprehensive registration summary by node type - ultimate overview!"""
         summary = {}
@@ -348,7 +362,7 @@ class GraphContextManager:
             summary[node_type.value] = {
                 "count": len(nodes),
                 "names": list(nodes.keys()),
-                "types": [type(node).__name__ for node in nodes.values()]
+                "types": [type(node).__name__ for node in nodes.values()],
             }
         return summary
 

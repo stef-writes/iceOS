@@ -4,6 +4,7 @@ Execution engines transform *nodes* into *NodeExecutionResult*s. This protocol
 allows the orchestrator to treat heterogeneous executors uniformly and to pick
 an engine at runtime based on `supports(node)` semantics.
 """
+
 from __future__ import annotations
 
 from abc import abstractmethod
@@ -30,5 +31,7 @@ class IExecutor(Protocol):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    async def execute(self, node: INode, inputs: Dict[str, Any]) -> NodeExecutionResult:  # noqa: D401
+    async def execute(
+        self, node: INode, inputs: Dict[str, Any]
+    ) -> NodeExecutionResult:  # noqa: D401
         """Execute *node* with *inputs* and return a structured result."""

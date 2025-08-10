@@ -10,6 +10,7 @@ runtime where `python-dotenv` is commonly used.
 
 import os
 from pathlib import Path
+
 import pytest
 
 try:
@@ -30,7 +31,7 @@ if _ENV_PATH.exists() and load_dotenv is not None:
 
 # Ensure OPENAI_API_KEY propagates to child processes (if any) --------------
 if "OPENAI_API_KEY" in os.environ:
-    os.environ.setdefault("OPENAI_API_KEY", os.environ["OPENAI_API_KEY"]) 
+    os.environ.setdefault("OPENAI_API_KEY", os.environ["OPENAI_API_KEY"])
 
 
 # ---------------------------------------------------------------------------

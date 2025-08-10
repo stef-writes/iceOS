@@ -58,7 +58,6 @@ from ice_core.models.mcp import (
     RunResult,
 )
 from ice_core.registry import global_agent_registry, registry
-from ice_core import runtime as rt
 from ice_core.services.contracts import IWorkflowService
 
 # Import execution guard to allow orchestrator runtime during MCP execution
@@ -73,9 +72,16 @@ def _get_workflow_service() -> IWorkflowService:
     from orchestrator imports at module import time while avoiding the global
     ServiceLocator.
     """
-    from ice_orchestrator.services.workflow_service import WorkflowService
+    # Defer import to runtime initialization step via subprocess CLI
+    # to avoid app→orchestrator hard dependency at import time.
+    # When orchestrator is installed, we instantiate its WorkflowService.
+    try:
+        from importlib import import_module
 
-    return cast(IWorkflowService, WorkflowService())
+        wf_mod = import_module("ice_orchestrator.services.workflow_service")
+        return cast(IWorkflowService, getattr(wf_mod, "WorkflowService")())
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Orchestrator unavailable: {exc}")
 
 
 router = APIRouter(tags=["mcp"])
@@ -412,14 +418,24 @@ async def finalize_partial_blueprint(
 
     # Budget estimate (best-effort)
     try:
+        from importlib import import_module
+
         from ice_core.utils.node_conversion import convert_node_specs
-        from ice_orchestrator.execution.cost_estimator import WorkflowCostEstimator
+
+        WorkflowCostEstimator = getattr(
+            import_module("ice_orchestrator.execution.cost_estimator"),
+            "WorkflowCostEstimator",
+        )
 
         node_cfgs = convert_node_specs(blueprint.nodes)
         estimator = WorkflowCostEstimator()
         est = estimator.estimate_workflow_cost(node_cfgs)
 
-        from ice_orchestrator.config import runtime_config
+        from importlib import import_module
+
+        runtime_config = getattr(
+            import_module("ice_orchestrator.config"), "runtime_config"
+        )
 
         if (
             runtime_config.org_budget_usd is not None
@@ -1027,15 +1043,25 @@ async def validate_component_definition(
                         import sys
                         import types
 
+                        # Use orchestrator workflow class lazily to avoid hard dep
+                        from importlib import import_module
+
                         from ice_core.unified_registry import register_workflow_factory
 
-                        # Use orchestrator workflow class without ServiceLocator
-                        from ice_orchestrator.workflow import Workflow
+                        Workflow = getattr(
+                            import_module("ice_orchestrator.workflow"), "Workflow"
+                        )
 
                         def _factory(**kwargs: Any) -> Any:  # type: ignore[no-redef]
-                            return Workflow(
-                                nodes=definition.workflow_nodes, name=definition.name
+                            # Convert MCP NodeSpec definitions to runtime NodeConfig objects
+                            from ice_core.utils.node_conversion import (
+                                convert_node_specs,
                             )
+
+                            node_configs = convert_node_specs(
+                                definition.workflow_nodes or []
+                            )
+                            return Workflow(nodes=node_configs, name=definition.name)
 
                         mod = types.ModuleType("dynamic_workflows")
                         setattr(mod, f"create_{definition.name}", _factory)
@@ -1047,9 +1073,7 @@ async def validate_component_definition(
                         result.registered = True
                         result.registry_name = definition.name
                     except Exception:
-                        result.warnings.append(
-                            "Workflow prototype not available"
-                        )
+                        result.warnings.append("Workflow prototype not available")
 
         except Exception as e:
             result.warnings.append(

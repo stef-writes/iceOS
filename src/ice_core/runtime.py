@@ -11,7 +11,7 @@ on the orchestrator package.
 
 from __future__ import annotations
 
-from typing import Optional, Any
+from typing import Any, Optional
 
 from ice_core.protocols.runtime_factories import (
     NetworkCoordinatorFactory,

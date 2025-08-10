@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 __all__: list[str] = ["AnthropicHandler"]
 
+
 class AnthropicHandler(BaseLLMHandler):
     """Handler for Anthropic Claude models."""
 
@@ -43,9 +44,13 @@ class AnthropicHandler(BaseLLMHandler):
         # ------------------------------------------------------------------
 
         if AsyncAnthropic is None:
-            return "", None, (
-                "anthropic package not installed – install via "
-                "`poetry install -E llm_anthropic` or add it to dependencies"
+            return (
+                "",
+                None,
+                (
+                    "anthropic package not installed – install via "
+                    "`poetry install -E llm_anthropic` or add it to dependencies"
+                ),
             )
 
         api_key = llm_config.api_key or os.getenv("ANTHROPIC_API_KEY")

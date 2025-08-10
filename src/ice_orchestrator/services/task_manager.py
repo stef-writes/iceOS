@@ -13,6 +13,7 @@ from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
+
 class NetworkTaskManager:
     """Manage long-running scheduled network tasks."""
 
@@ -21,14 +22,18 @@ class NetworkTaskManager:
         self._lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
-    # Public API                                                         
+    # Public API
     # ------------------------------------------------------------------
 
-    async def start(self, network_id: str, coro: Any) -> None:  # noqa: ANN001 – generic coro
+    async def start(
+        self, network_id: str, coro: Any
+    ) -> None:  # noqa: ANN001 – generic coro
         """Start *coro* as background task under *network_id* key."""
         async with self._lock:
             await self._cancel_unlocked(network_id)
-            task = asyncio.create_task(self._wrap_coro(network_id, coro), name=f"network_{network_id}")
+            task = asyncio.create_task(
+                self._wrap_coro(network_id, coro), name=f"network_{network_id}"
+            )
             self._tasks[network_id] = task
             logger.info("[task_manager] started network %s", network_id)
 
@@ -45,7 +50,7 @@ class NetworkTaskManager:
                 await self._cancel_unlocked(nid)
 
     # ------------------------------------------------------------------
-    # Internal helpers                                                   
+    # Internal helpers
     # ------------------------------------------------------------------
 
     async def _cancel_unlocked(self, network_id: str) -> bool:
@@ -67,4 +72,6 @@ class NetworkTaskManager:
             logger.info("[task_manager] task for %s cancelled", network_id)
             raise
         except Exception as exc:
-            logger.error("[task_manager] network %s crashed: %s", network_id, exc, exc_info=True) 
+            logger.error(
+                "[task_manager] network %s crashed: %s", network_id, exc, exc_info=True
+            )

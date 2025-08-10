@@ -29,10 +29,10 @@ from typing import Any, Dict, List, Literal, Optional, Union
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, ValidationInfo, field_validator
 
+from ice_core import runtime as rt
 from ice_core.models import NodeType
 from ice_core.models.mcp import Blueprint, NodeSpec, RunRequest
 from ice_core.registry import global_agent_registry, registry
-from ice_core import runtime as rt
 
 from .mcp import get_result, start_run
 
@@ -459,9 +459,13 @@ async def handle_network_execute(params: Dict[str, Any]) -> Dict[str, Any]:
 
     svc = NetworkService()
     if scheduled:
-        # Use NetworkTaskManager from orchestrator layer directly
-        from ice_orchestrator.services.task_manager import NetworkTaskManager
+        # Use NetworkTaskManager from orchestrator layer directly (lazy import)
+        from importlib import import_module
 
+        NetworkTaskManager = getattr(
+            import_module("ice_orchestrator.services.task_manager"),
+            "NetworkTaskManager",
+        )
         task_manager = NetworkTaskManager()
         if task_manager is None:
             raise RuntimeError(
@@ -489,18 +493,32 @@ async def handle_tools_list() -> Dict[str, Any]:
 
     try:
         # Get all tools from runtime-wired tool execution service
-        from ice_orchestrator.services.tool_execution_service import ToolExecutionService
+        tool_service = getattr(rt, "tool_execution_service", None)
+        if tool_service is None:
+            from importlib import import_module
 
-        tool_service = getattr(rt, "tool_execution_service", None) or ToolExecutionService()
+            ToolExecutionService = getattr(
+                import_module("ice_orchestrator.services.tool_execution_service"),
+                "ToolExecutionService",
+            )
+            tool_service = ToolExecutionService()
         if tool_service:
             try:
-                available_tools = tool_service.list_tools()
+                # Use orchestration service to list tool names, then consult registry for class metadata
+                available_tools = tool_service.available_tools()
                 logger.info(f"Found {len(available_tools)} tools")
 
                 for tool_name in available_tools:
                     try:
                         # Get tool class for better description
-                        tool_class = tool_service.get_tool_class(tool_name)
+                        from ice_core.models.enums import NodeType
+                        from ice_core.unified_registry import registry as _reg
+
+                        tool_class = None
+                        try:
+                            tool_class = _reg.get_class(NodeType.TOOL, tool_name)
+                        except Exception:
+                            pass
                         description = f"Execute {tool_name} tool"
                         if tool_class and hasattr(tool_class, "description"):
                             description = getattr(
@@ -855,9 +873,18 @@ async def validate_tool_exists(tool_type: str, name: str) -> None:
     """Validate that a tool exists before attempting execution."""
     if tool_type == "tool":
         from ice_core import runtime as rt
-        from ice_orchestrator.services.tool_execution_service import ToolExecutionService
 
-        tool_service = getattr(rt, "tool_execution_service", None) or ToolExecutionService()
+        # Avoid direct import; use runtime-wired service if present
+        tool_service = getattr(rt, "tool_execution_service", None)
+        if tool_service is None:
+            # Lazy import only when necessary to avoid hard dependency at import time
+            from importlib import import_module
+
+            ToolExecutionService = getattr(
+                import_module("ice_orchestrator.services.tool_execution_service"),
+                "ToolExecutionService",
+            )
+            tool_service = ToolExecutionService()
         if name not in tool_service.list_tools():
             raise ValueError(f"Tool '{name}' not found")
     elif tool_type == "agent":

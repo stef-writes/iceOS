@@ -106,11 +106,15 @@ class RedisDraftStore(DraftStore):
                 "redis[asyncio] package not installed – cannot use RedisDraftStore"
             )
         from typing import cast
-        self._redis_url: str = cast(str, redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+
+        self._redis_url: str = cast(
+            str, redis_url or os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        )
         _default_ttl = 60 * 60 * 24  # 24h
         self._ttl = ttl_seconds or int(os.getenv("DRAFTSTORE_TTL", str(_default_ttl)))
         # Redis client returns Any (no type hints); cast for mypy strict
         from typing import Callable, cast
+
         from_url_typed = cast(Callable[..., "redis.Redis"], redis.from_url)
         self._client: Any = from_url_typed(self._redis_url, decode_responses=True)
 

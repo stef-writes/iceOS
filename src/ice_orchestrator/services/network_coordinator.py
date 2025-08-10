@@ -57,20 +57,26 @@ logger = logging.getLogger(__name__)
 from ice_orchestrator.workflow import Workflow
 
 # ---------------------------------------------------------------------------
-# Manifest models – deliberately forgiving (extra allowed)                   
+# Manifest models – deliberately forgiving (extra allowed)
 # ---------------------------------------------------------------------------
+
 
 class WorkflowEntry(BaseModel):
     """Entry describing one workflow inside the network manifest."""
 
-    ref: str = Field(..., description="Python import path (module[:attr]) returning a Workflow")
-    id: Optional[str] = Field(None, description="Optional unique identifier for dependencies")
+    ref: str = Field(
+        ..., description="Python import path (module[:attr]) returning a Workflow"
+    )
+    id: Optional[str] = Field(
+        None, description="Optional unique identifier for dependencies"
+    )
     after: Optional[str] = Field(
         None,
         description="ID of another workflow that must finish before this one starts",
     )
 
     model_config = dict(extra="allow")  # allow schedule, deploy_target, etc.
+
 
 class NetworkManifest(BaseModel):
     api_version: str = Field("network.v0", description="Manifest version")
@@ -80,8 +86,9 @@ class NetworkManifest(BaseModel):
 
     model_config = dict(populate_by_name=True, extra="allow")
 
+
 # ---------------------------------------------------------------------------
-# Coordinator                                                                 
+# Coordinator
 # ---------------------------------------------------------------------------
 
 
@@ -97,7 +104,7 @@ class NetworkCoordinator:
         self._sem = asyncio.Semaphore(max_concurrent)
 
     # ------------------------------------------------------------------
-    # Public helpers                                                     
+    # Public helpers
     # ------------------------------------------------------------------
 
     @classmethod
@@ -134,7 +141,10 @@ class NetworkCoordinator:
                         return await wf.execute()
                     except Exception as exc:
                         logger.error(
-                            "Workflow '%s' failed: %s", entry.id or entry.ref, exc, exc_info=True
+                            "Workflow '%s' failed: %s",
+                            entry.id or entry.ref,
+                            exc,
+                            exc_info=True,
                         )
                         return exc
 
@@ -171,10 +181,12 @@ class NetworkCoordinator:
         return results
 
     # ------------------------------------------------------------------
-    # Optional cron-style scheduled execution (long-running)             
+    # Optional cron-style scheduled execution (long-running)
     # ------------------------------------------------------------------
 
-    async def execute_scheduled(self, *, loop_forever: bool = True) -> None:  # pragma: no cover
+    async def execute_scheduled(
+        self, *, loop_forever: bool = True
+    ) -> None:  # pragma: no cover
         """Execute workflows according to their ``schedule`` field (cron expr).
 
         This helper blocks (optionally forever) and triggers workflows when
@@ -185,7 +197,9 @@ class NetworkCoordinator:
         try:
             from croniter import croniter  # type: ignore
         except ImportError as e:  # pragma: no cover – optional dep
-            raise RuntimeError("croniter is required for scheduled execution – install with 'pip install croniter'") from e
+            raise RuntimeError(
+                "croniter is required for scheduled execution – install with 'pip install croniter'"
+            ) from e
 
         import datetime
         import heapq
@@ -222,7 +236,7 @@ class NetworkCoordinator:
                 heapq.heappush(schedule_heap, (nxt2, entry))
 
     # ------------------------------------------------------------------
-    # Internal helpers                                                   
+    # Internal helpers
     # ------------------------------------------------------------------
 
     def _resolve_execution_order(self) -> List[WorkflowEntry]:
@@ -236,7 +250,9 @@ class NetworkCoordinator:
                 return
             if w.after:
                 if w.after not in given:
-                    raise ValueError(f"Unknown dependency '{w.after}' in workflow '{key}'")
+                    raise ValueError(
+                        f"Unknown dependency '{w.after}' in workflow '{key}'"
+                    )
                 visit(given[w.after])
             ordered.append(w)
             visited.add(key)
@@ -269,7 +285,7 @@ class NetworkCoordinator:
         return batches
 
     # --------------------------------------------------------------
-    # Dynamic workflow loader                                       
+    # Dynamic workflow loader
     # --------------------------------------------------------------
     def _load_workflow(self, ref: str) -> Any:  # noqa: ANN401 – Any Workflow subtype
         """Import *ref* and return a Workflow instance.
@@ -321,7 +337,7 @@ class NetworkCoordinator:
             raise RuntimeError(f"Failed to load workflow '{ref}': {exc}") from exc
 
     # ------------------------------------------------------------------
-    # Helpers                                                            
+    # Helpers
     # ------------------------------------------------------------------
 
     def _prepare_workflow(self, entry: WorkflowEntry) -> Any:
@@ -334,5 +350,9 @@ class NetworkCoordinator:
                 existing = getattr(wf_clone, "initial_context", {}) or {}
                 wf_clone.initial_context = {**existing, **self.manifest.global_config}
             except Exception as exc:  # pragma: no cover – defensive
-                logger.warning("Failed to inject global context into workflow '%s': %s", entry.ref, exc)
-        return wf_clone 
+                logger.warning(
+                    "Failed to inject global context into workflow '%s': %s",
+                    entry.ref,
+                    exc,
+                )
+        return wf_clone

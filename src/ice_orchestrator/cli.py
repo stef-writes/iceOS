@@ -22,6 +22,7 @@ from ice_orchestrator.services.network_coordinator import NetworkCoordinator
 # Async helper (copied from ice_cli but kept local to avoid cross-imports) ----
 # ---------------------------------------------------------------------------
 
+
 def _safe_run(coro: Any) -> Any:  # noqa: ANN001 – generic coroutine
     """Run *coro* regardless of whether an event loop is already running."""
 
@@ -40,13 +41,16 @@ def _safe_run(coro: Any) -> Any:  # noqa: ANN001 – generic coroutine
 
     return loop.run_until_complete(coro)
 
+
 # ---------------------------------------------------------------------------
 # Top-level group ------------------------------------------------------------
 # ---------------------------------------------------------------------------
 
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def cli() -> None:
     """Runtime-level commands (execute validated manifests)."""
+
 
 # ---------------------------------------------------------------------------
 # Blueprint commands ---------------------------------------------------------
@@ -97,14 +101,18 @@ def blueprint_run(blueprint_path: str, max_parallel: int) -> None:  # noqa: D401
 
     async def _run() -> None:  # noqa: D401
         svc = WorkflowExecutionService()
-        result = await svc.execute_blueprint(bp.nodes, max_parallel=max_parallel, name=bp.name or "blueprint_run")
+        result = await svc.execute_blueprint(
+            bp.nodes, max_parallel=max_parallel, name=bp.name or "blueprint_run"
+        )
         click.echo(json.dumps(result.model_dump(mode="json"), indent=2))
 
     _safe_run(_run())
 
+
 # ---------------------------------------------------------------------------
 # Network manifest commands --------------------------------------------------
 # ---------------------------------------------------------------------------
+
 
 @cli.group()
 def network() -> None:
@@ -113,7 +121,9 @@ def network() -> None:
 
 @network.command("run")
 @click.argument("manifest_path", type=click.Path(exists=True, dir_okay=False))
-@click.option("--scheduled", is_flag=True, help="Respect cron schedules and watch forever.")
+@click.option(
+    "--scheduled", is_flag=True, help="Respect cron schedules and watch forever."
+)
 def network_run(manifest_path: str, scheduled: bool) -> None:  # noqa: D401
     """Execute workflows defined in *MANIFEST_PATH*."""
 
@@ -135,7 +145,11 @@ def network_run(manifest_path: str, scheduled: bool) -> None:  # noqa: D401
     else:
         results = coordinator.run()
         click.echo("[network] Execution completed – results summary:")
-        click.echo(json.dumps({k: getattr(v, "success", None) for k, v in results.items()}, indent=2))
+        click.echo(
+            json.dumps(
+                {k: getattr(v, "success", None) for k, v in results.items()}, indent=2
+            )
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -144,4 +158,4 @@ def network_run(manifest_path: str, scheduled: bool) -> None:  # noqa: D401
 
 # Allow `python -m ice_orchestrator.cli ...` invocation
 if __name__ == "__main__":  # pragma: no cover
-    cli() 
+    cli()

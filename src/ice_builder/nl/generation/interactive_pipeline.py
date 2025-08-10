@@ -5,6 +5,7 @@ This module provides an interactive workflow where users can:
 2. Approve or modify the plan
 3. Execute the blueprint step by step
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ from .multi_llm_orchestrator import MultiLLMOrchestrator
 
 class PipelineStage(Enum):
     """Stages of the interactive pipeline."""
+
     INTENT = "intent_extraction"
     PLANNING = "planning"
     REVIEW = "plan_review"
@@ -34,6 +36,7 @@ class PipelineStage(Enum):
 @dataclass
 class PipelineState:
     """Current state of the interactive pipeline."""
+
     specification: str
     current_stage: PipelineStage
     intent_data: Optional[Dict[str, Any]] = None
@@ -43,7 +46,7 @@ class PipelineState:
     blueprint: Optional[Blueprint] = None
     warnings: Optional[List[str]] = None
     questions: Optional[List[str]] = None
-    
+
     def __post_init__(self) -> None:
         if self.warnings is None:
             self.warnings = []
@@ -55,8 +58,14 @@ class PipelineState:
 
 class InteractiveBlueprintPipeline:
     """Interactive pipeline for blueprint generation with user feedback."""
-    
-    def __init__(self, specification: str, *, session_id: str = "dev", store: DraftStore | None = None) -> None:
+
+    def __init__(
+        self,
+        specification: str,
+        *,
+        session_id: str = "dev",
+        store: DraftStore | None = None,
+    ) -> None:
         self._initialized = False
         """Initialize the interactive pipeline.
         
@@ -78,10 +87,10 @@ class InteractiveBlueprintPipeline:
         if loaded is not None:
             self.state = loaded
         self._initialized = True
-    
+
     async def generate_preview(self) -> Tuple[str, List[str], List[str]]:
         """Generate a preview of the workflow with Mermaid diagram.
-        
+
         Returns:
             Tuple of (mermaid_diagram, warnings, questions)
         """
@@ -90,30 +99,30 @@ class InteractiveBlueprintPipeline:
         await self._run_intent_extraction()
         await self._run_planning()
         await self._run_decomposition()
-        
+
         # Generate early diagram for preview
         mermaid = await self._generate_preview_diagram()
-        
+
         # Validate and generate warnings
         node_list = list(self.state.nodes.values())
         warnings = self.principles.validate_workflow_practicality(node_list)
         questions = self.principles.generate_clarifying_questions(node_list)
-        
+
         self.state.mermaid_diagram = mermaid
         self.state.warnings = warnings
         self.state.questions = questions
         # Persist draft
         await self.store.save(self.session_id, self.state)  # type: ignore[arg-type]
         self.state.current_stage = PipelineStage.REVIEW
-        
+
         return mermaid, warnings, questions
-    
+
     async def revise_plan(self, user_feedback: str) -> Tuple[str, List[str], List[str]]:
         """Revise the plan based on user feedback.
-        
+
         Args:
             user_feedback: User's revision instructions.
-            
+
         Returns:
             Updated (mermaid_diagram, warnings, questions)
         """
@@ -131,70 +140,68 @@ Please revise the plan to address these concerns. Focus on:
 - Avoiding unnecessary complexity (agents/swarms)
 - Being specific about what each step does
 """
-        
+
         # Re-run planning with feedback
-        revised_plan = await self.orchestrator.providers["planning"].complete(revision_prompt)
-        
+        revised_plan = await self.orchestrator.providers["planning"].complete(
+            revision_prompt
+        )
+
         self.state.plan_text = revised_plan
         await self._run_decomposition()
-        
+
         # Regenerate preview
         return await self.generate_preview()
-    
+
     async def approve_and_generate(self) -> Blueprint:
         """Approve the plan and generate the full blueprint.
-        
+
         Returns:
             Complete Blueprint ready for execution.
         """
         if self.state.current_stage != PipelineStage.REVIEW:
             raise ValueError("Must generate preview first")
-        
+
         # Apply simplification rules
         simplified_nodes: Dict[str, Dict[str, Any]] = {}
         for node in self.state.nodes.values():
             simplified_type = self.principles.simplify_node_choice(
-                node.get("description", ""),
-                node.get("type", "")
+                node.get("description", ""), node.get("type", "")
             )
             node["type"] = simplified_type
             simplified_nodes[node["id"]] = node
-        
+
         self.state.nodes = simplified_nodes
         await self.store.save(self.session_id, self.state)  # type: ignore[arg-type]
         self.state.current_stage = PipelineStage.APPROVAL
-        
+
         # Generate full blueprint
         blueprint = await self._complete_generation()
         self.state.blueprint = blueprint
         await self.store.save(self.session_id, self.state)  # type: ignore[arg-type]
         self.state.current_stage = PipelineStage.EXECUTION
-        
+
         return blueprint
-    
+
     async def execute_partial(self, node_ids: List[str]) -> Dict[str, Any]:
         """Execute only specific nodes from the blueprint.
-        
+
         Args:
             node_ids: IDs of nodes to execute.
-            
+
         Returns:
             Execution results for the specified nodes.
         """
         if not self.state.blueprint:
             raise ValueError("Must generate blueprint first")
-        
+
         # Create partial blueprint with only specified nodes
         partial_bp = PartialBlueprint(
             blueprint_id=f"{self.state.blueprint.blueprint_id}_partial",
             schema_version="1.1.0",
-            nodes=[
-                node for node in self.state.blueprint.nodes
-                if node.id in node_ids
-            ],
+            nodes=[node for node in self.state.blueprint.nodes if node.id in node_ids],
             metadata=self.state.blueprint.metadata,
         )
-        
+
         # This would normally call the orchestrator
         # For now, return a placeholder
         return {
@@ -202,22 +209,24 @@ Please revise the plan to address these concerns. Focus on:
             "status": "ready_for_execution",
             "partial_blueprint": partial_bp.model_dump(),
         }
-    
+
     # Private helper methods
-    
+
     async def _run_intent_extraction(self) -> None:
         """Run intent extraction stage."""
         self.state.intent_data = await self.orchestrator._extract_intent()
         self.state.current_stage = PipelineStage.PLANNING
-    
+
     async def _run_planning(self) -> None:
         """Run planning stage."""
         if not self.state.intent_data:
             await self._run_intent_extraction()
         assert self.state.intent_data is not None
-        self.state.plan_text = await self.orchestrator._create_plan(self.state.intent_data)
+        self.state.plan_text = await self.orchestrator._create_plan(
+            self.state.intent_data
+        )
         self.state.current_stage = PipelineStage.DECOMPOSITION
-    
+
     async def _run_decomposition(self) -> None:
         """Run decomposition stage."""
         if not self.state.plan_text:
@@ -228,7 +237,9 @@ Please revise the plan to address these concerns. Focus on:
         # Honour locked / real nodes – never overwrite, only append
         # ------------------------------------------------------------------
         status_map = self.state.meta.get("status", {})
-        preserved_ids = {nid for nid, s in status_map.items() if s in {"locked", "real"}}
+        preserved_ids = {
+            nid for nid, s in status_map.items() if s in {"locked", "real"}
+        }
         merged: Dict[str, Dict[str, Any]] = {}
         existing_by_id = self.state.nodes
         for node in new_nodes:
@@ -242,12 +253,12 @@ Please revise the plan to address these concerns. Focus on:
                 merged[nid] = existing_by_id[nid]
         self.state.nodes = merged
         self.state.current_stage = PipelineStage.VALIDATION
-    
+
     async def _generate_preview_diagram(self) -> str:
         """Generate a Mermaid diagram for preview."""
         if not self.state.nodes:
             return "graph TD\n    A[No nodes defined]"
-        
+
         # Generate simplified diagram
         lines = [
             "%%{init: {'theme': 'base'} }%%",
@@ -256,13 +267,13 @@ Please revise the plan to address these concerns. Focus on:
             "classDef LOCKED fill:#B4C7FF,        color:#000;",
             "classDef REAL   fill:#90EE90,        color:#000;",
         ]
-        
+
         # Add node definitions
         for i, node in enumerate(self.state.nodes.values()):
             node_id = node.get("id", f"node_{i}")
             node_type = node.get("type", "unknown")
             description = node.get("description", "")[:50]  # Truncate long descriptions
-            
+
             # Style based on complexity
             # Determine status
             status_map = self.state.meta.get("status", {})
@@ -272,41 +283,45 @@ Please revise the plan to address these concerns. Focus on:
             status = raw_status.upper()
             # Shape selection (keep rectangle for now)
             lines.append(f'    {node_id}["{node_type}: {description}"]:::{status}')
-        
+
         # Add dependencies
         for i, node in enumerate(self.state.nodes.values()):
             node_id = node["id"]
             for dep in node.get("dependencies", []):
                 lines.append(f"    {dep} --> {node_id}")
-        
+
         # Add legend
-        lines.extend([
-            "",
-            "    subgraph Legend",
-            '    Simple["Simple (tool/llm/code)"]',
-            '    Medium["Medium (loop/parallel/human)"]', 
-            '    Complex["Complex (agent/swarm)"]',
-            "    end",
-            "    style Simple fill:#90EE90",
-            "    style Medium fill:#FFD700",
-            "    style Complex fill:#FF6B6B",
-        ])
-        
+        lines.extend(
+            [
+                "",
+                "    subgraph Legend",
+                '    Simple["Simple (tool/llm/code)"]',
+                '    Medium["Medium (loop/parallel/human)"]',
+                '    Complex["Complex (agent/swarm)"]',
+                "    end",
+                "    style Simple fill:#90EE90",
+                "    style Medium fill:#FFD700",
+                "    style Complex fill:#FF6B6B",
+            ]
+        )
+
         return "\n".join(lines)
-    
+
     async def _complete_generation(self) -> Blueprint:
         """Complete the blueprint generation after approval."""
         # Generate final diagram
-        final_diagram = await self.orchestrator._generate_diagram(list(self.state.nodes.values()))
-        
+        final_diagram = await self.orchestrator._generate_diagram(
+            list(self.state.nodes.values())
+        )
+
         # Generate code implementations
-        code_impls = await self.orchestrator._generate_code(list(self.state.nodes.values()))
-        
+        code_impls = await self.orchestrator._generate_code(
+            list(self.state.nodes.values())
+        )
+
         # Assemble blueprint
         blueprint = self.orchestrator._assemble_blueprint(
-            list(self.state.nodes.values()),
-            final_diagram,
-            code_impls
+            list(self.state.nodes.values()), final_diagram, code_impls
         )
-        
+
         return blueprint

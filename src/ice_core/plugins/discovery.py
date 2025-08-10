@@ -21,6 +21,7 @@ __all__: list[str] = [
     "load_module_from_path",
 ]
 
+
 def load_module_from_path(path: Path) -> ModuleType:
     """Dynamically import Python module from *path* and return it.
 
@@ -59,6 +60,7 @@ def load_module_from_path(path: Path) -> ModuleType:
 
         # If we reach here, loading failed
         raise
+
 
 def discover_tools(root: Path | str) -> List[Type[ToolBase]]:
     """Return a list of *ToolBase* subclasses found under *root* directory."""

@@ -23,7 +23,9 @@ DEFAULT_API = "http://localhost:8000"
     show_default=True,
     help="Base URL of iceOS API (env ICEOS_API_URL).",
 )
-@click.option("--token", envvar="ICEOS_API_TOKEN", default="demo-token", help="Bearer token")
+@click.option(
+    "--token", envvar="ICEOS_API_TOKEN", default="demo-token", help="Bearer token"
+)
 def cli_push(blueprint_path: str, api_url: str, token: str) -> None:  # noqa: D401
     """Upload *BLUEPRINT_PATH* to the server and return its id."""
 
@@ -33,7 +35,12 @@ def cli_push(blueprint_path: str, api_url: str, token: str) -> None:  # noqa: D4
     url = f"{api_url.rstrip('/')}/api/v1/blueprints"
 
     try:
-        response = httpx.post(url, json=payload, timeout=30.0, headers={"Authorization": f"Bearer {token}"})
+        response = httpx.post(
+            url,
+            json=payload,
+            timeout=30.0,
+            headers={"Authorization": f"Bearer {token}"},
+        )
         response.raise_for_status()
     except Exception as exc:  # noqa: BLE001
         click.echo(f"Error uploading blueprint: {exc}", err=True)

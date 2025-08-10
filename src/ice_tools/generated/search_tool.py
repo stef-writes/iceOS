@@ -14,8 +14,8 @@ import httpx
 from pydantic import Field
 
 from ice_core.base_tool import ToolBase
-from ice_core.unified_registry import register_tool_factory
 from ice_core.exceptions import CoreError, ErrorCode
+from ice_core.unified_registry import register_tool_factory
 
 
 class SearchTool(ToolBase):
@@ -30,7 +30,9 @@ class SearchTool(ToolBase):
     """
 
     name: str = "search_tool"
-    description: str = Field(default="Search the web for a query using SerpAPI (live only)")
+    description: str = Field(
+        default="Search the web for a query using SerpAPI (live only)"
+    )
     engine: str = Field(default="google")
     num_results: int = Field(default=3, ge=1, le=10)
 
@@ -60,7 +62,9 @@ class SearchTool(ToolBase):
                 r.raise_for_status()
                 data = r.json()
         except Exception as exc:
-            raise CoreError(ErrorCode.UNKNOWN, f"SerpAPI request failed: {exc}") from exc
+            raise CoreError(
+                ErrorCode.UNKNOWN, f"SerpAPI request failed: {exc}"
+            ) from exc
 
         results: List[Dict[str, Any]] = []
         for item in (data.get("organic_results") or [])[: self.num_results]:
@@ -78,5 +82,6 @@ def create_search_tool(**kwargs: Any) -> SearchTool:
     return SearchTool(**kwargs)
 
 
-register_tool_factory("search_tool", "ice_tools.generated.search_tool:create_search_tool")
-
+register_tool_factory(
+    "search_tool", "ice_tools.generated.search_tool:create_search_tool"
+)

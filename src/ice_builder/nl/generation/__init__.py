@@ -3,6 +3,7 @@
 This package contains the multi-LLM orchestration logic that transforms
 natural language specifications into validated iceOS Blueprints.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -16,7 +17,7 @@ from .multi_llm_orchestrator import MultiLLMOrchestrator
 
 __all__ = [
     "generate_blueprint",
-    "generate_blueprint_interactive", 
+    "generate_blueprint_interactive",
     "InteractiveBlueprintPipeline",
     "MultiLLMOrchestrator",
 ]
@@ -24,10 +25,10 @@ __all__ = [
 
 async def _generate_async(specification: str) -> Blueprint:
     """Async wrapper for blueprint generation.
-    
+
     Args:
         specification: Natural language description of desired workflow.
-        
+
     Returns:
         Validated Blueprint ready for execution.
     """
@@ -37,7 +38,7 @@ async def _generate_async(specification: str) -> Blueprint:
 
 def generate_blueprint(specification: str) -> Blueprint:
     """Generate an iceOS Blueprint from natural language specification.
-    
+
     This is the main entry point for the AI pipeline. It orchestrates
     multiple specialized LLMs to:
     1. Extract intent and constraints
@@ -45,13 +46,13 @@ def generate_blueprint(specification: str) -> Blueprint:
     3. Decompose into concrete node configurations
     4. Generate a Mermaid flow diagram
     5. Write code implementations where needed
-    
+
     Args:
         specification: Free-text description of the desired workflow.
-        
+
     Returns:
         A fully validated Blueprint object ready for compilation and execution.
-        
+
     Example:
         >>> from ice_builder.nl import generate_blueprint
         >>> bp = generate_blueprint("Process CSV files and create a summary report")
@@ -60,35 +61,39 @@ def generate_blueprint(specification: str) -> Blueprint:
     return asyncio.run(_generate_async(specification))
 
 
-async def _generate_interactive_async(specification: str) -> Tuple[str, Optional[Blueprint]]:
+async def _generate_interactive_async(
+    specification: str,
+) -> Tuple[str, Optional[Blueprint]]:
     """Interactive blueprint generation with preview."""
     pipeline = InteractiveBlueprintPipeline(specification)
-    
+
     # Generate preview
     mermaid, warnings, questions = await pipeline.generate_preview()
-    
+
     # Auto-approve if no warnings
     if not warnings:
         blueprint = await pipeline.approve_and_generate()
         return mermaid, blueprint
-    
+
     # Otherwise return preview for user review
     return mermaid, None
 
 
-def generate_blueprint_interactive(specification: str) -> Tuple[str, Optional[Blueprint]]:
+def generate_blueprint_interactive(
+    specification: str,
+) -> Tuple[str, Optional[Blueprint]]:
     """Generate blueprint with interactive preview and approval.
-    
+
     This version shows a Mermaid diagram preview before generating the full
     blueprint, allowing users to review and modify the plan.
-    
+
     Args:
         specification: Free-text description of the desired workflow.
-        
+
     Returns:
         Tuple of (mermaid_preview, blueprint).
         If there are warnings, blueprint will be None until approved.
-        
+
     Example:
         >>> from ice_builder.nl import generate_blueprint_interactive
         >>> mermaid, bp = generate_blueprint_interactive("Complex multi-agent task")

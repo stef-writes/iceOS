@@ -45,6 +45,7 @@ _PRICING_TABLE: Dict[ModelProvider, Dict[str, Tuple[Decimal, Decimal]]] = {
 # Public helpers -------------------------------------------------------------
 # ----------------------------------------
 
+
 def get_price_per_token(provider: ModelProvider, model: str) -> Tuple[Decimal, Decimal]:
     """Return *(prompt_price, completion_price)* per token for *model*.
 
@@ -58,6 +59,7 @@ def get_price_per_token(provider: ModelProvider, model: str) -> Tuple[Decimal, D
         # Unknown model – treat as zero-cost (prevents downstream crashes)
         return Decimal("0"), Decimal("0")
 
+
 def calculate_cost(
     provider: ModelProvider,
     model: str,
@@ -69,27 +71,28 @@ def calculate_cost(
     p_price, c_price = get_price_per_token(provider, model)
     return (p_price * prompt_tokens) + (c_price * completion_tokens)
 
+
 class TokenCostCalculator:
     """Calculator for token-based costs across different providers."""
-    
+
     def __init__(self) -> None:
         pass
-    
+
     def calculate_cost(
         self,
         model: str,
         input_tokens: int,
         output_tokens: int,
-        provider: str = "openai"
+        provider: str = "openai",
     ) -> float:
         """Calculate cost for given token usage.
-        
+
         Args:
             model: Model name (e.g., "gpt-4")
             input_tokens: Number of input/prompt tokens
             output_tokens: Number of output/completion tokens
             provider: Provider name (e.g., "openai")
-            
+
         Returns:
             Cost in USD as a float
         """
@@ -99,7 +102,7 @@ class TokenCostCalculator:
                 provider_enum = ModelProvider(provider.lower())
             else:
                 provider_enum = provider
-                
+
             cost_decimal = calculate_cost(
                 provider_enum, model, input_tokens, output_tokens
             )
@@ -107,14 +110,14 @@ class TokenCostCalculator:
         except (ValueError, KeyError):
             # Unknown provider/model - return zero cost
             return 0.0
-    
+
     def get_model_pricing(self, provider: str, model: str) -> Tuple[float, float]:
         """Get per-token pricing for a model.
-        
+
         Args:
-            provider: Provider name  
+            provider: Provider name
             model: Model name
-            
+
         Returns:
             Tuple of (prompt_price, completion_price) per token
         """
@@ -191,7 +194,7 @@ class CostTracker:
 
 __all__ = [
     "get_price_per_token",
-    "calculate_cost", 
+    "calculate_cost",
     "CostTracker",
     "TokenCostCalculator",
 ]

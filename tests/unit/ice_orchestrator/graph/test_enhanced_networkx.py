@@ -79,8 +79,8 @@ class TestEnhancedNetworkXUtilization:
 
         # Test performance attributes
         assert csv_node["estimated_cost"] == 0.0  # No estimated_cost in NodeMetadata
-        assert csv_node["parallel_safe"] == True  # Tools are parallel safe
-        assert csv_node["cacheable"] == True
+        assert csv_node["parallel_safe"] is True  # Tools are parallel safe
+        assert csv_node["cacheable"] is True
 
         # Test canvas attributes
         assert csv_node["canvas_cluster"] == "data_processing"  # CSV tools
@@ -99,20 +99,20 @@ class TestEnhancedNetworkXUtilization:
 
         # Tool node
         tool_node = graph.graph.nodes["csv_reader"]
-        assert tool_node["parallel_safe"] == True
+        assert tool_node["parallel_safe"] is True
         assert tool_node["complexity_score"] == 1.0
         assert tool_node["suggested_color"] == "#4CAF50"
 
         # LLM node
         llm_node = graph.graph.nodes["analyzer"]
-        assert llm_node["parallel_safe"] == True
+        assert llm_node["parallel_safe"] is True
         assert llm_node["complexity_score"] == 2.0
         assert llm_node["suggested_color"] == "#2196F3"
-        assert llm_node["io_bound"] == True
+        assert llm_node["io_bound"] is True
 
         # Agent node
         agent_node = graph.graph.nodes["smart_agent"]
-        assert agent_node["parallel_safe"] == False  # Agents not parallel safe
+        assert agent_node["parallel_safe"] is False  # Agents not parallel safe
         assert agent_node["complexity_score"] == 3.0
         assert agent_node["suggested_color"] == "#FF9800"
         assert agent_node["canvas_cluster"] == "agents"
@@ -130,7 +130,7 @@ class TestEnhancedNetworkXUtilization:
         assert isinstance(
             edge_data["critical_path"], bool
         )  # Computed during construction
-        assert edge_data["parallel_safe"] == True
+        assert edge_data["parallel_safe"] is True
 
         # Data flow attributes
         assert edge_data["estimated_data_size"] in ["small", "medium", "large"]

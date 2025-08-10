@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 __all__: list[str] = ["GoogleGeminiHandler"]
 
+
 class GoogleGeminiHandler(BaseLLMHandler):
     """Handler for Google Gemini models via google-generativeai SDK."""
 

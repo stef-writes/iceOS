@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 
+
 def async_retry(
     *, attempts: int | None = None, max_attempts: int | None = None, delay: float = 0.1
 ) -> Callable[[Callable[..., Awaitable[_T]]], Callable[..., Awaitable[_T]]]:

@@ -8,6 +8,7 @@ from ice_orchestrator.errors import ChainError
 if TYPE_CHECKING:  # pragma: no cover
     from ice_core.models import NodeConfig, NodeExecutionResult
 
+
 class ContextBuilder:  # – utility helper
     """Helper responsible for constructing per-node execution contexts.
 

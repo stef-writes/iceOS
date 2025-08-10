@@ -15,9 +15,9 @@ from typing import Any, Callable, Dict, List, Optional
 from typing import cast as _cast
 from uuid import uuid4
 
+from ice_core import runtime as rt
 from ice_core.base_tool import ToolBase
 from ice_core.models import NodeConfig, NodeExecutionResult
-from ice_core import runtime as rt
 from ice_orchestrator.context import GraphContextManager
 from ice_orchestrator.context.manager import GraphContext
 from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext

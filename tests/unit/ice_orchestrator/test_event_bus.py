@@ -1,4 +1,5 @@
 """Basic unit test for new EventBus pub-sub mechanism."""
+
 from __future__ import annotations
 
 from typing import Any, Dict

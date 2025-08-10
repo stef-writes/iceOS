@@ -22,23 +22,32 @@ class BaseMemory(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    async def add(self, content: str, metadata: dict[str, Any] | None = None) -> None:  # noqa: D401 – simple doc
+    async def add(
+        self, content: str, metadata: dict[str, Any] | None = None
+    ) -> None:  # noqa: D401 – simple doc
         """Persist *content* and optional *metadata*."""
 
     @abstractmethod
-    async def retrieve(self, query: str, k: int = 5) -> List[str]:  # noqa: D401 – simple doc
+    async def retrieve(
+        self, query: str, k: int = 5
+    ) -> List[str]:  # noqa: D401 – simple doc
         """Return up-to-*k* items relevant to *query*."""
 
     # ------------------------------------------------------------------
     # Optional synchronous vector API (no-op default) -------------------
     # ------------------------------------------------------------------
 
-    def store(self, key: str, vector: List[float]) -> None:  # pragma: no cover – default stub
+    def store(
+        self, key: str, vector: List[float]
+    ) -> None:  # pragma: no cover – default stub
         """Persist *vector* under *key* (no-op default)."""
 
-    def recall(self, vector: List[float], top_k: int = 5) -> List[str]:  # pragma: no cover – default stub
+    def recall(
+        self, vector: List[float], top_k: int = 5
+    ) -> List[str]:  # pragma: no cover – default stub
         """Return up-to-*top_k* keys similar to *vector* (no-op default)."""
         return []
+
 
 class NullMemory(BaseMemory):
     """A no-operation memory adapter.
@@ -47,11 +56,16 @@ class NullMemory(BaseMemory):
     discarding all data – useful when long-term memory is not required.
     """
 
-    async def add(self, content: str, metadata: dict[str, Any] | None = None) -> None:  # noqa: D401 – simple doc
+    async def add(
+        self, content: str, metadata: dict[str, Any] | None = None
+    ) -> None:  # noqa: D401 – simple doc
         return None
 
-    async def retrieve(self, query: str, k: int = 5) -> List[str]:  # noqa: D401 – simple doc
+    async def retrieve(
+        self, query: str, k: int = 5
+    ) -> List[str]:  # noqa: D401 – simple doc
         return []
+
 
 __all__: list[str] = [
     "BaseMemory",

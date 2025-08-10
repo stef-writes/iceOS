@@ -7,6 +7,7 @@ from ice_orchestrator.config import runtime_config
 
 logger = logging.getLogger(__name__)
 
+
 class BudgetEnforcer:  # – runtime helper
     """Configurable budget enforcement for LLM calls and tool executions."""
 
@@ -36,7 +37,9 @@ class BudgetEnforcer:  # – runtime helper
         self.max_tool_executions = max_tool_executions or self._get_env_int(
             "ICE_MAX_TOOL_EXECUTIONS", 20
         )
-        self.max_agent_calls = max_agent_calls or self._get_env_int("ICE_MAX_AGENT_CALLS", 5)
+        self.max_agent_calls = max_agent_calls or self._get_env_int(
+            "ICE_MAX_AGENT_CALLS", 5
+        )
         self.max_workflow_executions = max_workflow_executions or self._get_env_int(
             "ICE_MAX_WORKFLOW_EXECUTIONS", 10
         )
@@ -108,13 +111,13 @@ class BudgetEnforcer:  # – runtime helper
         """Register an agent execution, which may include embedded LLM costs."""
         self._agent_calls += 1
         self._total_cost += cost
-        
+
         if self._agent_calls > self.max_agent_calls:
             self._handle_violation(
-                "agent_calls", 
+                "agent_calls",
                 f"Agent call budget exceeded (max={self.max_agent_calls}, current={self._agent_calls})",
             )
-            
+
         if self.org_budget_usd and self._total_cost > self.org_budget_usd:
             self._handle_violation(
                 "cost",
@@ -167,7 +170,7 @@ class BudgetEnforcer:  # – runtime helper
     def workflow_execs(self) -> int:
         return self._workflow_execs
 
-    @property  
+    @property
     def code_execs(self) -> int:
         return self._code_execs
 

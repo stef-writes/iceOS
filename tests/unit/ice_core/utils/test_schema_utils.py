@@ -38,9 +38,9 @@ def test_is_valid_schema_dict_bad():
     ok1, errs1 = is_valid_schema_dict(schema1)
     # The validator accepts these as string type literals
     assert ok1 is True
-    
+
     # Test actually invalid schemas
     bad_schema = {"$schema": "invalid", "type": []}  # Invalid JSON schema
     ok, errs = is_valid_schema_dict(bad_schema)
     assert ok is False
-    assert len(errs) > 0 
+    assert len(errs) > 0

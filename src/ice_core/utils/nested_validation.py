@@ -25,7 +25,9 @@ except ModuleNotFoundError:
                 raise KeyError(path)
         return current
 
+
 __all__ = ["validate_nested_output"]
+
 
 def validate_nested_output(output: Any, schema: Dict[str, type]) -> List[str]:
     errors: List[str] = []

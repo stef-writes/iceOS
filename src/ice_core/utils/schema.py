@@ -39,6 +39,7 @@ __all__ = [
     "is_valid_schema_dict",
 ]
 
+
 def parse_type_literal(literal: str) -> Type[Any] | None:
     """Return concrete Python *type* for *literal* or *None* when unsupported."""
 
@@ -57,16 +58,17 @@ def parse_type_literal(literal: str) -> Type[Any] | None:
 
     return None
 
+
 def _validate_schema_value(value: Any) -> bool:
     """Validate a single schema value entry."""
     # Allow Pydantic models
     if inspect.isclass(value) and issubclass(value, BaseModel):
         return True
-        
+
     # Allow Python types
     if isinstance(value, type) and value in {str, int, float, bool, dict, list}:
         return True
-        
+
     # Validate string literals
     if isinstance(value, str):
         # Block union types and malformed containers
@@ -74,20 +76,21 @@ def _validate_schema_value(value: Any) -> bool:
             return False
         if value.count("[") != value.count("]"):
             return False
-            
+
         # Parse the literal
         parsed_type = parse_type_literal(value)
         return parsed_type is not None
-        
+
     return False
+
 
 def is_valid_schema_dict(schema: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """Validate *schema* dict; returns (is_valid, list_of_errors).
-    
+
     Now supports both simple type literals and full JSON Schema format.
     """
     # Import the new JSON Schema validator
     from ice_core.utils.json_schema import is_valid_schema_dict as json_schema_validate
 
     # Use the new validator that handles both formats
-    return json_schema_validate(schema) 
+    return json_schema_validate(schema)
