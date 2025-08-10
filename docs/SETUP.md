@@ -3,10 +3,10 @@ Project setup and live verification
 
 Prerequisites
 - Python 3.10
-- Poetry
+- Poetry 2.x
 
 Install
-- poetry install --with dev
+- poetry install --with dev --no-interaction
 
 Environment
 - Export provider keys as needed:
@@ -32,6 +32,7 @@ Notes
   - make lint
   - make type
   - make test
+  - make audit (optional dependency vulnerability scan)
 
 Troubleshooting
 - If OpenAI errors reference httpx proxies arg, ensure the active environment has httpx==0.24.1 and openai==1.14.1.

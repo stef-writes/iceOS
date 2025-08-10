@@ -16,7 +16,7 @@ Think of it as the narrow slice of Airflow you actually need for LLM apps, minus
 * 📦 **Single-process dev mode** – run everything locally before you deploy anything
 * 🏭 **Factory Pattern** – fresh instances for every execution, no singleton state
 
-> Status: **Alpha** – APIs change without notice.  CI passes; demos run end-to-end.
+> Status: **Beta (0.5.0)** – APIs stabilizing. mypy strict, tests and lint pass; demos run end-to-end.
 
 ---
 
@@ -39,9 +39,9 @@ $ cd iceOS
 $ python -m venv .venv
 $ source .venv/bin/activate
 
-# Install Python deps (PEP-517 via Poetry)
-$ pip install poetry==1.8.*
-$ poetry install --sync
+# Install Python deps (Poetry 2.x)
+$ pip install "poetry>=2.1"
+$ poetry install --with dev --no-interaction
 
 # Add src/ to editable path so examples can do `import ice_orchestrator`
 $ pip install -e .
@@ -167,15 +167,15 @@ The live run additionally starts a local FastAPI *mock HTTP bin*; browse the sto
 ## 5. Running the Test-Suite + linters
 
 ```bash
-# Unit + integration tests (pytest-xdist)
-$ make test          # alias for: pytest -n auto tests/
+# Unit + integration tests (with coverage gate)
+$ make test
 
 # Type-check (strict) & style
-$ mypy --strict src/
-$ ruff check src/
+$ make type
+$ make lint
 ```
 
-Coverage must be ≥ 90 % on changed lines; CI will reject lower.
+Coverage gate: 60% total (temporary). Raise gradually.
 
 ---
 

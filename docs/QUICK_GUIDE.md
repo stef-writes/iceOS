@@ -1,7 +1,23 @@
-### Breaking changes (CLI and node naming)
+### Quick guide
 
 - LLMOperatorConfig → LLMNodeConfig (code and schemas)
 - CLI scaffold: `ice new llm-operator` → `ice new llm-node-tool`
+
+Common tasks:
+
+```bash
+# Install deps
+poetry install --with dev --no-interaction
+
+# Health checks
+make lint && make type && make test
+
+# Format
+make format
+
+# Lint in CI mode
+make format-check && make ci
+```
 
 Update imports and schema references:
 
