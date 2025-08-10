@@ -35,12 +35,11 @@ async def _await_execution(
 
 async def _register_echo_llm_and_writer_tool(headers: Dict[str, str]) -> None:
     # This test relies on runtime factories being available; import in-process factories
-    from ice_core.unified_registry import register_llm_factory, register_tool_factory
+    from ice_core.unified_registry import register_llm_factory
     from ice_orchestrator.config import runtime_config
-    from scripts.verify_runtime import create_echo_llm, create_writer_tool  # noqa: F401
+    from scripts.verify_runtime import create_echo_llm  # noqa: F401
 
     register_llm_factory("gpt-4o", "scripts.verify_runtime:create_echo_llm")
-    register_tool_factory("writer_tool", "scripts.verify_runtime:create_writer_tool")
     runtime_config.max_tokens = None
 
 
@@ -111,7 +110,7 @@ async def test_api_llm_to_tool() -> None:
                     "id": "t1",
                     "type": "tool",
                     "tool_name": "writer_tool",
-                    "tool_args": {"text": "{{ llm1.response }}"},
+                    "tool_args": {"notes": "{{ llm1.response }}"},
                     "dependencies": ["llm1"],
                 },
             ],
@@ -135,7 +134,8 @@ async def test_api_llm_to_tool() -> None:
         assert body["status"] == "completed"
         out = body["result"]["output"]
         assert out["llm1"]["prompt"] == "ok"
-        assert out["t1"]["written"] == "ECHO::OK"
+        # Generated writer_tool returns a 'summary' field; ensure it contains the LLM output
+        assert "summary" in out["t1"] and "ok" in out["t1"]["summary"].lower()
 
 
 async def test_api_agent_to_tool() -> None:

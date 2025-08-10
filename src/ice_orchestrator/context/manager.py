@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from ice_core.base_tool import ToolBase
 from ice_core.models.enums import NodeType
-from ice_core.services import ServiceLocator  # new
+from ice_core import runtime as rt
 
 # Local first-party imports (alphabetical) ---------------------------
 from .formatter import ContextFormatter
@@ -202,7 +202,7 @@ class GraphContextManager:
                 raise
 
         # Execute tool directly via tool execution service
-        tool_service = ServiceLocator.get("tool_execution_service")
+        tool_service = rt.tool_execution_service
         if tool_service:
             return await tool_service.execute_tool(tool_name, kwargs, ctx_payload)
         else:

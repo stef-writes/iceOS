@@ -315,7 +315,7 @@ Docs for each live in the corresponding `README.md` files.
 | Phase | Tier | Responsibility | Code/Service |
 |-------|------|----------------|--------------|
 | Design-time | Canvas UI (future) | Human sketches workflow via spatial + NL interface | *Frontend repo* (yet to be open-sourced) |
-| Compile-time | MCP API / Validator | Convert partial blueprints into **frozen, validated** JSON specs; static checks, ID uniqueness, schema validation | `ice_api`, `ice_builder`, schemas/ |
+| Compile-time | MCP API / Validator | Convert partial blueprints into **frozen, validated** JSON specs; static checks, ID uniqueness, schema validation | `ice_api` (MCP), `ice_builder`, schemas/ |
 | Run-time | DAG Engine | Execute the compiled blueprint asynchronously; retries, context propagation, metrics | `ice_orchestrator` + workers |
 
 Data flows strictly **left → right**; each layer depends only on the one below it (`interface → orchestrator → core`).  This yields:

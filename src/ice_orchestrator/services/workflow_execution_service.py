@@ -43,9 +43,11 @@ class WorkflowExecutionService:
         # Convert NodeSpec to NodeConfig
         node_configs = convert_node_specs(node_specs)
 
-        # Ensure generated tools/agents are imported so factories register
-        try:  # pragma: no cover – import side-effects
-            import ice_tools.generated  # noqa: F401
+        # Ensure first-party generated tools are registered explicitly
+        try:
+            from ice_orchestrator.plugins import load_first_party_tools
+
+            load_first_party_tools()
         except Exception:
             pass
 
@@ -104,7 +106,7 @@ class WorkflowExecutionService:
 
     async def execute_workflow_builder(
         self,
-        builder: Any,  # WorkflowBuilder from SDK
+        builder: Any,  # WorkflowBuilder
         inputs: Optional[Dict[str, Any]] = None,
     ) -> NodeExecutionResult:
         """Execute a workflow directly from a builder.

@@ -3,7 +3,7 @@
 Provides error types specific to the orchestration layer.
 """
 
-# Import directly from SDK to avoid layer violations
+# Re-export selected core error types for convenience
 from ice_core.exceptions import CoreError as ChainError
 from ice_core.exceptions import CoreError as ScriptChainError
 from ice_core.exceptions import CycleDetectionError as CircularDependencyError

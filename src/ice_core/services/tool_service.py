@@ -1,13 +1,12 @@
-"""SDK-facing proxy for the runtime ToolExecutionService.
+"""Proxy for the runtime ToolExecutionService.
 
-This class lives in the SDK layer so that SDK utilities and external
-API layers can reference a stable `ToolService` type **without**
+External callers can reference a stable `ToolService` type **without**
 importing the orchestrator package directly (maintains layer
 boundaries).
 
-At runtime the real implementation is provided by the orchestrator and
-registered in the `ServiceLocator` under the key ``tool_execution_service``.
-The proxy simply forwards every call to that registered instance.
+At runtime the orchestrator assigns the concrete implementation to
+``ice_core.runtime.tool_execution_service`` and this proxy forwards
+calls to that instance.
 """
 
 from __future__ import annotations
@@ -21,7 +20,7 @@ from ice_core.runtime import tool_execution_service
 class ToolService:  # pylint: disable=too-few-public-methods
     """Thin forwarding facade for tool execution.
 
-    SDK / API code can depend on this class for type-checking.  The real
+    API or other callers can depend on this class for type-checking.  The real
     logic lives in :pyclass:`ice_orchestrator.services.tool_execution_service.ToolExecutionService`.
     """
 

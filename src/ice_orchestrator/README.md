@@ -45,6 +45,21 @@ print(result.output["hello"])  # → {'msg': 'hi'}
 
 ---
 
+## Runtime wiring (`ice_core.runtime`)
+
+At process startup, `initialize_orchestrator()` assigns concrete runtime services
+to `ice_core.runtime`:
+
+- `workflow_factory`: class used to construct `Workflow` instances
+- `network_coordinator_factory`: class used to run network manifests
+- `tool_execution_service`: instance used for tool execution
+- `context_manager`: shared context manager instance
+- `workflow_execution_service`: orchestrator-side service for executing blueprints
+
+Authoring/API layers read these from `ice_core.runtime` to avoid cross-layer imports.
+
+---
+
 ## Loop Node fix (2025-08-05)
 
 `loop_executor` was rewritten to directly invoke inner executors, solving the

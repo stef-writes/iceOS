@@ -11,7 +11,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 
 from ice_api.redis_client import get_redis
 from ice_core.models.mcp import Blueprint
-from ice_core.services import ServiceLocator
+from ice_core import runtime as rt
 from ice_orchestrator.execution.workflow_events import EventType
 
 router = APIRouter(prefix="/api/v1/executions", tags=["executions"])
@@ -66,15 +66,16 @@ async def _run_workflow_async(
     store: Dict[str, _ExecutionRecord],
 ) -> None:
     """Background task that executes the workflow and updates *store*."""
+    # Resolve workflow execution service via runtime factories when available
     try:
-        service = ServiceLocator.get("workflow_execution_service")
-    except KeyError:
-        # Fallback: instantiate a local workflow execution service for tests/dev
         from ice_orchestrator.services.workflow_execution_service import (
             WorkflowExecutionService,
         )
 
         service = WorkflowExecutionService()
+    except Exception:
+        # In minimal builds orchestrator may be unavailable
+        raise RuntimeError("Orchestrator runtime not available")
     record = store[execution_id]
     try:
         record["status"] = "running"

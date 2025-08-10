@@ -1,7 +1,8 @@
 """Runtime plugin discovery helpers.
 
-Contains **the only permitted** dynamic-import logic in the codebase.  All other
-modules should import plugins explicitly or rely on dependency injection.
+Contains the minimal, centralized dynamic-import logic allowed in the
+codebase. All other modules should import plugins explicitly or rely on
+dependency injection through stable interfaces.
 """
 
 from __future__ import annotations
@@ -15,7 +16,10 @@ from typing import List, Type
 
 from ice_core.base_tool import ToolBase
 
-__all__: list[str] = ["discover_tools", "load_module_from_path"]
+__all__: list[str] = [
+    "discover_tools",
+    "load_module_from_path",
+]
 
 def load_module_from_path(path: Path) -> ModuleType:
     """Dynamically import Python module from *path* and return it.
@@ -72,3 +76,7 @@ def discover_tools(root: Path | str) -> List[Type[ToolBase]]:
                 tool_classes.append(obj)
 
     return tool_classes
+
+
+# NOTE: First-party tool loader lives in `ice_orchestrator.plugins` to avoid
+# core depending on `ice_tools`. Keep discovery helpers here dependency-free.

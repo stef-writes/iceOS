@@ -11,7 +11,7 @@ on the orchestrator package.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Any
 
 from ice_core.protocols.runtime_factories import (
     NetworkCoordinatorFactory,
@@ -22,3 +22,7 @@ from ice_core.protocols.runtime_factories import (
 workflow_factory: Optional[WorkflowFactory] = None
 network_coordinator_factory: Optional[NetworkCoordinatorFactory] = None
 tool_execution_service: Optional[ToolExecutionServiceProtocol] = None
+
+# Additional runtime-wired services for top-level API usage
+context_manager: Optional[Any] = None
+workflow_execution_service: Optional[Any] = None

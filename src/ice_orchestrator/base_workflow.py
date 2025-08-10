@@ -17,7 +17,7 @@ from uuid import uuid4
 
 from ice_core.base_tool import ToolBase
 from ice_core.models import NodeConfig, NodeExecutionResult
-from ice_core.services import ServiceLocator
+from ice_core import runtime as rt
 from ice_orchestrator.context import GraphContextManager
 from ice_orchestrator.context.manager import GraphContext
 from ice_orchestrator.workflow_execution_context import WorkflowExecutionContext
@@ -64,11 +64,8 @@ class BaseWorkflow(ABC):
         self.name = name or "workflow"
 
         if context_manager is None:
-            try:
-                context_manager = ServiceLocator.get("context_manager")
-            except KeyError:
-                context_manager = GraphContextManager()
-                ServiceLocator.register("context_manager", context_manager)
+            context_manager = rt.context_manager or GraphContextManager()
+            rt.context_manager = context_manager
 
         self.context_manager = _cast(GraphContextManager, context_manager)
         self.max_parallel = max_parallel

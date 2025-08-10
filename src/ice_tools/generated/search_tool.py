@@ -1,8 +1,8 @@
-"""SearchTool – SerpAPI-backed web search with deterministic fallback.
+"""SearchTool – SerpAPI-backed web search (live only).
 
 External side-effects are confined to this Tool implementation per project rules.
-If SERPAPI_KEY is set in the environment, performs a live query; otherwise returns
-a stable, deterministic result so tests remain offline.
+Requires `SERPAPI_KEY` (or `SERPAPI_API_KEY`) in the environment and will raise on
+missing keys or request failures. No offline or deterministic fallbacks are used.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from pydantic import Field
 
 from ice_core.base_tool import ToolBase
 from ice_core.unified_registry import register_tool_factory
+from ice_core.exceptions import CoreError, ErrorCode
 
 
 class SearchTool(ToolBase):
@@ -29,9 +30,7 @@ class SearchTool(ToolBase):
     """
 
     name: str = "search_tool"
-    description: str = Field(
-        default="Search the web for a query (SerpAPI when configured; else deterministic)",
-    )
+    description: str = Field(default="Search the web for a query using SerpAPI (live only)")
     engine: str = Field(default="google")
     num_results: int = Field(default=3, ge=1, le=10)
 
@@ -43,61 +42,36 @@ class SearchTool(ToolBase):
         """
 
         api_key = os.getenv("SERPAPI_KEY") or os.getenv("SERPAPI_API_KEY")
-        if api_key:
-            try:
-                params = {
-                    "engine": self.engine,
-                    "q": query,
-                    "api_key": api_key,
-                    "num": str(self.num_results),
-                }
-                async with httpx.AsyncClient(timeout=15) as client:
-                    r = await client.get("https://serpapi.com/search.json", params=params)
-                    r.raise_for_status()
-                    data = r.json()
-            except Exception as exc:
-                # Fail closed to deterministic fallback
-                return {
-                    "results": [
-                        {
-                            "title": f"About {query}",
-                            "link": f"https://example.com/{query.replace(' ', '-').lower()}",
-                            "snippet": f"Deterministic fallback for '{query}' (error: {str(exc)})",
-                        }
-                    ]
-                }
+        if not api_key:
+            raise CoreError(
+                ErrorCode.UNKNOWN,
+                "SearchTool requires SERPAPI_KEY (or SERPAPI_API_KEY) to be set",
+            )
 
-            results: List[Dict[str, Any]] = []
-            # Prefer organic_results when present
-            for item in (data.get("organic_results") or [])[: self.num_results]:
-                results.append(
-                    {
-                        "title": item.get("title", ""),
-                        "link": item.get("link", ""),
-                        "snippet": item.get("snippet", ""),
-                    }
-                )
-            if not results:
-                # Fallback when response shape differs
-                results = [
-                    {
-                        "title": f"About {query}",
-                        "link": f"https://example.com/{query.replace(' ', '-').lower()}",
-                        "snippet": f"Deterministic fallback for '{query}' (no results)",
-                    }
-                ]
-            return {"results": results}
+        try:
+            params = {
+                "engine": self.engine,
+                "q": query,
+                "api_key": api_key,
+                "num": str(self.num_results),
+            }
+            async with httpx.AsyncClient(timeout=15) as client:
+                r = await client.get("https://serpapi.com/search.json", params=params)
+                r.raise_for_status()
+                data = r.json()
+        except Exception as exc:
+            raise CoreError(ErrorCode.UNKNOWN, f"SerpAPI request failed: {exc}") from exc
 
-        # Deterministic offline fallback
-        return {
-            "results": [
+        results: List[Dict[str, Any]] = []
+        for item in (data.get("organic_results") or [])[: self.num_results]:
+            results.append(
                 {
-                    "title": f"About {query}",
-                    "link": f"https://example.com/{query.replace(' ', '-').lower()}",
-                    "snippet": f"Deterministic offline result for '{query}'",
+                    "title": item.get("title", ""),
+                    "link": item.get("link", ""),
+                    "snippet": item.get("snippet", ""),
                 }
-            ]
-        }
+            )
+        return {"results": results}
 
 
 def create_search_tool(**kwargs: Any) -> SearchTool:

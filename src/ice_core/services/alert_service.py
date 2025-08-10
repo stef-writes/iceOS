@@ -305,7 +305,7 @@ class AlertService:
         return list(self._handlers.keys())
 
 
-# Global instance for ServiceLocator integration
+# Global instance for runtime access
 _alert_service: Optional[AlertService] = None
 
 
@@ -316,16 +316,13 @@ async def get_alert_service() -> AlertService:
     if _alert_service is None:
         _alert_service = AlertService()
 
-        # Register with ServiceLocator for dependency injection
+        # Expose via runtime for callers that want a process-wide instance
         try:
-            from ice_core.services import ServiceLocator
+            from ice_core import runtime as rt
 
-            ServiceLocator.register("alert_service", _alert_service)
-            logger.info("Alert service registered with ServiceLocator")
-        except ImportError:
-            logger.warning(
-                "ServiceLocator not available - alert service running standalone"
-            )
+            setattr(rt, "alert_service", _alert_service)
+        except Exception:
+            pass
 
     return _alert_service
 

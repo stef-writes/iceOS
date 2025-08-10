@@ -58,7 +58,7 @@ from ice_core.models.mcp import (
     RunResult,
 )
 from ice_core.registry import global_agent_registry, registry
-from ice_core.services import ServiceLocator
+from ice_core import runtime as rt
 from ice_core.services.contracts import IWorkflowService
 
 # Import execution guard to allow orchestrator runtime during MCP execution
@@ -67,8 +67,15 @@ from ice_core.services.contracts import IWorkflowService
 
 
 def _get_workflow_service() -> IWorkflowService:
-    """Return workflow service instance from ServiceLocator with proper typing."""
-    return cast(IWorkflowService, ServiceLocator.get("workflow_service"))
+    """Return workflow service instance.
+
+    Uses the orchestrator implementation directly; this keeps API decoupled
+    from orchestrator imports at module import time while avoiding the global
+    ServiceLocator.
+    """
+    from ice_orchestrator.services.workflow_service import WorkflowService
+
+    return cast(IWorkflowService, WorkflowService())
 
 
 router = APIRouter(tags=["mcp"])
@@ -1022,7 +1029,8 @@ async def validate_component_definition(
 
                         from ice_core.unified_registry import register_workflow_factory
 
-                        Workflow = ServiceLocator.get("workflow_proto")
+                        # Use orchestrator workflow class without ServiceLocator
+                        from ice_orchestrator.workflow import Workflow
 
                         def _factory(**kwargs: Any) -> Any:  # type: ignore[no-redef]
                             return Workflow(
@@ -1038,9 +1046,9 @@ async def validate_component_definition(
                         )
                         result.registered = True
                         result.registry_name = definition.name
-                    except KeyError:
+                    except Exception:
                         result.warnings.append(
-                            "Workflow prototype not registered in ServiceLocator"
+                            "Workflow prototype not available"
                         )
 
         except Exception as e:

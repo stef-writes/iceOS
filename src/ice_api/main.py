@@ -37,8 +37,8 @@ from ice_api.startup_utils import (
 )
 from ice_api.ws_gateway import router as ws_router
 
-# Note: API layer uses ServiceLocator for orchestrator services
-from ice_core.services import ServiceLocator
+# Use runtime-wired services (set by orchestrator at startup)
+from ice_core import runtime as rt
 from ice_core.utils.logging import setup_logger
 
 # Setup logging
@@ -56,15 +56,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """
     # Initialize services through proper layer interfaces
     import importlib
+    initialize_orchestrator = importlib.import_module("ice_orchestrator").initialize_orchestrator
 
-    from ice_core.services.initialization import initialize_sdk
-
-    initialize_orchestrator = importlib.import_module(
-        "ice_orchestrator"
-    ).initialize_orchestrator
-
-    # Initialize layers in order
-    initialize_sdk()
+    # Initialize runtime orchestrator services
     initialize_orchestrator()
 
     # Ensure first-party generated tools are registered for runtime
@@ -109,7 +103,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         else:
             summarise_demo_load(label, seconds, False, str(exc))
 
-    app.state.context_manager = ServiceLocator.get("context_manager")  # type: ignore[attr-defined]
+    # Prefer runtime-wired context manager
+    app.state.context_manager = rt.context_manager  # type: ignore[attr-defined]
 
     # Register workflow execution service for API execution endpoints
     try:
@@ -117,11 +112,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             WorkflowExecutionService,
         )
 
-        ServiceLocator.register(
-            "workflow_execution_service", WorkflowExecutionService()
-        )
+        # Also expose via runtime slot
+        rt.workflow_execution_service = rt.workflow_execution_service or WorkflowExecutionService()
     except Exception as reg_exc:  # pragma: no cover – defensive
-        logger.warning("Failed to register workflow_execution_service: %s", reg_exc)
+        logger.warning("Failed to prepare workflow_execution_service: %s", reg_exc)
 
     # Initialize tool service to bridge unified registry to API endpoints
     from ice_core.services.tool_service import ToolService

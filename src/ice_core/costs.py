@@ -1,8 +1,8 @@
 """Utility for looking-up model pricing and computing cost of a completion.
 
-The tables reflect *per-token* prices in USD.  They are intentionally kept
+The tables reflect *per-token* prices in USD. They are intentionally kept
 in a single place so that future provider additions or price changes are a
-simple data-edit, not a code change elsewhere in the SDK.
+simple data-edit.
 
 Price data taken from public pricing pages (May 2025).  Feel free to update.
 """

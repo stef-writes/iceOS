@@ -54,7 +54,7 @@ from pydantic import BaseModel, Field, ValidationError
 # Structured logging
 logger = logging.getLogger(__name__)
 
-from ice_core.services import ServiceLocator
+from ice_orchestrator.workflow import Workflow
 
 # ---------------------------------------------------------------------------
 # Manifest models – deliberately forgiving (extra allowed)                   
@@ -90,11 +90,8 @@ class NetworkCoordinator:
 
     def __init__(self, manifest: NetworkManifest, *, max_concurrent: int = 5):
         self.manifest = manifest
-        self._workflow_class = ServiceLocator.get("workflow_proto")
-        if self._workflow_class is None:
-            raise RuntimeError(
-                "Workflow implementation not registered – did you call initialize_orchestrator()?"
-            )
+        # Use the concrete orchestrator Workflow class directly at this layer
+        self._workflow_class = Workflow
 
         # Concurrency guard for parallel workflow execution
         self._sem = asyncio.Semaphore(max_concurrent)

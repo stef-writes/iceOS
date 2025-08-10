@@ -31,17 +31,17 @@ class WorkflowService(IWorkflowService):
 
     def __init__(self) -> None:
         """Initialize the workflow service."""
-        # Use context manager from ServiceLocator if available, otherwise create new one
-        from ice_core.services import ServiceLocator
+        from ice_core import runtime as rt
 
-        self._context_manager = ServiceLocator.get("context_manager")
+        self._context_manager = rt.context_manager
         if self._context_manager is None:
             self._context_manager = GraphContextManager()
+            rt.context_manager = self._context_manager
 
         # In-memory cache for executed workflows (very lightweight)
         self._workflow_cache: dict[str, Workflow] = {}
 
-        # Tools are auto-registered via @tool decorator when SDK is initialized
+# Tools are registered via explicit plugin loader during orchestrator init
 
     async def execute(
         self,

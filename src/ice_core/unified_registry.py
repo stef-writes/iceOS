@@ -534,6 +534,27 @@ class Registry(BaseModel):
         """List registered tool factories with their import paths."""
         return [(name, path) for name, path in sorted(self._tool_factories.items())]
 
+    # ------------------------------------------------------------------
+    # Test support helpers (safe to call in test environment) ----------
+    # ------------------------------------------------------------------
+    def clear_llm_factories(self) -> None:
+        """Remove all registered LLM factories and caches.
+
+        Intended for test isolation so multiple tests can register different
+        factories under the same model name without leaking state across tests.
+        """
+        self._llm_factories.clear()
+        self._llm_factory_cache.clear()
+
+    def clear_tool_factories(self) -> None:
+        """Remove all registered Tool factories and caches.
+
+        Useful for test isolation when different tests register the same tool
+        name with different import paths.
+        """
+        self._tool_factories.clear()
+        self._tool_factory_cache.clear()
+
     def available_agents(self) -> List[Tuple[str, str]]:
         """List all registered agents with their import paths."""
         return [(name, path) for name, path in sorted(self._agents.items())]
@@ -910,6 +931,16 @@ def register_llm_factory(name: str, import_path: str) -> None:  # noqa: D401
 def get_llm_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
     """Convenience wrapper for ``Registry.get_llm_instance``."""
     return registry.get_llm_instance(name, **kwargs)
+
+
+def clear_llm_factories() -> None:  # noqa: D401
+    """Clear LLM factories (test helper)."""
+    registry.clear_llm_factories()
+
+
+def clear_tool_factories() -> None:  # noqa: D401
+    """Clear Tool factories (test helper)."""
+    registry.clear_tool_factories()
 
 
 # Condition wrappers ---------------------------------------------------------

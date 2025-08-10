@@ -12,10 +12,10 @@ class IWorkflow(Protocol):
 
 
 class WorkflowLike(Protocol):
-    """Minimal subset of workflow functionality used by SDK.
+    """Minimal subset of workflow functionality for cross-layer typing.
 
     This protocol lets us keep type hints while avoiding circular imports
-    between SDK and orchestrator layers.
+    between authoring/API and orchestrator layers.
     """
 
     # Public-ish attributes accessed by ice_builder

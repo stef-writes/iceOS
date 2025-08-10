@@ -239,6 +239,50 @@ class TestProtocolCompliance:
             not filtered_violations
         ), f"Old registry patterns found: {filtered_violations}"
 
+    def test_no_new_service_locator_usage(self, project_root: Path):
+        """Disallow introducing new ServiceLocator usages in code going forward.
+
+        Existing transitional usages are permitted in a few orchestrator/API
+        files, but new code should prefer runtime factories or explicit
+        dependency injection.
+        """
+        transitional_allowlist = {
+            "ice_orchestrator/__init__.py",
+            "ice_orchestrator/context/manager.py",
+            "ice_api/main.py",
+            # Transitional core shims kept for backwards compatibility during migration
+            "ice_core/services/__init__.py",
+            "ice_core/services/locator.py",
+            "ice_core/services/initialization.py",
+            "ice_core/services/tool_service.py",
+            "ice_core/services/alert_service.py",
+            # Orchestrator services still referencing locator (to be migrated)
+            "ice_orchestrator/base_workflow.py",
+            "ice_orchestrator/services/workflow_service.py",
+            # API routes with legacy references
+            "ice_api/api/mcp_jsonrpc.py",
+            "ice_api/api/mcp.py",
+            # Docs/examples mentioning ServiceLocator
+            "ice_core/protocols/runtime_factories.py",
+        }
+
+        violations = []
+
+        for py_file in get_all_python_files(project_root):
+            if "tests/" in str(py_file):
+                continue
+            content = py_file.read_text(encoding="utf-8", errors="ignore")
+            if "ServiceLocator" in content:
+                rel = str(py_file.relative_to(project_root))
+                if rel not in transitional_allowlist:
+                    violations.append(rel)
+
+        # Allow the legacy LLM adapter reference (to be removed in refactor) and
+        # the temporary shim modules under ice_core/services/* that are being deprecated
+        allowed = set()  # No allowances remaining once adapters are refactored
+        filtered = [v for v in violations if v not in allowed]
+        assert not filtered, f"New ServiceLocator usages found: {filtered}"
+
     def test_exception_handling_follows_standards(self, project_root: Path):
         """Test that exception handling follows iceOS standards."""
         # Look for proper exception usage patterns

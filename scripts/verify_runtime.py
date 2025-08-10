@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Deterministic end-to-end runtime verification.
+"""End-to-end runtime verification (live providers).
 
 This script verifies three core flows without any external dependencies:
 
@@ -9,7 +9,6 @@ This script verifies three core flows without any external dependencies:
 - Agent → Tool (plan→act loop via AgentRuntime with allowed_tools)
 
 What it does:
-- Registers an echo LLM under the model id used by NodeSpecs ("gpt-4o")
 - Registers a simple writer_tool via the public registry factory API
 - Lifts the token ceiling guard to avoid unrelated failures
 - Executes small blueprints using WorkflowExecutionService
@@ -21,11 +20,13 @@ Expected:
 - success=True for LLM-only and LLM→Tool runs
 - Agent → Tool yields a dict with last_tool and the tool result
 
-Note:
-This runs entirely in-process and offline; it does not need network keys.
+Notes:
+- LLM sections use real providers and require OPENAI_API_KEY.
+- The search section requires SERPAPI_KEY (no fallbacks).
 """
 
 import asyncio
+import os
 from typing import Any, Dict, Optional, Tuple
 
 from ice_core.base_tool import ToolBase
@@ -145,8 +146,10 @@ async def _run_llm_to_tool() -> Dict[str, Any]:
 
 
 async def _run_llm_search_llm() -> Dict[str, Any]:
-    # Ensure search tool is registered (live SerpAPI if SERPAPI_KEY is set)
+    # Ensure search tool is registered (requires SERPAPI_KEY; no fallbacks)
     import ice_tools.generated.search_tool  # noqa: F401
+    if not (os.getenv("SERPAPI_KEY") or os.getenv("SERPAPI_API_KEY")):
+        raise RuntimeError("SERPAPI_KEY (or SERPAPI_API_KEY) must be set for search section")
 
     nodes = [
         NodeSpec(

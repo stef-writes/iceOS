@@ -32,7 +32,7 @@ from pydantic import BaseModel, ValidationInfo, field_validator
 from ice_core.models import NodeType
 from ice_core.models.mcp import Blueprint, NodeSpec, RunRequest
 from ice_core.registry import global_agent_registry, registry
-from ice_core.services import ServiceLocator
+from ice_core import runtime as rt
 
 from .mcp import get_result, start_run
 
@@ -459,8 +459,10 @@ async def handle_network_execute(params: Dict[str, Any]) -> Dict[str, Any]:
 
     svc = NetworkService()
     if scheduled:
-        # Use NetworkTaskManager for lifecycle management
-        task_manager = ServiceLocator.get("network_task_manager")
+        # Use NetworkTaskManager from orchestrator layer directly
+        from ice_orchestrator.services.task_manager import NetworkTaskManager
+
+        task_manager = NetworkTaskManager()
         if task_manager is None:
             raise RuntimeError(
                 "NetworkTaskManager not registered – orchestrator not initialized?"
@@ -486,8 +488,10 @@ async def handle_tools_list() -> Dict[str, Any]:
     tools = []
 
     try:
-        # Get all tools from tool service with error handling
-        tool_service = ServiceLocator.get("tool_service")
+        # Get all tools from runtime-wired tool execution service
+        from ice_orchestrator.services.tool_execution_service import ToolExecutionService
+
+        tool_service = getattr(rt, "tool_execution_service", None) or ToolExecutionService()
         if tool_service:
             try:
                 available_tools = tool_service.list_tools()
@@ -850,8 +854,11 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
 async def validate_tool_exists(tool_type: str, name: str) -> None:
     """Validate that a tool exists before attempting execution."""
     if tool_type == "tool":
-        tool_service = ServiceLocator.get("tool_service")
-        if not tool_service or name not in tool_service.list_tools():
+        from ice_core import runtime as rt
+        from ice_orchestrator.services.tool_execution_service import ToolExecutionService
+
+        tool_service = getattr(rt, "tool_execution_service", None) or ToolExecutionService()
+        if name not in tool_service.list_tools():
             raise ValueError(f"Tool '{name}' not found")
     elif tool_type == "agent":
         available_agents = [

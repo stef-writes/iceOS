@@ -23,15 +23,18 @@ __all__ = [
 def initialize_orchestrator() -> None:
     """Initialize the orchestrator layer with all runtime services.
 
-    This function registers all runtime services that the SDK and API layers
-    can access via ServiceLocator.
+    Moves away from the global ServiceLocator by wiring concrete runtime
+    factories into ``ice_core.runtime`` and loading first-party tools via the
+    explicit plugin loader. Keeps minimal ServiceLocator registration only
+    for backward-compatible lookups used by API during the transition.
     """
     # Register context manager first – other services depend on it
     import os
     from pathlib import Path
 
     from ice_core.llm.service import LLMService
-    from ice_core.services import ServiceLocator
+    from ice_core import runtime as rt
+    from ice_orchestrator.plugins import load_first_party_tools
     from ice_orchestrator.context import GraphContextManager
     from ice_orchestrator.services.network_coordinator import NetworkCoordinator
     from ice_orchestrator.services.task_manager import NetworkTaskManager
@@ -43,40 +46,28 @@ def initialize_orchestrator() -> None:
     from ice_orchestrator.workflow import Workflow
 
     project_root = Path(os.getcwd())
-    ServiceLocator.register(
-        "context_manager", GraphContextManager(project_root=project_root)
-    )
+    cm = GraphContextManager(project_root=project_root)
 
-    # Register core services
-    ServiceLocator.register("workflow_proto", Workflow)
-    ServiceLocator.register("workflow_service", WorkflowService())
-    ServiceLocator.register("workflow_execution_service", WorkflowExecutionService())
-    ServiceLocator.register("tool_execution_service", ToolExecutionService())
-    ServiceLocator.register("llm_service", LLMService())
-    ServiceLocator.register(
-        "llm_service_impl", LLMService()
-    )  # For SDK adapter compatibility
-    # Register network coordinator class for SDK-level NetworkService
-    ServiceLocator.register("network_coordinator_cls", NetworkCoordinator)
-    ServiceLocator.register("network_task_manager", NetworkTaskManager())
+    wes = WorkflowExecutionService()
 
-    # Register tool service wrapper
-    from ice_core.services.tool_service import ToolService
+    # New: wire runtime factories for decoupled access from core/api layers
+    rt.workflow_factory = Workflow
+    rt.network_coordinator_factory = NetworkCoordinator
+    rt.tool_execution_service = ToolExecutionService()
+    rt.context_manager = cm
+    rt.workflow_execution_service = wes
 
-    ServiceLocator.register("tool_service", ToolService())
+    # Register tool service wrapper (runtime only)
+    from ice_core.services.tool_service import ToolService  # runtime-facing proxy
 
     # ------------------------------------------------------------------
     # Built-in tools ----------------------------------------------------
     # ------------------------------------------------------------------
-    # Import the built-in tools package so its @tool decorators run and
-    # components become discoverable via API endpoints.
-    import importlib
-
+    # Explicitly register first-party tools (no side-effect imports)
     try:
-        importlib.import_module("ice_tools")
-        importlib.import_module("ice_tools.generated")
-    except ModuleNotFoundError:
-        # Package might be removed in minimal builds – ignore gracefully.
+        load_first_party_tools()
+    except Exception:
+        # Do not crash if tool packages are missing in minimal builds
         pass
 
     # Load any entry-point declared nodes/tools

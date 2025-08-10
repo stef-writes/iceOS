@@ -31,13 +31,13 @@ async def tool_node_executor(
     start_time = datetime.utcnow()
 
     try:
-        # ------------------------------------------------------------------
-        # 1. Ensure tools are registered (auto-import ice_tools package) -----
-        # ------------------------------------------------------------------
+        # Ensure first-party tools are registered via explicit plugin loader
         try:
-            import ice_tools  # noqa: F401 – side-effect registration
-        except ModuleNotFoundError:
-            # `ice_tools` package is optional in minimal deployments.
+            from ice_orchestrator.plugins import load_first_party_tools
+
+            load_first_party_tools()
+        except Exception:
+            # Tools may be absent in minimal deployments.
             pass
 
         # ------------------------------------------------------------------

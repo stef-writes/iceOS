@@ -16,8 +16,7 @@ start-up::
     rt.network_coordinator_factory = NetworkCoordinator  # class with ``from_file``
     rt.tool_execution_service = ToolExecutionService()
 
-Down-stream SDK helpers then pick these up explicitly instead of going
-through the previous global *ServiceLocator*.
+Callers then pick these up explicitly via ``ice_core.runtime``.
 """
 
 from __future__ import annotations

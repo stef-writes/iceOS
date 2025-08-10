@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""High-level network execution API exposed by the *SDK* layer.
+"""High-level network execution API.
 
 This thin wrapper delegates to the concrete ``NetworkCoordinator`` registered
 by the orchestrator in :pyfunc:`ice_orchestrator.initialize_orchestrator`.
