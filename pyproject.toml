@@ -2,6 +2,7 @@
 
  [tool.poetry]
  # Package discovery and layout remain managed by Poetry-specific settings
+package-mode = false
  packages = [
    { include = "ice_orchestrator", from = "src" },
    { include = "ice_cli", from = "src" },
