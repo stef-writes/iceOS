@@ -24,17 +24,8 @@ jobs:
       - name: Install deps (+dev)
         run: |
           set -euo pipefail
-          # Determine base ref to diff against
-          git fetch --depth=2 origin "${GITHUB_REF}"
-          BASE_SHA=$(git rev-parse HEAD^)
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          fi
-          # If pyproject changed, refresh lock once for this run
-          if git diff --name-only "${BASE_SHA}"...HEAD | grep -q '^pyproject\.toml$'; then
-            echo "pyproject.toml changed – refreshing lock"
-            poetry lock
-          fi
+          # Ensure lock is compatible with current Poetry
+          poetry lock --no-update || poetry lock
           poetry install --with dev --no-interaction --no-root
 
       - name: Run quality gate (lint + type + test)
