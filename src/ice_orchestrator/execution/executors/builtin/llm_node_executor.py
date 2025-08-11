@@ -48,10 +48,13 @@ async def llm_node_executor(
         except Exception as exc:
             raise ValueError(f"Failed to render prompt: {exc}") from exc
 
+        # Prefer provider/model/params from nested llm_config; fall back to top-level for BC
         provider: ModelProvider | str = (
             cfg.llm_config.provider
-            if cfg.llm_config and cfg.llm_config.provider
-            else ModelProvider.OPENAI
+            if cfg.llm_config and getattr(cfg.llm_config, "provider", None)
+            else (
+                cfg.provider if getattr(cfg, "provider", None) else ModelProvider.OPENAI
+            )
         )
         if isinstance(provider, str):
             try:
@@ -61,9 +64,23 @@ async def llm_node_executor(
 
         llm_cfg = LLMConfig(
             provider=provider,
-            model=cfg.model,
-            max_tokens=cfg.max_tokens,
-            temperature=cfg.temperature,
+            model=(
+                cfg.llm_config.model
+                if cfg.llm_config and getattr(cfg.llm_config, "model", None) is not None
+                else cfg.model
+            ),
+            max_tokens=(
+                cfg.llm_config.max_tokens
+                if cfg.llm_config
+                and getattr(cfg.llm_config, "max_tokens", None) is not None
+                else cfg.max_tokens
+            ),
+            temperature=(
+                cfg.llm_config.temperature
+                if cfg.llm_config
+                and getattr(cfg.llm_config, "temperature", None) is not None
+                else cfg.temperature
+            ),
         )
 
         # Prefer factory-based LLM instance when registered; fall back to LLMService

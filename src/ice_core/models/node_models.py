@@ -401,6 +401,61 @@ class LLMNodeConfig(BaseNodeConfig):
         None, description="JSON schema for output"
     )
 
+    @model_validator(mode="after")
+    def _synchronize_llm_config(self) -> "LLMNodeConfig":
+        """Normalize duplicated LLM fields into ``llm_config``.
+
+        To resolve blueprint-structuring inconsistencies, we treat
+        ``llm_config`` as the source of truth and populate any missing
+        fields from the top-level duplicates for backwards compatibility.
+
+        Returns
+        -------
+        LLMNodeConfig
+            The normalized config instance.
+
+        Example
+        -------
+        >>> cfg = LLMNodeConfig(
+        ...     id="n1", type="llm", model="gpt-4o", prompt="Hi",
+        ...     llm_config=LLMConfig(provider=ModelProvider.OPENAI)
+        ... )
+        >>> cfg.llm_config.model == "gpt-4o"
+        True
+        """
+        # Ensure we have an LLMConfig instance
+        if self.llm_config is None:  # type: ignore[truthy-bool]
+            # Late import to avoid cycles at module import time
+            from ice_core.models.llm import LLMConfig as _LLMConfig
+
+            self.llm_config = _LLMConfig()  # type: ignore[assignment]
+
+        # Populate nested fields from top-level when missing
+        if (
+            getattr(self.llm_config, "model", None) is None
+            and getattr(self, "model", None) is not None
+        ):
+            self.llm_config.model = self.model
+        if (
+            getattr(self.llm_config, "temperature", None) is None
+            and getattr(self, "temperature", None) is not None
+        ):
+            self.llm_config.temperature = self.temperature
+        if (
+            getattr(self.llm_config, "max_tokens", None) is None
+            and getattr(self, "max_tokens", None) is not None
+        ):
+            self.llm_config.max_tokens = self.max_tokens
+
+        # Always prefer provider from nested llm_config; fall back to BaseNodeConfig.provider
+        if (
+            getattr(self.llm_config, "provider", None) is None
+            and getattr(self, "provider", None) is not None
+        ):
+            self.llm_config.provider = self.provider
+
+        return self
+
 
 @mcp_tier("Blueprint for simple function execution")
 @multi_granularity("tool")

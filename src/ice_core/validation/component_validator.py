@@ -158,13 +158,6 @@ async def validate_agent_definition(
 
     # Validate referenced tools exist
     if definition.agent_tools:
-        # Best-effort: ensure generated tools are imported so factories register
-        try:
-            import importlib as _importlib  # local import to avoid top-level side effects
-
-            _importlib.import_module("ice_tools.generated")
-        except Exception:  # pragma: no cover – optional runtime import
-            pass
         missing_tools = []
         for tool_name in definition.agent_tools:
             if not registry.has_tool(tool_name):

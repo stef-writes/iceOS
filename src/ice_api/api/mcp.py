@@ -763,73 +763,32 @@ async def chat_turn(agent_name: str, req: ChatRequest) -> ChatResponse:  # noqa:
     dependencies=[Depends(rate_limit), Depends(require_auth)],
 )
 async def register_component(
-    definition: ComponentDefinition,
+    request: Request, definition: ComponentDefinition
 ) -> ComponentRegisterResponse:  # noqa: D401
-    """Validate then persist a component definition and register it in-memory.
+    """Validate then persist a component definition and register it (via service)."""
 
-    Persistence uses Redis under key `component:{type}:{name}` with a content-hash\
-    version lock. Registration uses the existing validator's registration path.
-    """
+    from ice_api.services.component_service import ComponentService
 
-    from ice_core.validation.component_validator import validate_component
+    # Lazy init for in-process ASGI runs without lifespan
+    if not hasattr(request.app.state, "component_service"):
+        from ice_api.services.component_repo import choose_component_repo
 
-    result = await validate_component(definition)
-    if not result.valid:
-        return ComponentRegisterResponse(**result.model_dump())
+        request.app.state.component_repo = choose_component_repo(request.app)  # type: ignore[attr-defined]
+        request.app.state.component_service = ComponentService(request.app.state.component_repo)  # type: ignore[attr-defined]
+    service: ComponentService = request.app.state.component_service  # type: ignore[attr-defined]
+    result, lock = await service.register(definition)
 
-    # Persist to Redis with version lock
-    redis = get_redis()
-    # Load existing to support idempotent no-op and version bump
-    existing_json = await redis.hget(_component_key(definition.type, definition.name), "json")  # type: ignore[misc]
-    if existing_json:
+    # Ensure runtime registration for immediate availability (tools/agents/workflows)
+    # Reuse the existing validator's auto-register behavior for code execution paths.
+    if result.valid and definition.auto_register and not definition.validate_only:
         try:
-            existing = json.loads(
-                existing_json
-                if isinstance(existing_json, str)
-                else existing_json.decode()
+            validated = await validate_component_definition(definition)
+            return ComponentRegisterResponse(
+                **validated.model_dump(), version_lock=lock
             )
-            prev_lock = await redis.hget(_component_key(definition.type, definition.name), "lock")  # type: ignore[misc]
         except Exception:
-            existing = None
-            prev_lock = None
-    else:
-        existing = None
-        prev_lock = None
-
-    record = ComponentRecord(
-        definition=definition,
-        created_at=_dt.datetime.utcnow(),
-        updated_at=_dt.datetime.utcnow(),
-        version=(
-            int(existing.get("version", 1)) + 1 if isinstance(existing, dict) else 1
-        ),
-    )
-    payload = record.model_dump(mode="json")
-    lock = _hash_lock(payload)
-    # If lock unchanged, treat as idempotent update and do not bump version
-    if prev_lock and str(prev_lock) == lock:
-        # Maintain index and return early
-        await redis.hset(
-            _component_index_key(),
-            mapping={f"{definition.type}:{definition.name}": lock},
-        )
-        return ComponentRegisterResponse(**result.model_dump(), version_lock=lock)
-    else:
-        await redis.hset(
-            _component_key(definition.type, definition.name),
-            mapping={"json": json.dumps(payload), "lock": lock},
-        )
-    # Maintain a simple index for listing (store last lock for idempotency)
-    await redis.hset(
-        _component_index_key(), mapping={f"{definition.type}:{definition.name}": lock}
-    )
-
-    # Ensure registration side-effect identical to /components/validate
-    try:
-        _ = await validate_component_definition(definition)  # reuse existing logic
-    except Exception:
-        # Non-fatal; persistence succeeded
-        pass
+            # Fall back to persistence-only result if runtime registration fails
+            pass
 
     return ComponentRegisterResponse(**result.model_dump(), version_lock=lock)
 
@@ -838,39 +797,34 @@ async def register_component(
     "/components",
     dependencies=[Depends(rate_limit), Depends(require_auth)],
 )
-async def list_all_components() -> Dict[str, Any]:  # noqa: D401
+async def list_all_components(request: Request) -> Dict[str, Any]:  # noqa: D401
     """List stored components from the Redis index plus current registry view."""
 
-    redis = get_redis()
-    index = await redis.hgetall(_component_index_key())  # type: ignore[misc]
+    from ice_api.services.component_service import ComponentService
+
+    if not hasattr(request.app.state, "component_service"):
+        from ice_api.services.component_repo import choose_component_repo
+
+        request.app.state.component_repo = choose_component_repo(request.app)  # type: ignore[attr-defined]
+        request.app.state.component_service = ComponentService(request.app.state.component_repo)  # type: ignore[attr-defined]
+    service: ComponentService = request.app.state.component_service  # type: ignore[attr-defined]
+    index = await service.list_index()
     stored: list[Dict[str, Any]] = []
-    if index:
-        for k in index.keys():
-            key = k.decode() if isinstance(k, (bytes, bytearray)) else str(k)
-            ctype, name = key.split(":", 1)
-            # Load record to expose version/timestamps
-            rec_raw = await redis.hget(_component_key(ctype, name), "json")  # type: ignore[misc]
-            version = None
-            created_at = None
-            updated_at = None
-            if rec_raw:
-                try:
-                    rec_json = rec_raw if isinstance(rec_raw, str) else rec_raw.decode()
-                    rec = json.loads(rec_json)
-                    version = rec.get("version")
-                    created_at = rec.get("created_at")
-                    updated_at = rec.get("updated_at")
-                except Exception:
-                    pass
-            stored.append(
-                {
-                    "type": ctype,
-                    "name": name,
-                    "version": version,
-                    "created_at": created_at,
-                    "updated_at": updated_at,
-                }
-            )
+    for key in index.keys():
+        ctype, name = key.split(":", 1)
+        rec, _ = await service.get(ctype, name)
+        version = rec.get("version") if rec else None
+        created_at = rec.get("created_at") if rec else None
+        updated_at = rec.get("updated_at") if rec else None
+        stored.append(
+            {
+                "type": ctype,
+                "name": name,
+                "version": version,
+                "created_at": created_at,
+                "updated_at": updated_at,
+            }
+        )
 
     # Include registered factories as a convenience
     tools = [
@@ -893,20 +847,23 @@ async def list_all_components() -> Dict[str, Any]:  # noqa: D401
     dependencies=[Depends(rate_limit), Depends(require_auth)],
 )
 async def get_component(
-    component_type: str, name: str, response: Response
+    request: Request, component_type: str, name: str, response: Response
 ) -> Dict[str, Any]:  # noqa: D401
     """Fetch a stored component definition and expose current version lock."""
 
-    redis = get_redis()
-    raw = await redis.hget(_component_key(component_type, name), "json")  # type: ignore[misc]
-    if not raw:
+    from ice_api.services.component_service import ComponentService
+
+    if not hasattr(request.app.state, "component_service"):
+        from ice_api.services.component_repo import choose_component_repo
+
+        request.app.state.component_repo = choose_component_repo(request.app)  # type: ignore[attr-defined]
+        request.app.state.component_service = ComponentService(request.app.state.component_repo)  # type: ignore[attr-defined]
+    service: ComponentService = request.app.state.component_service  # type: ignore[attr-defined]
+    data_any, lock = await service.get(component_type, name)
+    if not data_any:
         raise HTTPException(404, detail="Component not found")
-    lock = await redis.hget(_component_key(component_type, name), "lock")  # type: ignore[misc]
     if lock:
         response.headers["X-Version-Lock"] = str(lock)
-    if isinstance(raw, (bytes, bytearray)):
-        raw = raw.decode()
-    data_any = json.loads(raw)
     # Ensure mapping type for typing clarity
     assert isinstance(data_any, dict)
     data_typed: Dict[str, Any] = {str(k): v for k, v in data_any.items()}
@@ -982,6 +939,7 @@ class AgentComposeRequest(BaseModel):
     dependencies=[Depends(rate_limit), Depends(require_auth)],
 )
 async def compose_agent(
+    request: Request,
     req: AgentComposeRequest,
 ) -> ComponentRegisterResponse:  # noqa: D401
     """Create a simple agent definition and register via component pipeline.
@@ -1002,9 +960,9 @@ async def compose_agent(
         agent_llm_config=llm_dict,
         auto_register=True,
     )
-    # Persistent path (Redis) when available; else in-memory fall-back for zero-setup
+    # Persistent path via service-backed registration
     try:
-        return await register_component(definition)
+        return await register_component(request, definition)
     except Exception as exc:
         # If Redis is unavailable, register definition in-process (non-persistent)
         if (
@@ -1491,6 +1449,9 @@ async def validate_component_definition(
     3. If valid and auto_register=true, register the component
     4. Return validation results with suggestions
     """
+    import inspect
+
+    from ice_core.base_tool import ToolBase
     from ice_core.validation.component_validator import validate_component
 
     # Validate the component

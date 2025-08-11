@@ -27,6 +27,8 @@ from ice_api.api.mcp import router as mcp_router
 # keep import grouping minimal; remove unused service imports
 from ice_api.errors import add_exception_handlers
 from ice_api.redis_client import get_redis
+from ice_api.services.component_repo import choose_component_repo
+from ice_api.services.component_service import ComponentService
 
 # New startup helpers
 from ice_api.startup_utils import (
@@ -39,6 +41,7 @@ from ice_api.ws_gateway import router as ws_router
 
 # Use runtime-wired services (set by orchestrator at startup)
 from ice_core import runtime as rt
+from ice_core.registry import registry
 from ice_core.utils.logging import setup_logger
 
 # Setup logging
@@ -80,6 +83,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         pass
 
     # ------------------------------------------------------------------
+    # Plugin manifests (opt-in starter packs and org components) --------
+    # ------------------------------------------------------------------
+    # Load declarative plugins manifests specified via env var. Each entry is a
+    # JSON or YAML file containing plugins.v0 components with import paths.
+    manifests_env = os.getenv("ICEOS_PLUGIN_MANIFESTS", "").strip()
+    if manifests_env:
+        import logging as _logging
+        import pathlib
+
+        _plog = _logging.getLogger(__name__)
+        manifest_paths = [p.strip() for p in manifests_env.split(",") if p.strip()]
+        for mp in manifest_paths:
+            try:
+                path = pathlib.Path(mp)
+                count = registry.load_plugins(str(path), allow_dynamic=True)
+                _plog.info("Loaded %d components from manifest %s", count, path)
+            except Exception as e:  # pragma: no cover – defensive
+                _plog.warning("Failed to load plugins manifest %s: %s", mp, e)
+
+    # ------------------------------------------------------------------
     # Progressive demo loader with timing --------------------------------
     # ------------------------------------------------------------------
 
@@ -101,19 +124,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         demo_modules = []  # No default demos – avoid noisy import errors
 
     for label, module_path in demo_modules:
-        seconds, mod, exc = timed_import(module_path)
+        seconds, mod, import_exc = timed_import(module_path)
         if mod is not None:
             # Call initialize_all if present
             ok = True
             if hasattr(mod, "initialize_all"):
                 try:
                     ok = bool(mod.initialize_all("mcp"))  # type: ignore[attr-defined]
-                except Exception as ie:
+                except Exception as init_err:
                     ok = False
-                    exc = ie
-            summarise_demo_load(label, seconds, ok, "" if ok else str(exc))
+                    error_detail = str(init_err)
+                else:
+                    error_detail = ""
+            summarise_demo_load(label, seconds, ok, error_detail)
         else:
-            summarise_demo_load(label, seconds, False, str(exc))
+            summarise_demo_load(label, seconds, False, str(import_exc))
 
     # Prefer runtime-wired context manager
     app.state.context_manager = rt.context_manager  # type: ignore[attr-defined]
@@ -136,6 +161,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     from ice_core.services.tool_service import ToolService
 
     app.state.tool_service = ToolService()  # type: ignore[attr-defined]
+
+    # Component repository/service
+    app.state.component_repo = choose_component_repo(app)  # type: ignore[attr-defined]
+    app.state.component_service = ComponentService(app.state.component_repo)  # type: ignore[attr-defined]
 
     # In-memory stores for blueprints and execution results (demo profile)
     app.state.blueprints = {}
