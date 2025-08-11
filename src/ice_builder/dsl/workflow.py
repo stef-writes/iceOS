@@ -455,17 +455,12 @@ class WorkflowBuilder:
         >>> issues = b.validate_resolvable()
         >>> assert not issues
         """
-        import importlib
         import os
         from typing import cast as _cast
 
         from ice_core.unified_registry import global_agent_registry, registry
 
-        # Ensure generated tools are imported so factories register
-        try:  # side-effect import
-            importlib.import_module("ice_tools.generated")
-        except Exception:
-            pass
+        # Starter packs are loaded via ICEOS_PLUGIN_MANIFESTS; no implicit imports here
 
         def _csv_env(name: str) -> set[str]:
             raw = os.getenv(name, "").strip()

@@ -67,17 +67,7 @@ class AgentRuntime:
         except Exception:
             allowed = []
 
-        # Ensure tool factories are registered in environments where the
-        # orchestrator package __init__ side-effect import hasn't run (e.g. unit tests)
-        try:  # pragma: no cover – best-effort import for registration
-            import ice_tools  # noqa: F401
-
-            try:
-                import ice_tools.generated  # noqa: F401
-            except Exception:
-                pass
-        except Exception:
-            pass
+        # Tools are provided via plugin manifests; no implicit imports here
 
         for _ in range(max(1, max_iterations)):
             action: Dict[str, Any] | None = None

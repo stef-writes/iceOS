@@ -118,9 +118,9 @@ def _validate_resolvable_and_allowed(blueprint: Blueprint) -> None:
 
     # Best-effort: ensure generated tools are imported so factories register
     try:
-        import importlib
+        pass
 
-        importlib.import_module("ice_tools.generated")
+    # Starter packs are now loaded via manifests; no implicit imports here
     except Exception:
         pass
 

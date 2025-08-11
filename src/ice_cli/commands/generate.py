@@ -49,7 +49,7 @@ def generate() -> None:
 @click.argument("name", type=str)
 @click.option(
     "--out-dir",
-    default="src/ice_tools/generated",
+    default="packs/first_party_tools",
     help="Output directory for the tool file",
 )
 @click.option("--description", default="Custom tool", help="Tool description")
@@ -60,7 +60,7 @@ def generate_tool(name: str, out_dir: str, description: str) -> None:  # noqa: D
     class_name = "".join([p.capitalize() for p in tool_name.split("_")]) + "Tool"
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
-    module_rel = f"ice_tools.generated.{tool_name}"
+    module_rel = f"packs.first_party_tools.{tool_name}"
     file_path = out_path / f"{tool_name}.py"
 
     content = TOOL_TEMPLATE.format(
@@ -71,4 +71,4 @@ def generate_tool(name: str, out_dir: str, description: str) -> None:  # noqa: D
     )
     file_path.write_text(content)
     click.echo(f"✅ Generated tool at {file_path}")
-    click.echo("   Importing ice_tools.generated ensures auto-registration.")
+    click.echo("   Load via ICEOS_PLUGIN_MANIFESTS and plugins.v0 manifest.")

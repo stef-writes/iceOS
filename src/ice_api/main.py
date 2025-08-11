@@ -76,11 +76,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Initialize runtime orchestrator services
     initialize_orchestrator()
 
-    # Ensure first-party generated tools are registered for runtime
-    try:
-        importlib.import_module("ice_tools.generated")
-    except Exception:
-        pass
+    # Ensure first-party tools are provided via plugin manifests; avoid implicit imports
 
     # ------------------------------------------------------------------
     # Plugin manifests (opt-in starter packs and org components) --------
@@ -275,25 +271,26 @@ async def add_request_context(
     return response
 
 
-# Include routers
-from ice_api.api import drafts_router as _drafts_router
+"""Optional drafts feature: gated by ICEOS_ENABLE_DRAFTS=1"""
+if os.getenv("ICEOS_ENABLE_DRAFTS", "0") == "1":
+    # Include routers
+    from ice_api.api import drafts_router as _drafts_router
 
-app.include_router(_drafts_router)
+    app.include_router(_drafts_router)
 
-# WebSocket endpoint for draft updates --------------------------------------
-from ice_api.ws import draft_ws as _draft_ws
+    # WebSocket endpoint for draft updates ----------------------------------
+    from ice_api.ws import draft_ws as _draft_ws
 
-
-@app.websocket("/ws/drafts/{session_id}")
-async def draft_updates(ws: WebSocket, session_id: str) -> None:
-    await _draft_ws.register(session_id, ws)
-    try:
-        while True:
-            await ws.receive_text()  # keep connection alive (client pings)
-    except Exception:
-        pass
-    finally:
-        await _draft_ws.unregister(session_id, ws)
+    @app.websocket("/ws/drafts/{session_id}")
+    async def draft_updates(ws: WebSocket, session_id: str) -> None:
+        await _draft_ws.register(session_id, ws)
+        try:
+            while True:
+                await ws.receive_text()  # keep connection alive (client pings)
+        except Exception:
+            pass
+        finally:
+            await _draft_ws.unregister(session_id, ws)
 
 
 from ice_api.api.blueprints import router as blueprint_router  # ensure module import

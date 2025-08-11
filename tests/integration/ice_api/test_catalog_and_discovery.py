@@ -8,9 +8,18 @@ client = TestClient(app)
 
 
 def test_meta_nodes_catalog_contains_generated_tools_with_hints() -> None:
-    # Ensure generated tools are registered
-    __import__("ice_tools.generated.lookup_tool")
-    __import__("ice_tools.generated.writer_tool")
+    # Ensure starter-pack tools are registered via plugin manifest
+    import os
+    from pathlib import Path
+
+    from ice_core.registry import registry
+
+    pack_manifest = (
+        Path(__file__).parents[3] / "packs/first_party_tools/plugins.v0.yaml"
+    )
+    os.environ["ICEOS_PLUGIN_MANIFESTS"] = str(pack_manifest)
+    # Load dynamically if not already loaded
+    registry.load_plugins(str(pack_manifest), allow_dynamic=True)
 
     res = client.get("/api/v1/meta/nodes")
     assert res.status_code == 200

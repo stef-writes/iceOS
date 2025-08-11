@@ -66,7 +66,7 @@ def create_${registry_name}_tool(**kwargs: Any) -> ${class_name}:
 # Auto-registration -----------------------------------------------------------
 from ice_core.unified_registry import register_tool_factory
 
-register_tool_factory("${registry_name}", "ice_tools.generated.${registry_name}:create_${registry_name}_tool")
+register_tool_factory("${registry_name}", "packs.first_party_tools.${registry_name}:create_${registry_name}_tool")
 '''
 )
 
@@ -604,7 +604,7 @@ def scaffold_agent(
 ) -> None:  # noqa: D401
     """Generate agent skeleton."""
     agent_name = name if name.endswith("_agent") else f"{name}_agent"
-    module_path = f"ice_tools.generated.{agent_name}"
+    module_path = f"packs.first_party_tools.{agent_name}"
     rel = _create_from_template(
         "agent",
         agent_name,
@@ -632,7 +632,7 @@ def scaffold_agent(
 def scaffold_agent_tool(agent_name: str, output_dir: Path) -> None:  # noqa: D401
     """Generate tool wrapper around an existing agent."""
     class_prefix = _snake_to_pascal(agent_name)
-    module_path = f"ice_tools.generated.{agent_name}_tool"
+    module_path = f"packs.first_party_tools.{agent_name}_tool"
     rel = _create_from_template(
         "agent-tool",
         f"{agent_name}_tool",

@@ -63,12 +63,7 @@ def _validate_tool(name: str) -> Tuple[bool, str]:
 def validate_registered_components() -> Dict[str, Any]:
     """Validate registry contents; returns summary dict."""
     # Zero-setup: ensure first-party generated tools are imported so factories register
-    try:  # pragma: no cover – best-effort import path
-        import importlib as _importlib
-
-        _importlib.import_module("ice_tools.generated")
-    except Exception:
-        pass
+    # Starter packs load via ICEOS_PLUGIN_MANIFESTS; avoid implicit imports
     failed_tools: Dict[str, str] = {}
     # Prefer factory-registered tools for validation
     tool_names = [name for name, _ in registry.available_tool_factories()]

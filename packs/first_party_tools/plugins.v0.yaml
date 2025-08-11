@@ -1,0 +1,10 @@
+components:
+  - node_type: tool
+    name: writer_tool
+    import_path: packs.first_party_tools.writer_tool:create_writer_tool
+  - node_type: tool
+    name: lookup_tool
+    import_path: packs.first_party_tools.lookup_tool:create_lookup_tool
+  - node_type: tool
+    name: search_tool
+    import_path: packs.first_party_tools.search_tool:create_search_tool

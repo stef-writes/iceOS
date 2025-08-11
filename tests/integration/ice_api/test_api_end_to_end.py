@@ -34,13 +34,22 @@ async def _await_execution(
 
 
 async def _register_echo_llm_and_writer_tool(headers: Dict[str, str]) -> None:
-    # This test relies on runtime factories being available; import in-process factories
+    # Register a deterministic LLM and load starter-pack tools via plugins
+    import os
+    from pathlib import Path
+
+    from ice_core.registry import registry
     from ice_core.unified_registry import register_llm_factory
     from ice_orchestrator.config import runtime_config
-    from scripts.verify_runtime import create_echo_llm  # noqa: F401
 
     register_llm_factory("gpt-4o", "scripts.verify_runtime:create_echo_llm")
     runtime_config.max_tokens = None
+
+    pack_manifest = (
+        Path(__file__).parents[3] / "packs/first_party_tools/plugins.v0.yaml"
+    )
+    os.environ["ICEOS_PLUGIN_MANIFESTS"] = str(pack_manifest)
+    registry.load_plugins(str(pack_manifest), allow_dynamic=True)
 
 
 async def test_api_llm_only() -> None:
