@@ -14,8 +14,9 @@ pytestmark = pytest.mark.asyncio
 async def _await_done(
     c: httpx.AsyncClient, exec_id: str, headers: Dict[str, str]
 ) -> Dict[str, Any]:
-    for _ in range(60):
-        await asyncio.sleep(0.2)
+    # Allow up to 20 seconds to accommodate external provider latency
+    for _ in range(200):
+        await asyncio.sleep(0.1)
         r = await c.get(f"/api/v1/executions/{exec_id}", headers=headers)
         body = r.json()
         if body.get("status") in {"completed", "failed"}:

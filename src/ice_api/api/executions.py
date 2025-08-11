@@ -91,11 +91,14 @@ async def _run_workflow_async(
         record["status"] = "running"
         record["_event"].set()
         # Persist running state
-        redis = get_redis()
-        await redis.hset(
-            _exec_key(execution_id),
-            mapping={"status": "running", "blueprint_id": record["blueprint_id"]},
-        )
+        try:
+            redis = get_redis()
+            await redis.hset(
+                _exec_key(execution_id),
+                mapping={"status": "running", "blueprint_id": record["blueprint_id"]},
+            )
+        except Exception:
+            pass
 
         # Attach a lightweight event emitter to reflect per-node updates into the in-memory record
         def _event_emitter(event_name: str, payload: Dict[str, Any]) -> None:
@@ -135,17 +138,28 @@ async def _run_workflow_async(
         record["result"] = result.model_dump() if hasattr(result, "model_dump") else result  # type: ignore[assignment]
         record["_event"].set()
         # Persist completion
-        await redis.hset(
-            _exec_key(execution_id),
-            mapping={
-                "status": "completed",
-                "result": (
-                    result.model_dump_json()
-                    if hasattr(result, "model_dump_json")
-                    else str(result)
-                ),
-            },
-        )
+        try:
+            await redis.hset(
+                _exec_key(execution_id),
+                mapping={
+                    "status": "completed",
+                    "result": (
+                        result.model_dump_json()
+                        if hasattr(result, "model_dump_json")
+                        else str(result)
+                    ),
+                },
+            )
+            try:
+                import os as _os
+
+                exec_ttl = int(_os.getenv("EXECUTION_TTL_SECONDS", "0"))
+                if exec_ttl > 0 and hasattr(redis, "expire"):
+                    await redis.expire(_exec_key(execution_id), exec_ttl)  # type: ignore[misc]
+            except Exception:
+                pass
+        except Exception:
+            pass
     except Exception as exc:  # noqa: BLE001
         record["status"] = "failed"
         record["error"] = str(exc)
@@ -156,6 +170,14 @@ async def _run_workflow_async(
             await redis.hset(
                 _exec_key(execution_id), mapping={"status": "failed", "error": str(exc)}
             )
+            try:
+                import os as _os
+
+                exec_ttl = int(_os.getenv("EXECUTION_TTL_SECONDS", "0"))
+                if exec_ttl > 0 and hasattr(redis, "expire"):
+                    await redis.expire(_exec_key(execution_id), exec_ttl)  # type: ignore[misc]
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -234,12 +256,23 @@ async def start_execution(  # noqa: D401 – API route
             "_event": asyncio.Event(),  # internal notification hook
         },
     )
-    # Persist initial state
-    redis = get_redis()
-    await redis.hset(
-        _exec_key(execution_id),
-        mapping={"status": "pending", "blueprint_id": blueprint_id},
-    )
+    # Persist initial state (fallback to in-memory when Redis unavailable)
+    try:
+        redis = get_redis()
+        await redis.hset(
+            _exec_key(execution_id),
+            mapping={"status": "pending", "blueprint_id": blueprint_id},
+        )
+        try:
+            import os as _os
+
+            exec_ttl = int(_os.getenv("EXECUTION_TTL_SECONDS", "0"))
+            if exec_ttl > 0 and hasattr(redis, "expire"):
+                await redis.expire(_exec_key(execution_id), exec_ttl)  # type: ignore[misc]
+        except Exception:
+            pass
+    except Exception:
+        pass
 
     # Run in background – FastAPI will await task completion if lifespan ends
     asyncio.create_task(
@@ -255,17 +288,31 @@ async def start_execution(  # noqa: D401 – API route
 async def get_execution_status(
     request: Request, execution_id: str
 ) -> Dict[str, Any]:  # noqa: D401
-    # Prefer Redis as the source of truth
-    redis = get_redis()
-    data = await redis.hgetall(_exec_key(execution_id))  # type: ignore[misc]
-    if data:
-        decoded: Dict[str, Any] = {
-            (k.decode() if isinstance(k, (bytes, bytearray)) else k): (
-                v.decode() if isinstance(v, (bytes, bytearray)) else v
-            )
-            for k, v in data.items()
-        }
-        return decoded
+    # Prefer Redis as the source of truth; on error, fall back to in-memory
+    try:
+        redis = get_redis()
+        data = await redis.hgetall(_exec_key(execution_id))  # type: ignore[misc]
+        if data:
+            decoded: Dict[str, Any] = {
+                (k.decode() if isinstance(k, (bytes, bytearray)) else k): (
+                    v.decode() if isinstance(v, (bytes, bytearray)) else v
+                )
+                for k, v in data.items()
+            }
+            # Normalize JSON fields
+            try:
+                import json as _json
+
+                if isinstance(decoded.get("result"), str):
+                    val = decoded.get("result")
+                    if isinstance(val, str) and val and val[0] in "[{":
+                        decoded["result"] = _json.loads(val)
+            except Exception:
+                pass
+            return decoded
+    except Exception:
+        # Ignore Redis connectivity issues
+        pass
     # Fallback to in-memory
     store = _get_exec_store(request)
     if execution_id not in store:
@@ -304,15 +351,22 @@ async def cancel_execution(
     store = _get_exec_store(request)
     if execution_id not in store:
         # Also check Redis if needed
-        redis = get_redis()
-        data = await redis.hgetall(_exec_key(execution_id))  # type: ignore[misc]
-        if not data:
+        try:
+            redis = get_redis()
+            data = await redis.hgetall(_exec_key(execution_id))  # type: ignore[misc]
+            if not data:
+                raise HTTPException(status_code=404, detail="Execution not found")
+            # Update Redis state only (no in-memory record)
+            await redis.hset(
+                _exec_key(execution_id),
+                mapping={"status": "failed", "error": "canceled"},
+            )
+            return {"status": "canceled"}
+        except HTTPException:
+            raise
+        except Exception:
+            # Redis unavailable and no in-memory record
             raise HTTPException(status_code=404, detail="Execution not found")
-        # Update Redis state only (no in-memory record)
-        await redis.hset(
-            _exec_key(execution_id), mapping={"status": "failed", "error": "canceled"}
-        )
-        return {"status": "canceled"}
 
     # Update in-memory and notify WS clients
     rec = store[execution_id]
@@ -320,27 +374,12 @@ async def cancel_execution(
     rec["error"] = "canceled"
     if "_event" in rec:
         rec["_event"].set()  # type: ignore[operator]
-    # Persist to Redis
-    redis = get_redis()
-    await redis.hset(
-        _exec_key(execution_id), mapping={"status": "failed", "error": "canceled"}
-    )
+    # Persist to Redis (best effort)
+    try:
+        redis = get_redis()
+        await redis.hset(
+            _exec_key(execution_id), mapping={"status": "failed", "error": "canceled"}
+        )
+    except Exception:
+        pass
     return {"status": "canceled"}
-    # Prefer Redis as the source of truth
-    redis = get_redis()
-    data = await redis.hgetall(_exec_key(execution_id))  # type: ignore[misc]
-    if data:
-        # Decode bytes to str if needed (aioredis returns bytes)
-        decoded: Dict[str, Any] = {
-            (k.decode() if isinstance(k, (bytes, bytearray)) else k): (
-                v.decode() if isinstance(v, (bytes, bytearray)) else v
-            )
-            for k, v in data.items()
-        }
-        return decoded
-    # Fallback to in-memory
-    store = _get_exec_store(request)
-    if execution_id not in store:
-        raise HTTPException(status_code=404, detail="Execution not found")
-    record = store[execution_id]
-    return {k: v for k, v in record.items() if not k.startswith("_")}

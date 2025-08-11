@@ -1,4 +1,4 @@
- 
+
 
  [tool.poetry]
  # Package discovery and layout remain managed by Poetry-specific settings
@@ -19,7 +19,7 @@
 # ---------------------------------------------------------------------------
 # NOTE: Configuration files have been organized into config/ directory:
 # - config/linting/ruff.toml - Ruff linter configuration
-# - config/typing/mypy.ini - MyPy type checking configuration  
+# - config/typing/mypy.ini - MyPy type checking configuration
 # - config/testing/pytest.ini - Pytest configuration
 # Use: ruff check --config config/linting/ruff.toml
 #      mypy --config-file config/typing/mypy.ini
@@ -91,6 +91,7 @@ dependencies = [
   "rich>=13.6.0",
   "nest_asyncio>=1.6.0",
   "jinja2>=3.1.3",
+  "sse-starlette>=2.1.0",
 ]
 
 [build-system]
@@ -102,7 +103,7 @@ requires = [
 ]
 build-backend = "poetry.core.masonry.api"
 
- 
+
 
 [tool.black]
 line-length = 88
@@ -205,4 +206,3 @@ exclude = [
 [tool.ruff.per-file-ignores]
 "tests/**/*" = ["E402", "F401", "F841"]
 "scripts/**/*" = ["E402"]
-

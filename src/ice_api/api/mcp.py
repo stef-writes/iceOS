@@ -29,7 +29,7 @@ import datetime as _dt
 import json
 import logging
 import uuid
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Literal, Optional, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
@@ -42,14 +42,20 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+import os
+
 # Redis helper
 from ice_api.redis_client import get_redis
 from ice_core.models import NodeType
+from ice_core.models.enums import ModelProvider
+from ice_core.models.llm import LLMConfig
 from ice_core.models.mcp import (
+    AgentDefinition,
     Blueprint,
     BlueprintAck,
     ComponentDefinition,
     ComponentValidationResult,
+    NodeSpec,
     PartialBlueprint,
     PartialBlueprintUpdate,
     PartialNodeSpec,
@@ -518,6 +524,525 @@ class SuggestResponse(BaseModel):
     context: Dict[str, Any] = Field(default_factory=dict)
 
 
+# ---------------------------------------------------------------------------
+# Component Lifecycle (Scaffold, Register, CRUD, List) -----------------------
+# ---------------------------------------------------------------------------
+
+
+class ComponentScaffoldRequest(BaseModel):
+    """Request to scaffold a new component's starter code.
+
+    Args:
+        type: Component type ("tool" | "agent" | "workflow")
+        name: Desired public name
+        template: Optional template variant hint (e.g., "basic", "llm")
+    """
+
+    type: Literal["tool", "agent", "workflow"]
+    name: str
+    template: Optional[str] = Field(default=None)
+
+
+class ComponentScaffoldResponse(BaseModel):
+    """Response containing scaffolded code and notes.
+
+    Returns:
+        tool_factory_code/tool_class_code/agent_factory_code depending on type
+        notes: Guidance for the caller
+    """
+
+    notes: str
+    tool_factory_code: Optional[str] = None
+    tool_class_code: Optional[str] = None
+    agent_factory_code: Optional[str] = None
+
+
+def _component_key(component_type: str, name: str) -> str:
+    return f"component:{component_type}:{name}"
+
+
+def _component_index_key() -> str:
+    return "components:index"
+
+
+def _hash_lock(payload: Dict[str, Any]) -> str:
+    import hashlib
+    import json as _json
+
+    return hashlib.sha256(
+        _json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+@router.post(
+    "/components/scaffold",
+    response_model=ComponentScaffoldResponse,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def scaffold_component(
+    req: ComponentScaffoldRequest,
+) -> ComponentScaffoldResponse:  # noqa: D401
+    """Generate starter code for a new component.
+
+    - For tools: provide a minimal ToolBase subclass and factory template.
+    - For agents: provide an agent factory using `agent_factory` decorator.
+    - For workflows: currently out-of-scope; recommend building via blueprint.
+    """
+
+    if req.type == "tool":
+        class_code = f"""from __future__ import annotations\n\nfrom typing import Any, Dict\nfrom pydantic import Field\nfrom ice_core.base_tool import ToolBase\n\n\nclass {req.name.title().replace('_','')}Tool(ToolBase):\n    \"\"\"{req.name} – describe what it does.\n\n    Parameters\n    ----------\n    # add pydantic-validated parameters here\n    \"\"\"\n\n    name: str = \"{req.name}\"\n    description: str = Field(\"Describe the tool\")\n\n    async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:\n        # implement core logic here\n        return {{\"ok\": True}}\n\n"""
+        factory_code = (
+            "from __future__ import annotations\n\n"
+            "from typing import Any\n"
+            f"from ice_tools.generated.{req.name} import {req.name.title().replace('_','')}Tool\n\n"
+            f"def create_{req.name}(**kwargs: Any) -> {req.name.title().replace('_','')}Tool:\n"
+            f"    return {req.name.title().replace('_','')}Tool(**kwargs)\n"
+        )
+        notes = (
+            "Save class code as src/ice_tools/generated/" + req.name + ".py, "
+            "then register a factory path 'ice_tools.generated."
+            + req.name
+            + ":create_"
+            + req.name
+            + "'."
+        )
+        return ComponentScaffoldResponse(
+            notes=notes,
+            tool_class_code=class_code,
+            tool_factory_code=factory_code,
+        )
+
+    if req.type == "agent":
+        agent_code = f"""from __future__ import annotations\n\nfrom typing import Any\nfrom ice_builder.utils.agent_factory import agent_factory\n\n@agent_factory(name=\"{req.name}\")\ndef create_{req.name}(**kwargs: Any):\n    \"\"\"Return an AgentNode configured with tools and prompts.\n\n    Example:\n        agent = create_{req.name}(system_prompt=\"...\", tools=[\"writer_tool\"])\n        return agent\n    \"\"\"\n    # TODO: construct and return AgentNode using your project's agent API\n    raise NotImplementedError\n"""
+        return ComponentScaffoldResponse(
+            notes="Use this as a starting point; fill in agent construction.",
+            agent_factory_code=agent_code,
+        )
+
+    # workflow scaffold is intentionally minimal – prefer blueprint routes
+    return ComponentScaffoldResponse(
+        notes="Workflows are best authored via partial blueprints; use /blueprints/partial then finalize.",
+    )
+
+
+class ComponentRecord(BaseModel):
+    """Stored component definition with metadata and lock."""
+
+    definition: ComponentDefinition
+    created_at: _dt.datetime
+    updated_at: _dt.datetime
+    version: int = 1
+
+
+class ComponentRegisterResponse(ComponentValidationResult):
+    """Extends validation result with persistence metadata."""
+
+    version_lock: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Chat (conversational) endpoint --------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class ChatRequest(BaseModel):
+    session_id: str
+    user_message: str
+    reset: bool = False
+
+
+class ChatResponse(BaseModel):
+    session_id: str
+    agent_name: str
+    assistant_message: str
+
+
+@router.post(
+    "/chat/{agent_name}",
+    response_model=ChatResponse,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def chat_turn(agent_name: str, req: ChatRequest) -> ChatResponse:  # noqa: D401
+    """Single chat turn with simple session memory stored in Redis.
+
+    - Resolves data-first AgentDefinition if present.
+    - Builds an LLM node on-the-fly using the agent's llm_config and system_prompt.
+    - Persists message history per (agent_name, session_id) in Redis.
+    """
+
+    redis = get_redis()
+    chat_key = f"chat:{agent_name}:{req.session_id}"
+    if req.reset:
+        await redis.hset(chat_key, mapping={"messages": json.dumps([])})
+
+    # Load previous messages if any
+    raw_prev = await redis.hget(chat_key, "messages")  # type: ignore[misc]
+    prev: list[dict[str, str]] = []
+    if raw_prev:
+        try:
+            prev = json.loads(
+                raw_prev if isinstance(raw_prev, str) else raw_prev.decode()
+            )
+        except Exception:
+            prev = []
+
+    # Resolve agent definition for system prompt and llm_config
+    system_prompt = ""
+    llm_cfg: Optional[LLMConfig] = None
+    try:
+        agent_def = registry.get_agent_definition(agent_name)
+        system_prompt = agent_def.system_prompt or ""
+        llm_cfg = agent_def.llm_config
+    except Exception:
+        # Fallback to defaults if no agent definition present
+        llm_cfg = LLMConfig()
+
+    # Build prompt by concatenating messages (simple MVP)
+    messages = prev + [{"role": "user", "content": req.user_message}]
+    prompt_lines: list[str] = []
+    if system_prompt:
+        prompt_lines.append(f"System: {system_prompt}")
+    for m in messages:
+        role = m.get("role", "user")
+        content = m.get("content", "")
+        prompt_lines.append(f"{role.capitalize()}: {content}")
+    prompt = "\n".join(prompt_lines)
+
+    # Create a minimal LLM node spec and execute via workflow service
+    model_name = llm_cfg.model if llm_cfg and llm_cfg.model else "gpt-4o"
+    provider = llm_cfg.provider if llm_cfg else ModelProvider.OPENAI
+    node: Dict[str, Any] = {
+        "id": "chat_llm",
+        "type": "llm",
+        "model": model_name,
+        "provider": provider,
+        "prompt": prompt,
+        "llm_config": (llm_cfg.model_dump() if llm_cfg else {}),
+    }
+
+    svc = _get_workflow_service()
+    # Use the generic execute(nodes, name, max_parallel=...) to match IWorkflowService protocol
+    from ice_core.utils.node_conversion import (
+        convert_node_specs,  # local import for compatibility
+    )
+
+    result = await svc.execute(
+        convert_node_specs([NodeSpec(**node)]),
+        name=f"chat_{agent_name}",
+        max_parallel=1,
+    )
+
+    # Extract assistant text
+    output = result.output if hasattr(result, "output") else {}
+    assistant = ""
+    if isinstance(output, dict):
+        # Common convention: LLMNode returns {"text": ...} or flattened dict
+        assistant = str(output.get("text", "") or output.get("result", ""))
+
+    # Update history and persist
+    messages.append({"role": "assistant", "content": assistant})
+    await redis.hset(chat_key, mapping={"messages": json.dumps(messages)})
+    # Apply TTL for chat sessions if configured
+    try:
+        ttl = int(os.getenv("CHAT_TTL_SECONDS", "0"))
+        if ttl > 0:
+            # _RedisStub may not implement expire; guard with hasattr
+            if hasattr(redis, "expire"):
+                await redis.expire(chat_key, ttl)  # type: ignore[misc]
+    except Exception:
+        pass
+
+    return ChatResponse(
+        session_id=req.session_id, agent_name=agent_name, assistant_message=assistant
+    )
+
+
+@router.post(
+    "/components/register",
+    response_model=ComponentRegisterResponse,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def register_component(
+    definition: ComponentDefinition,
+) -> ComponentRegisterResponse:  # noqa: D401
+    """Validate then persist a component definition and register it in-memory.
+
+    Persistence uses Redis under key `component:{type}:{name}` with a content-hash\
+    version lock. Registration uses the existing validator's registration path.
+    """
+
+    from ice_core.validation.component_validator import validate_component
+
+    result = await validate_component(definition)
+    if not result.valid:
+        return ComponentRegisterResponse(**result.model_dump())
+
+    # Persist to Redis with version lock
+    redis = get_redis()
+    # Load existing to support idempotent no-op and version bump
+    existing_json = await redis.hget(_component_key(definition.type, definition.name), "json")  # type: ignore[misc]
+    if existing_json:
+        try:
+            existing = json.loads(
+                existing_json
+                if isinstance(existing_json, str)
+                else existing_json.decode()
+            )
+            prev_lock = await redis.hget(_component_key(definition.type, definition.name), "lock")  # type: ignore[misc]
+        except Exception:
+            existing = None
+            prev_lock = None
+    else:
+        existing = None
+        prev_lock = None
+
+    record = ComponentRecord(
+        definition=definition,
+        created_at=_dt.datetime.utcnow(),
+        updated_at=_dt.datetime.utcnow(),
+        version=(
+            int(existing.get("version", 1)) + 1 if isinstance(existing, dict) else 1
+        ),
+    )
+    payload = record.model_dump(mode="json")
+    lock = _hash_lock(payload)
+    # If lock unchanged, treat as idempotent update and do not bump version
+    if prev_lock and str(prev_lock) == lock:
+        # Maintain index and return early
+        await redis.hset(
+            _component_index_key(),
+            mapping={f"{definition.type}:{definition.name}": lock},
+        )
+        return ComponentRegisterResponse(**result.model_dump(), version_lock=lock)
+    else:
+        await redis.hset(
+            _component_key(definition.type, definition.name),
+            mapping={"json": json.dumps(payload), "lock": lock},
+        )
+    # Maintain a simple index for listing (store last lock for idempotency)
+    await redis.hset(
+        _component_index_key(), mapping={f"{definition.type}:{definition.name}": lock}
+    )
+
+    # Ensure registration side-effect identical to /components/validate
+    try:
+        _ = await validate_component_definition(definition)  # reuse existing logic
+    except Exception:
+        # Non-fatal; persistence succeeded
+        pass
+
+    return ComponentRegisterResponse(**result.model_dump(), version_lock=lock)
+
+
+@router.get(
+    "/components",
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def list_all_components() -> Dict[str, Any]:  # noqa: D401
+    """List stored components from the Redis index plus current registry view."""
+
+    redis = get_redis()
+    index = await redis.hgetall(_component_index_key())  # type: ignore[misc]
+    stored: list[Dict[str, Any]] = []
+    if index:
+        for k in index.keys():
+            key = k.decode() if isinstance(k, (bytes, bytearray)) else str(k)
+            ctype, name = key.split(":", 1)
+            # Load record to expose version/timestamps
+            rec_raw = await redis.hget(_component_key(ctype, name), "json")  # type: ignore[misc]
+            version = None
+            created_at = None
+            updated_at = None
+            if rec_raw:
+                try:
+                    rec_json = rec_raw if isinstance(rec_raw, str) else rec_raw.decode()
+                    rec = json.loads(rec_json)
+                    version = rec.get("version")
+                    created_at = rec.get("created_at")
+                    updated_at = rec.get("updated_at")
+                except Exception:
+                    pass
+            stored.append(
+                {
+                    "type": ctype,
+                    "name": name,
+                    "version": version,
+                    "created_at": created_at,
+                    "updated_at": updated_at,
+                }
+            )
+
+    # Include registered factories as a convenience
+    tools = [
+        {"type": "tool", "name": n} for n, _ in registry.available_tool_factories()
+    ]
+    agents = [
+        {"type": "agent", "name": n}
+        for n, _ in global_agent_registry.available_agents()
+    ]
+    workflows = [
+        {"type": "workflow", "name": n}
+        for n, _ in registry.available_workflow_factories()
+    ]
+
+    return {"stored": stored, "registered": tools + agents + workflows}
+
+
+@router.get(
+    "/components/{component_type}/{name}",
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def get_component(
+    component_type: str, name: str, response: Response
+) -> Dict[str, Any]:  # noqa: D401
+    """Fetch a stored component definition and expose current version lock."""
+
+    redis = get_redis()
+    raw = await redis.hget(_component_key(component_type, name), "json")  # type: ignore[misc]
+    if not raw:
+        raise HTTPException(404, detail="Component not found")
+    lock = await redis.hget(_component_key(component_type, name), "lock")  # type: ignore[misc]
+    if lock:
+        response.headers["X-Version-Lock"] = str(lock)
+    if isinstance(raw, (bytes, bytearray)):
+        raw = raw.decode()
+    data_any = json.loads(raw)
+    # Ensure mapping type for typing clarity
+    assert isinstance(data_any, dict)
+    data_typed: Dict[str, Any] = {str(k): v for k, v in data_any.items()}
+    # Also include version and timestamps at top-level for convenience
+    version = data_typed.get("version")
+    created_at = data_typed.get("created_at")
+    updated_at = data_typed.get("updated_at")
+    data_typed["version"] = version
+    data_typed["created_at"] = created_at
+    data_typed["updated_at"] = updated_at
+    return data_typed
+
+
+@router.put(
+    "/components/{component_type}/{name}",
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def update_component(
+    request: Request, component_type: str, name: str, definition: ComponentDefinition
+) -> Dict[str, Any]:  # noqa: D401
+    """Update a stored component; requires X-Version-Lock optimistic concurrency."""
+
+    if definition.type != component_type or definition.name != name:
+        raise HTTPException(400, detail="Path/type/name mismatch in definition")
+
+    redis = get_redis()
+    server_lock = await redis.hget(_component_key(component_type, name), "lock")  # type: ignore[misc]
+    if not server_lock:
+        raise HTTPException(404, detail="Component not found")
+    client_lock = request.headers.get("X-Version-Lock")
+    if client_lock is None:
+        raise HTTPException(status_code=428, detail="Missing X-Version-Lock header")
+    if str(server_lock) != client_lock:
+        raise HTTPException(status_code=409, detail="Component version conflict")
+
+    record = ComponentRecord(
+        definition=definition,
+        created_at=_dt.datetime.utcnow(),  # we don't track original here; keep simple
+        updated_at=_dt.datetime.utcnow(),
+    )
+    payload = record.model_dump(mode="json")
+    new_lock = _hash_lock(payload)
+    await redis.hset(_component_key(component_type, name), mapping={"json": json.dumps(payload), "lock": new_lock})  # type: ignore[misc]
+    return {"name": name, "type": component_type, "version_lock": new_lock}
+
+
+@router.delete(
+    "/components/{component_type}/{name}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def delete_component(component_type: str, name: str) -> Response:  # noqa: D401
+    """Delete a stored component definition and remove it from the index."""
+
+    redis = get_redis()
+    await redis.hdel(_component_key(component_type, name), "json", "lock")  # type: ignore[misc]
+    await redis.hdel(_component_index_key(), f"{component_type}:{name}")  # type: ignore[misc]
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+class AgentComposeRequest(BaseModel):
+    """Compose an agent from prompt, tools, and LLM config (without api_key)."""
+
+    name: str
+    system_prompt: Optional[str] = None
+    tools: List[str] = Field(default_factory=list)
+    llm_config: Optional[Dict[str, Any]] = None
+
+
+@router.post(
+    "/agents/compose",
+    response_model=ComponentRegisterResponse,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def compose_agent(
+    req: AgentComposeRequest,
+) -> ComponentRegisterResponse:  # noqa: D401
+    """Create a simple agent definition and register via component pipeline.
+
+    Not BYOK: any `api_key` field in llm_config is ignored.
+    """
+
+    llm_dict: Dict[str, Any] = dict(req.llm_config or {})
+    if "api_key" in llm_dict:
+        llm_dict.pop("api_key", None)
+
+    definition = ComponentDefinition(
+        type="agent",
+        name=req.name,
+        description=f"Agent {req.name}",
+        agent_system_prompt=req.system_prompt or "",
+        agent_tools=req.tools,
+        agent_llm_config=llm_dict,
+        auto_register=True,
+    )
+    # Persistent path (Redis) when available; else in-memory fall-back for zero-setup
+    try:
+        return await register_component(definition)
+    except Exception as exc:
+        # If Redis is unavailable, register definition in-process (non-persistent)
+        if (
+            isinstance(exc, Exception)
+            and "ConnectionError" in str(type(exc))
+            or "redis" in str(exc).lower()
+        ):
+            try:
+                from ice_core.models import LLMConfig as _LLMConfig
+
+                llm_cfg = _LLMConfig(**req.llm_config) if req.llm_config else None
+            except Exception:
+                llm_cfg = None
+            registry.register_agent_definition(
+                req.name,
+                AgentDefinition(
+                    name=req.name,
+                    system_prompt=req.system_prompt or None,
+                    tools=req.tools or [],
+                    llm_config=llm_cfg,
+                    memory={},
+                ),
+            )
+            return ComponentRegisterResponse(
+                valid=True,
+                errors=[],
+                warnings=[],
+                suggestions=["Registered in-memory (non-persistent)"],
+                registered=True,
+                registry_name=req.name,
+                component_type="agent",
+                component_id=f"agent_{req.name}",
+                version_lock=None,
+                validation_details={"has_system_prompt": bool(req.system_prompt)},
+            )
+        raise
+
+
 def _compute_suggestions(
     partial: PartialBlueprint, allowed: Optional[List[str]], top_k: int
 ) -> SuggestResponse:
@@ -681,6 +1206,37 @@ async def start_run(req: RunRequest) -> RunAck:
                 cfg.runtime_validate()  # type: ignore[attr-defined]
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid blueprint: {exc}")
+
+    # Budget preflight parity with /api/v1/executions -------------------------
+    try:
+        from importlib import import_module
+
+        runtime_config = getattr(
+            import_module("ice_orchestrator.config"), "runtime_config"
+        )
+        WorkflowCostEstimator = getattr(
+            import_module("ice_orchestrator.execution.cost_estimator"),
+            "WorkflowCostEstimator",
+        )
+        estimator = WorkflowCostEstimator()
+        est = estimator.estimate_workflow_cost(conv_nodes)
+        env_budget = os.getenv("ORG_BUDGET_USD")
+        budget_limit = (
+            float(env_budget) if env_budget else runtime_config.org_budget_usd
+        )
+        if budget_limit is not None and est.total_avg_cost > budget_limit:
+            raise HTTPException(
+                status_code=402,
+                detail=(
+                    f"Estimated cost ${est.total_avg_cost:.2f} exceeds budget "
+                    f"${budget_limit:.2f}"
+                ),
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        # Non-fatal if estimator is unavailable in minimal builds
+        pass
 
     run_id = f"run_{uuid.uuid4().hex[:8]}"
     start_ts = _dt.datetime.utcnow()
@@ -1026,13 +1582,32 @@ async def validate_component_definition(
                     )
 
             elif definition.type == "agent":
-                # For agents, register the configuration
-                # In a real implementation, you'd create an agent factory
-                global_agent_registry.register_agent(
-                    definition.name, f"dynamic.agents.{definition.name}"
-                )
-                result.registered = True
-                result.registry_name = definition.name
+                # Data-first agent definition persisted in registry
+                try:
+                    from ice_core.models import LLMConfig as _LLMConfig
+
+                    llm = (
+                        _LLMConfig(**definition.agent_llm_config)
+                        if definition.agent_llm_config
+                        else None
+                    )
+                except Exception:
+                    llm = None
+                try:
+                    registry.register_agent_definition(
+                        definition.name,
+                        AgentDefinition(
+                            name=definition.name,
+                            system_prompt=definition.agent_system_prompt or None,
+                            tools=definition.agent_tools or [],
+                            llm_config=llm,
+                            memory=definition.metadata.get("memory", {}),
+                        ),
+                    )
+                    result.registered = True
+                    result.registry_name = definition.name
+                except Exception as e:
+                    result.errors.append(str(e))
 
             elif definition.type == "workflow":
                 # For workflows, create from nodes
@@ -1088,7 +1663,7 @@ async def validate_component_definition(
 
 
 @router.get("/components/{component_type}")
-async def list_components(component_type: str) -> Dict[str, Any]:
+async def list_components_by_type(component_type: str) -> Dict[str, Any]:
     """List all registered components of a given type."""
     valid_types = ["tool", "agent", "workflow"]
     if component_type not in valid_types:

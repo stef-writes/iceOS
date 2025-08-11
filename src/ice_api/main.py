@@ -44,6 +44,15 @@ from ice_core.utils.logging import setup_logger
 # Setup logging
 logger = setup_logger()
 
+# Quiet overly chatty third-party loggers that spam during tests and dev runs
+try:
+    import logging as _logging
+
+    for _name in ("httpx", "httpcore"):
+        _logging.getLogger(_name).setLevel(_logging.WARNING)
+except Exception:  # pragma: no cover – best-effort
+    pass
+
 # Load environment variables
 load_dotenv()
 
@@ -148,10 +157,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         else:
             logger.debug(f"{key_name} not found in environment")
 
-    # Initialize Redis connection
-    redis = get_redis()
-    await redis.ping()  # type: ignore[misc]
-    logger.info("Redis connection established")
+    # Initialize Redis connection, with zero-setup fallback to in-memory stub
+    try:
+        redis = get_redis()
+        await redis.ping()  # type: ignore[misc]
+        logger.info("Redis connection established")
+    except Exception as exc:  # pragma: no cover – fallback path
+        logger.warning("Redis unavailable (%s) – falling back to in-memory stub", exc)
+        import os as _os
+
+        _os.environ["USE_FAKE_REDIS"] = "1"
+        # Recreate client as stub
+        redis = get_redis()
+        try:
+            await redis.ping()  # type: ignore[misc]
+        except Exception:
+            # Stub ping always succeeds; ignore
+            pass
 
     # ------------------------------------------------------------------
     # Component validation ---------------------------------------------

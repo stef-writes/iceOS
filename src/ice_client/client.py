@@ -181,6 +181,213 @@ class IceClient:
         status = RunStatus.FINISHED if result.success else RunStatus.ERROR
         return status, result
 
+    # -------------------------------------------------------- MCP components
+    async def scaffold_component(
+        self,
+        component_type: str,
+        name: str,
+        *,
+        template: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Request scaffold code for a new component.
+
+        Parameters
+        ----------
+        component_type : str
+            One of "tool", "agent", or "workflow".
+        name : str
+            Public name of the component.
+        template : str | None
+            Optional template variant.
+
+        Returns
+        -------
+        Mapping[str, Any]
+            Response containing scaffold code fields and notes.
+
+        Example
+        -------
+        >>> await client.scaffold_component("tool", "csv_loader")
+        """
+
+        url = f"{self._API_PREFIX}/components/scaffold"
+        payload: MutableMapping[str, Any] = {"type": component_type, "name": name}
+        if template is not None:
+            payload["template"] = template
+        resp = await self._client.post(url, json=payload)
+        _raise_for_status(resp)
+        data: Any = resp.json()
+        assert isinstance(data, dict)
+        return data
+
+    async def register_component(
+        self, definition: Mapping[str, Any]
+    ) -> Mapping[str, Any]:
+        """Validate then persist and register a component definition.
+
+        Returns a payload including `version_lock` on success.
+        """
+
+        url = f"{self._API_PREFIX}/components/register"
+        resp = await self._client.post(url, json=dict(definition))
+        _raise_for_status(resp)
+        data: Any = resp.json()
+        assert isinstance(data, dict)
+        return data
+
+    async def list_components(self) -> Mapping[str, Any]:
+        """List stored components and currently registered factories."""
+
+        url = f"{self._API_PREFIX}/components"
+        resp = await self._client.get(url)
+        _raise_for_status(resp)
+        data: Any = resp.json()
+        assert isinstance(data, dict)
+        return data
+
+    async def get_component(
+        self, component_type: str, name: str
+    ) -> tuple[Mapping[str, Any], Optional[str]]:
+        """Fetch a stored component and its current version lock (if any)."""
+
+        url = f"{self._API_PREFIX}/components/{component_type}/{name}"
+        resp = await self._client.get(url)
+        _raise_for_status(resp)
+        lock = resp.headers.get("X-Version-Lock")
+        obj: Any = resp.json()
+        assert isinstance(obj, dict)
+        return obj, lock
+
+    async def update_component(
+        self,
+        component_type: str,
+        name: str,
+        definition: Mapping[str, Any],
+        *,
+        version_lock: str,
+    ) -> str:
+        """Update a stored component using optimistic concurrency.
+
+        Returns the new `version_lock`.
+        """
+
+        url = f"{self._API_PREFIX}/components/{component_type}/{name}"
+        headers = {"X-Version-Lock": version_lock}
+        resp = await self._client.put(url, json=dict(definition), headers=headers)
+        _raise_for_status(resp)
+        data = resp.json()
+        return str(data.get("version_lock", ""))
+
+    async def delete_component(self, component_type: str, name: str) -> None:
+        """Delete a stored component definition."""
+
+        url = f"{self._API_PREFIX}/components/{component_type}/{name}"
+        resp = await self._client.delete(url)
+        _raise_for_status(resp)
+
+    async def compose_agent(
+        self,
+        name: str,
+        *,
+        system_prompt: str | None = None,
+        tools: list[str] | None = None,
+        llm_config: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Compose and register a simple agent definition (not BYOK)."""
+
+        url = f"{self._API_PREFIX}/agents/compose"
+        payload: MutableMapping[str, Any] = {
+            "name": name,
+            "system_prompt": system_prompt,
+            "tools": list(tools or []),
+            "llm_config": dict(llm_config or {}),
+        }
+        resp = await self._client.post(url, json=payload)
+        _raise_for_status(resp)
+        data: Any = resp.json()
+        assert isinstance(data, dict)
+        return data
+
+    # ---------------------------------------------- Partial blueprints (MCP)
+    async def create_partial_blueprint(
+        self, initial_node: Mapping[str, Any] | None = None
+    ) -> Mapping[str, Any]:
+        """Create a new partial blueprint; returns the partial blueprint JSON."""
+
+        url = f"{self._API_PREFIX}/blueprints/partial"
+        # Body is optional per API; include only when provided
+        json_body = initial_node if initial_node is not None else None
+        resp = await self._client.post(url, json=json_body)
+        _raise_for_status(resp)
+        data: Any = resp.json()
+        assert isinstance(data, dict)
+        return data
+
+    async def get_partial_blueprint(
+        self, blueprint_id: str
+    ) -> tuple[Mapping[str, Any], Optional[str]]:
+        """Fetch partial blueprint JSON and current version lock header."""
+
+        url = f"{self._API_PREFIX}/blueprints/partial/{blueprint_id}"
+        resp = await self._client.get(url)
+        _raise_for_status(resp)
+        lock = resp.headers.get("X-Version-Lock")
+        return resp.json(), lock
+
+    async def update_partial_blueprint(
+        self,
+        blueprint_id: str,
+        update: Mapping[str, Any],
+        *,
+        version_lock: str,
+    ) -> Mapping[str, Any]:
+        """Apply an incremental update; requires X-Version-Lock."""
+
+        url = f"{self._API_PREFIX}/blueprints/partial/{blueprint_id}"
+        headers = {"X-Version-Lock": version_lock}
+        resp = await self._client.put(url, json=dict(update), headers=headers)
+        _raise_for_status(resp)
+        data: Any = resp.json()
+        assert isinstance(data, dict)
+        return data
+
+    async def finalize_partial_blueprint(
+        self, blueprint_id: str, *, version_lock: str
+    ) -> Mapping[str, Any]:
+        """Finalize a partial blueprint to an executable blueprint; returns ack."""
+
+        url = f"{self._API_PREFIX}/blueprints/partial/{blueprint_id}/finalize"
+        headers = {"X-Version-Lock": version_lock}
+        resp = await self._client.post(url, headers=headers)
+        _raise_for_status(resp)
+        data: Any = resp.json()
+        assert isinstance(data, dict)
+        return data
+
+    async def suggest_partial(
+        self,
+        blueprint_id: str,
+        *,
+        top_k: int = 5,
+        allowed_types: list[str] | None = None,
+        commit: bool = False,
+        version_lock: str | None = None,
+    ) -> Mapping[str, Any]:
+        """Request suggestions for next nodes; commit path requires X-Version-Lock."""
+
+        url = f"{self._API_PREFIX}/blueprints/partial/{blueprint_id}/suggest"
+        body: MutableMapping[str, Any] = {"top_k": top_k, "commit": commit}
+        if allowed_types is not None:
+            body["allowed_types"] = list(allowed_types)
+        headers: MutableMapping[str, str] = {}
+        if commit and version_lock is not None:
+            headers["X-Version-Lock"] = version_lock
+        resp = await self._client.post(url, json=body, headers=headers or None)
+        _raise_for_status(resp)
+        data: Any = resp.json()
+        assert isinstance(data, dict)
+        return data
+
     # ---------------------------------------------------------------- blueprints
     async def create_blueprint(self, payload: Mapping[str, Any]) -> tuple[str, str]:
         """Create a blueprint via REST API and return (id, version_lock)."""
@@ -299,6 +506,92 @@ class IceClient:
                 elif line.startswith("event: "):
                     # Not needed now – but could be exposed to caller.
                     continue
+
+    # ---------------------------------------------- Studio convenience APIs
+    async def run_and_wait(
+        self,
+        *,
+        blueprint: Blueprint | Mapping[str, Any] | None = None,
+        blueprint_id: str | None = None,
+        max_parallel: int = 5,
+    ) -> RunResult:
+        """Submit a run via MCP and wait for completion.
+
+        Parameters
+        ----------
+        blueprint : Blueprint | Mapping[str, Any] | None
+            Inline blueprint definition to run (takes precedence over blueprint_id).
+        blueprint_id : str | None
+            ID of a blueprint registered on the server.
+        max_parallel : int
+            Concurrency hint for the orchestrator.
+
+        Returns
+        -------
+        RunResult
+
+        Example
+        -------
+        >>> result = await client.run_and_wait(blueprint_id="bp_abc")
+        >>> assert result.success
+        """
+
+        ack = await self.submit_blueprint(
+            blueprint, blueprint_id=blueprint_id, max_parallel=max_parallel
+        )
+        return await self.wait_for_completion(ack.run_id)
+
+    async def run_and_stream(
+        self,
+        *,
+        blueprint: Blueprint | Mapping[str, Any] | None = None,
+        blueprint_id: str | None = None,
+        max_parallel: int = 5,
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Submit a run via MCP and stream SSE events until completion.
+
+        Yields
+        ------
+        dict[str, Any]
+            Event payloads as emitted by the server (SSE).
+
+        Example
+        -------
+        >>> async for evt in client.run_and_stream(blueprint_id="bp_abc"):
+        ...     print(evt)
+        """
+
+        ack = await self.submit_blueprint(
+            blueprint, blueprint_id=blueprint_id, max_parallel=max_parallel
+        )
+        async for evt in self.stream_events(ack.run_id):
+            yield evt
+
+    # -------------------------------------------------------------- chat API
+    async def chat_turn(
+        self,
+        agent_name: str,
+        session_id: str,
+        user_message: str,
+        *,
+        reset: bool = False,
+    ) -> Mapping[str, Any]:
+        """Send one chat turn to an agent and get assistant reply.
+
+        Returns a dict containing session_id, agent_name, assistant_message.
+        """
+
+        url = f"{self._API_PREFIX}/chat/{agent_name}"
+        payload = {
+            "session_id": session_id,
+            "user_message": user_message,
+            "reset": reset,
+        }
+        resp = await self._client.post(url, json=payload)
+        _raise_for_status(resp)
+        data: Any = resp.json()
+        assert isinstance(data, dict)
+        return data
 
     # ---------------------------------------------------------------- utils
     async def close(self) -> None:

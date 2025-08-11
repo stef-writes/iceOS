@@ -156,6 +156,8 @@ async def test_api_agent_to_tool() -> None:
                     "package": "tests.integration.runtime.agent_stub",  # illustrative
                     "max_iterations": 1,
                     "dependencies": [],
+                    "input_schema": {"message": "str"},
+                    "output_schema": {"reply": "str"},
                 }
             ],
         }

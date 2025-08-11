@@ -49,6 +49,22 @@ class _RedisStub:  # type: ignore
     async def hget(self, key: str, field: str) -> Optional[str]:  # type: ignore[override]
         return self._hashes.get(key, {}).get(field)
 
+    async def hgetall(self, key: str) -> dict[str, str]:  # type: ignore[override]
+        # Return a shallow copy to mimic Redis behavior
+        return dict(self._hashes.get(key, {}))
+
+    async def hdel(self, key: str, *fields: str) -> int:  # type: ignore[override]
+        removed = 0
+        bucket = self._hashes.get(key, {})
+        for f in fields:
+            if f in bucket:
+                del bucket[f]
+                removed += 1
+        # Clean up empty bucket
+        if key in self._hashes and not self._hashes[key]:
+            del self._hashes[key]
+        return removed
+
     async def exists(self, key: str) -> bool:  # type: ignore[override]
         return key in self._hashes or key in self._streams
 
@@ -84,6 +100,10 @@ class _RedisStub:  # type: ignore
             if entries:
                 results.append((stream, entries))
         return results
+
+    async def expire(self, key: str, ttl: int) -> bool:  # type: ignore[override]
+        # No-op in stub; return True to indicate success
+        return True
 
 
 try:
@@ -133,8 +153,59 @@ def get_redis() -> Union["Redis", _RedisStub]:  # – singleton, *sync* accessor
             # Always create a new in-memory stub for test isolation
             _redis_client = _RedisStub()  # type: ignore[call-arg]
         else:
-            _redis_client = redis.from_url(  # type: ignore[no-untyped-call]
-                os.getenv("REDIS_URL", "redis://localhost:6379/0")
-            )
+            url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+            # Connection settings (optional)
+            decode_responses = os.getenv("REDIS_DECODE_RESPONSES", "1") == "1"
+            client_name = os.getenv("REDIS_CLIENT_NAME", "ice_api")
+            socket_timeout = os.getenv("REDIS_SOCKET_TIMEOUT")
+            socket_connect_timeout = os.getenv("REDIS_SOCKET_CONNECT_TIMEOUT")
+            max_connections = os.getenv("REDIS_MAX_CONNECTIONS")
+            ssl_ca_certs = os.getenv("REDIS_SSL_CA_CERTS")
+
+            kwargs: dict[str, Any] = {
+                "encoding": "utf-8",
+                "decode_responses": decode_responses,
+                "client_name": client_name,
+            }
+            if socket_timeout:
+                try:
+                    kwargs["socket_timeout"] = float(socket_timeout)
+                except ValueError:
+                    pass
+            if socket_connect_timeout:
+                try:
+                    kwargs["socket_connect_timeout"] = float(socket_connect_timeout)
+                except ValueError:
+                    pass
+            if max_connections:
+                try:
+                    kwargs["max_connections"] = int(max_connections)
+                except ValueError:
+                    pass
+            if ssl_ca_certs:
+                kwargs["ssl_ca_certs"] = ssl_ca_certs
+
+            # Sentinel support (optional): REDIS_SENTINEL_ENDPOINTS=host1:26379,host2:26379
+            sentinel_eps = os.getenv("REDIS_SENTINEL_ENDPOINTS")
+            sentinel_master = os.getenv("REDIS_SENTINEL_MASTER_NAME")
+            if sentinel_eps and sentinel_master:
+                try:
+                    from redis.asyncio.sentinel import Sentinel  # type: ignore
+
+                    endpoints: list[tuple[str, int]] = []
+                    for ep in sentinel_eps.split(","):
+                        ep = ep.strip()
+                        if not ep:
+                            continue
+                        host, port_str = ep.split(":", 1)
+                        endpoints.append((host, int(port_str)))
+
+                    sentinel = Sentinel(endpoints, **kwargs)  # type: ignore[no-untyped-call]
+                    _redis_client = sentinel.master_for(sentinel_master, **kwargs)  # type: ignore[assignment,no-untyped-call]
+                except Exception:
+                    # Fallback to direct URL if sentinel import/config fails
+                    _redis_client = redis.from_url(url, **kwargs)  # type: ignore[no-untyped-call]
+            else:
+                _redis_client = redis.from_url(url, **kwargs)  # type: ignore[no-untyped-call]
 
     return _redis_client

@@ -27,21 +27,34 @@ def _bp_key(blueprint_id: str) -> str:  # noqa: D401 – helper
 
 async def _load_blueprint(blueprint_id: str) -> Blueprint:  # noqa: D401 – helper
     """Load a blueprint by id from Redis or raise 404 if not found."""
-    redis = get_redis()
-    raw_json = await redis.hget(_bp_key(blueprint_id), "json")  # type: ignore[arg-type]
-    if not raw_json:
-        raise HTTPException(status_code=404, detail="Blueprint not found")
-    return Blueprint.model_validate_json(raw_json)
+    try:
+        redis = get_redis()
+        raw_json = await redis.hget(_bp_key(blueprint_id), "json")  # type: ignore[arg-type]
+        if raw_json:
+            return Blueprint.model_validate_json(raw_json)
+    except Exception:
+        pass
+    # Zero-setup in-memory fallback
+    # Note: We avoid importing Request/Depends here to prevent unused-import warnings.
+    # In FastAPI route context, we can't access request here; use app state via workaround not available.
+    # Instead, signal not found and let caller manage state-based fallback.
+    raise HTTPException(status_code=404, detail="Blueprint not found")
 
 
 async def _save_blueprint(
     blueprint_id: str, blueprint: Blueprint
 ) -> None:  # noqa: D401 – helper
     """Persist blueprint JSON to Redis."""
-    redis = get_redis()
-    await redis.hset(
-        _bp_key(blueprint_id), mapping={"json": blueprint.model_dump_json()}
-    )
+    try:
+        redis = get_redis()
+        await redis.hset(
+            _bp_key(blueprint_id), mapping={"json": blueprint.model_dump_json()}
+        )
+    except Exception:
+        # Zero-setup in-memory fallback under app.state.blueprints
+        # The caller routes have access to request.app.state; we'll write into it there instead.
+        # This helper cannot access request, so it will raise and let callers handle.
+        raise
 
 
 def _merge_nodes(
@@ -58,7 +71,7 @@ def _merge_nodes(
 
 
 import hashlib
-import json
+import json as _json
 
 # ---------------------------------------------------------------------------
 # Version-lock helpers ------------------------------------------------------
@@ -76,19 +89,19 @@ def _calculate_version_lock(bp: Blueprint | Any) -> str:  # noqa: D401
     # Fast path – already a Blueprint instance
     if hasattr(bp, "model_dump"):
         payload = bp.model_dump(mode="json", exclude_none=True)  # type: ignore[arg-type]
-        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+        return hashlib.sha256(_json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     # Handle Pydantic v2 ValidationInfo wrapper transparently (runtime optional)
     data_obj = getattr(bp, "data", None) if hasattr(bp, "data") else None
     if data_obj is not None and hasattr(data_obj, "model_dump"):
         payload = data_obj.model_dump(mode="json", exclude_none=True)  # type: ignore[arg-type]
-        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+        return hashlib.sha256(_json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
     # Fallback – unknown type, return deterministic empty hash so caller fails
     return "0" * 64
 
     payload = bp.model_dump(mode="json", exclude_none=True)  # type: ignore[arg-type]
-    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+    return hashlib.sha256(_json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +205,15 @@ async def create_blueprint(  # noqa: D401 – API route
     _validate_resolvable_and_allowed(blueprint)
 
     blueprint_id = str(uuid.uuid4())
-    await _save_blueprint(blueprint_id, blueprint)
+    try:
+        await _save_blueprint(blueprint_id, blueprint)
+    except Exception:
+        # In-memory fallback
+        store = getattr(request.app.state, "blueprints", None)
+        if store is not None:
+            store[blueprint_id] = blueprint
+        else:
+            request.app.state.blueprints = {blueprint_id: blueprint}
 
     version_lock = _calculate_version_lock(blueprint)
     return {"id": blueprint_id, "version_lock": version_lock}
@@ -207,7 +228,13 @@ async def get_blueprint(
     response: Response,
 ) -> Dict[str, Any]:  # noqa: D401 – API route
     """Return a stored Blueprint by *id* with optimistic version-lock header."""
-    bp = await _load_blueprint(blueprint_id)
+    try:
+        bp = await _load_blueprint(blueprint_id)
+    except HTTPException:
+        store = getattr(request.app.state, "blueprints", {})
+        if blueprint_id not in store:
+            raise
+        bp = store[blueprint_id]
 
     # Compute version lock and expose as header
     version_lock = _calculate_version_lock(bp)
@@ -254,7 +281,13 @@ async def patch_blueprint(  # noqa: D401
     # Enforce resolvability and access
     _validate_resolvable_and_allowed(bp)
 
-    await _save_blueprint(blueprint_id, bp)
+    try:
+        await _save_blueprint(blueprint_id, bp)
+    except Exception:
+        # In-memory update
+        store = getattr(request.app.state, "blueprints", None)
+        if store is not None:
+            store[blueprint_id] = bp
     return {"id": blueprint_id, "node_count": len(bp.nodes)}
 
 

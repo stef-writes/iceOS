@@ -1,0 +1,23 @@
+[Unit]
+Description=iceOS API
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=ICE_API_TOKEN=dev-token
+Environment=OPENAI_API_KEY=
+Environment=REDIS_URL=redis://localhost:6379/0
+Environment=REDIS_CLIENT_NAME=ice_api
+Environment=REDIS_DECODE_RESPONSES=1
+Environment=REDIS_SOCKET_TIMEOUT=5.0
+Environment=REDIS_SOCKET_CONNECT_TIMEOUT=3.0
+Environment=REDIS_MAX_CONNECTIONS=100
+Environment=CHAT_TTL_SECONDS=2592000
+Environment=EXECUTION_TTL_SECONDS=604800
+ExecStart=/usr/bin/env uvicorn ice_api.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

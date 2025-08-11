@@ -39,7 +39,7 @@ class ToolExecutionService:
 
             raise ToolFactoryResolutionError(tool_name, "not found in registry")
 
-        # Execute the tool
+        # Execute the tool (inject execution context when supported)
         execute_fn = getattr(tool_instance, "execute", None)
         if execute_fn is None:
             from ice_core.exceptions import ToolFactoryResolutionError
@@ -48,6 +48,24 @@ class ToolExecutionService:
 
         EXEC_STARTED.inc()
         # Handle both sync and async execution
+        # Try to pass context/memory via conventional kw if accepted
+        try:
+            from inspect import signature
+
+            sig = signature(execute_fn)
+            if "context" in sig.parameters and context is not None:
+                inputs = {**inputs, "context": context}
+            if (
+                "memory" in sig.parameters
+                and context is not None
+                and isinstance(context, dict)
+            ):
+                mem = context.get("memory")
+                if mem is not None:
+                    inputs = {**inputs, "memory": mem}
+        except Exception:
+            pass
+
         if asyncio.iscoroutinefunction(execute_fn):
             result = await execute_fn(**inputs)
         else:

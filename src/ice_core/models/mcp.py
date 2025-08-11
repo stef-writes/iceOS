@@ -13,6 +13,8 @@ from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from .llm import LLMConfig
+
 # ---------------------------------------------------------------------------
 # Blueprint & nodes ----------------------------------------------------------
 # ---------------------------------------------------------------------------
@@ -364,6 +366,31 @@ class ComponentValidationResult(BaseModel):
     validation_details: Dict[str, Any] = Field(
         default_factory=dict, description="Detailed validation information"
     )
+
+
+# ---------------------------------------------------------------------------
+# Data-first Agent Definition -------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+class AgentDefinition(BaseModel):
+    """Data-first agent definition persisted via MCP.
+
+    This enables executing agents without requiring a Python import path.
+
+    Args:
+        name: Public registry name
+        system_prompt: Optional system prompt for the agent
+        tools: Allowed tool names the agent may invoke
+        llm_config: Provider/model and tuning for agent reasoning
+        memory: Opaque memory configuration passed to runtime
+    """
+
+    name: str
+    system_prompt: str | None = None
+    tools: list[str] = Field(default_factory=list)
+    llm_config: LLMConfig | None = None
+    memory: Dict[str, Any] = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------

@@ -50,8 +50,9 @@ async def _run_flow() -> Dict[str, Any]:
         assert r.status_code == 202, r.text
         exec_id = r.json()["execution_id"]
 
-        for _ in range(60):
-            await asyncio.sleep(0.2)
+        # Allow up to 20 seconds to account for network/provider latency
+        for _ in range(200):
+            await asyncio.sleep(0.1)
             r = await c.get(f"/api/v1/executions/{exec_id}", headers=headers)
             body = r.json()
             if body.get("status") in {"completed", "failed"}:

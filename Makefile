@@ -48,3 +48,8 @@ stop-serve:
 clean:
 	find . -name "__pycache__" -type d -exec rm -rf {} +
 	 rm -rf .ruff_cache .mypy_cache .pytest_cache htmlcov .coverage
+
+# Zero-setup dev server (no Docker, in-memory Redis stub)
+.PHONY: dev-zero
+dev-zero:
+	USE_FAKE_REDIS=1 PYTHONPATH=src uvicorn ice_api.main:app --port 8000 --reload

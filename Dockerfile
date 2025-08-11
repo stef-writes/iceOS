@@ -8,6 +8,14 @@ ENV POETRY_VERSION=1.8.3 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV PATH="${POETRY_HOME}/bin:${PATH}"
 
+ARG APP_USER=appuser
+ARG APP_UID=10001
+ARG APP_GID=10001
+
+# Create non-root user
+RUN groupadd -g ${APP_GID} ${APP_USER} \
+    && useradd -m -u ${APP_UID} -g ${APP_GID} -s /usr/sbin/nologin ${APP_USER}
+
 # Working directory
 WORKDIR /app
 
@@ -27,5 +35,8 @@ ENV PYTHONPATH=/app/src
 # Expose default FastAPI port
 EXPOSE 8000
 
+# Drop privileges
+USER ${APP_UID}:${APP_GID}
+
 # Launch the API server
-CMD ["poetry", "run", "uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"] 
+CMD ["poetry", "run", "uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]

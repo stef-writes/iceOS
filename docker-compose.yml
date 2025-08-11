@@ -1,7 +1,7 @@
-version: '3.8'
 services:
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "yes"]
     ports:
       - "6379:6379"
     volumes:
@@ -12,5 +12,32 @@ services:
       timeout: 3s
       retries: 30
 
+  api:
+    build: .
+    depends_on:
+      - redis
+    ports:
+      - "8000:8000"
+    env_file:
+      - config/dev.env.example
+    environment:
+      # Override Redis URL to point to compose service
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_CLIENT_NAME: ${REDIS_CLIENT_NAME:-ice_api}
+      REDIS_DECODE_RESPONSES: ${REDIS_DECODE_RESPONSES:-1}
+      REDIS_SOCKET_TIMEOUT: ${REDIS_SOCKET_TIMEOUT:-5.0}
+      REDIS_SOCKET_CONNECT_TIMEOUT: ${REDIS_SOCKET_CONNECT_TIMEOUT:-3.0}
+      REDIS_MAX_CONNECTIONS: ${REDIS_MAX_CONNECTIONS:-100}
+      CHAT_TTL_SECONDS: ${CHAT_TTL_SECONDS:-2592000}
+      EXECUTION_TTL_SECONDS: ${EXECUTION_TTL_SECONDS:-604800}
+      ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
+      ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    healthcheck:
+      test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request,sys\ntry:\n  with urllib.request.urlopen('http://localhost:8000/api/v1/meta/registry/health', timeout=3) as r:\n    data = r.read()\n    sys.exit(0 if b'tools_count' in data else 1)\nexcept Exception:\n  sys.exit(1)\nPY"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+
 volumes:
-  redis_data: 
+  redis_data:

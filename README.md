@@ -1,5 +1,73 @@
 # iceOS – Intelligent Orchestration Platform
 
+## Production Deployment (Docker Compose)
+
+Quick start with the full stack (API + Redis):
+
+```bash
+docker compose up --build
+```
+
+Environment variables are sourced from `config/dev.env.example` and can be overridden in the compose file. For Redis hardening and retention:
+
+```env
+REDIS_URL=rediss://user:pass@host:6379/0
+REDIS_CLIENT_NAME=ice_api
+REDIS_DECODE_RESPONSES=1
+REDIS_SOCKET_TIMEOUT=5.0
+REDIS_SOCKET_CONNECT_TIMEOUT=3.0
+REDIS_MAX_CONNECTIONS=100
+CHAT_TTL_SECONDS=2592000
+EXECUTION_TTL_SECONDS=604800
+```
+
+## Zero-setup install (local)
+
+```bash
+bash scripts/zero_setup_install.sh
+```
+
+This script:
+- Checks Docker & Compose
+- Writes a `.env` with `ICE_API_TOKEN` and `ORG_BUDGET_USD` defaults
+- Starts the stack (API + Redis)
+- Waits for `/readyz` and opens `/docs`
+
+## Chat Endpoint
+
+Single-turn chat with a data-first agent definition:
+
+POST `/api/v1/mcp/chat/{agent_name}`
+
+Body:
+
+```json
+{
+  "session_id": "sess_123",
+  "user_message": "Hello",
+  "reset": false
+}
+```
+
+Response:
+
+```json
+{
+  "session_id": "sess_123",
+  "agent_name": "your_agent",
+  "assistant_message": "Hi!"
+}
+```
+
+Python client:
+
+```python
+from ice_client import IceClient
+client = IceClient()
+resp = await client.chat_turn("your_agent", "sess_123", "Hello")
+print(resp["assistant_message"])
+```
+
 > *No-fluff, fully-typed, test-driven micro-framework for composable AI/LLM workflows in Python 3.10.*
 
 ---
@@ -332,7 +400,7 @@ Data flows strictly **left → right**; each layer depends only on the one below
 2. Implement `_execute_impl(**kwargs) → dict` (async).
 3. Add Pydantic **config fields** for static parameters.
 4. Optionally override `get_input_schema` / `get_output_schema`.
-5. Register a factory once:  
+5. Register a factory once:
    ```python
    from ice_core.unified_registry import register_tool_factory
    register_tool_factory(tool.name, "your_module_path:create_my_tool")

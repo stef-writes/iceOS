@@ -16,34 +16,76 @@ When you develop inside the monorepo the package is already on `PYTHONPATH`.
 
 ---
 
-## Basic usage
+## Basic usage – run a workflow
 
 ```python
-from ice_client.client import ICEClient
+from ice_client import IceClient
 
-client = ICEClient("http://localhost:8000/jsonrpc")
+client = IceClient("http://localhost:8000")
 
-blueprint = {...}  # dict matching mcp.yaml schema
-bp_id = client.blueprints.create(blueprint)
+# Preferred Studio helpers (MCP + SSE under the hood)
 
-exec_id = client.executions.start(bp_id)
-print("Execution id", exec_id)
+# 1) Submit and wait for completion
+result = await client.run_and_wait(blueprint={
+    "schema_version": "1.2.0",
+    "metadata": {},
+    "nodes": [
+        {"id": "t1", "type": "tool", "tool_name": "writer_tool", "tool_args": {"notes": "hi", "style": "concise"}},
+        {"id": "llm1", "type": "llm", "provider": "openai", "model": "gpt-4o", "prompt": "Summarize: {{t1.summary}}"},
+        {"id": "a1", "type": "agent", "package": "demo_agent", "dependencies": ["llm1"],
+         "input_schema": {"message": "str"}, "output_schema": {"reply": "str"}}
+    ]
+})
+print(result.success, result.output)
 
-status = client.executions.status(exec_id)
-print(status)
+# 2) Submit and stream live events
+async for evt in client.run_and_stream(blueprint_id="bp_123"):
+    print("event:", evt)
 ```
 
-All methods are *async* under the hood but expose a sync interface for
-convenience; set `async_mode=True` if you want raw `asyncio` control.
+All methods are async; these helpers wrap finalize → submit → poll/SSE for you.
 
 ---
+
+## Component creation – from scratch (Studio)
+
+```python
+from ice_client import IceClient
+
+client = IceClient()
+
+# 1) Scaffold a new tool source
+scaffold = await client.scaffold_component("tool", "csv_loader")
+print(scaffold["tool_class_code"])  # present a code editor in the Studio
+
+# 2) Register the component after user edits code
+definition = {
+    "type": "tool",
+    "name": "csv_loader",
+    "description": "Load CSV rows",
+    "tool_class_code": "...user-edited-code...",
+    "auto_register": True,
+}
+reg = await client.register_component(definition)
+
+# 3) Build a partial blueprint incrementally
+pb = await client.create_partial_blueprint()
+pb_id = pb["blueprint_id"]
+pb, lock = await client.get_partial_blueprint(pb_id)
+pb = await client.update_partial_blueprint(pb_id, {"action": "add_node", "node": {"id": "n1", "type": "tool", "tool_name": "csv_loader"}}, version_lock=lock)
+pb, lock = await client.get_partial_blueprint(pb_id)
+ack = await client.finalize_partial_blueprint(pb_id, version_lock=lock)
+
+# 4) Execute
+run_id = await client.submit_blueprint({"blueprint_id": ack["blueprint_id"]})
+```
 
 ## Environment variables
 
 | Variable | Purpose |
 |----------|---------|
 | `ICE_API_URL` | Default server URL if not passed to `ICEClient()` |
-| `ICE_API_AUTH_TOKEN` | Bearer token automatically included in headers |
+| `ICE_API_TOKEN` | Bearer token automatically included in headers |
 
 ---
 

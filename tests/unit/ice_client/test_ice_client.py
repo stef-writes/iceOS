@@ -85,3 +85,49 @@ async def test_submit_blueprint_and_poll(monkeypatch: pytest.MonkeyPatch) -> Non
     assert final.output == {"hello": "world"}
 
     await client.close()
+
+
+@pytest.mark.asyncio
+async def test_run_and_wait_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    bp = Blueprint(nodes=[NodeSpec(id="n1", type="noop")])
+    run_id = "run_5678"
+
+    ack_payload: dict = RunAck(
+        run_id=run_id,
+        status_endpoint=f"{API_PREFIX}/runs/{run_id}",
+        events_endpoint=f"{API_PREFIX}/runs/{run_id}/events",
+    ).model_dump()
+
+    result_payload: dict = RunResult(
+        run_id=run_id,
+        success=True,
+        start_time=datetime.utcnow() - timedelta(seconds=1),
+        end_time=datetime.utcnow(),
+        output={"hello": "world"},
+        error=None,
+    ).model_dump(mode="json")
+
+    call_counter: dict[str, int] = {"status": 0}
+
+    def _handler(request: httpx.Request) -> httpx.Response:  # type: ignore[type-arg]
+        if request.method == "POST" and request.url.path == f"{API_PREFIX}/runs":
+            return httpx.Response(202, json=ack_payload)
+        if (
+            request.method == "GET"
+            and request.url.path == f"{API_PREFIX}/runs/{run_id}"
+        ):
+            if call_counter["status"] == 0:
+                call_counter["status"] += 1
+                return httpx.Response(202)
+            return httpx.Response(200, json=result_payload)
+        return httpx.Response(404)
+
+    transport = httpx.MockTransport(_handler)
+    client = IceClient(BASE_URL)
+    client._client = httpx.AsyncClient(base_url=BASE_URL, transport=transport)
+
+    result = await client.run_and_wait(blueprint=bp)
+    assert result.success is True
+    assert result.output == {"hello": "world"}
+
+    await client.close()

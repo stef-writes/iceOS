@@ -23,6 +23,7 @@ from pydantic import BaseModel, PrivateAttr
 from ice_core.exceptions import RegistryError
 from ice_core.models import INode, NodeConfig, NodeExecutionResult
 from ice_core.models.enums import NodeType
+from ice_core.models.mcp import AgentDefinition
 from ice_core.protocols.agent import IAgent
 from ice_core.protocols.workflow import WorkflowLike
 
@@ -380,6 +381,24 @@ class Registry(BaseModel):
         if name not in self._agents:
             raise KeyError(f"Agent {name} not found")
         return self._agents[name]
+
+    # Data-first agent definitions -------------------------------------
+    def register_agent_definition(self, name: str, definition: AgentDefinition) -> None:
+        """Register a data-first agent definition in the registry."""
+        if not hasattr(self, "_agent_definitions"):
+            self._agent_definitions: Dict[str, AgentDefinition] = {}
+        existing = self._agent_definitions.get(name)
+        if existing == definition:
+            return
+        self._agent_definitions[name] = definition
+
+    def get_agent_definition(self, name: str) -> AgentDefinition:
+        """Retrieve a data-first agent definition or raise KeyError."""
+        if not hasattr(self, "_agent_definitions"):
+            self._agent_definitions = {}
+        if name not in self._agent_definitions:
+            raise KeyError(f"Agent definition {name} not found")
+        return self._agent_definitions[name]
 
     # ------------------------------------------------------------------
     # New symmetry helpers ---------------------------------------------
