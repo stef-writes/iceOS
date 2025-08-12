@@ -23,7 +23,7 @@ type:
 	poetry run mypy --config-file config/typing/mypy.ini src
 
 test:
-	PYTHONPATH=src poetry run pytest -c config/testing/pytest.ini --cov --cov-fail-under=60 -k "not integration"
+	PYTHONPATH=src poetry run pytest -c config/testing/pytest.ini tests/unit --cov --cov-fail-under=60
 
 ci: lint type test
 	# Run integration tests only when redis, testcontainers, fastapi and httpx are present
