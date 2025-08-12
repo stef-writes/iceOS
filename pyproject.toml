@@ -54,6 +54,10 @@ embeddings = [
   "torch",
   "scikit-learn"
 ]
+test_integration = [
+  "redis>=4.6.0",
+  "testcontainers>=4.5"
+]
 
 dependencies = [
   "redis>=4.6.0",
