@@ -194,3 +194,4 @@ exclude = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*" = ["E402", "F401", "F841"]
 "scripts/**/*" = ["E402"]
+"alembic/env.py" = ["F821"]
