@@ -11,20 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11.9'
-
-      - name: Install Poetry
-        uses: abatilo/actions-poetry@v3
-        with:
-          poetry-version: 1.8.3
-
-      - name: Install deps (+dev core)
-        run: |
-          set -euo pipefail
-          poetry install --with dev --sync --no-interaction
+      # No Poetry install here. We use Dockerized lint and type/test to avoid drift.
+      - name: Lint (Dockerized Ruff)
+        run: make lint-docker
 
       - name: Type check (devcheck container)
         run: |
@@ -36,8 +25,8 @@ jobs:
             -v "$PWD/config:/app/config" \
             iceos-devcheck
 
-      - name: Run quality gate (lint + type + unit tests)
-        run: make ci
+      - name: Run unit tests (Docker cached stage)
+        run: make test
 
       - name: Upload coverage HTML
         if: always()

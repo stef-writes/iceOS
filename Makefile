@@ -2,7 +2,7 @@
 
 PYTHON := $(shell which python)
 
-.PHONY: install lint format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix
+.PHONY: install lint lint-docker format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix
 
 install:
 	poetry install --with dev --no-interaction
@@ -10,6 +10,15 @@ install:
 lint:
 	poetry run ruff check src tests
 	poetry run isort --check-only src tests
+
+# Lint inside Docker (no local Python/Poetry needed)
+lint-docker:
+	docker run --rm -t \
+		-v "$$PWD:/repo" -w /repo \
+		python:3.11.9-slim bash -lc '\
+		  python -m pip install --no-cache-dir --timeout 120 --retries 5 ruff==0.5.6 && \
+		  ruff check . \
+		'
 
 format:
 	poetry run isort src tests
@@ -49,7 +58,7 @@ test:
 		-e ICE_STRICT_SERIALIZATION=1 \
 		iceos-test pytest -c config/testing/pytest.ini tests/unit -q --ignore=tests/unit/ice_builder --ignore=tests/unit/ice_cli
 
-ci: lint type-check test
+ci: lint-docker type-check test
 
 # ---------------------------------------------------------------------------
 # Dockerized pre-commit (no local Python/Poetry required) --------------------
