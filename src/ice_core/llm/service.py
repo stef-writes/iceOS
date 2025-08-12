@@ -6,8 +6,6 @@ import asyncio
 import logging
 from typing import Any, Optional, Tuple
 
-from tenacity import retry, stop_after_attempt, wait_exponential
-
 from ice_core.llm.providers import (
     AnthropicHandler,
     DeepSeekHandler,
@@ -151,15 +149,45 @@ class LLMService:
                 logger.error("LLM handler raised unexpected exception", exc_info=True)
                 return "", None, str(err)
 
-        @retry(
-            stop=stop_after_attempt(max_retries + 1),
-            wait=wait_exponential(multiplier=1, min=1, max=10),
-            reraise=True,
-        )
         async def _call_with_retry() -> (
             Tuple[str, Optional[dict[str, int]], Optional[str]]
         ):
-            return await _call_handler()
+            """Call handler with bounded retries and exponential backoff.
+
+            Retries known transient errors (rate limit, timeout, gateway 502/503).
+            """
+            attempt: int = 0
+            max_attempts: int = max_retries + 1
+            backoff_seconds: float = 1.0
+            while attempt < max_attempts:
+                try:
+                    result_typed: Tuple[
+                        str, Optional[dict[str, int]], Optional[str]
+                    ] = await _call_handler()
+                    return result_typed
+                except (
+                    openai_error.RateLimitError,  # type: ignore[attr-defined]
+                    openai_error.Timeout,  # type: ignore[attr-defined]
+                    openai_error.APIError,  # type: ignore[attr-defined]
+                ) as err:
+                    attempt += 1
+                    if attempt >= max_attempts:
+                        raise err
+                    await asyncio.sleep(min(10.0, backoff_seconds))
+                    backoff_seconds = min(10.0, backoff_seconds * 2.0)
+                except Exception as err:  # pylint: disable=broad-except
+                    status = getattr(err, "status", None)
+                    attempt += 1
+                    if status in {502, 503} and attempt < max_attempts:
+                        await asyncio.sleep(min(10.0, backoff_seconds))
+                        backoff_seconds = min(10.0, backoff_seconds * 2.0)
+                        continue
+                    logger.error(
+                        "LLM handler raised unexpected exception", exc_info=True
+                    )
+                    return "", None, str(err)
+            # Exhausted retries without returning; treat as generic failure
+            return "", None, "Retry attempts exhausted"
 
         try:
             if timeout_seconds is None:
