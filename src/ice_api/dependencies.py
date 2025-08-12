@@ -30,9 +30,7 @@ _RATE_WINDOW = 10.0  # seconds
 _RATE_MAX = 5  # requests per window
 
 
-def rate_limit(
-    request: Request, token: str = Depends(require_auth)
-) -> None:  # noqa: D401
+def rate_limit(request: Request, token: str = Depends(require_auth)) -> None:  # noqa: D401
     """Basic token+path bucket rate limiter (dev profile)."""
     # Disable in tests to avoid flakiness
     if os.getenv("PYTEST_CURRENT_TEST") or os.getenv("ICE_TESTING") == "1":

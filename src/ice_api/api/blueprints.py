@@ -41,9 +41,7 @@ async def _load_blueprint(blueprint_id: str) -> Blueprint:  # noqa: D401 – hel
     raise HTTPException(status_code=404, detail="Blueprint not found")
 
 
-async def _save_blueprint(
-    blueprint_id: str, blueprint: Blueprint
-) -> None:  # noqa: D401 – helper
+async def _save_blueprint(blueprint_id: str, blueprint: Blueprint) -> None:  # noqa: D401 – helper
     """Persist blueprint JSON to Redis."""
     try:
         redis = get_redis()

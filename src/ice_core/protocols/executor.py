@@ -31,7 +31,5 @@ class IExecutor(Protocol):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    async def execute(
-        self, node: INode, inputs: Dict[str, Any]
-    ) -> NodeExecutionResult:  # noqa: D401
+    async def execute(self, node: INode, inputs: Dict[str, Any]) -> NodeExecutionResult:  # noqa: D401
         """Execute *node* with *inputs* and return a structured result."""

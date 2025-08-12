@@ -11,13 +11,22 @@ class BaseContextStore(ABC):
         pass
 
     @abstractmethod
-    def set(self, node_id: str, context: Dict[str, Any]) -> None:
+    def set(
+        self,
+        node_id: str,
+        context: Dict[str, Any],
+        schema: Optional[Dict[str, str]] = None,
+    ) -> None:
         """Set context data for a node."""
         pass
 
     @abstractmethod
     def update(
-        self, node_id: str, content: Any, execution_id: Optional[str] = None
+        self,
+        node_id: str,
+        content: Any,
+        execution_id: Optional[str] = None,
+        schema: Optional[Dict[str, str]] = None,
     ) -> None:
         """Update context data for a node, optionally with an execution ID."""
         pass

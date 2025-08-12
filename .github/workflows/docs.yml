@@ -19,4 +19,4 @@ jobs:
         run: |
           pip install mkdocs mkdocs-material mkdocstrings mkdocstrings-python mkdocs-include-markdown-plugin mkdocs-autorefs
       - name: Build docs
-        run: mkdocs build --strict 
+        run: mkdocs build --strict

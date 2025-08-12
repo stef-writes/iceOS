@@ -35,9 +35,7 @@ def flatten_dependency_outputs(
         return merged_inputs
 
 
-def resolve_jinja_templates(
-    data: Any, context: Dict[str, Any]
-) -> Any:  # noqa: ANN401 – dynamic
+def resolve_jinja_templates(data: Any, context: Dict[str, Any]) -> Any:  # noqa: ANN401 – dynamic
     """Recursively resolve {{var}} templates in *data* using *context*."""
     try:
         import jinja2

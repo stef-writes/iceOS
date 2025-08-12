@@ -201,7 +201,8 @@ async def test_all_executors_handle_errors_gracefully():
     # Pydantic validation prevents creation with empty string, so we test with a valid config
     # and let the executor handle other types of errors
     invalid_human_config = HumanNodeConfig(
-        id="invalid_human", prompt_message="Test prompt"  # Valid prompt
+        id="invalid_human",
+        prompt_message="Test prompt",  # Valid prompt
     )
 
     result = await human_executor(workflow, invalid_human_config, context)

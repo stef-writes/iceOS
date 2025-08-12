@@ -11,8 +11,61 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional
 
 import structlog
-from opentelemetry import metrics, trace  # type: ignore[import-not-found]
-from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
+
+try:
+    from opentelemetry import metrics, trace  # type: ignore[import-not-found]
+    from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
+except Exception:  # pragma: no cover
+
+    class _NoopSpan:
+        def set_attribute(self, *a, **k):
+            return None
+
+        def set_status(self, *a, **k):
+            return None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    class _NoopTracer:
+        def start_as_current_span(self, *a, **k):
+            return _NoopSpan()
+
+    class _NoopTrace:
+        def get_tracer(self, *a, **k):
+            return _NoopTracer()
+
+    class _NoopMeter:
+        def create_counter(self, *a, **k):
+            class _C:
+                def add(self, *aa, **kk):
+                    pass
+
+            return _C()
+
+        def create_histogram(self, *a, **k):
+            class _H:
+                def record(self, *aa, **kk):
+                    pass
+
+            return _H()
+
+    trace = _NoopTrace()  # type: ignore
+    metrics = type(
+        "_M", (), {"get_meter": staticmethod(lambda *a, **k: _NoopMeter())}
+    )()  # type: ignore
+
+    class Status:  # type: ignore
+        def __init__(self, *a, **k):
+            pass
+
+    class StatusCode:  # type: ignore
+        OK = "OK"
+        ERROR = "ERROR"
+
 
 tracer = trace.get_tracer(__name__)
 meter = metrics.get_meter(__name__)
@@ -124,7 +177,6 @@ class WasmResourceMonitor:
                 "timeout_seconds": limits.timeout,
             },
         ) as span:
-
             # Track active execution
             self.active_executions[execution_id] = {
                 "node_id": node_id,

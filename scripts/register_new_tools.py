@@ -3,15 +3,14 @@
 Run this once while the dev server (`make dev`) is up.  It submits the full
 source code of each tool so the validator can parse and auto-register them.
 """
+
 from __future__ import annotations
 
 import asyncio
-import json
 from pathlib import Path
 from typing import List, Tuple
 
 import httpx
-
 
 TOOL_SPECS: List[Tuple[str, str, str]] = [
     (
@@ -32,7 +31,9 @@ TOOL_SPECS: List[Tuple[str, str, str]] = [
 ]
 
 
-async def register_tool(name: str, description: str, path: str, client: httpx.AsyncClient) -> None:  # noqa: D401
+async def register_tool(
+    name: str, description: str, path: str, client: httpx.AsyncClient
+) -> None:  # noqa: D401
     """Submit one tool definition and print the result."""
     code = Path(path).read_text()
     payload = {
@@ -43,16 +44,22 @@ async def register_tool(name: str, description: str, path: str, client: httpx.As
         "auto_register": True,
     }
     response = await client.post(
-        "http://localhost:8000/api/v1/mcp/components/validate", json=payload, timeout=None
+        "http://localhost:8000/api/v1/mcp/components/validate",
+        json=payload,
+        timeout=None,
     )
     try:
         data = response.json()
     except ValueError:
-        print(f"[!] {name}: server returned non-JSON – {response.status_code}: {response.text[:200]}")
+        print(
+            f"[!] {name}: server returned non-JSON – {response.status_code}: {response.text[:200]}"
+        )
         return
 
     status = "✔" if data.get("valid") else "✖"
-    print(f"{status}  {name}: registered={data.get('registered')}  errors={data.get('errors')}")
+    print(
+        f"{status}  {name}: registered={data.get('registered')}  errors={data.get('errors')}"
+    )
 
 
 async def main() -> None:  # noqa: D401

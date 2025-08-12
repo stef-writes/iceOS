@@ -1,4 +1,3 @@
-
 # Re-export asyncio submodule for import-as-redis usage
 from . import asyncio as asyncio
 from .asyncio import Redis

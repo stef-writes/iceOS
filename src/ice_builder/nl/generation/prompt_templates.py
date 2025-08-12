@@ -55,7 +55,7 @@ IMPORTANT PRINCIPLES - Keep it simple and atomic:
 When to use each node type (in order of preference):
 - 'tool': ANY pre-built function (csv_reader, api_caller, file_writer) - USE THIS FIRST
 - 'llm': Text generation/analysis WITHOUT memory or tools (summaries, classification)
-- 'code': Custom calculations, data transforms, format conversions  
+- 'code': Custom calculations, data transforms, format conversions
 - 'condition': Simple if/then branching based on data
 - 'loop': Iterating over a list or until condition (with clear exit)
 - 'parallel': Multiple INDEPENDENT operations at once
@@ -140,7 +140,7 @@ graph TD
     B --> C{Decision}
     C -->|Yes| D[Action 1]
     C -->|No| E[Action 2]
-    
+
 Return ONLY the Mermaid code, no explanations."""
 
 
@@ -160,11 +160,11 @@ Format:
 # Node: node_id
 def function_name(param1: type1, param2: type2) -> return_type:
     \"\"\"Brief description.
-    
+
     Args:
         param1: Description
         param2: Description
-        
+
     Returns:
         Description
     \"\"\"

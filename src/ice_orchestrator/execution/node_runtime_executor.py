@@ -18,7 +18,27 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict
 
 import structlog
-from opentelemetry import trace  # type: ignore[import-not-found]
+
+try:
+    from opentelemetry import trace  # type: ignore[import-not-found]
+except Exception:  # pragma: no cover – optional telemetry
+
+    class _NoopSpan:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    class _NoopTracer:
+        def start_as_current_span(self, *args, **kwargs):
+            return _NoopSpan()
+
+    class _NoopTrace:
+        def get_tracer(self, *args, **kwargs):
+            return _NoopTracer()
+
+    trace = _NoopTrace()  # type: ignore
 
 # Ensure builtin executors are registered before any workflow runs
 import ice_orchestrator.execution.executors  # noqa: F401  # side-effects only
@@ -87,7 +107,9 @@ class NodeExecutor:
             )
             if chain.failure_policy.name == "HALT":
                 raise
-            return NodeExecutionResult(success=False, error=str(exc), metadata=error_meta)  # type: ignore[call-arg]
+            return NodeExecutionResult(
+                success=False, error=str(exc), metadata=error_meta
+            )  # type: ignore[call-arg]
 
         # Defer to the primary NodeExecutor implementation to avoid duplication
         # and legacy aliasing. The canonical implementation lives in

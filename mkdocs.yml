@@ -64,7 +64,7 @@ nav:
   - Plans & Roadmaps:
       - Platform Vision: iceos-vision.md
       - Architecture Overview: docs/ARCHITECTURE.md
-      - Final Cleanup Plan: docs/plans/FINAL_CLEANUP_BEFORE_FROSTY.md 
+      - Final Cleanup Plan: docs/plans/FINAL_CLEANUP_BEFORE_FROSTY.md
   - Tool Development Guide: tool_development.md
   - Contributing: contributing.md
-  - API Reference: reference/api.md 
+  - API Reference: reference/api.md

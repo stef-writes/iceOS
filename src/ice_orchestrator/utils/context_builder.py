@@ -38,10 +38,14 @@ class ContextBuilder:  # – utility helper
                     isinstance(mapping, dict) and "source_node_id" in mapping
                 ) or hasattr(mapping, "source_node_id"):
                     dep_id = (
-                        mapping["source_node_id"] if isinstance(mapping, dict) else mapping.source_node_id  # type: ignore[index]
+                        mapping["source_node_id"]
+                        if isinstance(mapping, dict)
+                        else mapping.source_node_id  # type: ignore[index]
                     )
                     output_key = (
-                        mapping["source_output_key"] if isinstance(mapping, dict) else mapping.source_output_key  # type: ignore[index]
+                        mapping["source_output_key"]
+                        if isinstance(mapping, dict)
+                        else mapping.source_output_key  # type: ignore[index]
                     )
                     dep_result = accumulated_results.get(dep_id)
 

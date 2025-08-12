@@ -5,7 +5,7 @@ This makes the codebase self-documenting about architectural intent.
 
 The Three Tiers:
 1. Frosty (Interpreter) - Natural language → Blueprint
-2. MCP API (Compiler) - Blueprint validation & optimization  
+2. MCP API (Compiler) - Blueprint validation & optimization
 3. DAG Orchestrator (Runtime) - Deterministic execution
 """
 

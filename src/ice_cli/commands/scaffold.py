@@ -566,9 +566,7 @@ def new() -> None:  # noqa: D401 (imperative)
 @click.option(
     "--dry-run", is_flag=True, help="Print generated code without writing files."
 )
-def scaffold_tool(
-    name: str, description: str, output_dir: Path, dry_run: bool
-) -> None:  # noqa: D401
+def scaffold_tool(name: str, description: str, output_dir: Path, dry_run: bool) -> None:  # noqa: D401
     """Generate a new Tool skeleton.
 
     NAME must follow the `<domain>_<verb>_tool` pattern.
@@ -688,9 +686,7 @@ def scaffold_llm_node_tool(
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default=Path.cwd(),
 )
-def scaffold_workflow(
-    name: str, description: str, output_dir: Path
-) -> None:  # noqa: D401
+def scaffold_workflow(name: str, description: str, output_dir: Path) -> None:  # noqa: D401
     rel = _create_from_template(
         "workflow",
         name,
@@ -716,9 +712,7 @@ def scaffold_workflow(
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default=Path.cwd(),
 )
-def scaffold_llm(
-    name: str, description: str, model: str, output_dir: Path
-) -> None:  # noqa: D401
+def scaffold_llm(name: str, description: str, model: str, output_dir: Path) -> None:  # noqa: D401
     rel = _create_from_template(
         "llm",
         name,
@@ -756,9 +750,7 @@ def _scaffold_simple(kind: str, name: str, description: str, output_dir: Path) -
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default=Path.cwd(),
 )
-def scaffold_condition(
-    name: str, description: str, output_dir: Path
-) -> None:  # noqa: D401
+def scaffold_condition(name: str, description: str, output_dir: Path) -> None:  # noqa: D401
     _scaffold_simple("condition", name, description, output_dir)
 
 
@@ -782,9 +774,7 @@ def scaffold_loop(name: str, description: str, output_dir: Path) -> None:  # noq
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default=Path.cwd(),
 )
-def scaffold_parallel(
-    name: str, description: str, output_dir: Path
-) -> None:  # noqa: D401
+def scaffold_parallel(name: str, description: str, output_dir: Path) -> None:  # noqa: D401
     _scaffold_simple("parallel", name, description, output_dir)
 
 
@@ -796,9 +786,7 @@ def scaffold_parallel(
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default=Path.cwd(),
 )
-def scaffold_recursive(
-    name: str, description: str, output_dir: Path
-) -> None:  # noqa: D401
+def scaffold_recursive(name: str, description: str, output_dir: Path) -> None:  # noqa: D401
     _scaffold_simple("recursive", name, description, output_dir)
 
 
@@ -834,9 +822,7 @@ def scaffold_human(name: str, description: str, output_dir: Path) -> None:  # no
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     default=Path.cwd(),
 )
-def scaffold_monitor(
-    name: str, description: str, output_dir: Path
-) -> None:  # noqa: D401
+def scaffold_monitor(name: str, description: str, output_dir: Path) -> None:  # noqa: D401
     _scaffold_simple("monitor", name, description, output_dir)
 
 

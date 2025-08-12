@@ -2,7 +2,7 @@
 
 The orchestrator layer handles all runtime execution including:
 - Workflow execution
-- Tool execution 
+- Tool execution
 - Agent runtime
 - Memory management
 - LLM services

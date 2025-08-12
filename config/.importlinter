@@ -7,4 +7,4 @@ type = forbidden
 source_modules =
     ice_core
 forbidden_modules =
-    ice_api 
+    ice_api

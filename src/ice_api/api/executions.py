@@ -7,7 +7,7 @@ import os
 import uuid
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 
 from ice_api.redis_client import get_redis
 from ice_core.models.mcp import Blueprint
@@ -111,7 +111,9 @@ async def _run_workflow_async(
                     _Evt.WORKFLOW_STARTED,
                     _Evt.WORKFLOW_COMPLETED,
                 }:
-                    record.setdefault("events", []).append({"event": event_name, "payload": payload})  # type: ignore[attr-defined]
+                    record.setdefault("events", []).append(
+                        {"event": event_name, "payload": payload}
+                    )  # type: ignore[attr-defined]
             except Exception:
                 pass
 
@@ -135,7 +137,9 @@ async def _run_workflow_async(
             )
             result = await service.execute_workflow(wf, inputs=inputs)
         record["status"] = "completed"
-        record["result"] = result.model_dump() if hasattr(result, "model_dump") else result  # type: ignore[assignment]
+        record["result"] = (
+            result.model_dump() if hasattr(result, "model_dump") else result
+        )  # type: ignore[assignment]
         record["_event"].set()
         # Persist completion
         try:
@@ -195,7 +199,13 @@ async def _run_workflow_async(
 async def start_execution(  # noqa: D401 – API route
     request: Request,
     payload: Dict[str, Any] = Body(..., embed=True),
-) -> Dict[str, str]:
+    wait_seconds: float | None = Query(
+        default=None,
+        description=(
+            "Optional: block up to N seconds and return final status/result instead of an execution_id."
+        ),
+    ),
+) -> Dict[str, Any]:
     """Kick off a workflow execution.
 
     Expected JSON body::
@@ -279,26 +289,59 @@ async def start_execution(  # noqa: D401 – API route
         _run_workflow_async(execution_id, blueprint, inputs, exec_store)
     )
 
+    # Optional synchronous waiting for simpler client UX ---------------------
+    if wait_seconds and wait_seconds > 0:
+        deadline = asyncio.get_event_loop().time() + wait_seconds
+        # Poll minimal state until terminal or timeout
+        while asyncio.get_event_loop().time() < deadline:
+            rec = exec_store.get(execution_id, {})
+            status_val = rec.get("status")
+            if status_val in {"completed", "failed"}:
+                out: Dict[str, Any] = {
+                    "execution_id": execution_id,
+                    "status": status_val,
+                }
+                if "result" in rec:
+                    out["result"] = rec["result"]
+                if "error" in rec:
+                    out["error"] = rec["error"]
+                return out
+            await asyncio.sleep(0.2)
+        # Timed out – return the id so clients can poll later
+        return {
+            "execution_id": execution_id,
+            "status": exec_store[execution_id].get("status", "pending"),
+        }
+
     return {"execution_id": execution_id}
 
 
 @router.get(
     "/{execution_id}", dependencies=[Depends(rate_limit), Depends(require_auth)]
 )
-async def get_execution_status(
-    request: Request, execution_id: str
-) -> Dict[str, Any]:  # noqa: D401
+async def get_execution_status(request: Request, execution_id: str) -> Dict[str, Any]:  # noqa: D401
     # Prefer Redis as the source of truth; on error, fall back to in-memory
     try:
         redis = get_redis()
-        data = await redis.hgetall(_exec_key(execution_id))  # type: ignore[misc]
+        from typing import Any as _Any  # local alias for type annotation clarity
+
+        data: Dict[_Any, _Any] = await redis.hgetall(_exec_key(execution_id))  # type: ignore[misc]
         if data:
-            decoded: Dict[str, Any] = {
-                (k.decode() if isinstance(k, (bytes, bytearray)) else k): (
-                    v.decode() if isinstance(v, (bytes, bytearray)) else v
+            decoded: Dict[str, Any] = {}
+            for k, v in data.items():
+                key = (
+                    k
+                    if isinstance(k, str)
+                    else (k.decode() if isinstance(k, (bytes, bytearray)) else str(k))
                 )
-                for k, v in data.items()
-            }
+                if isinstance(v, (bytes, bytearray)):
+                    try:
+                        val_decoded = v.decode()
+                    except Exception:
+                        val_decoded = None
+                    decoded[key] = val_decoded if val_decoded is not None else str(v)
+                else:
+                    decoded[key] = v
             # Normalize JSON fields
             try:
                 import json as _json
@@ -341,9 +384,7 @@ async def list_executions(request: Request) -> Dict[str, Any]:  # noqa: D401
 @router.post(
     "/{execution_id}/cancel", dependencies=[Depends(rate_limit), Depends(require_auth)]
 )
-async def cancel_execution(
-    request: Request, execution_id: str
-) -> Dict[str, Any]:  # noqa: D401
+async def cancel_execution(request: Request, execution_id: str) -> Dict[str, Any]:  # noqa: D401
     """Best-effort cancel of a running execution.
 
     MVP semantics: mark status as failed with reason="canceled" and persist.

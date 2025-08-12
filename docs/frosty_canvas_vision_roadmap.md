@@ -35,7 +35,7 @@ Frosty and Canvas represent the future of human-AI collaboration in workflow cre
 ```python
 # Production API endpoints
 POST   /api/v1/mcp/blueprints/partial              # Create new partial
-PUT    /api/v1/mcp/blueprints/partial/{id}         # Add/remove/update nodes  
+PUT    /api/v1/mcp/blueprints/partial/{id}         # Add/remove/update nodes
 POST   /api/v1/mcp/blueprints/partial/{id}/finalize # Convert to executable
 
 # Live validation with AI suggestions
@@ -364,6 +364,6 @@ The combination of Frosty's natural language understanding and Canvas's spatial 
 
 ---
 
-*Last Updated: December 2024*  
-*Status: Active Development*  
+*Last Updated: December 2024*
+*Status: Active Development*
 *Version: 1.0*

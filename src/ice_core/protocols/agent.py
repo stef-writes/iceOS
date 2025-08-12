@@ -25,9 +25,7 @@ class IAgent(Protocol):
     # ---------------------------------------------------------------------
 
     @abstractmethod
-    async def think(
-        self, context: Dict[str, Any]
-    ) -> str:  # noqa: D401 – imperative verb fine
+    async def think(self, context: Dict[str, Any]) -> str:  # noqa: D401 – imperative verb fine
         """Produce an internal reasoning trace / next action decision."""
 
     @abstractmethod

@@ -1,5 +1,13 @@
 # iceOS – Intelligent Orchestration Platform
 
+## Runtime features (enforced extras)
+
+- **WASM sandbox (wasmtime)**: `ICE_ENABLE_WASM=1` (default) to run code nodes in a sandbox. Disabled or missing wasmtime → runtime error.
+- **LLM providers**: OpenAI (required), Anthropic, DeepSeek supported. API keys via `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`.
+- Database/pgvector: design in progress (registry, executions, semantic memory); Redis remains the ephemeral cache for now.
+
+See Dockerfile for enforced extras export.
+
 ## Production Deployment (Docker Compose)
 
 Quick start with the full stack (API + Redis):
@@ -87,6 +95,40 @@ Think of it as the narrow slice of Airflow you actually need for LLM apps, minus
 > Status: **Beta (0.5.0)** – APIs stabilizing. mypy strict, tests and lint pass; demos run end-to-end.
 
 ---
+
+## Deterministic one‑shot run (verified)
+
+Start an execution and return the final result in a single call using `wait_seconds`.
+
+```bash
+curl -sS -X POST "http://localhost:8000/api/v1/executions/?wait_seconds=10" \
+  -H 'Authorization: Bearer dev-token' -H 'Content-Type: application/json' \
+  -d '{"payload": {"blueprint_id":"<bp_id>","inputs":{}}}'
+```
+
+The `wait_seconds` parameter is defined on the route:
+
+```195:203:src/ice_api/api/executions.py
+async def start_execution(
+    request: Request,
+    payload: Dict[str, Any] = Body(..., embed=True),
+    wait_seconds: float | None = Query(
+        default=None,
+        description=(
+            "Optional: block up to N seconds and return final status/result instead of an execution_id."
+        ),
+    ),
+```
+
+WASM gate for code nodes:
+
+```84:92:src/ice_orchestrator/execution/executors/builtin/code_node_executor.py
+        # 4. Execute in WASM sandbox (gated by ICE_ENABLE_WASM) -----------
+        import os as _os
+        if execute_node_with_wasm is None or _os.getenv("ICE_ENABLE_WASM", "1") != "1":
+            raise RuntimeError("WASM execution is unavailable; enable ICE_ENABLE_WASM=1 and install 'wasmtime'.")
+```
+
 
 ## 2. Requirements
 

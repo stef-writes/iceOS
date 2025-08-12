@@ -19,7 +19,7 @@ Stores facts, entities, and relationships with domain-based organization.
 # OLD (flat): Dict[str, List[...]]
 _entity_index: Dict[str, List[str]]  # "entity" -> [fact_keys]
 
-# NEW (nested): Dict[domain, Dict[entity, List[...]]]  
+# NEW (nested): Dict[domain, Dict[entity, List[...]]]
 _entity_index: Dict[str, Dict[str, List[str]]]  # domain -> entity -> [fact_keys]
 ```
 
@@ -112,7 +112,7 @@ for domain in procedural_memory.list_domains():
 
 **🚀 New Methods Available:**
 - `get_entities_by_domain(domain)` - Targeted entity queries
-- `get_relationships_by_type(rel_type)` - Organized relationship access  
+- `get_relationships_by_type(rel_type)` - Organized relationship access
 - `get_procedures_by_category(category, type)` - Structured procedure lookup
 - `list_domains()`, `list_relationship_types()`, `list_categories()` - Analytics
 
@@ -123,5 +123,5 @@ for domain in procedural_memory.list_domains():
 This architecture powers our **Facebook Marketplace demo** with:
 - **Domain separation:** `marketplace`, `pricing`, `inventory`, `customer_service`
 - **Fast entity lookup:** Get all marketplace products in milliseconds
-- **Relationship queries:** Find pricing strategies by type instantly  
-- **Performance monitoring:** Track success rates by domain 
+- **Relationship queries:** Find pricing strategies by type instantly
+- **Performance monitoring:** Track success rates by domain

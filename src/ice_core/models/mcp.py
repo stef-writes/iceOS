@@ -175,13 +175,42 @@ class PartialBlueprint(BaseModel):
 
         for node in self.nodes:
             if node.type == "tool" and hasattr(node, "tool_name"):
-                if not registry.has_tool(node.tool_name):
-                    self.validation_errors.append(
-                        f"Tool '{node.tool_name}' not found in registry"
-                    )
-                    self.next_suggestions.append(
-                        f"Use /components/validate to validate and register tool '{node.tool_name}'"
-                    )
+                tool_name = node.tool_name  # type: ignore[attr-defined]
+                # First check runtime registry
+                if not registry.has_tool(tool_name):
+                    # Repository fallback: if a matching component exists, accept it
+                    try:
+                        import asyncio
+
+                        from ice_api.services.component_repo import (
+                            choose_component_repo,
+                        )
+                        from ice_api.services.component_service import ComponentService
+
+                        repo = choose_component_repo(
+                            type(
+                                "_Stub",
+                                (),
+                                {
+                                    "app": type(
+                                        "_A", (), {"state": type("_S", (), {})()}
+                                    )()
+                                },
+                            )()
+                        )
+                        service = ComponentService(repo)
+                        data, _ = asyncio.get_event_loop().run_until_complete(
+                            service.get("tool", tool_name)
+                        )  # type: ignore[arg-type]
+                        if not data:
+                            raise KeyError
+                    except Exception:
+                        self.validation_errors.append(
+                            f"Tool '{tool_name}' not found in registry"
+                        )
+                        self.next_suggestions.append(
+                            f"Use /components/validate to validate and register tool '{tool_name}'"
+                        )
             elif node.type == "agent" and hasattr(node, "package"):
                 agent_names = [
                     name for name, _ in global_agent_registry.available_agents()
@@ -272,7 +301,7 @@ class ComponentDefinition(BaseModel):
     ensuring only valid components enter the registry.
     """
 
-    type: Literal["tool", "agent", "workflow"]
+    type: Literal["tool", "agent", "workflow", "code"]
     name: str = Field(..., description="Unique component name")
     description: str = Field(..., description="Component description")
 
@@ -315,6 +344,15 @@ class ComponentDefinition(BaseModel):
     )
 
     # Metadata
+    # For code nodes
+    code_factory_code: Optional[str] = Field(
+        None,
+        description="Python code defining a *factory function* for a code node (returns an implementation or callable)",
+    )
+    code_class_code: Optional[str] = Field(
+        None,
+        description="Python code defining a code-node implementation class with async execute(workflow, cfg, ctx) -> dict",
+    )
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
@@ -327,6 +365,9 @@ class ComponentDefinition(BaseModel):
                 raise ValueError(
                     "Tool definition requires either tool_class_code or schemas"
                 )
+        elif self.type == "code":
+            if not (self.code_factory_code or self.code_class_code):
+                raise ValueError("Code definition requires factory or class code")
         elif self.type == "agent":
             if not self.agent_system_prompt and not self.agent_tools:
                 raise ValueError("Agent definition requires system_prompt or tools")

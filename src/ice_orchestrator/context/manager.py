@@ -1,16 +1,18 @@
 """Context manager for graph execution."""
 
 import logging
+import os
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union, cast
 
 import networkx as nx
 from pydantic import BaseModel, Field
 
 from ice_core import runtime as rt
 from ice_core.base_tool import ToolBase
+from ice_core.exceptions import SerializationError
 from ice_core.models.enums import NodeType
 
 # Local first-party imports (alphabetical) ---------------------------
@@ -76,7 +78,23 @@ class GraphContextManager:
         self.max_tokens = max_tokens
         self.max_sessions = max_sessions
         self.graph = graph or nx.DiGraph()
-        self.store = store or ContextStore()
+        self._strict_serialization: bool = os.getenv(
+            "ICE_STRICT_SERIALIZATION", "0"
+        ) in ("1", "true", "TRUE")
+        if store is not None:
+            self.store = store
+        else:
+            backend = os.getenv("CONTEXT_STORE_BACKEND", "redis").lower()
+            if backend == "redis":
+                try:
+                    from .redis_store import RedisContextStore
+
+                    # Cast to the concrete ContextStore type expected by annotations
+                    self.store = cast(ContextStore, RedisContextStore())
+                except Exception:  # pragma: no cover – fallback to file store
+                    self.store = ContextStore()
+            else:
+                self.store = ContextStore()
         self.formatter = formatter or ContextFormatter()
         # Memory adapter ---------------------------------------------------
         self.memory: BaseMemory = memory or NullMemory()
@@ -227,60 +245,41 @@ class GraphContextManager:
         # Sanitize content – unwrap NodeExecutionResult objects ---------------
         # ------------------------------------------------------------------
 
-        try:
-            # Serialize *content* for counting/truncation.  Non-string payloads
-            # are converted to JSON-ish string so the token approximation is
-            # still meaningful.
-            import json
+        # Serialize deterministically first (do not coerce silently)
+        import json
 
+        if isinstance(content, str):
+            serialised = content
+        else:
+            try:
+                serialised = json.dumps(content, ensure_ascii=False)
+            except Exception:
+                raise SerializationError(node_id, type(content).__name__)
+
+        # Enforce token budget strictly whenever configured
+        try:
             from ice_core.models import ModelProvider
             from ice_core.utils.token_counter import TokenCounter
-
-            if isinstance(content, str):
-                serialised = content
-            else:
-                try:
-                    serialised = json.dumps(content, ensure_ascii=False, default=str)
-                except TypeError as exc:
-                    from ice_core.exceptions import SerializationError
-
-                    raise SerializationError(
-                        node_id=node_id, obj_type=type(content).__name__
-                    ) from exc
 
             current_tokens = TokenCounter.estimate_tokens(
                 serialised, model="", provider=ModelProvider.CUSTOM
             )
-
             if self.max_tokens and current_tokens > self.max_tokens:
-                # Truncate string representation to fit token budget (≈4 chars/token)
-                char_budget = self.max_tokens * 4
-                serialised = serialised[:char_budget]
-
-                # Try to re-parse back to original type when possible ---------
-                try:
-                    truncated_content = json.loads(serialised)
-                except Exception:
-                    truncated_content = serialised
-                content = truncated_content
-        except Exception:  # pragma: no cover – fallback when tiktoken missing
-            # On failure, fall back to char-length based heuristic.
-            if self.max_tokens and isinstance(content, str):
-                char_budget = self.max_tokens * 4
-                if len(content) > char_budget:
-                    content = content[:char_budget]
+                raise SerializationError(node_id, "oversized")
+        except Exception:
+            # Conservative char-based fallback (≈3 chars per token)
+            if self.max_tokens and len(serialised) > (self.max_tokens * 3):
+                raise SerializationError(node_id, "oversized")
 
         # Persist via underlying store --------------------------------------
+        # Store update must not fail on serialization; coerce via default=str
         try:
             self.store.update(
                 node_id, content, execution_id=execution_id, schema=schema
             )
-        except TypeError as exc:
-            from ice_core.exceptions import SerializationError
-
-            raise SerializationError(
-                node_id=node_id, obj_type=type(content).__name__
-            ) from exc
+        except TypeError:
+            # Treat late serialisation failures as hard errors
+            raise SerializationError(node_id, type(content).__name__)
 
     def get_node_context(self, node_id: str) -> Any:
         """Get context for a specific node."""

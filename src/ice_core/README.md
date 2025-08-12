@@ -13,7 +13,7 @@ from any environment (CLI, Lambda, notebook).
 |------|-------------------|-------|
 | **Domain models** | `models/` (LLMConfig, NodeSpec, RetryPolicy …) | All Pydantic, `mypy --strict` clean |
 | **Base abstractions** | `base_tool.ToolBase`, `base_node.BaseNode` | Async `execute()` + internal `_execute_impl()` |
-| **Registry** | `unified_registry.registry` | Maps `(NodeType, name)` → singleton instance |
+| **Registry** | `unified_registry.registry` | Registry of factories/classes. Tools are instantiated via registered factories to return fresh instances. |
 | **Validation** | `validation/*.py` | JSON-Schema generation + runtime checks |
 | **LLM integration** | `llm/service.py` + provider handlers | Uniform API over OpenAI / Anthropic / DeepSeek |
 | **Metrics & cost** | `metrics.py`, `costs.py` | Deterministic cost estimator used by orchestrator |

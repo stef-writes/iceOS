@@ -30,9 +30,7 @@ pytestmark = [pytest.mark.unit]
 
 
 class _StubContextManager:  # pylint: disable=too-few-public-methods
-    async def execute_tool(
-        self, name: str, **kwargs: Any
-    ) -> Dict[str, Any]:  # noqa: D401
+    async def execute_tool(self, name: str, **kwargs: Any) -> Dict[str, Any]:  # noqa: D401
         # Echo back to validate placeholder substitution
         return {"name": name, "args": kwargs}
 

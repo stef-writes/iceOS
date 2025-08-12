@@ -95,10 +95,10 @@ config/api_keys.json
 
 
 # Runtime drafts
-.ice/ 
+.ice/
 
 # Generated MkDocs site
-site/ 
+site/
 # Ignore pytest coverage artifacts
 .coverage*
 dump.rdb

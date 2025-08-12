@@ -693,11 +693,44 @@ class CodeNodeConfig(BaseNodeConfig):
     language: Literal["python", "javascript"] = Field(
         default="python", description="Programming language"
     )
-    code: str = Field(..., description="Code to execute")
+    code: Optional[str] = Field(
+        default=None,
+        description="Inline code to execute. Optional when referencing a registered code factory via 'name'.",
+    )
     sandbox: bool = Field(default=True, description="Execute in sandboxed environment")
     imports: List[str] = Field(
         default_factory=list, description="Allowed imports for sandboxed execution"
     )
+
+    @model_validator(mode="after")
+    def _validate_factory_or_code(self) -> "CodeNodeConfig":
+        """Ensure either inline code is provided or a factory name is set.
+
+        Accepts two authoring modes:
+        - Inline code: set `code` (and optional `imports`)
+        - Factory reference: set `name` to a registered code factory; `code` can be omitted
+        """
+        import os as _os
+
+        inline_allowed = _os.getenv("ICE_ENABLE_INLINE_CODE", "0") == "1"
+        has_inline = self.code is not None and str(self.code).strip() != ""
+        has_name = isinstance(self.name, str) and len((self.name or "").strip()) > 0
+
+        if not inline_allowed:
+            # Production default: require name reference only
+            if not has_name:
+                raise ValueError(
+                    "Inline code disabled (ICE_ENABLE_INLINE_CODE=0). Provide a 'name' for a registered code factory."
+                )
+            # If name present, ignore inline code if provided accidentally
+            return self
+
+        # Dev mode: allow either inline or name
+        if not (has_inline or has_name):
+            raise ValueError(
+                "CodeNodeConfig requires either 'code' or a non-empty 'name' referencing a registered code factory"
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------

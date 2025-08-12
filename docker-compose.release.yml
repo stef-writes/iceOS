@@ -24,11 +24,21 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
       ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
+      # Optional telemetry (enable only if collector present)
+      # OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      # OTEL_SERVICE_NAME: ice-api
     healthcheck:
       test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request,sys\ntry:\n  with urllib.request.urlopen('http://localhost:8000/readyz', timeout=3) as r:\n    sys.exit(0 if r.status==200 else 1)\nexcept Exception:\n  sys.exit(1)\nPY"]
       interval: 10s
       timeout: 3s
       retries: 30
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
 
 volumes:
   redis_data:

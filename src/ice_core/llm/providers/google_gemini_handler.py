@@ -49,7 +49,8 @@ class GoogleGeminiHandler(BaseLLMHandler):
 
         try:
             response = await model.generate_content_async(
-                prompt, generation_config=gen_config  # type: ignore[arg-type]
+                prompt,
+                generation_config=gen_config,  # type: ignore[arg-type]
             )
         except Exception as exc:  # pragma: no cover
             logger.error("Gemini API error", exc_info=True)

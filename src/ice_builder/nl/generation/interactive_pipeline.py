@@ -68,7 +68,7 @@ class InteractiveBlueprintPipeline:
     ) -> None:
         self._initialized = False
         """Initialize the interactive pipeline.
-        
+
         Args:
             specification: Natural language specification.
         """

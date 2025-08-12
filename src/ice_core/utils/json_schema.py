@@ -111,7 +111,7 @@ def convert_simple_to_json_schema(simple_schema: Dict[str, str]) -> Dict[str, An
 
 
 def normalize_schema(
-    schema: Union[Dict[str, Any], Type[BaseModel], None]
+    schema: Union[Dict[str, Any], Type[BaseModel], None],
 ) -> Optional[Dict[str, Any]]:
     """Normalize various schema formats to JSON Schema.
 

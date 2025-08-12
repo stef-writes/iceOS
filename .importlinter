@@ -11,4 +11,4 @@ forbidden_modules =
     ice_api
     ice_cli
     ice_orchestrator
-    frosty 
+    frosty

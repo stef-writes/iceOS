@@ -58,9 +58,9 @@ class ContextStore(BaseContextStore):
                 json.dump({}, f)
         self.context_cache: Dict[str, Dict[str, Any]] = {}
         self._load_context()
-        self.hooks: List[Callable[[str, str, Any], None]] = (
-            []
-        )  # hooks for observability
+        self.hooks: List[
+            Callable[[str, str, Any], None]
+        ] = []  # hooks for observability
         self.formatter = formatter or ContextFormatter()
 
     def register_hook(self, hook: Callable[[str, str, Any], None]) -> None:
@@ -92,7 +92,7 @@ class ContextStore(BaseContextStore):
             with open(self.context_store_path, "w") as f:
                 fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
-                    json.dump(self.context_cache, f, indent=2)
+                    json.dump(self.context_cache, f, indent=2, default=str)
                 finally:
                     fcntl.flock(f.fileno(), fcntl.LOCK_UN)
         except Exception as e:
@@ -170,7 +170,7 @@ class ContextStore(BaseContextStore):
         with open(self.context_store_path, "w") as f_write:
             fcntl.flock(f_write.fileno(), fcntl.LOCK_EX)
             try:
-                json.dump(current_data, f_write, indent=2)
+                json.dump(current_data, f_write, indent=2, default=str)
             finally:
                 fcntl.flock(f_write.fileno(), fcntl.LOCK_UN)
         self._run_hooks("update", node_id, content)

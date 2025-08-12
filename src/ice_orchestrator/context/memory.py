@@ -22,15 +22,11 @@ class BaseMemory(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    async def add(
-        self, content: str, metadata: dict[str, Any] | None = None
-    ) -> None:  # noqa: D401 – simple doc
+    async def add(self, content: str, metadata: dict[str, Any] | None = None) -> None:  # noqa: D401 – simple doc
         """Persist *content* and optional *metadata*."""
 
     @abstractmethod
-    async def retrieve(
-        self, query: str, k: int = 5
-    ) -> List[str]:  # noqa: D401 – simple doc
+    async def retrieve(self, query: str, k: int = 5) -> List[str]:  # noqa: D401 – simple doc
         """Return up-to-*k* items relevant to *query*."""
 
     # ------------------------------------------------------------------
@@ -56,14 +52,10 @@ class NullMemory(BaseMemory):
     discarding all data – useful when long-term memory is not required.
     """
 
-    async def add(
-        self, content: str, metadata: dict[str, Any] | None = None
-    ) -> None:  # noqa: D401 – simple doc
+    async def add(self, content: str, metadata: dict[str, Any] | None = None) -> None:  # noqa: D401 – simple doc
         return None
 
-    async def retrieve(
-        self, query: str, k: int = 5
-    ) -> List[str]:  # noqa: D401 – simple doc
+    async def retrieve(self, query: str, k: int = 5) -> List[str]:  # noqa: D401 – simple doc
         return []
 
 

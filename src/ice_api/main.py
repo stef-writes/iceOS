@@ -201,6 +201,146 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             pass
 
     # ------------------------------------------------------------------
+    # Repo-driven component rehydration (tools + code) ------------------
+    # ------------------------------------------------------------------
+    # Re-register tool factories from persisted component definitions so they
+    # are available immediately after process start. This preserves the repo as
+    # the source of truth while keeping runtime UX smooth.
+    try:
+        if os.getenv("ICEOS_REHYDRATE_COMPONENTS", "1") == "1":
+            from typing import Any as _Any
+
+            from ice_core.models.mcp import ComponentDefinition as _CDef
+
+            svc = app.state.component_service  # type: ignore[attr-defined]
+            index = await svc.list_index()
+            for key in list(index.keys()):
+                try:
+                    ctype, name = key.split(":", 1)
+                except ValueError:
+                    continue
+                # Support tools, agents, workflows and code.
+                if ctype not in ("tool", "agent", "workflow", "code"):
+                    continue
+                try:
+                    rec, _lock = await svc.get(ctype, name)
+                except Exception:
+                    continue
+                if not isinstance(rec, dict):
+                    continue
+                definition: dict[str, _Any] | None = rec.get("definition")  # type: ignore[assignment]
+                if not isinstance(definition, dict):
+                    continue
+                try:
+                    d = _CDef(**definition)
+                    # Force runtime registration without altering stored record
+                    # Register a callable factory directly when class/factory code is present
+                    from ice_core.unified_registry import (
+                        has_code_factory as _has_code_factory,
+                    )
+                    from ice_core.unified_registry import (
+                        register_code_factory as _reg_code_factory,
+                    )
+                    from ice_core.unified_registry import (
+                        register_tool_factory_callable as _reg_callable,
+                    )
+
+                    try:
+                        if d.type == "tool":
+                            if d.tool_class_code:
+                                ns: dict[str, Any] = {}
+                                exec(d.tool_class_code, ns)
+                                from ice_core.base_tool import ToolBase
+
+                                klass = None
+                                for name, obj in ns.items():
+                                    try:
+                                        if (
+                                            isinstance(obj, type)
+                                            and issubclass(obj, ToolBase)
+                                            and obj is not ToolBase
+                                        ):
+                                            klass = obj
+                                            break
+                                    except Exception:
+                                        continue
+                                if klass is not None:
+                                    from ice_core.protocols.node import INode
+
+                                    def _factory(**kwargs: Any) -> INode:
+                                        return cast(INode, klass(**kwargs))
+
+                                    _reg_callable(d.name, _factory)
+                            elif d.tool_factory_code:
+                                ns2: dict[str, Any] = {}
+                                exec(d.tool_factory_code, ns2)
+                                from ice_core.base_tool import ToolBase
+
+                                fac = None
+                                for name, obj in ns2.items():
+                                    if callable(obj):
+                                        try:
+                                            inst = obj()
+                                            if isinstance(inst, ToolBase):
+                                                fac = obj
+                                                break
+                                        except Exception:
+                                            continue
+                                if fac is not None:
+                                    from ice_core.protocols.node import INode as _INode
+
+                                    _reg_callable(
+                                        d.name, cast("Callable[..., _INode]", fac)
+                                    )
+                    except Exception:
+                        pass
+                    # Code components rehydration --------------------------------------
+                    try:
+                        if d.type == "code":
+                            if getattr(d, "code_factory_code", None):
+                                if not _has_code_factory(d.name):
+                                    import hashlib as _hashlib
+
+                                    ns3: dict[str, Any] = {}
+                                    code_str: str = d.code_factory_code or ""
+                                    exec(code_str, ns3)
+                                    # pick first callable as factory
+                                    fac = None
+                                    for name, obj in ns3.items():
+                                        if callable(obj) and not name.startswith("__"):
+                                            fac = obj
+                                            break
+                                    if fac is not None:
+                                        # Create a transient module name based on content hash
+                                        import sys as _sys
+                                        import types as _types
+
+                                        code_bytes: bytes = (
+                                            d.code_factory_code or ""
+                                        ).encode()
+                                        sha = _hashlib.sha256(code_bytes).hexdigest()[
+                                            :12
+                                        ]
+                                        mod = _types.ModuleType(
+                                            f"dynamic_code_{d.name}_{sha}"
+                                        )
+                                        setattr(mod, fac.__name__, fac)
+                                        _sys.modules[mod.__name__] = mod
+                                        _reg_code_factory(
+                                            d.name, f"{mod.__name__}:{fac.__name__}"
+                                        )
+                            elif getattr(d, "code_class_code", None):
+                                # Optional: support class-based code nodes later
+                                pass
+                    except Exception:
+                        pass
+                except Exception:
+                    # Non-fatal: leave for JIT fallback during execution
+                    pass
+    except Exception as _rehydrate_exc:  # pragma: no cover – defensive
+        logger.warning("Component rehydration skipped: %s", _rehydrate_exc)
+
+    # ------------------------------------------------------------------
     # Component validation ---------------------------------------------
     # ------------------------------------------------------------------
 

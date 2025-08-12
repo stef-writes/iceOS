@@ -104,7 +104,6 @@ class WorkflowService(IWorkflowService):
 
             # Cache the workflow instance for `get_workflow` retrieval
             if run_id is not None:
-
                 self._workflow_cache[run_id] = workflow
 
             result_dict = {

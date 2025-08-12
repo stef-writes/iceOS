@@ -29,9 +29,7 @@ class _RedisStub:  # type: ignore
     async def ping(self) -> bool:  # noqa: D401 – stub method
         return True
 
-    def __getattr__(
-        self, name: str
-    ) -> Callable[..., Awaitable[Any]]:  # noqa: D401 – dynamic stub
+    def __getattr__(self, name: str) -> Callable[..., Awaitable[Any]]:  # noqa: D401 – dynamic stub
         async def _dummy(*_args: Any, **_kwargs: Any) -> None:  # noqa: D401
             return None
 

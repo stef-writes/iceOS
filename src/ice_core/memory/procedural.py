@@ -593,7 +593,6 @@ class ProceduralMemory(BaseMemory):
                 metadata.get("success_rate", 0) >= min_success_rate
                 and metadata.get("usage_count", 0) >= min_usage
             ):
-
                 successful_procedures[key] = {
                     "content": entry.content,
                     "metadata": {

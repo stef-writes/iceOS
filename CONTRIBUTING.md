@@ -5,7 +5,7 @@ Welcome to iceOS - the spatial computing powerhouse! 🚀
 ## Spatial Computing Vision
 iceOS is designed for both traditional workflow execution and future canvas-based experiences. When contributing:
 - Consider how features will work in visual programming interfaces
-- Design with real-time collaboration in mind  
+- Design with real-time collaboration in mind
 - Think about Frosty AI integration opportunities
 - Ensure compatibility with NetworkX graph intelligence
 
@@ -15,7 +15,8 @@ iceOS is designed for both traditional workflow execution and future canvas-base
 git clone https://github.com/your-org/iceos.git
 cd iceos
 poetry install --with dev
-make setup  # Installs pre-commit hooks
+# Optional: install pre-commit hooks
+# poetry run pre-commit install
 ```
 
 ## Code Quality Gates
@@ -23,21 +24,19 @@ All new code must pass:
 ```bash
 make lint    # Ruff linting (config: config/linting/ruff.toml)
 make type    # MyPy strict typing (config: config/typing/mypy.ini)
-make test    # Pytest with coverage (config: config/testing/pytest.ini)
-make doctor  # Full health check
+make test    # Pytest (unit) (config: config/testing/pytest.ini)
 ```
 
 ### Quality Requirements
-- 90% test coverage on new/changed code (CI enforces this)
 - Pydantic models for all public APIs
 - Type hints on all public functions
 - Google-style docstrings with examples
 
 ## Architecture Rules
 1. **Layer Dependencies**: ice_core → ice_builder → ice_orchestrator → ice_api
-2. **No Cross-Layer Imports**: Use ServiceLocator for cross-layer communication
+2. **No Cross-Layer Imports**: All cross-layer calls go through stable service interfaces under `services/*`. Do not use service locators.
 3. **External I/O**: Only in Tool implementations
-4. **Dynamic Imports**: Only in `plugin_discovery.py`
+4. **Dynamic Imports**: Only in the plugin registry/manifest loader modules
 
 ## Workflow Development Guidelines
 
@@ -63,14 +62,14 @@ When working with the Workflow engine:
 - Unit tests for business logic
 - Integration tests for layer interactions
 - Use `pytest -c config/testing/pytest.ini`
-- Mock external dependencies
+- Prefer validating against real Pydantic models and schemas; keep external network calls behind tool boundaries
 - Test both success and error paths
 
 ## Documentation
 - Update relevant docs in `docs/`
 - Add/update docstrings
 - Include code examples
-- Run `make refresh-docs` to regenerate
+- Build docs locally with `poetry run mkdocs build`
 
 ## Pull Request Process
 1. Fork and create feature branch
@@ -89,4 +88,4 @@ Configuration is organized in `config/`:
 ## Questions?
 - Check existing issues/discussions
 - Review architecture docs: `docs/ARCHITECTURE.md`
-- Ask in discussions for clarification 
+- Ask in discussions for clarification

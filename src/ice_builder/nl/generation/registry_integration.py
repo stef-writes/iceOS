@@ -122,25 +122,25 @@ from typing import Dict, Any
 
 class {class_name}(ToolBase):
     """Custom tool: {description}"""
-    
+
     name = "{tool_name}"
     description = "{description}"
-    
+
     async def _execute_impl(self, **kwargs: Any) -> Dict[str, Any]:
         """Execute the tool.
-        
+
         Args:
             {input_args}
-            
+
         Returns:
             Dictionary with:
             {output_fields}
         """
         # TODO: Implement tool logic
         result = {{}}
-        
+
         {processing_logic}
-        
+
         return result
 
 

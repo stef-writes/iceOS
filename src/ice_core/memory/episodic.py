@@ -319,15 +319,23 @@ class EpisodicMemory(BaseMemory):
 
                 # Check filters
                 if filters:
-                    if "type" in filters and entry.metadata.get("episode_type") != filters["type"]:  # type: ignore[union-attr]
+                    if (
+                        "type" in filters
+                        and entry.metadata.get("episode_type") != filters["type"]
+                    ):  # type: ignore[union-attr]
                         continue
-                    if "participant" in filters and filters["participant"] not in entry.metadata.get("participants", []):  # type: ignore[union-attr]
+                    if "participant" in filters and filters[
+                        "participant"
+                    ] not in entry.metadata.get("participants", []):  # type: ignore[union-attr]
                         continue
                     if "tags" in filters:
                         entry_tags = set(entry.metadata.get("tags", []))  # type: ignore[union-attr]
                         if not all(tag in entry_tags for tag in filters["tags"]):
                             continue
-                    if "outcome" in filters and entry.metadata.get("outcome") != filters["outcome"]:  # type: ignore[union-attr]
+                    if (
+                        "outcome" in filters
+                        and entry.metadata.get("outcome") != filters["outcome"]
+                    ):  # type: ignore[union-attr]
                         continue
 
                 matching_keys.add(key)

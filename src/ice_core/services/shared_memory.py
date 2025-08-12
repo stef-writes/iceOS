@@ -1,6 +1,6 @@
 """Shared Memory Pool Service for iceOS.
 
-Provides system-wide shared memory capabilities that leverage iceOS's 
+Provides system-wide shared memory capabilities that leverage iceOS's
 sophisticated 4-tier memory architecture. Available to ALL node types.
 
 Key Features:

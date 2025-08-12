@@ -533,12 +533,12 @@ class ComponentScaffoldRequest(BaseModel):
     """Request to scaffold a new component's starter code.
 
     Args:
-        type: Component type ("tool" | "agent" | "workflow")
+        type: Component type ("tool" | "agent" | "workflow" | "code")
         name: Desired public name
         template: Optional template variant hint (e.g., "basic", "llm")
     """
 
-    type: Literal["tool", "agent", "workflow"]
+    type: Literal["tool", "agent", "workflow", "code"]
     name: str
     template: Optional[str] = Field(default=None)
 
@@ -547,7 +547,7 @@ class ComponentScaffoldResponse(BaseModel):
     """Response containing scaffolded code and notes.
 
     Returns:
-        tool_factory_code/tool_class_code/agent_factory_code depending on type
+        tool_factory_code/tool_class_code/agent_factory_code/code_factory_code depending on type
         notes: Guidance for the caller
     """
 
@@ -555,6 +555,7 @@ class ComponentScaffoldResponse(BaseModel):
     tool_factory_code: Optional[str] = None
     tool_class_code: Optional[str] = None
     agent_factory_code: Optional[str] = None
+    code_factory_code: Optional[str] = None
 
 
 def _component_key(component_type: str, name: str) -> str:
@@ -619,6 +620,26 @@ async def scaffold_component(
             agent_factory_code=agent_code,
         )
 
+    if req.type == "code":
+        code_factory = (
+            "from __future__ import annotations\n\n"
+            "from typing import Any, Dict\n\n"
+            f"def create_{req.name}():\n"
+            "    async def _run(workflow: Any, cfg: Any, ctx: Dict[str, Any]) -> Dict[str, Any]:\n"
+            "        # Implement your logic here; must return a dict\n"
+            '        return {"ok": True}\n'
+            "    return _run\n"
+        )
+        notes = (
+            "Register this code factory via unified_registry.register_code_factory(\n"
+            f'    "{req.name}", "your_module:create_{req.name}"\n'
+            ") so code nodes can reference it by name.\n"
+        )
+        return ComponentScaffoldResponse(
+            notes=notes,
+            code_factory_code=code_factory,
+        )
+
     # workflow scaffold is intentionally minimal – prefer blueprint routes
     return ComponentScaffoldResponse(
         notes="Workflows are best authored via partial blueprints; use /blueprints/partial then finalize.",
@@ -680,9 +701,16 @@ async def chat_turn(agent_name: str, req: ChatRequest) -> ChatResponse:  # noqa:
     prev: list[dict[str, str]] = []
     if raw_prev:
         try:
-            prev = json.loads(
-                raw_prev if isinstance(raw_prev, str) else raw_prev.decode()
-            )
+            if isinstance(raw_prev, str):
+                as_text = raw_prev
+            elif isinstance(raw_prev, (bytes, bytearray)):
+                try:
+                    as_text = raw_prev.decode()
+                except Exception:
+                    as_text = "[]"
+            else:
+                as_text = str(raw_prev)
+            prev = json.loads(as_text)
         except Exception:
             prev = []
 
@@ -774,7 +802,9 @@ async def register_component(
         from ice_api.services.component_repo import choose_component_repo
 
         request.app.state.component_repo = choose_component_repo(request.app)  # type: ignore[attr-defined]
-        request.app.state.component_service = ComponentService(request.app.state.component_repo)  # type: ignore[attr-defined]
+        request.app.state.component_service = ComponentService(
+            request.app.state.component_repo
+        )  # type: ignore[attr-defined]
     service: ComponentService = request.app.state.component_service  # type: ignore[attr-defined]
     result, lock = await service.register(definition)
 
@@ -806,7 +836,9 @@ async def list_all_components(request: Request) -> Dict[str, Any]:  # noqa: D401
         from ice_api.services.component_repo import choose_component_repo
 
         request.app.state.component_repo = choose_component_repo(request.app)  # type: ignore[attr-defined]
-        request.app.state.component_service = ComponentService(request.app.state.component_repo)  # type: ignore[attr-defined]
+        request.app.state.component_service = ComponentService(
+            request.app.state.component_repo
+        )  # type: ignore[attr-defined]
     service: ComponentService = request.app.state.component_service  # type: ignore[attr-defined]
     index = await service.list_index()
     stored: list[Dict[str, Any]] = []
@@ -857,7 +889,9 @@ async def get_component(
         from ice_api.services.component_repo import choose_component_repo
 
         request.app.state.component_repo = choose_component_repo(request.app)  # type: ignore[attr-defined]
-        request.app.state.component_service = ComponentService(request.app.state.component_repo)  # type: ignore[attr-defined]
+        request.app.state.component_service = ComponentService(
+            request.app.state.component_repo
+        )  # type: ignore[attr-defined]
     service: ComponentService = request.app.state.component_service  # type: ignore[attr-defined]
     data_any, lock = await service.get(component_type, name)
     if not data_any:
@@ -906,7 +940,10 @@ async def update_component(
     )
     payload = record.model_dump(mode="json")
     new_lock = _hash_lock(payload)
-    await redis.hset(_component_key(component_type, name), mapping={"json": json.dumps(payload), "lock": new_lock})  # type: ignore[misc]
+    await redis.hset(
+        _component_key(component_type, name),
+        mapping={"json": json.dumps(payload), "lock": new_lock},
+    )  # type: ignore[misc]
     return {"name": name, "type": component_type, "version_lock": new_lock}
 
 
@@ -962,7 +999,11 @@ async def compose_agent(
     )
     # Persistent path via service-backed registration
     try:
-        return await register_component(request, definition)
+        resp = await register_component(request, definition)
+        # Ensure exact return type for mypy
+        from typing import cast as _cast
+
+        return _cast(ComponentRegisterResponse, resp)
     except Exception as exc:
         # If Redis is unavailable, register definition in-process (non-persistent)
         if (
@@ -1205,7 +1246,12 @@ async def start_run(req: RunRequest) -> RunAck:
         # Event emitter closure ---------------------------------------
         def _emit(evt_name: str, payload: Dict[str, Any]) -> None:
             # Schedule the async Redis call without blocking
-            asyncio.create_task(redis.xadd(_stream_key(run_id), {"event": evt_name, "payload": json.dumps(payload)}))  # type: ignore[arg-type]
+            asyncio.create_task(
+                redis.xadd(
+                    _stream_key(run_id),
+                    {"event": evt_name, "payload": json.dumps(payload)},
+                )
+            )  # type: ignore[arg-type]
 
         result_obj = await _get_workflow_service().execute(
             conv_nodes,
@@ -1318,7 +1364,6 @@ try:
         return EventSourceResponse(_gen())
 
 except ImportError:  # pragma: no cover – SSE optional
-
     from typing import Any  # Imported here to avoid unconditional dependency
 
     @router.get("/runs/{run_id}/events")
@@ -1457,8 +1502,14 @@ async def validate_component_definition(
     # Validate the component
     result = await validate_component(definition)
 
-    # Auto-register if requested and valid
-    if result.valid and definition.auto_register and not definition.validate_only:
+    # Auto-register if requested and valid (dev convenience). In production the
+    # repo is the source of truth; rehydration on startup makes tools available.
+    if (
+        result.valid
+        and definition.auto_register
+        and not definition.validate_only
+        and os.getenv("ICEOS_DISABLE_RUNTIME_AUTOREG", "0") != "1"
+    ):
         try:
             if definition.type == "tool":
                 # For tools, we need to create a dynamic tool instance
@@ -1502,6 +1553,40 @@ async def validate_component_definition(
                     result.registered = True
                     result.registry_name = definition.name
 
+            elif definition.type == "code":
+                # Dynamically load a code factory and register it (idempotent)
+                if definition.code_factory_code:
+                    import hashlib
+                    import sys
+                    import types
+
+                    from ice_core.unified_registry import (
+                        has_code_factory,
+                        register_code_factory,
+                    )
+
+                    # Content-addressable module naming for idempotency
+                    sha = hashlib.sha256(
+                        definition.code_factory_code.encode()
+                    ).hexdigest()[:12]
+                    mod_name = f"dynamic_code_{definition.name}_{sha}"
+                    if not has_code_factory(definition.name):
+                        module = types.ModuleType(mod_name)
+                        exec(definition.code_factory_code, module.__dict__)
+                        sys.modules[mod_name] = module
+                        factory_obj = None
+                        for obj_name, obj in module.__dict__.items():
+                            if callable(obj) and not obj_name.startswith("__"):
+                                factory_obj = obj
+                                break
+                        if factory_obj is None:
+                            raise ValueError(
+                                "No callable factory found in code_factory_code"
+                            )
+                        import_path = f"{mod_name}:{factory_obj.__name__}"
+                        register_code_factory(definition.name, import_path)
+                    result.registered = True
+                    result.registry_name = definition.name
                 elif definition.tool_class_code:
                     # Execute the code to create the tool class
                     namespace: Dict[str, Any] = {}
@@ -1520,20 +1605,16 @@ async def validate_component_definition(
                             break
 
                     if tool_class:
-                        # Register a simple factory pointing to the class itself
-                        import_path = (
-                            f"dynamic_tools.{tool_class.__name__}:{tool_class.__name__}"
+                        # Register callable factory directly to avoid dynamic module paths
+                        from ice_core.protocols.node import INode
+                        from ice_core.unified_registry import (
+                            register_tool_factory_callable as _reg_callable,
                         )
-                        # Create a temporary module for import path stability
-                        import sys
-                        import types
 
-                        mod = types.ModuleType("dynamic_tools")
-                        setattr(mod, tool_class.__name__, tool_class)
-                        sys.modules["dynamic_tools"] = mod
-                        from ice_core.unified_registry import register_tool_factory
+                        def _factory(**kwargs: Any) -> INode:
+                            return cast(INode, tool_class(**kwargs))
 
-                        register_tool_factory(definition.name, import_path)
+                        _reg_callable(definition.name, _factory)
                         result.registered = True
                         result.registry_name = definition.name
                 else:
@@ -1588,7 +1669,7 @@ async def validate_component_definition(
                             import_module("ice_orchestrator.workflow"), "Workflow"
                         )
 
-                        def _factory(**kwargs: Any) -> Any:  # type: ignore[no-redef]
+                        def _factory(**kwargs: Any) -> INode:  # type: ignore[no-redef]
                             # Convert MCP NodeSpec definitions to runtime NodeConfig objects
                             from ice_core.utils.node_conversion import (
                                 convert_node_specs,
@@ -1597,7 +1678,12 @@ async def validate_component_definition(
                             node_configs = convert_node_specs(
                                 definition.workflow_nodes or []
                             )
-                            return Workflow(nodes=node_configs, name=definition.name)
+                            from typing import cast as _cast
+
+                            return _cast(
+                                INode,
+                                Workflow(nodes=node_configs, name=definition.name),
+                            )
 
                         mod = types.ModuleType("dynamic_workflows")
                         setattr(mod, f"create_{definition.name}", _factory)
@@ -1626,7 +1712,7 @@ async def validate_component_definition(
 @router.get("/components/{component_type}")
 async def list_components_by_type(component_type: str) -> Dict[str, Any]:
     """List all registered components of a given type."""
-    valid_types = ["tool", "agent", "workflow"]
+    valid_types = ["tool", "agent", "workflow", "code"]
     if component_type not in valid_types:
         raise HTTPException(
             400, f"Invalid component type. Must be one of: {valid_types}"
@@ -1642,6 +1728,18 @@ async def list_components_by_type(component_type: str) -> Dict[str, Any]:
         return {
             "components": [name for _, name in registry.list_nodes(NodeType.WORKFLOW)]
         }
+    elif component_type == "code":
+        # Aggregate from both mapping and callable cache
+        names: set[str] = set()
+        try:
+            names.update(getattr(registry, "_code_factories", {}).keys())  # type: ignore[arg-type]
+        except Exception:
+            pass
+        try:
+            names.update(getattr(registry, "_code_factory_cache", {}).keys())  # type: ignore[arg-type]
+        except Exception:
+            pass
+        return {"components": sorted(names)}
     else:
         return {"components": []}
 

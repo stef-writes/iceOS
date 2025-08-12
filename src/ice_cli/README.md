@@ -19,8 +19,7 @@ Commands:
   run             Execute a blueprint YAML locally
 ```
 
-Implementation lives in `src/ice_cli/commands/*.py` and uses **Click** – no
-additional runtime dependencies.
+Implementation lives in `src/ice_cli/commands/*.py` and uses **Click**.
 
 ---
 
@@ -35,7 +34,7 @@ $ ice new tool --name acme_discount --description "Apply ACME discount" --output
 #   tests/unit/acme_tools/test_acme_discount.py
 ```
 
-Other scaffold sub-commands: `agent`, `agent-tool`, `llm-operator`.
+Other scaffold sub-commands are available; see `ice new --help`.
 
 ---
 
@@ -45,12 +44,11 @@ Other scaffold sub-commands: `agent`, `agent-tool`, `llm-operator`.
 # Execute in offline/test mode (default)
 $ ice run examples/blueprints/seller_assistant.yaml
 
-# Live mode
+# Live mode (uses your configured providers)
 $ ICE_TEST_MODE=0 ice run examples/blueprints/seller_assistant.yaml
 ```
 
-`ice run` internally calls `ice_builder` to parse YAML → `Workflow` and then
-hands execution to `ice_orchestrator`.
+`ice run` calls `ice_builder` to parse YAML → `Workflow` and invokes the runtime engine.
 
 ---
 

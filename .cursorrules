@@ -10,7 +10,7 @@
 
 5. Prefer async/await; long I/O must not block the event loop.
 
-6. If you propose file edits, update matching tests in `tests/` and run `make test`. 
+6. If you propose file edits, update matching tests in `tests/` and run `make test`.
 
 7. Mypy must pass in --strict mode on every commit.
 
@@ -58,4 +58,3 @@
     - Use `grep_search` to find actual field names and types
     - Use `read_file` to inspect model definitions
     - Check existing working code that uses these models as examples
-

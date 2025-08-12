@@ -25,9 +25,7 @@ class NetworkTaskManager:
     # Public API
     # ------------------------------------------------------------------
 
-    async def start(
-        self, network_id: str, coro: Any
-    ) -> None:  # noqa: ANN001 – generic coro
+    async def start(self, network_id: str, coro: Any) -> None:  # noqa: ANN001 – generic coro
         """Start *coro* as background task under *network_id* key."""
         async with self._lock:
             await self._cancel_unlocked(network_id)

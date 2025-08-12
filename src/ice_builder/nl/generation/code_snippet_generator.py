@@ -17,11 +17,11 @@ class CodeSnippetGenerator:
     TEMPLATES = {
         "csv_reader": '''def read_csv_file(file_path: str, **kwargs) -> pd.DataFrame:
     """Read CSV file and return as DataFrame.
-    
+
     Args:
         file_path: Path to the CSV file.
         **kwargs: Additional pandas read_csv arguments.
-        
+
     Returns:
         Loaded DataFrame.
     """
@@ -29,11 +29,11 @@ class CodeSnippetGenerator:
     return pd.read_csv(file_path, **kwargs)''',
         "json_processor": '''def process_json_data(data: dict, key_path: str) -> any:
     """Extract value from nested JSON using dot notation.
-    
+
     Args:
         data: JSON data as dictionary.
         key_path: Dot-separated path (e.g., "user.profile.name").
-        
+
     Returns:
         Extracted value or None if not found.
     """
@@ -47,12 +47,12 @@ class CodeSnippetGenerator:
     return result''',
         "api_caller": '''async def call_api(url: str, method: str = "GET", **kwargs) -> dict:
     """Make HTTP API call and return JSON response.
-    
+
     Args:
         url: API endpoint URL.
         method: HTTP method (GET, POST, etc.).
         **kwargs: Additional arguments for requests.
-        
+
     Returns:
         JSON response as dictionary.
     """
@@ -63,11 +63,11 @@ class CodeSnippetGenerator:
             return await response.json()''',
         "data_transformer": '''def transform_data(data: List[dict], transformations: dict) -> List[dict]:
     """Apply transformations to list of records.
-    
+
     Args:
         data: List of dictionaries to transform.
         transformations: Mapping of field names to transformation functions.
-        
+
     Returns:
         Transformed data.
     """

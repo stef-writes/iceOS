@@ -1,6 +1,4 @@
-"""iceOS command-line interface (pure *Click* implementation).
-
-"""
+"""iceOS command-line interface (pure *Click* implementation)."""
 
 from __future__ import annotations
 

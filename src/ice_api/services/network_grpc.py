@@ -26,7 +26,9 @@ else:  # Fallback so mypy/tests succeed without generated stubs
 
     network_pb2_grpc = types.ModuleType("network_pb2_grpc")
     network_pb2_grpc.NetworkServiceServicer = object  # type: ignore[assignment]
-    network_pb2_grpc.add_NetworkServiceServicer_to_server = lambda servicer, server: None  # type: ignore[assignment]
+    network_pb2_grpc.add_NetworkServiceServicer_to_server = (
+        lambda servicer, server: None
+    )  # type: ignore[assignment]
 
 BaseServicer: Any = getattr(network_pb2_grpc, "NetworkServiceServicer", object)
 
@@ -67,7 +69,9 @@ class NetworkGRPCServicer(BaseServicer):  # type: ignore[misc]
         self, request: Any, context: grpc.aio.ServicerContext
     ) -> Any:
         try:
-            specs = await self._service.list_network_specs(filter=f"id={request.spec_id}")  # type: ignore[attr-defined]
+            specs = await self._service.list_network_specs(
+                filter=f"id={request.spec_id}"
+            )  # type: ignore[attr-defined]
             if not specs:
                 context.set_code(grpc.StatusCode.NOT_FOUND)
                 return network_pb2.GetNetworkSpecResponse()  # type: ignore[attr-defined]

@@ -89,7 +89,9 @@ class WorkflowTester:  # pylint: disable=too-few-public-methods
             raise FileExistsError(f"Fixture already exists: {path}")
 
         # PyYAML dumps complex dataclasses poorly – convert via dict first.
-        data_dict = result.model_dump(mode="json") if hasattr(result, "model_dump") else result  # type: ignore[attr-defined]
+        data_dict = (
+            result.model_dump(mode="json") if hasattr(result, "model_dump") else result
+        )  # type: ignore[attr-defined]
         yaml.safe_dump(data_dict, path.open("w"), sort_keys=False)
         return result
 

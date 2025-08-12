@@ -116,7 +116,7 @@ These hands-on labs guide you through building robust nodes and workflows. Each 
 Tips
 - Prefer JSON/YAML blueprints for API submission; use `ice build` for Python DSL.
 - Use catalog endpoints to render configuration forms with `ui_hints`.
-- Authenticate with `ICE_API_TOKEN` for both REST and WS` 
+- Authenticate with `ICE_API_TOKEN` for both REST and WS`
 
 ---
 

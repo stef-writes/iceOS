@@ -2,7 +2,7 @@
 
 This module now supports both:
 1. Simple type literals (backward compatible):
-   - Scalar types: "str", "int", "float", "bool"  
+   - Scalar types: "str", "int", "float", "bool"
    - Lists: "list[str]", "list[int]"
    - Objects: "dict"
 
@@ -11,7 +11,7 @@ This module now supports both:
    - Rich validation with required fields, patterns, etc.
 
 For complex nested objects, you can use either:
-- Pydantic model classes  
+- Pydantic model classes
 - Full JSON Schema definitions
 - Simple type literals (limited validation)
 """

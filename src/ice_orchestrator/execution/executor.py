@@ -11,8 +11,45 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, cast
 
 import structlog
-from opentelemetry import trace  # type: ignore[import-not-found]
-from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
+
+try:
+    from opentelemetry import trace  # type: ignore[import-not-found]
+    from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
+except Exception:  # pragma: no cover – optional telemetry
+
+    class _NoopSpan:
+        def set_attribute(self, *args, **kwargs):
+            return None
+
+        def set_status(self, *args, **kwargs):
+            return None
+
+        def end(self):
+            return None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class _NoopTracer:
+        def start_as_current_span(self, *args, **kwargs):
+            return _NoopSpan()
+
+    class _NoopTrace:
+        def get_tracer(self, *args, **kwargs):
+            return _NoopTracer()
+
+    trace = _NoopTrace()  # type: ignore
+
+    class Status:  # type: ignore
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+    class StatusCode:  # type: ignore
+        ERROR = "ERROR"
+
 
 # ---------------------------------------------------------------------------
 # Ensure built-in node executors are registered *before* any workflow runs.
@@ -300,8 +337,16 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                 else:
                     raw_out = result_raw
 
-                # New coercion layer
+                # New coercion layer + serialization safety
                 processed_output = self._coerce_output(node, raw_out)
+                # Guarantee JSON-serialisability for context persistence
+                try:
+                    json.dumps(processed_output, default=str)
+                except Exception:
+                    # Wrap non-serialisable outputs into a string repr
+                    processed_output = json.loads(
+                        json.dumps(processed_output, default=str)
+                    )
 
                 # Store in cache if enabled & succeeded -------------
                 # (Cache write elided for now)
@@ -344,7 +389,9 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                                 )
                                 # Add type validation
                                 expected_type = None
-                                if isinstance(getattr(node, "output_schema", None), dict):  # type: ignore[attr-defined]
+                                if isinstance(
+                                    getattr(node, "output_schema", None), dict
+                                ):  # type: ignore[attr-defined]
                                     schema_dict = node.output_schema  # type: ignore[attr-defined]
                                     if schema_dict and isinstance(schema_dict, dict):
                                         expected_type = next(

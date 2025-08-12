@@ -47,9 +47,7 @@ _RATE_WINDOW = 10.0
 _RATE_MAX = 5
 
 
-def rate_limit(
-    request: Request, token: str = Depends(require_auth)
-) -> None:  # noqa: D401
+def rate_limit(request: Request, token: str = Depends(require_auth)) -> None:  # noqa: D401
     key = (token, request.url.path)
     now = time.time()
     bucket = _RATE_LIMIT.setdefault(key, [])
@@ -168,9 +166,7 @@ async def create_or_get_draft(
 
 
 @router.get("/{session_id}", response_model=Dict[str, Any])
-async def get_draft(
-    session_id: str, _: None = Depends(rate_limit)
-) -> Dict[str, Any]:  # noqa: D401
+async def get_draft(session_id: str, _: None = Depends(rate_limit)) -> Dict[str, Any]:  # noqa: D401
     state = await _get_state(session_id)
     return _as_json(state)
 

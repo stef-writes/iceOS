@@ -118,18 +118,21 @@ async def agent_node_executor(
                         self._render_prompt(context, mode="decide") + "\n" + guidance
                     )
                     text, _usage, _err = await self._llm.generate(self._llm_cfg, prompt)
+                    parsed: dict[str, Any]
                     try:
-                        action = _json.loads(text) if text else {}
-                        if not isinstance(action, dict):
-                            raise ValueError("non-dict action")
+                        maybe_obj = _json.loads(text) if text else {}
+                        parsed = maybe_obj if isinstance(maybe_obj, dict) else {}
                     except Exception:
-                        # Fallback: no-op done
-                        action = {
+                        parsed = {}
+                    if not parsed:
+                        action: dict[str, Any] = {
                             "tool": None,
                             "inputs": {},
                             "done": True,
                             "message": text or "",
                         }
+                    else:
+                        action = parsed
                     # Normalize and enforce allowed list
                     tool = action.get("tool")
                     if tool is not None:

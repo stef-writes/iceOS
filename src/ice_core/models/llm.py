@@ -171,7 +171,7 @@ class MessageTemplate(BaseModel):
             min_ver = Version(
                 parse_model_version(self.min_model_version, self.provider)
             )
-            return model_ver >= min_ver
+            return bool(model_ver >= min_ver)
         except ValueError:
             return False
 

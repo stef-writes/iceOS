@@ -15,9 +15,7 @@ def _public_view(record: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @router.websocket("/executions/{execution_id}")
-async def websocket_execution_updates(
-    websocket: WebSocket, execution_id: str
-) -> None:  # noqa: D401
+async def websocket_execution_updates(websocket: WebSocket, execution_id: str) -> None:  # noqa: D401
     await websocket.accept()
 
     app = websocket.app  # FastAPI app instance

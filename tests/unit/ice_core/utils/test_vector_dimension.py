@@ -1,5 +1,4 @@
-"""Tests for `ice_core.utils.vector.validate_embedding_dimension` without Hypothesis.
-"""
+"""Tests for `ice_core.utils.vector.validate_embedding_dimension` without Hypothesis."""
 
 from __future__ import annotations
 

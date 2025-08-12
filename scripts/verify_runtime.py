@@ -31,11 +31,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from ice_core.base_tool import ToolBase
 from ice_core.models.mcp import Blueprint, NodeSpec
-from ice_core.unified_registry import (
-    register_llm_factory,
-    register_tool_factory,
-    register_swarm_factory,
-)
+from ice_core.unified_registry import register_swarm_factory, register_tool_factory
 from ice_orchestrator.config import runtime_config
 from ice_orchestrator.services.agent_runtime import AgentRuntime
 from ice_orchestrator.services.workflow_execution_service import (
@@ -86,9 +82,7 @@ class _PhiloLLM:
     ) -> Tuple[str, Optional[Dict[str, int]], Optional[str]]:
         text: str
         if "philosophical proposition" in prompt.lower():
-            text = (
-                "Consciousness arises from self-referential information processing constrained by embodiment."
-            )
+            text = "Consciousness arises from self-referential information processing constrained by embodiment."
         elif "analyze the following proposition" in prompt.lower():
             lines = [ln.strip() for ln in prompt.splitlines() if ln.strip()]
             prop = lines[-1] if lines else "(unknown proposition)"
@@ -99,7 +93,11 @@ class _PhiloLLM:
             )
         else:
             text = "Processed"
-        return text, {"prompt_tokens": 5, "completion_tokens": 20, "total_tokens": 25}, None
+        return (
+            text,
+            {"prompt_tokens": 5, "completion_tokens": 20, "total_tokens": 25},
+            None,
+        )
 
 
 def create_philo_llm() -> _PhiloLLM:
@@ -148,8 +146,11 @@ async def _run_llm_to_tool() -> Dict[str, Any]:
 async def _run_llm_search_llm() -> Dict[str, Any]:
     # Ensure search tool is registered (requires SERPAPI_KEY; no fallbacks)
     import ice_tools.generated.search_tool  # noqa: F401
+
     if not (os.getenv("SERPAPI_KEY") or os.getenv("SERPAPI_API_KEY")):
-        raise RuntimeError("SERPAPI_KEY (or SERPAPI_API_KEY) must be set for search section")
+        raise RuntimeError(
+            "SERPAPI_KEY (or SERPAPI_API_KEY) must be set for search section"
+        )
 
     nodes = [
         NodeSpec(
@@ -186,7 +187,9 @@ async def _run_llm_search_llm() -> Dict[str, Any]:
 
 # --- Simple swarm factory (deterministic) ------------------------------------
 class _SimpleSwarm:
-    async def execute(self, *, workflow: Any, cfg: Any, ctx: Dict[str, Any]) -> Dict[str, Any]:  # noqa: ANN401
+    async def execute(
+        self, *, workflow: Any, cfg: Any, ctx: Dict[str, Any]
+    ) -> Dict[str, Any]:  # noqa: ANN401
         roles = [a.role for a in getattr(cfg, "agents", [])]
         return {"consensus": "approved", "agents": roles}
 
@@ -282,6 +285,7 @@ async def main() -> None:
             }
 
     print("=== Agent → Tool ===")
+
     # Agent with minimal intra-run memory via context (two steps)
     class _MemoryAgent:
         def __init__(self) -> None:
@@ -296,7 +300,12 @@ async def main() -> None:
         def decide(self, context: Dict[str, Any]) -> Dict[str, Any]:
             self.step += 1
             if self.step == 1:
-                return {"tool": "writer_tool", "inputs": {"text": "memo"}, "done": False, "message": "writing"}
+                return {
+                    "tool": "writer_tool",
+                    "inputs": {"text": "memo"},
+                    "done": False,
+                    "message": "writing",
+                }
             # Read prior tool output recorded by runtime under context['agent']
             last = (context.get("agent") or {}).get("last_result") or {}
             msg = f"read:{last}"

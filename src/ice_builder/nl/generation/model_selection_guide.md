@@ -58,7 +58,7 @@ providers = {
     "intent": "claude-3.5-sonnet",
     "planning": "o1-preview",         # When available
     "decomposition": "gpt-4o",
-    "diagram": "gpt-4o", 
+    "diagram": "gpt-4o",
     "code": "claude-3.5-sonnet",
 }
 ```

@@ -194,6 +194,124 @@ async def validate_agent_definition(
     return result
 
 
+async def validate_code_definition(
+    definition: ComponentDefinition,
+) -> ComponentValidationResult:
+    """Validate a code component definition before registration.
+
+    Checks:
+    - Python code syntax when provided
+    - Name conflict in code factory registry
+    """
+    result = ComponentValidationResult(
+        valid=True,
+        component_type="code",
+        component_id=f"code_{definition.name}",
+        registered=False,
+        registry_name=None,
+    )
+
+    # Name conflict
+    try:
+        from ice_core.unified_registry import registry
+
+        # Access private mapping via try/except; fall back to error-only path
+        # If resolving the factory succeeds, it's a conflict
+        try:
+            registry.get_code_instance(definition.name)
+            result.errors.append(
+                f"Code component '{definition.name}' already exists in registry"
+            )
+            result.valid = False
+            return result
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+    import ast
+    import re
+
+    # Size cap (64KB) and basic static checks
+    src = definition.code_factory_code or definition.code_class_code or ""
+    if len(src.encode("utf-8")) > 64 * 1024:
+        result.valid = False
+        result.errors.append(
+            "Code too large (>64KB). Store modules in a package or reduce size."
+        )
+        return result
+    try:
+        ast.parse(src)
+    except SyntaxError as exc:  # pragma: no cover – fast-fail
+        result.valid = False
+        result.errors.append(f"Invalid Python code: {exc}")
+        return result
+
+    # Disallow obvious dangerous imports (best-effort; enforced strictly at runtime sandbox)
+    banned = re.compile(
+        r"^\s*import\s+(os|socket|subprocess)|^\s*from\s+(os|socket|subprocess)\s+import",
+        re.M,
+    )
+    if banned.search(src):
+        result.warnings.append(
+            "Dangerous imports detected (os/socket/subprocess) – will be blocked in sandbox"
+        )
+
+    # Optional dry-run (non-strict by default)
+    import os as _os
+    import types as _types
+
+    dryrun = _os.getenv("ICE_MCP_DRYRUN_CODE", "0") == "1"
+    strict = _os.getenv("ICE_MCP_DRYRUN_STRICT", "0") == "1"
+    if dryrun and definition.code_factory_code:
+        try:
+            module = _types.ModuleType("_dryrun_code")
+            exec(definition.code_factory_code, module.__dict__)
+            factory_obj = None
+            for obj_name, obj in module.__dict__.items():
+                if callable(obj) and not obj_name.startswith("__"):
+                    factory_obj = obj
+                    break
+            if factory_obj is None:
+                raise ValueError("No callable factory found in code_factory_code")
+            # Call once with tiny ctx; accept sync or async
+            import asyncio as _asyncio
+            import inspect as _inspect
+
+            maybe = factory_obj()
+
+            # Factory may return callable that expects (workflow,cfg,ctx)
+            from typing import Any, Awaitable, Callable, Union, cast
+
+            async def _invoke(callable_obj: Union[Callable[..., Any], Any]) -> None:
+                if _inspect.iscoroutinefunction(callable_obj):
+                    out = await cast(
+                        Awaitable[Any], callable_obj(None, None, {"__dryrun": True})
+                    )
+                else:
+                    out = cast(Callable[..., Any], callable_obj)(
+                        None, None, {"__dryrun": True}
+                    )
+                if not isinstance(out, dict):
+                    raise TypeError("Code factory must return dict outputs")
+
+            if _inspect.iscoroutine(maybe):
+                _asyncio.get_event_loop().run_until_complete(maybe)
+                # Expect the awaitable to resolve to callable – skip if not
+            elif callable(maybe):
+                _asyncio.get_event_loop().run_until_complete(_invoke(maybe))
+        except Exception as exc:  # best-effort
+            msg = f"Dry-run failed: {exc}"
+            if strict:
+                result.valid = False
+                result.errors.append(msg)
+                return result
+            else:
+                result.warnings.append(msg)
+
+    return result
+
+
 async def validate_workflow_definition(
     definition: ComponentDefinition,
 ) -> ComponentValidationResult:
@@ -303,6 +421,8 @@ async def validate_component(
         return await validate_agent_definition(definition)
     elif definition.type == "workflow":
         return await validate_workflow_definition(definition)
+    elif definition.type == "code":
+        return await validate_code_definition(definition)
     else:
         return ComponentValidationResult(
             valid=False,

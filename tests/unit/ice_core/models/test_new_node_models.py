@@ -174,7 +174,8 @@ def test_monitor_runtime_validation_empty_expression():
 def test_monitor_runtime_validation_invalid_syntax():
     """MonitorNodeConfig fails validation with invalid syntax."""
     config = MonitorNodeConfig(
-        id="test_monitor", metric_expression="cost > > 100"  # Invalid syntax
+        id="test_monitor",
+        metric_expression="cost > > 100",  # Invalid syntax
     )
 
     with pytest.raises(ValueError):

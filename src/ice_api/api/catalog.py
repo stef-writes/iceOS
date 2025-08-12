@@ -81,10 +81,13 @@ async def list_node_catalog() -> NodeCatalog:  # noqa: D401
             input_schema, output_schema = discover_tool_schemas(name)
         except Exception:
             # Be resilient – provide empty schemas if discovery fails
-            input_schema, output_schema = {"type": "object", "properties": {}}, {
-                "type": "object",
-                "properties": {},
-            }
+            input_schema, output_schema = (
+                {"type": "object", "properties": {}},
+                {
+                    "type": "object",
+                    "properties": {},
+                },
+            )
         # Minimal automatic UI hints: map enum and numeric ranges if present
         hints: Dict[str, UIHints] = {}
         props = (

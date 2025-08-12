@@ -205,7 +205,8 @@ class Registry(BaseModel):
 
     def has_tool(self, name: str) -> bool:
         """Check if a tool factory is registered."""
-        return name in dict(self.available_tool_factories())
+        # Consider both string-registered factories and callable cache entries
+        return name in self._tool_factories or name in self._tool_factory_cache
 
     # Chain registry methods
     def register_chain(self, name: str, chain: Any) -> None:
@@ -508,15 +509,11 @@ class Registry(BaseModel):
         validation.  No instance caching is done – callers receive a new,
         isolated tool each time.
         """
-        if name not in self._tool_factories:
-            from ice_core.exceptions import ToolFactoryResolutionError
-
-            raise ToolFactoryResolutionError(name, "factory not registered")
-
-        # Resolve factory callable (cached for performance)
+        # Resolve factory callable (cached for performance). Allow pure-callable
+        # registrations that do not have a string import path.
         if name in self._tool_factory_cache:
             factory = self._tool_factory_cache[name]
-        else:
+        elif name in self._tool_factories:
             module_str, attr = self._tool_factories[name].split(":", 1)
             import importlib
 
@@ -529,6 +526,10 @@ class Registry(BaseModel):
                     name, "factory attribute is not callable"
                 )
             self._tool_factory_cache[name] = factory  # Cache for next call
+        else:
+            from ice_core.exceptions import ToolFactoryResolutionError
+
+            raise ToolFactoryResolutionError(name, "factory not registered")
 
         tool_instance = factory(**kwargs)
 
@@ -551,7 +552,15 @@ class Registry(BaseModel):
 
     def available_tool_factories(self) -> List[Tuple[str, str]]:
         """List registered tool factories with their import paths."""
-        return [(name, path) for name, path in sorted(self._tool_factories.items())]
+        # Include callable-registered factories with a placeholder path
+        entries: List[Tuple[str, str]] = []
+        entries.extend(
+            (name, path) for name, path in sorted(self._tool_factories.items())
+        )
+        for name in sorted(self._tool_factory_cache.keys()):
+            if name not in self._tool_factories:
+                entries.append((name, "<callable>"))
+        return entries
 
     # ------------------------------------------------------------------
     # Test support helpers (safe to call in test environment) ----------
@@ -828,6 +837,10 @@ class Registry(BaseModel):
         )
         return factory(**kwargs)
 
+    def has_code_factory(self, name: str) -> bool:
+        """Return True if a code factory is registered or cached under name."""
+        return name in self._code_factories or name in self._code_factory_cache
+
     # ------------------------------------------------------------------
     # Human factory helpers --------------------------------------------
     # ------------------------------------------------------------------
@@ -922,6 +935,16 @@ def register_tool_factory(name: str, import_path: str) -> None:  # noqa: D401
     registry.register_tool_factory(name, import_path)
 
 
+def register_tool_factory_callable(name: str, factory: Callable[..., INode]) -> None:  # noqa: D401
+    """Register a tool factory directly via a callable.
+
+    This avoids dynamic module import paths and aligns with repo-driven
+    rehydration/JIT where code objects are materialised at runtime.
+    """
+    # Overwrite cache entry; keep mapping idempotent
+    registry._tool_factory_cache[name] = factory  # type: ignore[attr-defined]
+
+
 def get_tool_instance(name: str, **kwargs: Any) -> INode:  # noqa: D401
     """Convenience wrapper around ``Registry.get_tool_instance``."""
     return registry.get_tool_instance(name, **kwargs)
@@ -1010,6 +1033,11 @@ def get_recursive_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401
 def register_code_factory(name: str, import_path: str) -> None:  # noqa: D401
     """Register a code node factory at module level."""
     registry.register_code_factory(name, import_path)
+
+
+def has_code_factory(name: str) -> bool:  # noqa: D401
+    """Check existence of a code factory by name."""
+    return registry.has_code_factory(name)
 
 
 def get_code_instance(name: str, **kwargs: Any) -> Any:  # noqa: D401

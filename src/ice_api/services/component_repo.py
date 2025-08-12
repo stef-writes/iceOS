@@ -44,11 +44,13 @@ class RedisComponentRepository(ComponentRepository):
             raw = raw.decode()
         data = json.loads(raw)
         lock = await redis.hget(f"component:{component_type}:{name}", "lock")  # type: ignore[misc]
-        lock_str = (
-            lock.decode()
-            if isinstance(lock, (bytes, bytearray))
-            else (str(lock) if lock else None)
-        )
+        if isinstance(lock, (bytes, bytearray)):
+            try:
+                lock_str: Optional[str] = lock.decode()
+            except Exception:
+                lock_str = None
+        else:
+            lock_str = str(lock) if lock is not None else None
         return data, lock_str
 
     async def put(
@@ -66,15 +68,27 @@ class RedisComponentRepository(ComponentRepository):
 
     async def get_index(self) -> Dict[str, str]:
         redis = get_redis()
-        idx = await redis.hgetall("component:index")  # type: ignore[misc]
+        from typing import Any as _Any  # local alias to avoid top import churn
+
+        idx: Dict[_Any, _Any] = await redis.hgetall("component:index")  # type: ignore[misc]
         if not idx:
             return {}
-        return {
-            (k.decode() if isinstance(k, (bytes, bytearray)) else str(k)): (
-                v.decode() if isinstance(v, (bytes, bytearray)) else str(v)
+        decoded: Dict[str, str] = {}
+        for k, v in idx.items():
+            key = (
+                k
+                if isinstance(k, str)
+                else (k.decode() if isinstance(k, (bytes, bytearray)) else str(k))
             )
-            for k, v in idx.items()
-        }
+            if isinstance(v, (bytes, bytearray)):
+                try:
+                    val_decoded = v.decode()
+                except Exception:
+                    val_decoded = None
+                decoded[key] = val_decoded if val_decoded is not None else str(v)
+            else:
+                decoded[key] = str(v)
+        return decoded
 
 
 class InMemoryComponentRepository(ComponentRepository):

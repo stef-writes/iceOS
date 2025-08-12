@@ -1,7 +1,6 @@
 # ice_builder – Workflow Authoring DSL
 
-`ice_builder` offers two ergonomic ways to *create* `ice_orchestrator.workflow.Workflow`
-objects so you rarely have to hand-write JSON/YAML.
+`ice_builder` provides a fluent, code-first way to author workflows and emit MCP Blueprints. It mirrors the actual builder implementation.
 
 ---
 
@@ -24,8 +23,7 @@ wf = b.to_workflow()
 wf.validate()
 ```
 
-Under the hood `add_tool()` creates a `ToolNodeConfig`.  Similar helpers exist
-for `add_loop()`, `add_condition()`, etc.
+Under the hood `add_tool()` appends a `ToolNodeConfig` to the builder state. Similar helpers exist for `add_loop()`, `add_condition()`, etc.
 
 ### Auto-wiring rules
 * A node automatically depends on any id referenced via `{"$ref": "node"}`
@@ -58,7 +56,7 @@ JSON-Schema-compatible YAML for validation by the MCP layer.
 
 | Module | Contents |
 |--------|----------|
-| `dsl.workflow` | `WorkflowBuilder`, helper mixins |
+| `dsl.workflow` | `WorkflowBuilder` (add_tool/add_llm/add_loop/…); emits MCP `Blueprint` via `build()` |
 | `dsl.agent` | Agent-specialised builder |
 | `dsl.network` | Multi-agent network primitives |
 | `nl/` | Natural-language → workflow scaffolds (`atomic_workflow_principles.py` …) |
@@ -67,7 +65,7 @@ JSON-Schema-compatible YAML for validation by the MCP layer.
 
 ## Tests
 
-`tests/unit/ice_builder` covers builder correctness and NL generation helpers.
+`tests/unit/ice_builder` covers builder correctness. NL helpers live under `nl/` and are opt-in.
 
 ```bash
 pytest tests/unit/ice_builder -q

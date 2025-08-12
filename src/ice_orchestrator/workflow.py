@@ -30,8 +30,45 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 import structlog
-from opentelemetry import trace  # type: ignore[import-not-found]
-from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
+
+try:
+    from opentelemetry import trace  # type: ignore[import-not-found]
+    from opentelemetry.trace import Status, StatusCode  # type: ignore[import-not-found]
+except Exception:  # pragma: no cover - optional telemetry
+    # Provide minimal no-op tracer & status types when OTEL is not installed.
+    class _NoopSpan:
+        def set_attribute(self, *args, **kwargs):
+            return None
+
+        def set_status(self, *args, **kwargs):
+            return None
+
+        def end(self):
+            return None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class _NoopTracer:
+        def start_as_current_span(self, *args, **kwargs):
+            return _NoopSpan()
+
+    class _NoopTrace:
+        def get_tracer(self, *args, **kwargs):
+            return _NoopTracer()
+
+    trace = _NoopTrace()  # type: ignore
+
+    class Status:  # type: ignore
+        def __init__(self, *args, **kwargs) -> None:
+            pass
+
+    class StatusCode:  # type: ignore
+        ERROR = "ERROR"
+
 
 from ice_core.base_tool import ToolBase
 from ice_core.models import (
@@ -517,7 +554,6 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 and result.output.get("_can_recurse", False)
                 and not result.output.get("converged", False)
             ):
-
                 # Get recursive sources from the node configuration
                 recursive_sources = getattr(node, "recursive_sources", [])
 
@@ -563,7 +599,6 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
                 and result.output.get("_can_recurse", False)
                 and not result.output.get("converged", False)
             ):
-
                 # Continue the recursive chain
                 await self._handle_recursive_flows(
                     {node_id: result}, accumulated_results
@@ -1321,9 +1356,16 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
 
         result = await self._executor.execute_node(node_id, input_data)
 
-        # Persist semantic output to shared context
+        # Persist semantic output to shared context (JSON-safe)
         if getattr(self, "context_manager", None) and result.output is not None:
-            self.context_manager.update_node_context(node_id, result.output)
+            import json as _json
+
+            try:
+                _json.dumps(result.output, default=str)
+                safe_output = result.output
+            except Exception:
+                safe_output = _json.loads(_json.dumps(result.output, default=str))
+            self.context_manager.update_node_context(node_id, safe_output)
 
         # Broadcast via in-memory event bus for observers / Canvas UI
         try:

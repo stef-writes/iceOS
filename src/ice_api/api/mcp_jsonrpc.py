@@ -4,7 +4,7 @@ This provides authentic MCP compliance by exposing iceOS capabilities through
 the standardized MCP protocol. Maps our orchestration platform to MCP interfaces:
 
 - Tools: ice_tools + agents + workflows + chains
-- Resources: Blueprint templates + documentation + data sources  
+- Resources: Blueprint templates + documentation + data sources
 - Prompts: Pre-defined workflow templates and agent configurations
 
 Transforms iceOS into the most sophisticated MCP server available.
@@ -428,8 +428,9 @@ async def handle_components_validate(params: Dict[str, Any]) -> Dict[str, Any]:
     from ice_api.api.mcp import validate_component_definition
 
     result = await validate_component_definition(definition)
-
-    return result.dict()
+    data = result.dict()
+    # Ensure dict[str, Any] shape
+    return {str(k): v for k, v in data.items()}
 
 
 async def handle_network_execute(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -1064,7 +1065,7 @@ async def handle_prompts_get(params: Dict[str, Any]) -> Dict[str, Any]:
 
 This will set up:
 1. Market intelligence gathering
-2. Company research and analysis  
+2. Company research and analysis
 3. Risk assessment
 4. Performance tracking
 5. Automated reporting

@@ -129,9 +129,7 @@ class _SafeEvalVisitor(ast.NodeVisitor):
 # ---------------------------------------------------------------------------
 
 
-def safe_eval_bool(
-    expression: str, context: Dict[str, Any] | None = None
-) -> bool:  # noqa: D401
+def safe_eval_bool(expression: str, context: Dict[str, Any] | None = None) -> bool:  # noqa: D401
     """Evaluate a simple boolean expression safely.
 
     Parameters

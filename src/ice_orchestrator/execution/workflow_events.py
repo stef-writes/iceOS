@@ -180,7 +180,10 @@ class RedisStreamSink(EventSink):
                 "data": event.__dict__,
             }
             # Fire and forget
-            await redis.xadd(stream, {"event": event.event_type.value, "payload": _json.dumps(payload)})  # type: ignore[arg-type]
+            await redis.xadd(
+                stream,
+                {"event": event.event_type.value, "payload": _json.dumps(payload)},
+            )  # type: ignore[arg-type]
         except Exception:
             # Sink failures must not affect execution
             import structlog

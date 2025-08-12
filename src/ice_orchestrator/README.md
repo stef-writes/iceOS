@@ -96,3 +96,18 @@ Integration tests cover:
 * WASM security sandbox
 
 Coverage must stay ≥ 90 %.
+
+---
+
+### WASM code execution (gated)
+
+Code nodes execute in a WASM sandbox when `ICE_ENABLE_WASM=1` and `wasmtime` is installed. The code executor enforces the gate:
+
+```84:92:src/ice_orchestrator/execution/executors/builtin/code_node_executor.py
+        # 4. Execute in WASM sandbox (gated by ICE_ENABLE_WASM) -----------
+        import os as _os
+        if execute_node_with_wasm is None or _os.getenv("ICE_ENABLE_WASM", "1") != "1":
+            raise RuntimeError("WASM execution is unavailable; enable ICE_ENABLE_WASM=1 and install 'wasmtime'.")
+```
+
+The sandbox implementation lives in `execution/wasm_executor.py` and telemetry in `execution/wasm_resource_monitor.py`.

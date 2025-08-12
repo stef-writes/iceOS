@@ -9,7 +9,7 @@ monitor workflows without importing the full orchestrator stack.
 ## Installation (stand-alone)
 
 ```bash
-pip install iceos[client]   # only pulls httpx and pydantic
+pip install iceos[client]   # pulls httpx and pydantic
 ```
 
 When you develop inside the monorepo the package is already on `PYTHONPATH`.
@@ -23,7 +23,7 @@ from ice_client import IceClient
 
 client = IceClient("http://localhost:8000")
 
-# Preferred Studio helpers (MCP + SSE under the hood)
+# Preferred helpers (MCP + SSE under the hood)
 
 # 1) Submit and wait for completion
 result = await client.run_and_wait(blueprint={

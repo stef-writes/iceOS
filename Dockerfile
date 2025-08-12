@@ -1,35 +1,50 @@
-FROM python:3.11-slim
+FROM python:3.11.9-slim AS builder
 
-# -- Poetry ---------------------------------------------------------------
-ENV POETRY_VERSION=1.8.3 \
-    POETRY_HOME=/opt/poetry \
-    POETRY_NO_INTERACTION=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    POETRY_VERSION=1.8.3
+
+WORKDIR /app
+
+# Install Poetry to export a deterministic requirements.txt from the lockfile
+RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
+
+COPY pyproject.toml poetry.lock /app/
+
+# Export dependencies with enforced extras for runtime (WASM, DB, LLM providers)
+# DeepSeek is OpenAI-compatible and piggybacks on openai client
+RUN poetry export -f requirements.txt --without-hashes \
+    -E wasm -E database -E llm_openai -E llm_anthropic \
+    -o /tmp/requirements.txt
+
+# Also export a dev-inclusive requirements set for test stage caching
+RUN poetry export -f requirements.txt --without-hashes --with dev -o /tmp/requirements-dev.txt
+
+
+FROM python:3.11.9-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
-ENV PATH="${POETRY_HOME}/bin:${PATH}"
 
 ARG APP_USER=appuser
 ARG APP_UID=10001
 ARG APP_GID=10001
 
+WORKDIR /app
+
 # Create non-root user
 RUN groupadd -g ${APP_GID} ${APP_USER} \
     && useradd -m -u ${APP_UID} -g ${APP_GID} -s /usr/sbin/nologin ${APP_USER}
 
-# Working directory
-WORKDIR /app
+# Install runtime dependencies
+COPY --from=builder /tmp/requirements.txt /tmp/requirements.txt
+RUN python -m pip install --upgrade "pip==24.1.2" \
+    && pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm -f /tmp/requirements.txt
 
-# Install Poetry first (frozen version)
-RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}"
-
-# Install dependencies (cached layer)
-COPY pyproject.toml poetry.lock /app/
-RUN poetry install --no-root --only main --no-interaction --no-ansi \
- && poetry cache clear --all pypi
-
-# Copy application source
+# Copy application source and first-party packs (for plugin manifests)
 COPY src /app/src
-# PYTHONPATH includes src so iceos_api is importable
+COPY packs /app/packs
 ENV PYTHONPATH=/app/src
 
 # Expose default FastAPI port
@@ -39,4 +54,51 @@ EXPOSE 8000
 USER ${APP_UID}:${APP_GID}
 
 # Launch the API server
-CMD ["poetry", "run", "uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
+CMD ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
+
+# ---------------------------------------------------------------------------
+# Cached test stage: installs deps from lock and runs pytest without fetching
+# ---------------------------------------------------------------------------
+FROM python:3.11.9-slim AS test
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Install dependencies exported from the lockfile (cached in image layers)
+COPY --from=builder /tmp/requirements.txt /tmp/requirements.txt
+COPY --from=builder /tmp/requirements-dev.txt /tmp/requirements-dev.txt
+RUN python -m pip install --no-cache-dir --timeout 120 --retries 5 -r /tmp/requirements.txt -r /tmp/requirements-dev.txt
+
+# Copy application source and test config
+COPY src /app/src
+COPY config /app/config
+COPY tests /app/tests
+ENV PYTHONPATH=/app/src
+
+# Default command (can be overridden at docker run)
+CMD ["pytest", "-c", "config/testing/pytest.ini", "tests/unit", "-q"]
+
+# ---------------------------------------------------------------------------
+# Optional dev-check stage to run type checks in Docker identically to CI
+# Build and run with:
+#   docker build --target devcheck -t iceos-devcheck .
+#   docker run --rm iceos-devcheck
+# ---------------------------------------------------------------------------
+FROM python:3.11.9-slim AS devcheck
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+RUN python -m pip install --no-cache-dir \
+      mypy==1.10.0 pydantic==2.8.2 pydantic-core==2.20.1 \
+      typing-extensions==4.12.2 types-PyYAML==6.0.12.20250516 types-redis==4.6.0.20241004
+
+COPY src /app/src
+COPY config /app/config
+COPY typings /app/typings
+
+CMD ["mypy", "--config-file", "config/typing/mypy.ini", "src"]

@@ -5,7 +5,7 @@ from __future__ import annotations
 """LLM provider handlers (migrated from `ice_tools.llm_providers`)."""
 
 from importlib import import_module
-from typing import Any, cast
+from typing import Any
 
 __all__: list[str] = [
     "OpenAIHandler",
@@ -15,16 +15,7 @@ __all__: list[str] = [
 ]
 
 # ----------------------------------------
-# Core providers – required deps (fail loud) --------------------------------
-# ----------------------------------------
-
-OpenAIHandler = cast(
-    Any, import_module("ice_core.llm.providers.openai_handler").OpenAIHandler
-)
-
-# ----------------------------------------
-# Optional providers – swallow *ImportError* so missing extras don't break
-# the whole application. Clients must check for ``None`` before usage.
+# OpenAI is optional in minimal images; import safely like others
 # ----------------------------------------
 
 
@@ -41,10 +32,18 @@ def _safe_import(module_path: str, class_name: str) -> Any | None:  # pragma: no
         module = import_module(module_path)
         return getattr(module, class_name)
     except ModuleNotFoundError:
-        # The concrete provider dependency (e.g. ``anthropic``) is missing.
-        # Return *None* so that caller can decide whether to surface a
-        # validation error or fallback gracefully.
         return None
+
+
+OpenAIHandler = _safe_import("ice_core.llm.providers.openai_handler", "OpenAIHandler")
+
+# ----------------------------------------
+# Optional providers – swallow *ImportError* so missing extras don't break
+# the whole application. Clients must check for ``None`` before usage.
+# ----------------------------------------
+
+# The concrete provider dependency (e.g. ``openai``) may be missing.
+# Return *None* so that callers can fail validation gracefully.
 
 
 AnthropicHandler = _safe_import(
