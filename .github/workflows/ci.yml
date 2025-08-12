@@ -28,7 +28,7 @@ jobs:
           poetry lock --no-update || poetry lock
           poetry install --with dev --no-interaction
 
-      - name: Run quality gate (lint + type + test)
+      - name: Run quality gate (lint + type + unit tests)
         run: make ci
 
       - name: Upload coverage HTML
@@ -38,8 +38,37 @@ jobs:
           name: htmlcov
           path: htmlcov
 
-  integration-tests:
+  integration-smoke:
     needs: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: 1.8.3
+
+      - name: Install deps (+dev + integration extras)
+        run: |
+          set -euo pipefail
+          poetry lock --no-update || poetry lock
+          poetry install --with dev --no-interaction -E test_integration
+
+      - name: Run smoke integration (API health)
+        env:
+          PYTHONPATH: src
+        run: |
+          poetry run pytest -c config/testing/pytest.ini tests/integration/ice_api/test_health_endpoints.py -q
+
+  integration-tests:
+    if: github.ref == 'refs/heads/main'
+    needs: integration-smoke
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

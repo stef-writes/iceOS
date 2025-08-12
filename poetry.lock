@@ -243,7 +243,7 @@ description = "Timeout context manager for asyncio programs"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "python_full_version <= \"3.11.2\" and extra == \"dependencies\""
+markers = "python_full_version <= \"3.11.2\" and (extra == \"test-integration\" or extra == \"dependencies\")"
 files = [
     {file = "async_timeout-5.0.1-py3-none-any.whl", hash = "sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c"},
     {file = "async_timeout-5.0.1.tar.gz", hash = "sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3"},
@@ -428,7 +428,6 @@ files = [
     {file = "certifi-2025.4.26-py3-none-any.whl", hash = "sha256:30350364dfe371162649852c63336a15c70c6510c2ad5015b21c2345311805f3"},
     {file = "certifi-2025.4.26.tar.gz", hash = "sha256:0a816057ea3cdefcef70270d2c515e4506bbc954f417fa5ade2021213bb8f0c6"},
 ]
-markers = {main = "extra == \"llm-openai\" or extra == \"dependencies\" or extra == \"llm-anthropic\" or extra == \"embeddings\" or extra == \"llm-gemini\""}
 
 [[package]]
 name = "cffi"
@@ -624,7 +623,6 @@ files = [
     {file = "charset_normalizer-3.4.2-py3-none-any.whl", hash = "sha256:7f56930ab0abd1c45cd15be65cc741c28b1c9a34876ce8c17a2fa107810c0af0"},
     {file = "charset_normalizer-3.4.2.tar.gz", hash = "sha256:5baececa9ecba31eff645232d59845c07aa030f0c81ee70184a90d35099a0e63"},
 ]
-markers = {main = "extra == \"llm-openai\" or extra == \"dependencies\" or extra == \"llm-anthropic\" or extra == \"embeddings\" or extra == \"llm-gemini\""}
 
 [[package]]
 name = "click"
@@ -882,7 +880,7 @@ version = "7.1.0"
 description = "A Python library for the Docker Engine API."
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "docker-7.1.0-py3-none-any.whl", hash = "sha256:c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0"},
     {file = "docker-7.1.0.tar.gz", hash = "sha256:ad8c70e6e3f8926cb8a92619b832b4ea5299e2831c14284663184e200546fa6c"},
@@ -1738,7 +1736,6 @@ files = [
     {file = "idna-3.10-py3-none-any.whl", hash = "sha256:946d195a0d259cbba61165e88e65941f16e9b36ea6ddb97f00452bae8b1287d3"},
     {file = "idna-3.10.tar.gz", hash = "sha256:12f65c9b470abda6dc35cf8e63cc574b1c52b11df2c86030af0ac09b01b13ea9"},
 ]
-markers = {main = "extra == \"llm-openai\" or extra == \"dependencies\" or extra == \"llm-anthropic\" or extra == \"embeddings\" or extra == \"llm-gemini\""}
 
 [package.extras]
 all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
@@ -3457,22 +3454,6 @@ wcwidth = "*"
 tests = ["pytest", "pytest-cov", "pytest-lazy-fixtures"]
 
 [[package]]
-name = "prometheus-client"
-version = "0.19.0"
-description = "Python client for the Prometheus monitoring system."
-optional = true
-python-versions = ">=3.8"
-groups = ["main"]
-markers = "extra == \"dependencies\""
-files = [
-    {file = "prometheus_client-0.19.0-py3-none-any.whl", hash = "sha256:c88b1e6ecf6b41cd8fb5731c7ae919bf66df6ec6fafa555cd6c0e16ca169ae92"},
-    {file = "prometheus_client-0.19.0.tar.gz", hash = "sha256:4585b0d1223148c27a225b10dbec5ae9bc4c81a99a3fa80774fa6209935324e1"},
-]
-
-[package.extras]
-twisted = ["twisted"]
-
-[[package]]
 name = "prompt-toolkit"
 version = "3.0.51"
 description = "Library for building powerful interactive command lines in Python"
@@ -4182,7 +4163,6 @@ files = [
     {file = "python_dotenv-1.1.0-py3-none-any.whl", hash = "sha256:d7c01d9e2293916c18baf562d95698754b0dbbb5e74d457c45d4f6561fb9d55d"},
     {file = "python_dotenv-1.1.0.tar.gz", hash = "sha256:41f90bc6f5f177fb41f53e87666db362025010eb28f60a01c9143bfa33a2b2d5"},
 ]
-markers = {main = "extra == \"dependencies\""}
 
 [package.extras]
 cli = ["click (>=5.0)"]
@@ -4219,7 +4199,7 @@ version = "310"
 description = "Python for Window Extensions"
 optional = false
 python-versions = "*"
-groups = ["dev"]
+groups = ["main", "dev"]
 markers = "sys_platform == \"win32\""
 files = [
     {file = "pywin32-310-cp310-cp310-win32.whl", hash = "sha256:6dd97011efc8bf51d6793a82292419eba2c71cf8e7250cfac03bba284454abc1"},
@@ -4369,7 +4349,7 @@ description = "Python client for Redis database and key-value store"
 optional = true
 python-versions = ">=3.7"
 groups = ["main"]
-markers = "extra == \"dependencies\""
+markers = "extra == \"test-integration\" or extra == \"dependencies\""
 files = [
     {file = "redis-4.6.0-py3-none-any.whl", hash = "sha256:e2b03db868160ee4591de3cb90d40ebb50a90dd302138775937f6a42b7ed183c"},
     {file = "redis-4.6.0.tar.gz", hash = "sha256:585dc516b9eb042a619ef0a39c3d7d55fe81bdb4df09a52c9cdde0d07bf1aa7d"},
@@ -4516,7 +4496,6 @@ files = [
     {file = "requests-2.32.4-py3-none-any.whl", hash = "sha256:27babd3cda2a6d50b30443204ee89830707d396671944c998b5975b031ac2b2c"},
     {file = "requests-2.32.4.tar.gz", hash = "sha256:27d0316682c8a29834d3264820024b62a36942083d52caf2f14c0591336d3422"},
 ]
-markers = {main = "extra == \"llm-openai\" or extra == \"dependencies\" or extra == \"llm-anthropic\" or extra == \"embeddings\" or extra == \"llm-gemini\""}
 
 [package.dependencies]
 certifi = ">=2017.4.17"
@@ -5205,29 +5184,12 @@ mpmath = ">=1.1.0,<1.4"
 dev = ["hypothesis (>=6.70.0)", "pytest (>=7.1.0)"]
 
 [[package]]
-name = "tenacity"
-version = "8.5.0"
-description = "Retry code until it succeeds"
-optional = true
-python-versions = ">=3.8"
-groups = ["main"]
-markers = "extra == \"dependencies\""
-files = [
-    {file = "tenacity-8.5.0-py3-none-any.whl", hash = "sha256:b594c2a5945830c267ce6b79a166228323ed52718f30302c1359836112346687"},
-    {file = "tenacity-8.5.0.tar.gz", hash = "sha256:8bc6c0c8a09b31e6cad13c47afbed1a567518250a9a171418582ed8d9c20ca78"},
-]
-
-[package.extras]
-doc = ["reno", "sphinx"]
-test = ["pytest", "tornado (>=4.5)", "typeguard"]
-
-[[package]]
 name = "testcontainers"
 version = "4.10.0"
 description = "Python library for throwaway instances of anything that can run in a Docker container"
 optional = false
 python-versions = "<4.0,>=3.9"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "testcontainers-4.10.0-py3-none-any.whl", hash = "sha256:31ed1a81238c7e131a2a29df6db8f23717d892b592fa5a1977fd0dcd0c23fc23"},
     {file = "testcontainers-4.10.0.tar.gz", hash = "sha256:03f85c3e505d8b4edeb192c72a961cebbcba0dd94344ae778b4a159cb6dcf8d3"},
@@ -5745,7 +5707,6 @@ files = [
     {file = "urllib3-2.5.0-py3-none-any.whl", hash = "sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc"},
     {file = "urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760"},
 ]
-markers = {main = "extra == \"llm-openai\" or extra == \"dependencies\" or extra == \"llm-anthropic\" or extra == \"embeddings\" or extra == \"llm-gemini\""}
 
 [package.extras]
 brotli = ["brotli (>=1.0.9) ; platform_python_implementation == \"CPython\"", "brotlicffi (>=0.8.0) ; platform_python_implementation != \"CPython\""]
@@ -5916,7 +5877,7 @@ version = "1.17.2"
 description = "Module for decorators, wrappers and monkey patching."
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "wrapt-1.17.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:3d57c572081fed831ad2d26fd430d565b76aa277ed1d30ff4d40670b1c0dd984"},
     {file = "wrapt-1.17.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b5e251054542ae57ac7f3fba5d10bfff615b6c2fb09abeb37d2f1463f841ae22"},
@@ -6141,13 +6102,14 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more_it
 type = ["pytest-mypy"]
 
 [extras]
-dependencies = ["PyYAML", "aiohttp", "alembic", "annoy", "anthropic", "croniter", "cryptography", "fastapi", "google-generativeai", "httpx", "jinja2", "jmespath", "jsonschema", "nest_asyncio", "networkx", "numpy", "openai", "opentelemetry-api", "opentelemetry-sdk", "packaging", "prometheus_client", "pydantic", "pypdf", "python-dotenv", "python-multipart", "redis", "rich", "setuptools", "sqlalchemy", "sse-starlette", "structlog", "tenacity", "tiktoken", "typer", "uvicorn", "wasmtime", "watchdog"]
+dependencies = ["PyYAML", "aiohttp", "alembic", "annoy", "anthropic", "croniter", "cryptography", "fastapi", "google-generativeai", "httpx", "jinja2", "jmespath", "jsonschema", "nest_asyncio", "networkx", "numpy", "openai", "opentelemetry-api", "opentelemetry-sdk", "packaging", "pydantic", "pypdf", "python-dotenv", "python-multipart", "redis", "rich", "setuptools", "sqlalchemy", "sse-starlette", "structlog", "tiktoken", "typer", "uvicorn", "wasmtime", "watchdog"]
 embeddings = ["scikit-learn", "sentence-transformers", "torch"]
 llm-anthropic = ["anthropic"]
 llm-gemini = ["google-generativeai"]
 llm-openai = ["openai", "tiktoken"]
+test-integration = ["redis", "testcontainers"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "26b8f1c314a8498857808eb26f0ba0d23d3f480dcab7d91a43bd2eda15e748e8"
+content-hash = "9d1eb6a1fd56f76bda8f931d7e9c980abec1fc01a09e38c7b281de117560c2ef"

@@ -352,9 +352,15 @@ from ice_api.ws.executions import router as exec_ws_router
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
 app.include_router(exec_ws_router, prefix="/ws", tags=["websocket"])
 
-from ice_api.metrics import router as metrics_router
+if os.getenv("ICEOS_ENABLE_METRICS", "0") == "1":
+    try:
+        from ice_api.metrics import router as metrics_router
 
-app.include_router(metrics_router)
+        app.include_router(metrics_router)
+    except Exception:  # pragma: no cover – optional
+        logger.warning(
+            "Metrics enabled but prometheus_client not available – skipping /metrics route"
+        )
 
 # ------------------------------------------------------------------
 # Liveness / readiness routes --------------------------------------
