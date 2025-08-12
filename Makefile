@@ -23,14 +23,14 @@ type:
 	poetry run mypy --config-file config/typing/mypy.ini src
 
 test:
-	poetry run pytest -c config/testing/pytest.ini --cov --cov-fail-under=60 -k "not integration"
+	PYTHONPATH=src poetry run pytest -c config/testing/pytest.ini --cov --cov-fail-under=60 -k "not integration"
 
 ci: lint type test
-	# Run integration tests only when redis and testcontainers are present
-	@if poetry run python -c "import importlib; import sys; sys.exit(0 if all(importlib.util.find_spec(m) for m in ['redis.asyncio','testcontainers']) else 1)"; then \
-		poetry run pytest -c config/testing/pytest.ini tests/integration --cov --cov-append; \
+	# Run integration tests only when redis, testcontainers, fastapi and httpx are present
+	@if poetry run python -c "import importlib, sys; req=['redis.asyncio','testcontainers','fastapi','httpx']; sys.exit(0 if all(importlib.util.find_spec(m) for m in req) else 1)"; then \
+		PYTHONPATH=src poetry run pytest -c config/testing/pytest.ini tests/integration --cov --cov-append; \
 	else \
-		echo "Skipping integration tests: redis/testcontainers not installed"; \
+		echo "Skipping integration tests: optional deps not installed"; \
 	fi
 
 audit:

@@ -21,12 +21,12 @@ jobs:
         with:
           poetry-version: 1.8.3
 
-      - name: Install deps (+dev)
+      - name: Install deps (+dev core)
         run: |
           set -euo pipefail
           # Ensure lock is compatible with current Poetry
           poetry lock --no-update || poetry lock
-          poetry install --with dev --no-interaction --no-root
+          poetry install --with dev --no-interaction
 
       - name: Run quality gate (lint + type + test)
         run: make ci

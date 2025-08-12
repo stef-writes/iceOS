@@ -9,6 +9,7 @@ runtime where `python-dotenv` is commonly used.
 """
 
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -33,6 +34,11 @@ if _ENV_PATH.exists() and load_dotenv is not None:
 if "OPENAI_API_KEY" in os.environ:
     os.environ.setdefault("OPENAI_API_KEY", os.environ["OPENAI_API_KEY"])
 
+# Ensure project source is importable when root package is not installed -----
+_SRC_PATH = _REPO_ROOT / "src"
+if str(_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(_SRC_PATH))
+
 
 # ---------------------------------------------------------------------------
 # Test isolation fixtures ----------------------------------------------------
@@ -48,15 +54,10 @@ def _isolate_llm_registry() -> None:
     clear LLM factories between tests to avoid cross-test interference.
     """
     from ice_core.unified_registry import clear_llm_factories, clear_tool_factories
-    from ice_orchestrator.plugins import load_first_party_tools
 
     clear_llm_factories()
     clear_tool_factories()
-    # Re-register built-in tools deterministically for tests that expect them
-    try:
-        load_first_party_tools()
-    except Exception:
-        pass
+    # Tests that need tools should load them via plugin manifests explicitly
     yield
     clear_llm_factories()
     clear_tool_factories()
