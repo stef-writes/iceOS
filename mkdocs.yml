@@ -30,41 +30,8 @@ plugins:
 # Navigation ----------------------------------------------------------------
 nav:
   - Home: index.md
-  - Getting Started:
-      - Quick Start: guides/quickstart.md
-  - Architecture:
-      - Overview: architecture/overview.md
-      - Orchestrator Flow: architecture/orchestrator_flow.md
-      - SDK Layers: architecture/sdk_layers.md
-      - Frosty: architecture/frosty_overview.md
-      - CLI: architecture/cli_overview.md
-      - Repo Layout: architecture/repo_layout.md
-  - Core Concepts:
-      - Nodes, Tools & Agents: core_concepts/nodes_tools_agents.md
-  - How-to Guides:
-      - Build a Custom Tool: how_to/build_custom_tool.md
-      - Build an Agent: how_to/build_agent.md
-      - Publishing Tools & Agents: guides/publishing_tools.md
-      - Retry & Backoff Policies: guides/retry_policy.md
-      - Node Selection Guide: guides/node_selection.md
-  - Reference:
-      - CLI Commands: reference/cli.md
-  - Packages:
-      - ice_core: packages/ice_core.md
-      - ice_orchestrator: packages/ice_orchestrator.md
-      - ice_builder: packages/ice_builder.md
-      - ice_cli: packages/ice_cli.md
-      - ice_client: packages/ice_client.md
-      - ice_tools: packages/ice_tools.md
-      - REST API: reference/api.md
-      - Architecture Internals: reference/architecture.md
-      - Health-check Matrix: reference/healthchecks.md
-      - Blueprint Schema: reference/blueprint_schema.md
-      - Runtime Events: reference/events.md
-  - Plans & Roadmaps:
-      - Platform Vision: iceos-vision.md
-      - Architecture Overview: docs/ARCHITECTURE.md
-      - Final Cleanup Plan: docs/plans/FINAL_CLEANUP_BEFORE_FROSTY.md
-  - Tool Development Guide: tool_development.md
-  - Contributing: contributing.md
-  - API Reference: reference/api.md
+  - Guides:
+      - Studio Flow: STUDIO_FLOW.md
+      - Runtime Nodes: runtime_nodes.md
+      - Exercises: EXERCISES.md
+      - Vision Happy Path: vision_happy_path.md
