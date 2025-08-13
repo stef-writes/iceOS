@@ -314,6 +314,8 @@ class EpisodicMemory(BaseMemory):
             # Fallback to in-memory search
             for key, entry in self._memory_store.items():
                 # Check query match
+                if entry is None:
+                    continue
                 if query and query.lower() not in str(entry.content).lower():  # type: ignore[union-attr]
                     continue
 

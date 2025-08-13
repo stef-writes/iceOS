@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Union, cast
 
 from ice_core.exceptions import ErrorCode
 from ice_orchestrator.errors import ChainError
@@ -37,16 +37,29 @@ class ContextBuilder:  # – utility helper
                 if (
                     isinstance(mapping, dict) and "source_node_id" in mapping
                 ) or hasattr(mapping, "source_node_id"):
-                    dep_id = (
-                        mapping["source_node_id"]
+                    # Support either dict-like mappings or structured InputMapping objects
+                    m: Union[Mapping[str, Any], Any] = (
+                        cast(Mapping[str, Any], mapping)
                         if isinstance(mapping, dict)
-                        else mapping.source_node_id  # type: ignore[index]
+                        else mapping
+                    )
+
+                    # Pull fields without using [] on union types
+                    dep_id = (
+                        m.get("source_node_id")
+                        if isinstance(m, Mapping)
+                        else getattr(m, "source_node_id", None)
                     )
                     output_key = (
-                        mapping["source_output_key"]
-                        if isinstance(mapping, dict)
-                        else mapping.source_output_key  # type: ignore[index]
+                        m.get("source_output_key")
+                        if isinstance(m, Mapping)
+                        else getattr(m, "source_output_key", None)
                     )
+                    if dep_id is None or output_key is None:
+                        validation_errors.append(
+                            f"Invalid input mapping for placeholder '{placeholder}'"
+                        )
+                        continue
                     dep_result = accumulated_results.get(dep_id)
 
                     if not dep_result or not dep_result.success:
