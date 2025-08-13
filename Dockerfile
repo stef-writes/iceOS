@@ -21,7 +21,7 @@ RUN poetry export -f requirements.txt --without-hashes \
 RUN poetry export -f requirements.txt --without-hashes --with dev -o /tmp/requirements-dev.txt
 
 
-FROM python:3.11.9-slim AS runtime
+FROM python:3.11.9-slim AS api
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
@@ -29,6 +29,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 ARG APP_USER=appuser
 ARG APP_UID=10001
 ARG APP_GID=10001
+ARG VCS_REF="unknown"
+ARG BUILD_DATE="unknown"
+ARG VERSION="0.0.0"
+ARG REPOSITORY=""
 
 WORKDIR /app
 
@@ -50,6 +54,15 @@ ENV PYTHONPATH=/app/src
 # Expose default FastAPI port
 EXPOSE 8000
 
+# OCI image labels for traceability
+LABEL org.opencontainers.image.title="iceOS API" \
+      org.opencontainers.image.description="iceOS FastAPI application image" \
+      org.opencontainers.image.url="https://github.com/${REPOSITORY}" \
+      org.opencontainers.image.source="https://github.com/${REPOSITORY}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.version="${VERSION}"
+
 # Drop privileges
 USER ${APP_UID}:${APP_GID}
 
@@ -62,7 +75,14 @@ CMD ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--ti
 FROM python:3.11.9-slim AS test
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    ICE_ENABLE_INLINE_CODE=1 \
+    ICE_COMPUTE_GRAPH_CENTRALITY=1 \
+    ICE_STRICT_SERIALIZATION=1
+ARG VCS_REF="unknown"
+ARG BUILD_DATE="unknown"
+ARG VERSION="0.0.0"
+ARG REPOSITORY=""
 
 WORKDIR /app
 
@@ -77,6 +97,14 @@ COPY config /app/config
 COPY tests /app/tests
 ENV PYTHONPATH=/app/src
 
+# OCI labels
+LABEL org.opencontainers.image.title="iceOS Test Runner" \
+      org.opencontainers.image.description="Pytest runner image with dependencies" \
+      org.opencontainers.image.source="https://github.com/${REPOSITORY}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.version="${VERSION}"
+
 # Default command (can be overridden at docker run)
 CMD ["pytest", "-c", "config/testing/pytest.ini", "tests/unit", "-q"]
 
@@ -90,6 +118,10 @@ FROM python:3.11.9-slim AS devcheck
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
+ARG VCS_REF="unknown"
+ARG BUILD_DATE="unknown"
+ARG VERSION="0.0.0"
+ARG REPOSITORY=""
 
 WORKDIR /app
 
@@ -101,4 +133,16 @@ COPY src /app/src
 COPY config /app/config
 COPY typings /app/typings
 
+LABEL org.opencontainers.image.title="iceOS Devcheck" \
+      org.opencontainers.image.description="Dockerized mypy type-check stage" \
+      org.opencontainers.image.source="https://github.com/${REPOSITORY}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.version="${VERSION}"
+
 CMD ["mypy", "--config-file", "config/typing/mypy.ini", "src"]
+
+# ---------------------------------------------------------------------------
+# Default final stage to ensure non-targeted builds produce the API image
+# ---------------------------------------------------------------------------
+FROM api AS final

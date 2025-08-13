@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  api:
+    image: ${REGISTRY}/${REPO}/iceosv1a-api:${GITHUB_SHA}
+    environment:
+      ICE_ENABLE_INLINE_CODE: "1"
+      ICE_COMPUTE_GRAPH_CENTRALITY: "1"
+      ICE_STRICT_SERIALIZATION: "1"
+      REDIS_URL: redis://redis:6379/0
+      ICE_API_TOKEN: dev-token
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/readyz').getcode()==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  itest:
+    image: ${REGISTRY}/${REPO}/iceosv1a-itest:${GITHUB_SHA}
+    environment:
+      PYTEST_ADDOPTS: "-q -n 1 --maxfail=1 -k 'not heavy' --timeout=180"
+    depends_on:
+      api:
+        condition: service_healthy
+    command: ["pytest", "-c", "config/testing/pytest.ini", "tests/integration", "-q"]
+    network_mode: host
