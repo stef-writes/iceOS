@@ -55,17 +55,20 @@ jobs:
           else
             REF_TAG=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
           fi
+          REPO_LC=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
           echo "sha_tag=${SHA_TAG}" >> $GITHUB_OUTPUT
           echo "ref_tag=${REF_TAG}" >> $GITHUB_OUTPUT
+          echo "repo_lc=${REPO_LC}" >> $GITHUB_OUTPUT
+          echo "REPO_LC=${REPO_LC}" >> $GITHUB_ENV
 
       - name: Build+push devcheck image
         run: |
           docker buildx build \
             --target devcheck \
             --push \
-            --tag ${REGISTRY}/${REPO}/iceos-devcheck:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${REGISTRY}/${REPO}/iceos-devcheck:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${REGISTRY}/${REPO}/iceos-devcheck:${SEMVER_TRACK} \
+            --tag ${REGISTRY}/${REPO_LC}/iceos-devcheck:${{ steps.meta.outputs.sha_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceos-devcheck:${{ steps.meta.outputs.ref_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceos-devcheck:${SEMVER_TRACK} \
             --build-arg VCS_REF=${GITHUB_SHA} \
             --build-arg VERSION=${SEMVER_TRACK} \
             --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
@@ -79,9 +82,9 @@ jobs:
           docker buildx build \
             --target test \
             --push \
-            --tag ${REGISTRY}/${REPO}/iceosv1a-itest:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${REGISTRY}/${REPO}/iceosv1a-itest:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${REGISTRY}/${REPO}/iceosv1a-itest:${SEMVER_TRACK} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${{ steps.meta.outputs.sha_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${{ steps.meta.outputs.ref_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${SEMVER_TRACK} \
             --build-arg VCS_REF=${GITHUB_SHA} \
             --build-arg VERSION=${SEMVER_TRACK} \
             --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
@@ -95,9 +98,9 @@ jobs:
           docker buildx build \
             --target api \
             --push \
-            --tag ${REGISTRY}/${REPO}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${REGISTRY}/${REPO}/iceosv1a-api:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${REGISTRY}/${REPO}/iceosv1a-api:${SEMVER_TRACK} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${{ steps.meta.outputs.ref_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${SEMVER_TRACK} \
             --build-arg VCS_REF=${GITHUB_SHA} \
             --build-arg VERSION=${SEMVER_TRACK} \
             --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
@@ -109,13 +112,13 @@ jobs:
       - name: SBOM (api)
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.REPO }}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }}
+          image: ${{ env.REGISTRY }}/${{ steps.meta.outputs.repo_lc }}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }}
           format: cyclonedx-json
 
       - name: Vulnerability scan (api)
         uses: aquasecurity/trivy-action@0.25.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.REPO }}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }}
+          image-ref: ${{ env.REGISTRY }}/${{ steps.meta.outputs.repo_lc }}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }}
           exit-code: '1'
           ignore-unfixed: true
           vuln-type: 'os,library'
@@ -138,6 +141,6 @@ jobs:
         env:
           GITHUB_SHA: ${{ github.sha }}
           REGISTRY: ${{ env.REGISTRY }}
-          REPO: ${{ env.REPO }}
+          IMAGE_REPO: ${{ steps.meta.outputs.repo_lc }}
         run: |
           docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
