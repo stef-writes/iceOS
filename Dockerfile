@@ -36,6 +36,12 @@ ARG REPOSITORY=""
 
 WORKDIR /app
 
+# Security updates for base OS packages (Debian) to reduce known CVEs
+RUN apt-get update -qq \
+    && apt-get -y dist-upgrade \
+    && apt-get -y install --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create non-root user
 RUN groupadd -g ${APP_GID} ${APP_USER} \
     && useradd -m -u ${APP_UID} -g ${APP_GID} -s /usr/sbin/nologin ${APP_USER}
@@ -45,6 +51,12 @@ COPY --from=builder /tmp/requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade "pip==24.1.2" \
     && pip install --no-cache-dir -r /tmp/requirements.txt \
     && rm -f /tmp/requirements.txt
+
+# Upgrade specific Python packages to patched versions to address known CVEs
+RUN python -m pip install --no-cache-dir \
+      "h11>=0.16.0" \
+      "starlette>=0.47.2" \
+      "aiohttp>=3.12.14"
 
 # Copy application source and first-party packs (for plugin manifests)
 COPY src /app/src

@@ -115,13 +115,17 @@ jobs:
           image: ${{ env.REGISTRY }}/${{ steps.meta.outputs.repo_lc }}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }}
           format: cyclonedx-json
 
-      - name: Vulnerability scan (api)
+      - name: Trivy scan (api)
         uses: aquasecurity/trivy-action@0.25.0
         with:
+          scan-type: image
           image-ref: ${{ env.REGISTRY }}/${{ steps.meta.outputs.repo_lc }}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }}
-          exit-code: '1'
+          format: table
           ignore-unfixed: true
-          vuln-type: 'os,library'
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          scanners: vuln
+          exit-code: '1'
 
   itest_smoke:
     name: Integration smoke (compose)
