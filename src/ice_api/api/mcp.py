@@ -1553,6 +1553,44 @@ async def validate_component_definition(
                     result.registered = True
                     result.registry_name = definition.name
 
+                elif definition.tool_class_code:
+                    # Execute the code to create the tool class and register it
+                    namespace: Dict[str, Any] = {}
+                    exec(definition.tool_class_code, namespace)
+
+                    # Find the tool class in namespace
+                    tool_class = None
+                    for name, obj in namespace.items():
+                        if (
+                            inspect.isclass(obj)
+                            and issubclass(obj, ToolBase)
+                            and obj is not ToolBase
+                            and not inspect.isabstract(obj)
+                        ):
+                            tool_class = obj
+                            break
+
+                    if tool_class:
+                        # Register callable factory directly to avoid dynamic module paths
+                        from typing import cast as _cast
+
+                        from ice_core.protocols.node import INode
+                        from ice_core.unified_registry import (
+                            register_tool_factory_callable as _reg_callable,
+                        )
+
+                        def _factory(**kwargs: Any) -> INode:
+                            return _cast(INode, tool_class(**kwargs))
+
+                        _reg_callable(definition.name, _factory)
+                        result.registered = True
+                        result.registry_name = definition.name
+                else:
+                    # Schema-only tool registration would go here
+                    result.warnings.append(
+                        "Tool registration without code not yet implemented"
+                    )
+
             elif definition.type == "code":
                 # Dynamically load a code factory and register it (idempotent)
                 if definition.code_factory_code:
@@ -1587,40 +1625,9 @@ async def validate_component_definition(
                         register_code_factory(definition.name, import_path)
                     result.registered = True
                     result.registry_name = definition.name
-                elif definition.tool_class_code:
-                    # Execute the code to create the tool class
-                    namespace: Dict[str, Any] = {}
-                    exec(definition.tool_class_code, namespace)
-
-                    # Find the tool class in namespace
-                    tool_class = None
-                    for name, obj in namespace.items():
-                        if (
-                            inspect.isclass(obj)
-                            and issubclass(obj, ToolBase)
-                            and obj is not ToolBase
-                            and not inspect.isabstract(obj)
-                        ):
-                            tool_class = obj
-                            break
-
-                    if tool_class:
-                        # Register callable factory directly to avoid dynamic module paths
-                        from ice_core.protocols.node import INode
-                        from ice_core.unified_registry import (
-                            register_tool_factory_callable as _reg_callable,
-                        )
-
-                        def _factory(**kwargs: Any) -> INode:
-                            return cast(INode, tool_class(**kwargs))
-
-                        _reg_callable(definition.name, _factory)
-                        result.registered = True
-                        result.registry_name = definition.name
                 else:
-                    # Schema-only tool registration would go here
                     result.warnings.append(
-                        "Tool registration without code not yet implemented"
+                        "Code registration without factory not yet implemented"
                     )
 
             elif definition.type == "agent":

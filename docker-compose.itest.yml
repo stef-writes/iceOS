@@ -1,30 +1,82 @@
+# docker-compose.itest.yml
 services:
   redis:
-    image: docker.io/redis:7-alpine
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 3s
-      timeout: 2s
-      retries: 10
+      interval: 1s
+      timeout: 3s
+      retries: 30
 
   api:
-    image: "${IMAGE_REPO:-ghcr.io/stef-writes/iceos}/iceosv1a-api:${IMAGE_TAG:-${GITHUB_SHA}}"
-    pull_policy: always
-    env_file:
-      - env.ci
+    # In CI this should be a prebuilt image; locally you can swap to `build:` if you want.
+    image: ${IMAGE_REPO}/iceosv1a-api:${IMAGE_TAG:-dev}
     depends_on:
       - redis
     ports:
       - "8000:8000"
+    volumes:
+      - api_data:/app/data
+    env_file:
+      - config/dev.env.example
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_CLIENT_NAME: ${REDIS_CLIENT_NAME:-ice_api}
+      REDIS_DECODE_RESPONSES: ${REDIS_DECODE_RESPONSES:-1}
+      REDIS_SOCKET_TIMEOUT: ${REDIS_SOCKET_TIMEOUT:-5.0}
+      REDIS_SOCKET_CONNECT_TIMEOUT: ${REDIS_SOCKET_CONNECT_TIMEOUT:-3.0}
+      REDIS_MAX_CONNECTIONS: ${REDIS_MAX_CONNECTIONS:-100}
+      CHAT_TTL_SECONDS: ${CHAT_TTL_SECONDS:-2592000}
+      EXECUTION_TTL_SECONDS: ${EXECUTION_TTL_SECONDS:-604800}
+      ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
+      ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/packs/first_party_tools/plugins.v0.yaml}
+      CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
+      ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
+    command:
+      ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python - <<'PY'\nimport urllib.request,sys\ntry:\n  with urllib.request.urlopen('http://localhost:8000/api/v1/meta/registry/health', timeout=3) as r:\n    data = r.read()\n    sys.exit(0 if b'tools_count' in data else 1)\nexcept Exception:\n  sys.exit(1)\nPY",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 30
 
   itest:
-    image: "${IMAGE_REPO:-ghcr.io/stef-writes/iceos}/iceosv1a-itest:${IMAGE_TAG:-${GITHUB_SHA}}"
-    pull_policy: always
-    environment:
-      PYTHONPATH: src
-      PYTEST_ADDOPTS: "-n 1 --maxfail=1 -k 'not heavy'"
+    # Prebuilt "test" image that already has pytest + code under /app
+    image: ${IMAGE_REPO}/iceosv1a-itest:${IMAGE_TAG:-dev}
     depends_on:
-      - api
-      - redis
-    command: ["pytest", "-c", "config/testing/pytest.ini", "tests/integration", "-q"]
-    network_mode: host
+      api:
+        condition: service_healthy
+    environment:
+      PYTHONPATH: /app/src:/app
+      ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
+    # 1) Bootstrap: ensure writer_tool exists in *this* process' registry
+    # 2) Run pytest integration suite
+    command:
+      - bash
+      - -lc
+      - |
+        set -euo pipefail
+        python - <<'PY'
+        from ice_core.unified_registry import register_tool_factory
+        # Register via factory import paths — no rebuild needed
+        register_tool_factory("writer_tool", "packs.first_party_tools.writer_tool:create_writer_tool")
+        register_tool_factory("lookup_tool", "packs.first_party_tools.lookup_tool:create_lookup_tool")
+        register_tool_factory("search_tool", "packs.first_party_tools.search_tool:create_search_tool")
+        print("bootstrap: registered writer/lookup/search tools")
+        PY
+        pytest -c config/testing/pytest.ini tests/integration -q
+
+volumes:
+  redis_data:
+  api_data:

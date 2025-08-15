@@ -105,6 +105,7 @@ RUN python -m pip install --no-cache-dir --timeout 120 --retries 5 -r /tmp/requi
 
 # Copy application source and test config
 COPY src /app/src
+COPY packs /app/packs
 COPY config /app/config
 COPY tests /app/tests
 ENV PYTHONPATH=/app/src
@@ -116,6 +117,29 @@ LABEL org.opencontainers.image.title="iceOS Test Runner" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.version="${VERSION}"
+
+# Auto-register demo tools for pytest via sitecustomize in the same interpreter
+RUN printf '%s\n' \
+  'from ice_core.unified_registry import register_tool_factory' \
+  'register_tool_factory("writer_tool", "packs.first_party_tools.writer_tool:create_writer_tool")' \
+  > /usr/local/lib/python3.11/site-packages/sitecustomize.py
+
+# Pre-test bootstrap: ensure required demo tools are registered in this process.
+# Keep this minimal and deterministic; avoid external APIs/keys.
+RUN printf '%s\n' \
+  '#!/usr/bin/env sh' \
+  'set -eu' \
+  "python - <<'PY'" \
+  'from ice_core.unified_registry import register_tool_factory' \
+  'import importlib' \
+  'try:' \
+  '    importlib.import_module("packs.first_party_tools.writer_tool")' \
+  'except Exception as e:' \
+  '    raise SystemExit(f"bootstrap: failed to import writer_tool: {e}")' \
+  'register_tool_factory("writer_tool", "packs.first_party_tools.writer_tool:create_writer_tool")' \
+  'print("bootstrap: writer_tool registered")' \
+  'PY' \
+  > /usr/local/bin/itest-bootstrap && chmod +x /usr/local/bin/itest-bootstrap
 
 # Default command (can be overridden at docker run)
 CMD ["pytest", "-c", "config/testing/pytest.ini", "tests/unit", "-q"]

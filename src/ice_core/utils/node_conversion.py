@@ -7,7 +7,7 @@ Keeping this logic inside *ice_core* prevents higher-level layers from
 hard-coding type switches and ensures that the mapping stays in one place.
 """
 
-from typing import Any, Callable, Dict, List, Type, cast
+from typing import Any, Dict, List, Type
 
 from ice_core.models import (
     AgentNodeConfig,
@@ -147,104 +147,10 @@ def discover_tool_schemas(tool_name: str) -> tuple[Dict[str, Any], Dict[str, Any
     try:
         tool = registry.get_tool_instance(tool_name)
     except Exception as e:
-        # JIT fallback: attempt to rehydrate from the repo if available.
-        try:
-            import types as _types
-
-            from ice_api.services.component_repo import choose_component_repo
-            from ice_api.services.component_service import ComponentService
-            from ice_core.models.mcp import ComponentDefinition as _CDef
-            from ice_core.unified_registry import (
-                register_tool_factory_callable as _reg_callable,
-            )
-
-            # Minimal app stub for repo chooser when outside FastAPI context
-            _stub_app = _types.SimpleNamespace(
-                app=_types.SimpleNamespace(state=_types.SimpleNamespace())
-            )
-            repo = choose_component_repo(_stub_app)
-            svc = ComponentService(repo)
-            rec: Any | None = None
-            _lock: Any | None = None
-            try:
-                rec, _lock = (
-                    __import__("asyncio")
-                    .get_event_loop()
-                    .run_until_complete(svc.get("tool", tool_name))
-                )
-            except Exception:
-                rec, _lock = None, None
-            if isinstance(rec, dict):
-                definition = rec.get("definition")
-                if isinstance(definition, dict):
-                    d = _CDef(**definition)
-                    # Materialize a callable factory from class code if present
-                    tool_class_code = d.tool_class_code
-                    factory_code = d.tool_factory_code
-                    if tool_class_code:
-                        ns: dict[str, Any] = {}
-                        exec(tool_class_code, ns)
-                        # pick the first subclass of ToolBase
-                        from ice_core.base_tool import ToolBase
-
-                        klass: Type[ToolBase] | None = None
-                        for name, obj in ns.items():
-                            try:
-                                if (
-                                    isinstance(obj, type)
-                                    and issubclass(obj, ToolBase)
-                                    and obj is not ToolBase
-                                ):
-                                    klass = obj
-                                    break
-                            except Exception:
-                                continue
-                        if klass is None:
-                            raise KeyError(
-                                "No ToolBase subclass found in tool_class_code"
-                            )
-
-                        # Narrow Optional away for mypy
-                        assert klass is not None
-                        tool_cls: Type[ToolBase] = klass
-
-                        from ice_core.protocols.node import INode
-
-                        def _factory(**kwargs: Any) -> INode:  # type: ignore[override]
-                            return cast(INode, tool_cls(**kwargs))
-
-                        _reg_callable(d.name, _factory)
-                    elif factory_code:
-                        # Fall back: exec factory code and find a callable returning ToolBase
-                        ns2: dict[str, Any] = {}
-                        exec(factory_code, ns2)
-                        from ice_core.base_tool import ToolBase
-
-                        fac = None
-                        for name, obj in ns2.items():
-                            if callable(obj):
-                                try:
-                                    inst = obj()
-                                    if isinstance(inst, ToolBase):
-                                        fac = obj
-                                        break
-                                except Exception:
-                                    continue
-                        if fac is None:
-                            raise KeyError("No valid factory in tool_factory_code")
-                        from ice_core.protocols.node import INode
-
-                        _reg_callable(d.name, cast("Callable[..., INode]", fac))
-                    # Retry fetch after JIT registration
-                    tool = registry.get_tool_instance(tool_name)
-                else:
-                    raise KeyError
-            else:
-                raise KeyError
-        except Exception:
-            from ice_core.exceptions import ToolFactoryResolutionError
-
-            raise ToolFactoryResolutionError(tool_name, f"not found in registry: {e}")
+        # Do not cross layer boundaries here. If a tool is not found in the
+        # local registry, signal discovery failure and let callers decide on
+        # fallback behavior (e.g., placeholder schemas) at higher layers.
+        raise ValueError(f"Tool '{tool_name}' not found in registry: {e}")
 
     # Get schemas from tool class methods
     input_schema = {}
