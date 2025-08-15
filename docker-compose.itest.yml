@@ -40,7 +40,7 @@ services:
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
       ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
     command:
-      ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
+      ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "20"]
     healthcheck:
       test:
         [
@@ -57,10 +57,13 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    # Share API network namespace so 127.0.0.1:8000 inside itest hits API
+    network_mode: "service:api"
     environment:
       PYTHONPATH: /app/src:/app
-      ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
-    # 1) Bootstrap: ensure writer_tool exists in *this* process' registry
+      ICE_STRICT_SERIALIZATION: "1"
+      PYTEST_ADDOPTS: "-p no:xdist --maxfail=1 --timeout=60 -q"
+    # 1) Bootstrap: ensure first-party tools exist in *this* process' registry
     # 2) Run pytest integration suite
     command:
       - bash
@@ -68,14 +71,14 @@ services:
       - |
         set -euo pipefail
         python - <<'PY'
-        from ice_core.unified_registry import register_tool_factory
-        # Register via factory import paths — no rebuild needed
+        from ice_core.unified_registry import register_tool_factory, register_llm_factory
         register_tool_factory("writer_tool", "packs.first_party_tools.writer_tool:create_writer_tool")
         register_tool_factory("lookup_tool", "packs.first_party_tools.lookup_tool:create_lookup_tool")
         register_tool_factory("search_tool", "packs.first_party_tools.search_tool:create_search_tool")
-        print("bootstrap: registered writer/lookup/search tools")
+        register_llm_factory("gpt-4-turbo-2024-04-09", "packs.first_party_tools.llm_echo:create_llm")
+        print("bootstrap: registered writer/lookup/search tools + echo llm")
         PY
-        pytest -c config/testing/pytest.ini tests/integration -q
+        pytest -c config/testing/pytest.ini tests/integration
 
 volumes:
   redis_data:
