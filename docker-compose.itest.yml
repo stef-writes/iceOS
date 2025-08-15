@@ -1,8 +1,6 @@
-version: "3.9"
-
 services:
   redis:
-    image: redis:7-alpine
+    image: docker.io/redis:7-alpine
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 3s
@@ -10,30 +8,23 @@ services:
       retries: 10
 
   api:
-    image: ${REGISTRY}/${IMAGE_REPO}/iceosv1a-api:${GITHUB_SHA}
-    environment:
-      ICE_ENABLE_INLINE_CODE: "1"
-      ICE_COMPUTE_GRAPH_CENTRALITY: "1"
-      ICE_STRICT_SERIALIZATION: "1"
-      REDIS_URL: redis://redis:6379/0
-      ICE_API_TOKEN: dev-token
+    image: "${IMAGE_REPO:-ghcr.io/stef-writes/iceos}/iceosv1a-api:${IMAGE_TAG:-${GITHUB_SHA}}"
+    pull_policy: always
+    env_file:
+      - env.ci
     depends_on:
-      redis:
-        condition: service_healthy
+      - redis
     ports:
       - "8000:8000"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/readyz').getcode()==200 else 1)"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
 
   itest:
-    image: ${REGISTRY}/${IMAGE_REPO}/iceosv1a-itest:${GITHUB_SHA}
+    image: "${IMAGE_REPO:-ghcr.io/stef-writes/iceos}/iceosv1a-itest:${IMAGE_TAG:-${GITHUB_SHA}}"
+    pull_policy: always
     environment:
-      PYTEST_ADDOPTS: "-q -n 1 --maxfail=1 -k 'not heavy' --timeout=180"
+      PYTHONPATH: src
+      PYTEST_ADDOPTS: "-n 1 --maxfail=1 -k 'not heavy'"
     depends_on:
-      api:
-        condition: service_healthy
+      - api
+      - redis
     command: ["pytest", "-c", "config/testing/pytest.ini", "tests/integration", "-q"]
     network_mode: host

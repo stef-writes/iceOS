@@ -143,8 +143,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Compose up
         env:
-          GITHUB_SHA: ${{ github.sha }}
-          REGISTRY: ${{ env.REGISTRY }}
-          IMAGE_REPO: ${{ steps.meta.outputs.repo_lc }}
+          REPO_LC: ${{ steps.meta.outputs.repo_lc }}
+          IMAGE_REPO: ghcr.io/${{ steps.meta.outputs.repo_lc }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
