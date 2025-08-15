@@ -82,9 +82,9 @@ jobs:
           docker buildx build \
             --target test \
             --push \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${SEMVER_TRACK} \
+            --tag ${IMAGE_REPO}/iceosv1a-itest:${{ steps.meta.outputs.sha_tag }} \
+            --tag ${IMAGE_REPO}/iceosv1a-itest:${{ steps.meta.outputs.ref_tag }} \
+            --tag ${IMAGE_REPO}/iceosv1a-itest:${SEMVER_TRACK} \
             --build-arg VCS_REF=${GITHUB_SHA} \
             --build-arg VERSION=${SEMVER_TRACK} \
             --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
@@ -98,9 +98,9 @@ jobs:
           docker buildx build \
             --target api \
             --push \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${SEMVER_TRACK} \
+            --tag ${IMAGE_REPO}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }} \
+            --tag ${IMAGE_REPO}/iceosv1a-api:${{ steps.meta.outputs.ref_tag }} \
+            --tag ${IMAGE_REPO}/iceosv1a-api:${SEMVER_TRACK} \
             --build-arg VCS_REF=${GITHUB_SHA} \
             --build-arg VERSION=${SEMVER_TRACK} \
             --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
@@ -136,15 +136,18 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v4
+      - name: Set image repo env (lowercased)
+        shell: bash
+        run: |
+          echo "IMAGE_REPO=ghcr.io/$(echo \"${GITHUB_REPOSITORY}\" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pre-pull base images
+        run: docker pull redis:7-alpine | cat
       - name: Compose up
-        env:
-          REPO_LC: ${{ steps.meta.outputs.repo_lc }}
-          IMAGE_REPO: ghcr.io/${{ steps.meta.outputs.repo_lc }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
