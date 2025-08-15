@@ -82,9 +82,9 @@ jobs:
           docker buildx build \
             --target test \
             --push \
-            --tag ${IMAGE_REPO}/iceosv1a-itest:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${IMAGE_REPO}/iceosv1a-itest:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${IMAGE_REPO}/iceosv1a-itest:${SEMVER_TRACK} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${{ steps.meta.outputs.sha_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${{ steps.meta.outputs.ref_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${SEMVER_TRACK} \
             --build-arg VCS_REF=${GITHUB_SHA} \
             --build-arg VERSION=${SEMVER_TRACK} \
             --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
@@ -98,9 +98,9 @@ jobs:
           docker buildx build \
             --target api \
             --push \
-            --tag ${IMAGE_REPO}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${IMAGE_REPO}/iceosv1a-api:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${IMAGE_REPO}/iceosv1a-api:${SEMVER_TRACK} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${{ steps.meta.outputs.ref_tag }} \
+            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${SEMVER_TRACK} \
             --build-arg VCS_REF=${GITHUB_SHA} \
             --build-arg VERSION=${SEMVER_TRACK} \
             --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
@@ -148,6 +148,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pre-pull base images
         run: docker pull redis:7-alpine | cat
+      - name: Validate image repo
+        run: |
+          if [ -z "$IMAGE_REPO" ]; then
+            echo "IMAGE_REPO is empty" >&2
+            exit 1
+          fi
       - name: Compose up
         run: |
           docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
