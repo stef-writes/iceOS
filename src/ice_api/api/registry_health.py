@@ -8,6 +8,7 @@ from fastapi import APIRouter
 
 from ice_core.models import NodeType
 from ice_core.unified_registry import registry
+from ice_orchestrator.execution import wasm_executor as _wasm
 
 router = APIRouter(prefix="/api/v1/meta/registry", tags=["discovery", "health"])
 
@@ -45,4 +46,11 @@ async def registry_health() -> Dict[str, Any]:  # noqa: D401
         "missing_executors": missing_exec,
         "tools": tools,
         "agents": agents,
+        "wasm": {
+            "enabled": getattr(_wasm, "wasm_executor", None) is not None
+            and getattr(_wasm.wasm_executor, "enabled", False),
+            "arch": getattr(_wasm.wasm_executor, "arch", "unknown")
+            if getattr(_wasm, "wasm_executor", None) is not None
+            else "unknown",
+        },
     }

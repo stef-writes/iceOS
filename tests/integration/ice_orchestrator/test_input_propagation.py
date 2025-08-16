@@ -4,7 +4,7 @@ import asyncio
 from typing import Any, Dict
 
 import httpx
-from fastapi.testclient import TestClient
+import pytest
 
 from ice_api.main import app
 
@@ -60,9 +60,9 @@ async def _run_flow() -> Dict[str, Any]:
         raise AssertionError("execution did not finish in time")
 
 
-def test_top_level_input_is_available_in_prompt() -> None:
-    with TestClient(app):
-        body = asyncio.run(_run_flow())
-        assert body["status"] == "completed"
-        text = body["result"]["output"]["llm1"]["prompt"]
-        assert "Echo: propagation" in text
+@pytest.mark.asyncio
+async def test_top_level_input_is_available_in_prompt() -> None:
+    body = await _run_flow()
+    assert body["status"] == "completed"
+    prompt = body["result"]["output"]["llm1"]["prompt"]
+    assert prompt == "Echo: propagation"

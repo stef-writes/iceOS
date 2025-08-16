@@ -91,12 +91,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         _plog = _logging.getLogger(__name__)
         manifest_paths = [p.strip() for p in manifests_env.split(",") if p.strip()]
         for mp in manifest_paths:
-            try:
-                path = pathlib.Path(mp)
-                count = registry.load_plugins(str(path), allow_dynamic=True)
-                _plog.info("Loaded %d components from manifest %s", count, path)
-            except Exception as e:  # pragma: no cover – defensive
-                _plog.warning("Failed to load plugins manifest %s: %s", mp, e)
+            path = pathlib.Path(mp)
+            count = registry.load_plugins(str(path), allow_dynamic=True)
+            _plog.info("Loaded %d components from manifest %s", count, path)
+        # Fail fast if no tool factories are registered after manifest load
+        if not registry.available_tool_factories():
+            raise RuntimeError(
+                "No tool factories registered after loading plugin manifests."
+            )
 
     # ------------------------------------------------------------------
     # Progressive demo loader with timing --------------------------------
@@ -346,8 +348,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     validation_summary = validate_registered_components()
     if validation_summary["tool_failures"]:
-        logger.warning(
-            "⚠️  Some tools failed validation: %s", validation_summary["tool_failures"]
+        raise RuntimeError(
+            f"Tool validation failures: {validation_summary['tool_failures']}"
         )
 
     # Print startup banner last so it appears after early logs ---------

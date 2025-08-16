@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 
 import httpx
 from pydantic import Field
@@ -15,7 +15,10 @@ class SearchTool(ToolBase):
     description: str = Field(
         default="Search the web for a query using SerpAPI (live only)"
     )
-    engine: str = Field(default="google")
+    # Expose discrete engines to surface UI enum hints in the catalog
+    engine: Literal["google", "bing", "duckduckgo"] = Field(
+        default="google", description="Search engine provider"
+    )
     num_results: int = Field(default=3, ge=1, le=10)
 
     async def _execute_impl(self, *, query: str) -> Dict[str, Any]:

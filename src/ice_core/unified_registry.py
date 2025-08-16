@@ -192,8 +192,23 @@ class Registry(BaseModel):
 
     # Convenience methods for better API
     def list_tools(self) -> List[str]:
-        """List all registered tool factory names."""
-        return [name for name, _ in self.available_tool_factories()]
+        """List all registered tools (classes and factories).
+
+        Returns a stable-sorted union of tool names registered either via
+        class registration or via factory registration.
+        """
+        names: set[str] = set()
+        # Class-registered tools
+        try:
+            names.update(self._nodes.get(NodeType.TOOL, {}).keys())  # type: ignore[index]
+        except Exception:
+            pass
+        # Factory-registered tools
+        try:
+            names.update(name for name, _ in self.available_tool_factories())
+        except Exception:
+            pass
+        return sorted(names)
 
     def list_agents(self) -> List[str]:
         """List all registered agent names."""
@@ -204,9 +219,15 @@ class Registry(BaseModel):
         return self.get_tool_instance(name)
 
     def has_tool(self, name: str) -> bool:
-        """Check if a tool factory is registered."""
-        # Consider both string-registered factories and callable cache entries
-        return name in self._tool_factories or name in self._tool_factory_cache
+        """Check if a tool is registered (class or factory)."""
+        # Factories
+        if name in self._tool_factories or name in self._tool_factory_cache:
+            return True
+        # Classes
+        try:
+            return name in self._nodes.get(NodeType.TOOL, {})  # type: ignore[index]
+        except Exception:
+            return False
 
     # Chain registry methods
     def register_chain(self, name: str, chain: Any) -> None:
@@ -298,7 +319,28 @@ class Registry(BaseModel):
                                 raise RegistryError(
                                     f"Tool class {imp_path} is not a subclass of ToolBase"
                                 )
-                            self.register_class(NodeType.TOOL, name, obj)  # type: ignore[arg-type]
+                            # Idempotent class registration
+                            existing = self._nodes.get(NodeType.TOOL, {}).get(name)  # type: ignore[index]
+                            if existing is obj:
+                                pass
+                            elif existing is not None:
+                                raise RegistryError(
+                                    f"Node {NodeType.TOOL.value}:{name} already registered"
+                                )
+                            else:
+                                self.register_class(NodeType.TOOL, name, obj)  # type: ignore[arg-type]
+                            # Also expose a callable factory so get_tool_instance works with class-based manifests
+                            try:
+                                # Bind the current class into the closure to avoid late-binding bugs
+                                def _factory_bound(_klass: Type[INode]):  # type: ignore[name-defined]
+                                    def _create(**kw: Any) -> INode:
+                                        return _klass(**kw)  # type: ignore[call-arg]
+
+                                    return _create
+
+                                self._tool_factory_cache[name] = _factory_bound(obj)  # type: ignore[assignment]
+                            except Exception:
+                                pass
                         else:
                             # Support instance export by wrapping with an auto-generated factory
                             if not isinstance(obj, ToolBase):

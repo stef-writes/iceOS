@@ -24,6 +24,7 @@ services:
       - api_data:/app/data
     env_file:
       - config/dev.env.example
+      - env.ci
     environment:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       REDIS_CLIENT_NAME: ${REDIS_CLIENT_NAME:-ice_api}
@@ -37,10 +38,11 @@ services:
       ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/packs/first_party_tools/plugins.v0.yaml}
+      ICE_ENABLE_WASM: ${ICE_ENABLE_WASM:-"0"}
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
       ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
     command:
-      ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "20"]
+      ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
     healthcheck:
       test:
         [
@@ -52,33 +54,23 @@ services:
       retries: 30
 
   itest:
-    # Prebuilt "test" image that already has pytest + code under /app
+    # Prebuilt “test” image that already has pytest + code under /app
     image: ${IMAGE_REPO}/iceosv1a-itest:${IMAGE_TAG:-dev}
     depends_on:
       api:
         condition: service_healthy
-    # Share API network namespace so 127.0.0.1:8000 inside itest hits API
+    # If tests call http://127.0.0.1:8000, share API network namespace
     network_mode: "service:api"
     environment:
       PYTHONPATH: /app/src:/app
-      ICE_STRICT_SERIALIZATION: "1"
-      PYTEST_ADDOPTS: "-p no:xdist --maxfail=1 --timeout=60 -q"
-    # 1) Bootstrap: ensure first-party tools exist in *this* process' registry
-    # 2) Run pytest integration suite
-    command:
-      - bash
-      - -lc
-      - |
-        set -euo pipefail
-        python - <<'PY'
-        from ice_core.unified_registry import register_tool_factory, register_llm_factory
-        register_tool_factory("writer_tool", "packs.first_party_tools.writer_tool:create_writer_tool")
-        register_tool_factory("lookup_tool", "packs.first_party_tools.lookup_tool:create_lookup_tool")
-        register_tool_factory("search_tool", "packs.first_party_tools.search_tool:create_search_tool")
-        register_llm_factory("gpt-4-turbo-2024-04-09", "packs.first_party_tools.llm_echo:create_llm")
-        print("bootstrap: registered writer/lookup/search tools + echo llm")
-        PY
-        pytest -c config/testing/pytest.ini tests/integration
+      ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
+      ICEOS_PLUGIN_MANIFESTS: /app/packs/first_party_tools/plugins.v0.yaml
+      ICE_ENABLE_WASM: ${ICE_ENABLE_WASM:-"0"}
+      REDIS_URL: redis://redis:6379/0
+      PYTEST_ADDOPTS: "-p no:xdist --timeout=60 -q"
+    env_file:
+      - env.ci
+    command: ["bash", "-lc", "pytest -c config/testing/pytest.ini tests/integration -q"]
 
 volumes:
   redis_data:

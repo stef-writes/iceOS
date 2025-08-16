@@ -130,6 +130,25 @@ def _validate_resolvable_and_allowed(blueprint: Blueprint) -> None:
             if not isinstance(name, str) or not name:
                 continue
             if not registry.has_tool(name):
+                # Best-effort JIT load of plugin manifests when present to
+                # align in-process TestClient runs with server startup behavior.
+                try:
+                    import os as _os
+
+                    manifests_env = _os.getenv("ICEOS_PLUGIN_MANIFESTS", "").strip()
+                    if manifests_env:
+                        for mp in [
+                            p.strip() for p in manifests_env.split(",") if p.strip()
+                        ]:
+                            try:
+                                registry.load_plugins(mp, allow_dynamic=True)
+                            except Exception:
+                                # Non-fatal – continue and re-check below
+                                pass
+                except Exception:
+                    pass
+
+            if not registry.has_tool(name):
                 raise HTTPException(
                     status_code=422, detail=f"Tool '{name}' is not registered"
                 )

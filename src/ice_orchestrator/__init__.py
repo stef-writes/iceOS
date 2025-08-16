@@ -81,6 +81,27 @@ def initialize_orchestrator() -> None:
         # Do not crash if tool packages are missing in minimal builds
         pass
 
+    # Also load declarative plugin manifests when provided (keeps parity with API lifespan)
+    try:
+        manifests_env = os.getenv("ICEOS_PLUGIN_MANIFESTS", "").strip()
+        if manifests_env:
+            import logging as _logging
+            import pathlib as _pathlib
+
+            from ice_core.unified_registry import registry as _reg
+
+            _plog = _logging.getLogger(__name__)
+            for mp in [p.strip() for p in manifests_env.split(",") if p.strip()]:
+                try:
+                    path = _pathlib.Path(mp)
+                    count = _reg.load_plugins(str(path), allow_dynamic=True)
+                    _plog.info("Loaded %d components from manifest %s", count, path)
+                except Exception as e:  # pragma: no cover – defensive
+                    _plog.warning("Failed to load plugins manifest %s: %s", mp, e)
+    except Exception:
+        # Non-fatal in minimal/test environments
+        pass
+
     # Load any entry-point declared nodes/tools
     try:
         from ice_core.unified_registry import registry as _reg

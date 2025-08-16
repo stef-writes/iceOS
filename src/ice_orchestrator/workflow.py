@@ -406,11 +406,21 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             if result.success and result.output is not None:
                 serializable_results[node_id] = result.output
             else:
-                # For failed nodes, include error information
-                serializable_results[node_id] = {
-                    "success": False,
-                    "error": result.error or "Unknown error",
-                }
+                # Preserve any partial output from the node (e.g., rendered prompt)
+                # and merge error information for robust introspection.
+                merged: Dict[str, Any] = {}
+                try:
+                    if isinstance(result.output, dict):
+                        merged.update(result.output)
+                except Exception:
+                    pass
+                merged.update(
+                    {
+                        "success": False,
+                        "error": result.error or "Unknown error",
+                    }
+                )
+                serializable_results[node_id] = merged
 
         # Wrap ChainExecutionResult as NodeExecutionResult for ABC compliance
         chain_result = ChainExecutionResult(
@@ -670,10 +680,17 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
             if current_ctx and current_ctx.metadata:
                 # Merge top-level inputs for direct placeholder access (e.g., {topic})
                 md = dict(current_ctx.metadata)
-                if isinstance(md.get("inputs"), dict):
-                    md = {**md.get("inputs", {}), **md}
+                inputs_dict = (
+                    md.get("inputs") if isinstance(md.get("inputs"), dict) else None
+                )
+                if inputs_dict is not None:
+                    # Expose inputs both flattened (for {name}) and nested (for {inputs.name})
+                    md_flat = {**inputs_dict, **md}
+                    # Ensure nested 'inputs' remains available for templates expecting it
+                    merged = {"inputs": inputs_dict, **md_flat, **node_ctx}
+                else:
+                    merged = {**md, **node_ctx}
                 # Preserve explicit mappings when keys overlap ----------------
-                merged = {**md, **node_ctx}
                 return merged
         except Exception:  # – never break execution due to ctx issues
             pass

@@ -76,14 +76,30 @@ class WasmExecutor:
     """Universal WASM runtime for secure node execution using wasmtime-py."""
 
     def __init__(self) -> None:
-        """Initialize WASM executor with security defaults."""
-        if wasmtime is None:
-            raise RuntimeError("wasmtime is not installed; WASM execution is disabled")
+        """Initialize WASM executor with security defaults.
+
+        Phase 1 hardening:
+        - Gate by architecture (enable only on x86_64/AMD64)
+        - Soft-fail if wasmtime unavailable
+        - Prepare flags for capability reporting
+        """
+        import platform as _platform
+
+        self.arch: str = _platform.machine() or "unknown"
+        self.is_supported_arch: bool = self.arch in ("x86_64", "AMD64")
+        self.engine = None  # type: ignore[assignment]
+        self.enabled: bool = False
+
+        if wasmtime is None or not self.is_supported_arch:
+            # Leave disabled; callers should fallback gracefully
+            return
+
         # Initialize WASM engine with security settings
         config = wasmtime.Config()
         config.consume_fuel = True  # Enable CPU limits
         config.max_wasm_stack = 512 * 1024  # 512KB stack limit
         self.engine = wasmtime.Engine(config)
+        self.enabled = True
 
         # Resource limits by node type (more granular than subprocess approach)
         self.resource_limits = {
@@ -160,6 +176,24 @@ class WasmExecutor:
         Returns:
             Dict with success, output, error, and execution metadata
         """
+        if not getattr(self, "enabled", False) or self.engine is None:
+            raise WasmExecutorError(
+                f"WASM execution is unavailable on arch={getattr(self, 'arch', 'unknown')}"
+            )
+
+        # Basic resource preflight (avoid bringing down process on starved hosts)
+        try:
+            import psutil as _psutil  # type: ignore
+
+            available = _psutil.virtual_memory().available
+            if available < 256 * 1024 * 1024:  # 256MB
+                raise WasmExecutorError(
+                    "Insufficient memory available for WASM sandbox"
+                )
+        except Exception:
+            # psutil optional; proceed without hard failure
+            pass
+
         with tracer.start_as_current_span(
             "wasm.execute_python_code",
             attributes={

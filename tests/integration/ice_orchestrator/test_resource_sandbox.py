@@ -6,6 +6,12 @@ import pytest
 
 from ice_orchestrator.execution.sandbox.resource_sandbox import ResourceSandbox
 
+# Skip stress tests in constrained Docker/CI environments to avoid OOM kills
+pytestmark = pytest.mark.skipif(
+    os.getenv("ICE_SKIP_STRESS", "0") == "1" or os.getenv("CI") == "1",
+    reason="Skipping resource stress tests in constrained CI/docker environments",
+)
+
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(

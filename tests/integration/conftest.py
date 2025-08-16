@@ -1,9 +1,13 @@
 """Pytest configuration for integration tests.
 
-Provides fixtures for Redis integration testing using Docker containers.
+Provides fixtures for Redis integration testing using Docker containers and
+bootstraps the in-process plugin registry so tools are available to the
+orchestrator runtime in tests that do not start the API server.
 """
 
 import asyncio
+import os
+from pathlib import Path
 from typing import AsyncGenerator
 
 import pytest
@@ -73,3 +77,31 @@ def redis_url(redis_container) -> str:
     host = redis_container.get_container_host_ip()
     port = redis_container.get_exposed_port(6379)
     return f"redis://{host}:{port}/0"
+
+
+# ---------------------------------------------------------------------------
+# Global plugin bootstrap for integration tests (session, autouse)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _bootstrap_plugins() -> None:
+    """Load first-party tools via manifest for orchestrator-only tests.
+
+    Ensures tools like `writer_tool` are registered in the unified registry
+    even when the FastAPI app (which normally loads plugins) is not running.
+    """
+    try:
+        from ice_core.registry import registry
+    except Exception:
+        return
+
+    pack_manifest = (
+        Path(__file__).parents[2] / "packs/first_party_tools/plugins.v0.yaml"
+    )
+    os.environ["ICEOS_PLUGIN_MANIFESTS"] = str(pack_manifest)
+    try:
+        registry.load_plugins(str(pack_manifest), allow_dynamic=True)
+    except Exception:
+        # Tests that explicitly manage plugin loading can proceed regardless
+        pass

@@ -106,6 +106,7 @@ RUN python -m pip install --no-cache-dir --timeout 120 --retries 5 -r /tmp/requi
 # Copy application source and test config
 COPY src /app/src
 COPY packs /app/packs
+COPY scripts /app/scripts
 COPY config /app/config
 COPY tests /app/tests
 ENV PYTHONPATH=/app/src

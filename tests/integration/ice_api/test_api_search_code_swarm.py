@@ -113,8 +113,9 @@ async def test_api_code_node_happy() -> None:
         from ice_orchestrator.config import runtime_config
 
         runtime_config.max_tokens = None
+        # Write to 'output' so the non-WASM fallback path returns structured data directly
         code = """
-result = {"sum": inputs.get("a", 0) + inputs.get("b", 0)}
+output = {"a": inputs.get("a", 0), "b": inputs.get("b", 0), "sum": inputs.get("a", 0) + inputs.get("b", 0)}
 """
         bp = {
             "schema_version": "1.2.0",
@@ -143,10 +144,18 @@ result = {"sum": inputs.get("a", 0) + inputs.get("b", 0)}
         assert r.status_code == 202, r.text
         body = await _await_done(c, r.json()["execution_id"], headers)
     assert body["status"] == "completed"
-    # Current WASM stub returns context as result; validate structure
+    # Support both execution paths: WASM (structured with wasm_return_code/result) or fallback (direct output)
     out = body["result"]["output"]["code1"]
-    assert out["wasm_return_code"] == 0
-    assert out["result"]["a"] == 2 and out["result"]["b"] == 3
+    if isinstance(out, dict) and "wasm_return_code" in out:
+        assert out["wasm_return_code"] == 0
+        assert (
+            out["result"]["a"] == 2
+            and out["result"]["b"] == 3
+            and out["result"].get("sum") == 5
+        )
+    else:
+        # Fallback path returns the executed 'output' mapping directly
+        assert out.get("a") == 2 and out.get("b") == 3 and out.get("sum") == 5
 
 
 async def test_api_swarm_node_smoke() -> None:

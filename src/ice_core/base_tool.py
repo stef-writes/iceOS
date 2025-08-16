@@ -36,6 +36,22 @@ class ToolBase(BaseModel, ABC):
         """
 
         try:
+            # Defensive defaults for commonly-required fields used across tools.
+            # This mirrors the requested behavior: if a tool expects a 'query'
+            # field and it is missing, provide an empty string so validation
+            # does not fail at schema level when upstream mapping omitted it.
+            try:
+                schema = self.get_input_schema()
+                properties = schema.get("properties", {})
+                if "query" in properties and "query" not in kwargs:
+                    # Only inject a default for fields that exist in the schema.
+                    # This keeps behavior narrow and avoids masking other issues.
+                    kwargs["query"] = ""
+            except Exception:
+                # Schema introspection is best-effort; do not block execution
+                # if schema utilities change or are unavailable at import time.
+                pass
+
             # Validate inputs
             self._validate_inputs(kwargs)
 

@@ -176,41 +176,14 @@ class PartialBlueprint(BaseModel):
         for node in self.nodes:
             if node.type == "tool" and hasattr(node, "tool_name"):
                 tool_name = node.tool_name  # type: ignore[attr-defined]
-                # First check runtime registry
+                # Check only the in-process registry to respect layer boundaries
                 if not registry.has_tool(tool_name):
-                    # Repository fallback: if a matching component exists, accept it
-                    try:
-                        import asyncio
-
-                        from ice_api.services.component_repo import (
-                            choose_component_repo,
-                        )
-                        from ice_api.services.component_service import ComponentService
-
-                        repo = choose_component_repo(
-                            type(
-                                "_Stub",
-                                (),
-                                {
-                                    "app": type(
-                                        "_A", (), {"state": type("_S", (), {})()}
-                                    )()
-                                },
-                            )()
-                        )
-                        service = ComponentService(repo)
-                        data, _ = asyncio.get_event_loop().run_until_complete(
-                            service.get("tool", tool_name)
-                        )  # type: ignore[arg-type]
-                        if not data:
-                            raise KeyError
-                    except Exception:
-                        self.validation_errors.append(
-                            f"Tool '{tool_name}' not found in registry"
-                        )
-                        self.next_suggestions.append(
-                            f"Use /components/validate to validate and register tool '{tool_name}'"
-                        )
+                    self.validation_errors.append(
+                        f"Tool '{tool_name}' not found in registry"
+                    )
+                    self.next_suggestions.append(
+                        f"Use /components/validate to validate and register tool '{tool_name}'"
+                    )
             elif node.type == "agent" and hasattr(node, "package"):
                 agent_names = [
                     name for name, _ in global_agent_registry.available_agents()

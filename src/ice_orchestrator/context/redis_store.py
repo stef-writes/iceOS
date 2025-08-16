@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+from functools import lru_cache
 from threading import Thread
 from typing import (
     Any,
@@ -16,6 +17,8 @@ from typing import (
     cast,
     runtime_checkable,
 )
+
+import redis.asyncio as aioredis
 
 from .store_base import BaseContextStore
 
@@ -51,10 +54,7 @@ class RedisContextStore(BaseContextStore):
             if hash_key is not None
             else (env_hash if env_hash is not None else "context:store")
         )
-        # Import lazily to avoid circular deps at module import time
-        from ice_api.redis_client import get_redis
-
-        # Narrow to minimal protocol
+        # Narrow to minimal protocol using in-layer client (no upward import)
         self._redis: _HashClient = cast(_HashClient, get_redis())
 
         # Ensure background loop exists for resolving awaitables from sync path
@@ -145,3 +145,28 @@ def _resolve(v: Union[T, Awaitable[T]]) -> T:
         fut = asyncio.run_coroutine_threadsafe(v, loop)
         return cast(T, fut.result())
     return cast(T, v)
+
+
+# -------------------- Minimal in-layer Redis client --------------------
+
+_REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+_DECODE = bool(int(os.getenv("REDIS_DECODE_RESPONSES", "1")))
+_SOCK_TIMEOUT = float(os.getenv("REDIS_SOCKET_TIMEOUT", "5.0"))
+_SOCK_CONNECT_TIMEOUT = float(os.getenv("REDIS_SOCKET_CONNECT_TIMEOUT", "3.0"))
+_MAX_CONNS = int(os.getenv("REDIS_MAX_CONNECTIONS", "100"))
+
+
+@lru_cache(maxsize=1)
+def _redis():
+    return aioredis.from_url(
+        _REDIS_URL,
+        decode_responses=_DECODE,
+        socket_timeout=_SOCK_TIMEOUT,
+        socket_connect_timeout=_SOCK_CONNECT_TIMEOUT,
+        max_connections=_MAX_CONNS,
+    )
+
+
+def get_redis():
+    # Keep sync call-site here while returning cached async client
+    return _redis()

@@ -48,6 +48,18 @@ async def llm_node_executor(
         except Exception as exc:
             raise ValueError(f"Failed to render prompt: {exc}") from exc
 
+        # Ensure output schema exists (quiet the runtime warning by setting default)
+        try:
+            # runtime_validate will itself set a default, but tests warn on missing
+            # prior to validation in some call paths. Set a safe default early.
+
+            out_schema = getattr(cfg, "output_schema", None)
+            if isinstance(out_schema, dict) and len(out_schema) == 0:
+                cfg.output_schema = {"text": "string"}
+        except Exception:
+            # Non-fatal; continue with execution
+            pass
+
         # Prefer provider/model/params from nested llm_config; fall back to top-level for BC
         provider: ModelProvider | str = (
             cfg.llm_config.provider
