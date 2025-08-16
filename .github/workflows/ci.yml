@@ -183,16 +183,26 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pre-pull base images
         run: docker pull redis:7-alpine | cat
-      - name: Verify WASM capability via health endpoint
+      - name: Verify WASM capability via health endpoint (curl fallback)
         env:
           ICE_ENABLE_WASM: "1"
           ICE_SKIP_STRESS: "1"
         run: |
+          set -e
           docker compose -f docker-compose.itest.yml up -d api redis
-          # Wait briefly for API
-          sleep 5
-          # Curl health (use container network via compose)
-          docker compose -f docker-compose.itest.yml exec -T api bash -lc "curl -sf http://localhost:8000/api/v1/meta/registry/health | jq '.wasm'"
+          # Wait up to 30s for service
+          for i in $(seq 1 30); do
+            if docker compose -f docker-compose.itest.yml ps api | grep -q running; then break; fi; sleep 1; done
+          # Try curl if available, else use python
+          if docker compose -f docker-compose.itest.yml exec -T api sh -lc 'command -v curl >/dev/null 2>&1'; then
+            docker compose -f docker-compose.itest.yml exec -T api sh -lc "curl -sf http://localhost:8000/api/v1/meta/registry/health | sed -n '1,200p'"
+          else
+            docker compose -f docker-compose.itest.yml exec -T api sh -lc "python -c 'import json,urllib.request;print(json.loads(urllib.request.urlopen(\"http://localhost:8000/api/v1/meta/registry/health\",timeout=5).read().decode()).get(\"wasm\",{}))'"
+          fi
+      - name: Dump API logs on failure
+        if: failure()
+        run: |
+          docker compose -f docker-compose.itest.yml logs api | tail -n 200
       - name: Run WASM-marked tests (ICE_ENABLE_WASM=1)
         env:
           ICE_ENABLE_WASM: "1"
