@@ -33,15 +33,20 @@ from typing import Awaitable, TypeVar
 T = TypeVar("T")
 
 
+DEFAULT_TIMEOUT_SECONDS = 30
+DEFAULT_MEMORY_LIMIT_MB = 512
+DEFAULT_CPU_LIMIT_SECONDS = 10
+
+
 class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"]):
     """Resource limiter for executor coroutines."""
 
     def __init__(
         self,
         *,
-        timeout_seconds: int = 30,
-        memory_limit_mb: int = 512,
-        cpu_limit_seconds: int = 10,
+        timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
+        memory_limit_mb: int = DEFAULT_MEMORY_LIMIT_MB,
+        cpu_limit_seconds: int = DEFAULT_CPU_LIMIT_SECONDS,
     ) -> None:
         self._timeout = timeout_seconds
         self._mem_bytes = memory_limit_mb * 1024 * 1024

@@ -5,6 +5,7 @@ This provides actual WebAssembly sandboxing for ALL node types using wasmtime-py
 ensuring secure isolation with resource limits and monitoring.
 """
 
+import ast
 import asyncio
 import inspect
 import json
@@ -151,6 +152,18 @@ class WasmExecutor:
             "operator",
         }
 
+        # Builtins disallowed in sandboxed code (defense-in-depth; also blocked in script)
+        self.denied_builtins = {
+            "open",
+            "file",
+            "execfile",
+            "reload",
+            "__import__",
+            "eval",
+            "exec",
+            "compile",
+        }
+
         # Cache compiled WASM modules for performance
         self._module_cache: Dict[str, wasmtime.Module] = {}
 
@@ -215,11 +228,39 @@ class WasmExecutor:
             if allowed_imports:
                 all_imports.update(allowed_imports)
 
+            # Security preflight: validate imports and calls to denied builtins
+            try:
+                tree = ast.parse(code)
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        for alias in node.names:
+                            base = (alias.name or "").split(".")[0]
+                            if base and base not in all_imports:
+                                raise WasmExecutorError(
+                                    f"Import '{base}' is not allowed in sandbox"
+                                )
+                    elif isinstance(node, ast.ImportFrom):
+                        base = (node.module or "").split(".")[0]
+                        if base and base not in all_imports:
+                            raise WasmExecutorError(
+                                f"Import '{base}' is not allowed in sandbox"
+                            )
+                    elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                        if node.func.id in self.denied_builtins:
+                            raise WasmExecutorError(
+                                f"Call to built-in '{node.func.id}' is not allowed"
+                            )
+            except SyntaxError as e:
+                raise WasmExecutorError(f"Syntax error in sandboxed code: {e}")
+
             try:
                 # Execute in WASM sandbox with resource monitoring
+                context_with_code = dict(context)
+                context_with_code["__code"] = code
+
                 result = await self._execute_in_wasm_sandbox(
                     code=code,
-                    context=context,
+                    context=context_with_code,
                     allowed_imports=all_imports,
                     limits=limits,
                     node_id=node_id,
@@ -323,7 +364,7 @@ class WasmExecutor:
         try:
             # Execute with timeout
             result = await asyncio.wait_for(
-                self._run_wasm_instance(store, instance, context),
+                self._run_wasm_instance(store, instance, context, allowed_imports),
                 timeout=limits["timeout"],
             )
 
@@ -387,6 +428,7 @@ class WasmExecutor:
         store: wasmtime.Store,
         instance: wasmtime.Instance,
         context: Dict[str, Any],
+        allowed_imports: set[str],
     ) -> Dict[str, Any]:
         """Run WASM instance and return results."""
         # Execute Python code in a constrained subprocess for MVP.
@@ -400,7 +442,7 @@ class WasmExecutor:
                 self._create_sandbox_script(
                     code=context.get("__code", ""),
                     context=context,
-                    allowed_imports=self.safe_imports,
+                    allowed_imports=allowed_imports,
                 )
             )
             tmp.flush()

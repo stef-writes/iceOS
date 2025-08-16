@@ -9,6 +9,11 @@ from fastapi import APIRouter
 from ice_core.models import NodeType
 from ice_core.unified_registry import registry
 from ice_orchestrator.execution import wasm_executor as _wasm
+from ice_orchestrator.execution.sandbox.resource_sandbox import (
+    DEFAULT_CPU_LIMIT_SECONDS,
+    DEFAULT_MEMORY_LIMIT_MB,
+    DEFAULT_TIMEOUT_SECONDS,
+)
 
 router = APIRouter(prefix="/api/v1/meta/registry", tags=["discovery", "health"])
 
@@ -52,5 +57,12 @@ async def registry_health() -> Dict[str, Any]:  # noqa: D401
             "arch": getattr(_wasm.wasm_executor, "arch", "unknown")
             if getattr(_wasm, "wasm_executor", None) is not None
             else "unknown",
+        },
+        "resource_governance": {
+            "defaults": {
+                "timeout_seconds": DEFAULT_TIMEOUT_SECONDS,
+                "memory_limit_mb": DEFAULT_MEMORY_LIMIT_MB,
+                "cpu_limit_seconds": DEFAULT_CPU_LIMIT_SECONDS,
+            }
         },
     }
