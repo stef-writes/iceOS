@@ -60,6 +60,14 @@ test:
 
 ci: lint-docker type-check test
 
+ci-integration:
+	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=0 ICE_SKIP_STRESS=1 \
+	docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
+
+ci-wasm:
+	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=1 ICE_SKIP_STRESS=1 \
+	docker compose -f docker-compose.itest.yml run --rm itest bash -lc "pytest -c config/testing/pytest.ini -m wasm -q"
+
 # ---------------------------------------------------------------------------
 # Dockerized pre-commit (no local Python/Poetry required) --------------------
 # ---------------------------------------------------------------------------

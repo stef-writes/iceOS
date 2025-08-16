@@ -16,7 +16,6 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
-    cast,
 )
 
 from pydantic import BaseModel, PrivateAttr
@@ -328,9 +327,8 @@ class Registry(BaseModel):
                                     f"Node {NodeType.TOOL.value}:{name} already registered"
                                 )
                             else:
-                                self.register_class(
-                                    NodeType.TOOL, name, cast(Type[INode], obj)
-                                )
+                                # obj is a subclass of ToolBase, which implements INode
+                                self.register_class(NodeType.TOOL, name, obj)  # type: ignore[arg-type]
                             # Also expose a callable factory so get_tool_instance works with class-based manifests
                             try:
                                 # Bind the current class into the closure to avoid late-binding bugs
@@ -338,13 +336,11 @@ class Registry(BaseModel):
                                     _klass: Type[ToolBase],
                                 ) -> Callable[..., INode]:
                                     def _create(**kw: Any) -> INode:
-                                        return cast(INode, _klass(**kw))
+                                        return _klass(**kw)  # type: ignore[return-value]
 
                                     return _create
 
-                                self._tool_factory_cache[name] = _factory_bound(
-                                    cast(Type[ToolBase], obj)
-                                )  # type: ignore[assignment]
+                                self._tool_factory_cache[name] = _factory_bound(obj)  # type: ignore[assignment]
                             except Exception:
                                 pass
                         else:
@@ -463,7 +459,6 @@ class Registry(BaseModel):
             raise KeyError(f"Agent {name} not found")
 
         # Check cached instance/class first
-        from typing import cast
 
         cached: Any = self._instances.get(NodeType.AGENT, {}).get(name)  # type: ignore[arg-type]
         if cached and isinstance(cached, type):
