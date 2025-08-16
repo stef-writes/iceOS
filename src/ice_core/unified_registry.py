@@ -16,6 +16,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    cast,
 )
 
 from pydantic import BaseModel, PrivateAttr
@@ -321,24 +322,29 @@ class Registry(BaseModel):
                                 )
                             # Idempotent class registration
                             existing = self._nodes.get(NodeType.TOOL, {}).get(name)  # type: ignore[index]
-                            if existing is obj:
-                                pass
-                            elif existing is not None:
+                            # Avoid overlapping identity check; only guard duplicate names
+                            if existing is not None:
                                 raise RegistryError(
                                     f"Node {NodeType.TOOL.value}:{name} already registered"
                                 )
                             else:
-                                self.register_class(NodeType.TOOL, name, obj)  # type: ignore[arg-type]
+                                self.register_class(
+                                    NodeType.TOOL, name, cast(Type[INode], obj)
+                                )
                             # Also expose a callable factory so get_tool_instance works with class-based manifests
                             try:
                                 # Bind the current class into the closure to avoid late-binding bugs
-                                def _factory_bound(_klass: Type[INode]):  # type: ignore[name-defined]
+                                def _factory_bound(
+                                    _klass: Type[ToolBase],
+                                ) -> Callable[..., INode]:
                                     def _create(**kw: Any) -> INode:
-                                        return _klass(**kw)  # type: ignore[call-arg]
+                                        return cast(INode, _klass(**kw))
 
                                     return _create
 
-                                self._tool_factory_cache[name] = _factory_bound(obj)  # type: ignore[assignment]
+                                self._tool_factory_cache[name] = _factory_bound(
+                                    cast(Type[ToolBase], obj)
+                                )  # type: ignore[assignment]
                             except Exception:
                                 pass
                         else:

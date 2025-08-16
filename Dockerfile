@@ -98,10 +98,24 @@ ARG REPOSITORY=""
 
 WORKDIR /app
 
+# Security updates for base OS packages (Debian) to reduce known CVEs in test image
+RUN apt-get update -qq \
+    && apt-get -y dist-upgrade \
+    && apt-get -y install --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies exported from the lockfile (cached in image layers)
 COPY --from=builder /tmp/requirements.txt /tmp/requirements.txt
 COPY --from=builder /tmp/requirements-dev.txt /tmp/requirements-dev.txt
+# Avoid self-upgrading pip/setuptools from dev requirements to prevent hash/installer issues
+RUN sed -i '/^pip==/d' /tmp/requirements-dev.txt && sed -i '/^setuptools==/d' /tmp/requirements-dev.txt
 RUN python -m pip install --no-cache-dir --timeout 120 --retries 5 -r /tmp/requirements.txt -r /tmp/requirements-dev.txt
+
+# Upgrade specific Python packages in test image to patched versions
+RUN python -m pip install --no-cache-dir \
+      "h11>=0.16.0" \
+      "starlette>=0.47.2" \
+      "aiohttp>=3.12.14"
 
 # Copy application source and test config
 COPY src /app/src

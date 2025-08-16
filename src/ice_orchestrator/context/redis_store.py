@@ -157,7 +157,7 @@ _MAX_CONNS = int(os.getenv("REDIS_MAX_CONNECTIONS", "100"))
 
 
 @lru_cache(maxsize=1)
-def _redis():
+def _redis() -> aioredis.Redis:
     return aioredis.from_url(
         _REDIS_URL,
         decode_responses=_DECODE,
@@ -167,6 +167,6 @@ def _redis():
     )
 
 
-def get_redis():
+def get_redis() -> aioredis.Redis:
     # Keep sync call-site here while returning cached async client
     return _redis()
