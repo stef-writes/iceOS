@@ -183,9 +183,19 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pre-pull base images
         run: docker pull redis:7-alpine | cat
-      - name: Run WASM-targeted tests (ICE_ENABLE_WASM=1)
+      - name: Verify WASM capability via health endpoint
         env:
           ICE_ENABLE_WASM: "1"
           ICE_SKIP_STRESS: "1"
         run: |
-          docker compose -f docker-compose.itest.yml run --rm itest bash -lc "pytest -c config/testing/pytest.ini -q tests/integration/ice_api/test_api_search_code_swarm.py"
+          docker compose -f docker-compose.itest.yml up -d api redis
+          # Wait briefly for API
+          sleep 5
+          # Curl health (use container network via compose)
+          docker compose -f docker-compose.itest.yml exec -T api bash -lc "curl -sf http://localhost:8000/api/v1/meta/registry/health | jq '.wasm'"
+      - name: Run WASM-marked tests (ICE_ENABLE_WASM=1)
+        env:
+          ICE_ENABLE_WASM: "1"
+          ICE_SKIP_STRESS: "1"
+        run: |
+          docker compose -f docker-compose.itest.yml run --rm itest bash -lc "pytest -c config/testing/pytest.ini -m wasm -q"

@@ -104,6 +104,7 @@ async def test_api_llm_to_search_to_llm() -> None:
         assert "llm2" in body["result"]["output"]
 
 
+@pytest.mark.wasm
 async def test_api_code_node_happy() -> None:
     headers = {"Authorization": "Bearer dev-token"}
     transport = httpx.ASGITransport(app=app)
