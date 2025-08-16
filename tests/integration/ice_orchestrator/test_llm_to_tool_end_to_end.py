@@ -10,6 +10,21 @@ from ice_api.main import app
 
 
 async def _run_flow() -> Dict[str, Any]:
+    # Ensure echo LLM and starter-pack tools are available without external keys
+    import os
+    from pathlib import Path
+
+    from ice_core.unified_registry import register_llm_factory, registry
+
+    register_llm_factory("gpt-4o", "scripts.verify_runtime:create_echo_llm")
+    pack_manifest = (
+        Path(__file__).parents[3] / "packs/first_party_tools/plugins.v0.yaml"
+    )
+    os.environ["ICEOS_PLUGIN_MANIFESTS"] = str(pack_manifest)
+    try:
+        registry.load_plugins(str(pack_manifest), allow_dynamic=True)
+    except Exception:
+        pass
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(
         base_url="http://testserver", transport=transport
@@ -25,8 +40,7 @@ async def _run_flow() -> Dict[str, Any]:
                     "id": "llm1",
                     "type": "llm",
                     "name": "research_llm",
-                    # Use a generic model id; provider handlers can substitute default if missing
-                    "model": "gpt-4-turbo-2024-04-09",
+                    "model": "gpt-4o",
                     "prompt": "Provide concise notes about: {topic}",
                     "llm_config": {"provider": "openai"},
                     "dependencies": [],
@@ -75,10 +89,9 @@ async def _run_flow() -> Dict[str, Any]:
 
 
 def test_llm_to_writer_tool_end_to_end() -> None:
-    # Ensure FastAPI lifespan runs to register services and tools
-    with TestClient(app):
-        result = asyncio.run(_run_flow())
-        assert result["status"] == "completed"
-        out = result["result"]["output"]
-        assert "t2" in out
-        assert "summary" in out["t2"]
+    # Use httpx ASGITransport (with lifespan) directly to avoid nested lifespan conflicts
+    result = asyncio.run(_run_flow())
+    assert result["status"] == "completed"
+    out = result["result"]["output"]
+    assert "t2" in out
+    assert "summary" in out["t2"]

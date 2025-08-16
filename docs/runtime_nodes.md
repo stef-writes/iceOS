@@ -27,5 +27,14 @@ LLM clarity
 - Providers: `ice_core/llm/providers/*` implement provider handlers consumed by `LLMService`.
 - Prompting: provide prompts via node config/blueprints; executors render and call the provider through `LLMService`.
 
+Testing notes
+- Offline tests should register an echo LLM factory under `gpt-4o`:
+  ```python
+  from ice_core.unified_registry import register_llm_factory
+  register_llm_factory("gpt-4o", "scripts.verify_runtime:create_echo_llm")
+  ```
+- If a blueprint omits an explicit LLM output schema, runtime defaults to `{ "text": "string" }` during validation.
+- Tools can be loaded via plugin manifests using `ICEOS_PLUGIN_MANIFESTS`; the registry is idempotent and safe across multiple loaders.
+
 Breaking changes
 - `LLMOperatorConfig` has been renamed to `LLMNodeConfig`. Update imports and JSON schema references accordingly (`node_configs/LLMNodeConfig.json`).

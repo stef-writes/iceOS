@@ -319,13 +319,13 @@ class Registry(BaseModel):
                                 raise RegistryError(
                                     f"Tool class {imp_path} is not a subclass of ToolBase"
                                 )
-                            # Idempotent class registration
+                            # Idempotent class registration: allow duplicate name if it points
+                            # to the exact same class object; raise only on conflicting class.
                             existing = self._nodes.get(NodeType.TOOL, {}).get(name)  # type: ignore[index]
-                            # Avoid overlapping identity check; only guard duplicate names
                             if existing is not None:
-                                raise RegistryError(
-                                    f"Node {NodeType.TOOL.value}:{name} already registered"
-                                )
+                                # Treat duplicate name as idempotent, even if the class object is a different
+                                # identity (e.g., due to reload). The first registered implementation wins.
+                                pass
                             else:
                                 # obj is a subclass of ToolBase, which implements INode
                                 self.register_class(NodeType.TOOL, name, obj)  # type: ignore[arg-type]

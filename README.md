@@ -287,6 +287,42 @@ $ make lint
 
 Coverage gate: 60% total (temporary). Raise gradually.
 
+### 5.1 Integration tests (Docker Compose)
+
+Offline integration tests run entirely in Docker and do not require provider keys:
+
+```bash
+# Build fresh images and run the itest suite
+docker build --no-cache --target api -t local/iceosv1a-api:dev .
+docker build --no-cache --target test -t local/iceosv1a-itest:dev .
+IMAGE_REPO=local IMAGE_TAG=dev \
+  docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
+```
+
+Notes:
+- First‑party tools are loaded via plugin manifests set by `ICEOS_PLUGIN_MANIFESTS`.
+- The unified registry is idempotent; loading the same manifest multiple times is safe.
+- Containers export `PYTHONPATH=/app/src:/app` so imports like `packs.first_party_tools.*` resolve.
+- To extend timeouts: `PYTEST_ADDOPTS='-p no:xdist --timeout=300 -q'`.
+
+### 5.1.1 Echo LLM for offline tests
+
+Tests should avoid real LLM calls. Register the echo LLM and prefer model `gpt-4o` in tests:
+
+```python
+from ice_core.unified_registry import register_llm_factory
+register_llm_factory("gpt-4o", "scripts.verify_runtime:create_echo_llm")
+```
+
+Then set up starter-pack tools in-test as needed:
+
+```python
+from pathlib import Path
+from ice_core.unified_registry import registry
+mp = Path(__file__).parents[3] / "packs/first_party_tools/plugins.v0.yaml"
+registry.load_plugins(str(mp), allow_dynamic=True)
+```
+
 ---
 
 ## 5.2 CLI reference
@@ -362,7 +398,7 @@ This flow keeps responsibilities clear (discover → draft → validate → exec
 
 ---
 
-## 5.1 Backend MVP status (Agentic Studio – server-side)
+## 5.2 Backend MVP status (Agentic Studio – server-side)
 
 The backend is production-grade for a no/low-code Agentic Studio MVP:
 
