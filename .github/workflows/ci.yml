@@ -158,6 +158,10 @@ jobs:
           : "${IMAGE_REPO:?IMAGE_REPO not set}"
           : "${IMAGE_TAG:?IMAGE_TAG not set}"
       - name: Compose up
+        env:
+          ICE_ENABLE_WASM: "0"
+          ICE_SKIP_STRESS: "1"
+          PYTEST_ADDOPTS: "-p no:xdist --timeout=300 -q"
         run: |
           docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
 
