@@ -1,0 +1,72 @@
+{
+  "info": {
+    "name": "iceOS API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for core iceOS endpoints"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "apiToken", "value": "dev-token" },
+    { "key": "blueprintId", "value": "" },
+    { "key": "executionId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        { "name": "readyz", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/readyz", "host": ["{{baseUrl}}"], "path": ["readyz"] } } },
+        { "name": "livez",  "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/livez",  "host": ["{{baseUrl}}"], "path": ["livez"] } } },
+        { "name": "version","request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/meta/version", "host": ["{{baseUrl}}"], "path": ["api","v1","meta","version"] } } },
+        { "name": "storage","request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/meta/storage", "host": ["{{baseUrl}}"], "path": ["api","v1","meta","storage"] } } }
+      ]
+    },
+    {
+      "name": "Blueprints",
+      "item": [
+        {
+          "name": "Create blueprint (__new__)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{apiToken}}" },
+              { "key": "X-Version-Lock", "value": "__new__" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/v1/blueprints/", "host": ["{{baseUrl}}"], "path": ["api","v1","blueprints","" ] },
+            "body": { "mode": "raw", "raw": "{\n  \"schema_version\": \"1.2.0\",\n  \"metadata\": {\"draft_name\": \"postman_demo\"},\n  \"nodes\": [\n    {\n      \"id\": \"llm1\",\n      \"type\": \"llm\",\n      \"model\": \"gpt-4o\",\n      \"prompt\": \"Hello {{ inputs.name }}\",\n      \"llm_config\": {\"provider\": \"openai\", \"model\": \"gpt-4o\"},\n      \"output_schema\": {\"text\": \"string\"}\n    }\n  ]\n}" }
+          }
+        },
+        { "name": "Get blueprint by id", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" } ], "url": { "raw": "{{baseUrl}}/api/v1/blueprints/{{blueprintId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","blueprints","{{blueprintId}}"] } } }
+      ]
+    },
+    {
+      "name": "Executions",
+      "item": [
+        {
+          "name": "Start execution",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/v1/executions/", "host": ["{{baseUrl}}"], "path": ["api","v1","executions","" ] },
+            "body": { "mode": "raw", "raw": "{\n  \"payload\": {\n    \"blueprint_id\": \"{{blueprintId}}\",\n    \"inputs\": {\"name\": \"World\"}\n  }\n}" }
+          }
+        },
+        { "name": "Get execution by id", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" } ], "url": { "raw": "{{baseUrl}}/api/v1/executions/{{executionId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","executions","{{executionId}}"] } } }
+      ]
+    },
+    {
+      "name": "MCP JSON-RPC",
+      "item": [
+        {
+          "name": "Initialize",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/mcp", "host": ["{{baseUrl}}"], "path": ["api","mcp"] },
+            "body": { "mode": "raw", "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 0,\n  \"method\": \"initialize\",\n  \"params\": {}\n}" }
+          }
+        }
+      ]
+    }
+  ]
+}

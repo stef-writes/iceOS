@@ -318,6 +318,14 @@ docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-c
 ```
 
 ### 5.1.1 Echo LLM for offline tests
+### 5.1.2 Postman collection
+
+Import `config/postman/iceos.postman_collection.json` into Postman. Set collection variables:
+- `baseUrl` (default `http://localhost:8000`)
+- `apiToken` (default `dev-token`)
+
+Then run: Health → Blueprints (Create) → Executions (Start/Status).
+
 
 Tests should avoid real LLM calls. Register the echo LLM and prefer model `gpt-4o` in tests:
 
