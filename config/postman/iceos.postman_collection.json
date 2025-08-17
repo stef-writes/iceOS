@@ -63,7 +63,24 @@
             ],
             "url": { "raw": "{{baseUrl}}/api/v1/blueprints/", "host": ["{{baseUrl}}"], "path": ["api","v1","blueprints","" ] },
             "body": { "mode": "raw", "raw": "{\n  \"schema_version\": \"1.2.0\",\n  \"metadata\": {\"draft_name\": \"postman_demo\"},\n  \"nodes\": [\n    {\n      \"id\": \"llm1\",\n      \"type\": \"llm\",\n      \"model\": \"gpt-4o\",\n      \"prompt\": \"Hello {{ inputs.name }}\",\n      \"llm_config\": {\"provider\": \"openai\", \"model\": \"gpt-4o\"},\n      \"output_schema\": {\"text\": \"string\"}\n    }\n  ]\n}" }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  if (data && data.id) {",
+                  "    pm.collectionVariables.set('blueprintId', data.id);",
+                  "    pm.test('Captured blueprintId', function () { pm.expect(data.id).to.be.a('string'); });",
+                  "  }",
+                  "} catch (e) { }"
+                ]
+              }
+            }
+          ]
         },
         { "name": "Get blueprint by id", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" } ], "url": { "raw": "{{baseUrl}}/api/v1/blueprints/{{blueprintId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","blueprints","{{blueprintId}}"] } } }
       ]
@@ -78,7 +95,24 @@
             "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
             "url": { "raw": "{{baseUrl}}/api/v1/executions/", "host": ["{{baseUrl}}"], "path": ["api","v1","executions","" ] },
             "body": { "mode": "raw", "raw": "{\n  \"payload\": {\n    \"blueprint_id\": \"{{blueprintId}}\",\n    \"inputs\": {\"name\": \"World\"}\n  }\n}" }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "  const data = pm.response.json();",
+                  "  if (data && data.execution_id) {",
+                  "    pm.collectionVariables.set('executionId', data.execution_id);",
+                  "    pm.test('Captured executionId', function () { pm.expect(data.execution_id).to.be.a('string'); });",
+                  "  }",
+                  "} catch (e) { }"
+                ]
+              }
+            }
+          ]
         },
         { "name": "Get execution by id", "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" } ], "url": { "raw": "{{baseUrl}}/api/v1/executions/{{executionId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","executions","{{executionId}}"] } } }
       ]
