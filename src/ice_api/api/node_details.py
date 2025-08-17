@@ -21,6 +21,7 @@ from ice_core.models import (
     MonitorNodeConfig,
     ParallelNodeConfig,
     RecursiveNodeConfig,
+    SwarmNodeConfig,
     ToolNodeConfig,
     WorkflowNodeConfig,
 )
@@ -51,7 +52,7 @@ _TYPE_TO_MODEL: dict[str, Type[BaseModel]] = {
     "code": CodeNodeConfig,
     "human": HumanNodeConfig,
     "monitor": MonitorNodeConfig,
-    "swarm": RecursiveNodeConfig,  # placeholder until a specific Swarm config model exists
+    "swarm": SwarmNodeConfig,
 }
 
 
