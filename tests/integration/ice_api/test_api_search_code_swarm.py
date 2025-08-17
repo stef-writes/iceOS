@@ -62,6 +62,7 @@ async def test_api_llm_to_search_to_llm() -> None:
                     "model": "gpt-4o",
                     "prompt": "Formulate a search query for '{{ inputs.topic }}'",
                     "llm_config": {"provider": "openai", "model": "gpt-4o"},
+                    "output_schema": {"text": "string"},
                 },
                 {
                     "id": "search",
@@ -76,6 +77,7 @@ async def test_api_llm_to_search_to_llm() -> None:
                     "model": "gpt-4o",
                     "prompt": "Summarize the top result: {{ search.results[0].title }} - {{ search.results[0].snippet }}",
                     "llm_config": {"provider": "openai", "model": "gpt-4o"},
+                    "output_schema": {"text": "string"},
                     "dependencies": ["search"],
                 },
             ],

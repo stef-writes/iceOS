@@ -42,6 +42,7 @@ async def test_tool_args_are_jinja_rendered_and_filtered(
             model="gpt-4o",
             prompt="{{ inputs.topic }}",
             llm_config={"provider": "openai", "model": "gpt-4o"},
+            output_schema={"text": "string"},
         ),
         NodeSpec(
             id="t1",

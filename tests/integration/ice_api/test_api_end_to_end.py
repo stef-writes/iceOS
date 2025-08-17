@@ -70,6 +70,8 @@ async def test_api_llm_only() -> None:
                     "model": "gpt-4o",
                     "prompt": "Hello {{ inputs.name }}",
                     "llm_config": {"provider": "openai", "model": "gpt-4o"},
+                    # Provide explicit output schema to suppress defaulting warning
+                    "output_schema": {"text": "string"},
                     "dependencies": [],
                 }
             ],
@@ -113,6 +115,7 @@ async def test_api_llm_to_tool() -> None:
                     "model": "gpt-4o",
                     "prompt": "{{ inputs.msg }}",
                     "llm_config": {"provider": "openai", "model": "gpt-4o"},
+                    "output_schema": {"text": "string"},
                     "dependencies": [],
                 },
                 {

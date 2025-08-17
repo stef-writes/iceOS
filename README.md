@@ -305,6 +305,18 @@ Notes:
 - Containers export `PYTHONPATH=/app/src:/app` so imports like `packs.first_party_tools.*` resolve.
 - To extend timeouts: `PYTEST_ADDOPTS='-p no:xdist --timeout=300 -q'`.
 
+Runner behavior:
+- The itest container executes `scripts/itest_runner.sh`, which runs suites sequentially to reduce peak memory usage.
+- Set `ICE_SKIP_STRESS=1` to skip heavy resource stress tests on constrained runners (default in CI).
+- Toggle WASM path for code nodes via `ICE_ENABLE_WASM` (0/1). In CI we keep it off for integration, with an opt‑in WASM job on capable runners.
+
+Example (local, with stress skipped):
+```bash
+ICE_SKIP_STRESS=1 PYTEST_ADDOPTS='-p no:xdist --timeout=300 -q' \
+IMAGE_REPO=local IMAGE_TAG=dev \
+docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
+```
+
 ### 5.1.1 Echo LLM for offline tests
 
 Tests should avoid real LLM calls. Register the echo LLM and prefer model `gpt-4o` in tests:

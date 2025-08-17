@@ -45,6 +45,7 @@ async def test_llm_prompt_is_rendered_and_propagated(
             model="gpt-4o",
             prompt="Hello {{ inputs.name }}",
             llm_config={"provider": "openai", "model": "gpt-4o"},
+            output_schema={"text": "string"},
         ),
         NodeSpec(
             id="llm2",
@@ -52,6 +53,7 @@ async def test_llm_prompt_is_rendered_and_propagated(
             model="gpt-4o",
             prompt="{{ llm1.response }}",
             llm_config={"provider": "openai", "model": "gpt-4o"},
+            output_schema={"text": "string"},
             dependencies=["llm1"],
         ),
     ]

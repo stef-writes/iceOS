@@ -71,7 +71,7 @@ services:
       PYTEST_ADDOPTS: ${PYTEST_ADDOPTS:-"-p no:xdist --timeout=300 -q"}
     env_file:
       - env.ci
-    command: ["bash", "-lc", "pytest -c config/testing/pytest.ini tests/integration -q"]
+    command: ["bash", "-lc", "chmod +x scripts/itest_runner.sh && ./scripts/itest_runner.sh"]
 
 volumes:
   redis_data:

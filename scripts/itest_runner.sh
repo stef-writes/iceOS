@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PYTEST_COMMON=(-c config/testing/pytest.ini)
+if [[ -n "${PYTEST_ADDOPTS:-}" ]]; then
+  # shellcheck disable=SC2206
+  PYTEST_COMMON+=(${PYTEST_ADDOPTS})
+fi
+
+SKIP_STRESS="${ICE_SKIP_STRESS:-1}"
+echo "[itest] ICE_SKIP_STRESS=${SKIP_STRESS}"
+
+echo "[itest] Running ice_api suite..."
+pytest "${PYTEST_COMMON[@]}" tests/integration/ice_api
+
+echo "[itest] Running ice_orchestrator suite (per-file)..."
+shopt -s nullglob
+for f in tests/integration/ice_orchestrator/test_*.py; do
+  # Respect infra-level stress skip to avoid OOM on constrained runners
+  if [[ "${SKIP_STRESS}" == "1" && "$f" == *"test_resource_sandbox.py"* ]]; then
+    echo "[itest] -> Skipping $f due to ICE_SKIP_STRESS=1"
+    continue
+  fi
+  echo "[itest] -> $f"
+  pytest "${PYTEST_COMMON[@]}" "$f"
+done
+
+echo "[itest] Running ice_client suite..."
+pytest "${PYTEST_COMMON[@]}" tests/integration/ice_client
+
+echo "[itest] All integration suites completed."

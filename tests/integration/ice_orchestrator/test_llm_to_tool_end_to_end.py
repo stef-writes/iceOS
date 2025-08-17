@@ -43,6 +43,7 @@ async def _run_flow() -> Dict[str, Any]:
                     "model": "gpt-4o",
                     "prompt": "Provide concise notes about: {topic}",
                     "llm_config": {"provider": "openai"},
+                    "output_schema": {"text": "string"},
                     "dependencies": [],
                 },
                 {
