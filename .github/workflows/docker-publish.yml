@@ -25,7 +25,13 @@ jobs:
 
       - name: Sanity check GHCR reachability
         run: |
-          curl -fsSIL https://ghcr.io/token || (echo "GHCR unreachable" && exit 1)
+          set -e
+          # DNS reachability (non-fatal)
+          getent hosts ghcr.io || nslookup ghcr.io || true
+          # Registry base endpoint should return 200/401/403; consider network failure as unreachable
+          code=$(curl -sS -o /dev/null -w "%{http_code}" -I https://ghcr.io/v2/ || echo 000)
+          echo "GHCR /v2/ status: $code"
+          if [ "$code" = "000" ]; then echo "GHCR unreachable"; exit 1; fi
 
       - name: Login to GHCR (retry)
         uses: nick-fields/retry@v3
