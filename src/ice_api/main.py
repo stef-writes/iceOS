@@ -374,12 +374,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.warning("Error while closing Redis connection: %s", exc)
 
 
-# Create FastAPI app
+# Create FastAPI app with env-driven docs gating
+_OPENAPI_PUBLIC = os.getenv("OPENAPI_PUBLIC", "1") == "1"
 app = FastAPI(
     title="iceOS API",
     description="AI Workflow Orchestration System",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url=("/docs" if _OPENAPI_PUBLIC else None),
+    redoc_url=("/redoc" if _OPENAPI_PUBLIC else None),
+    openapi_url=("/openapi.json" if _OPENAPI_PUBLIC else None),
 )
 
 # OTEL tracing for requests (optional)
@@ -389,10 +393,16 @@ if _OTEL_AVAILABLE and OpenTelemetryMiddleware is not None:  # noqa: WPS504
 else:
     logger.warning("OpenTelemetry not installed – tracing disabled")
 
-# Add CORS middleware
+# Add CORS middleware (env-driven)
+_cors_origins = os.getenv("CORS_ORIGINS", "*").strip()
+if _cors_origins == "*" or _cors_origins == "":
+    _allow_origins = ["*"]
+else:
+    _allow_origins = [o.strip() for o in _cors_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -567,6 +577,19 @@ async def health_check() -> Dict[str, str]:
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return {"status": "unhealthy", "error": str(e)}
+
+
+# Version endpoint
+@app.get(
+    "/api/v1/meta/version", tags=["discovery", "health"], response_model=Dict[str, str]
+)
+async def version_info() -> Dict[str, str]:  # noqa: D401
+    """Return app version and build metadata."""
+    return {
+        "version": app.version,
+        "git_sha": os.getenv("GIT_COMMIT_SHA", "unknown"),
+        "build_time": os.getenv("BUILD_TIME", "unknown"),
+    }
 
 
 # Discovery endpoints moved to ice_api.api.discovery
