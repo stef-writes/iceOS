@@ -123,7 +123,12 @@ async def code_node_executor(  # noqa: D401
                 node_id=cfg.id,
                 allowed_imports=imports,
             )
-            return result
+            # If WASM execution failed and fallback is allowed, proceed to fallback path
+            _fallback_on_failure = _os.getenv("ICE_WASM_FALLBACK_ON_FAILURE", "1")
+            if getattr(result, "success", False) is True or _fallback_on_failure != "1":
+                return result
+            # else fall through to fallback sandbox below
+            raise RuntimeError("wasm_failed_trigger_fallback")
         except Exception:
             # Fallback to ResourceSandbox subprocess execution to avoid blocking launches on wasmtime limits
             import json as _json
