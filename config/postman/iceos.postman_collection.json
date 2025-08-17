@@ -12,6 +12,35 @@
   ],
   "item": [
     {
+      "name": "Discovery & Schemas",
+      "item": [
+        {
+          "name": "Node types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/meta/nodes/types", "host": ["{{baseUrl}}"], "path": ["api","v1","meta","nodes","types"] }
+          }
+        },
+        {
+          "name": "Node schema (llm)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/meta/nodes/llm/schema", "host": ["{{baseUrl}}"], "path": ["api","v1","meta","nodes","llm","schema"] }
+          }
+        },
+        {
+          "name": "Tool schema (writer_tool)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/meta/nodes/tool/writer_tool", "host": ["{{baseUrl}}"], "path": ["api","v1","meta","nodes","tool","writer_tool"] }
+          }
+        }
+      ]
+    },
+    {
       "name": "Health",
       "item": [
         { "name": "readyz", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/readyz", "host": ["{{baseUrl}}"], "path": ["readyz"] } } },
