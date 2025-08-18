@@ -108,6 +108,8 @@ class SemanticMemoryRecord(Base):
     content_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     model_version: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     meta_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    org_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     # Real pgvector column to be added in migration; use JSON/text placeholder here is avoided.
     created_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
