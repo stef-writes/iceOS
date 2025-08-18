@@ -122,7 +122,7 @@ def upgrade() -> None:
         sa.Column("content_hash", sa.String(length=64), nullable=False),
         sa.Column("model_version", sa.String(length=64), nullable=True),
         sa.Column("meta_json", sa.JSON(), nullable=True),
-        # vector column will be added via raw SQL if Postgres+pgvector is available later
+        # Optional pgvector column; ignore on non-Postgres
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -133,6 +133,12 @@ def upgrade() -> None:
     op.create_unique_constraint(
         "uq_semantic_content_hash", "semantic_memory", ["content_hash"]
     )
+    try:
+        op.execute(
+            "ALTER TABLE semantic_memory ADD COLUMN IF NOT EXISTS embedding vector(1536)"
+        )  # type: ignore[arg-type]
+    except Exception:
+        pass
 
 
 def downgrade() -> None:
