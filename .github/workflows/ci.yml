@@ -1,215 +1,48 @@
-name: ci
+name: CI
 
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ]
   pull_request:
-
-env:
-  REGISTRY: ghcr.io
-  REPO: ${{ github.repository }}
-  SEMVER_TRACK: 1.0.x
+    branches: [ main ]
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  fast:
-    name: Lint, type-check, unit tests
+  unit_and_type:
+    name: Lint, Type, Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Type check (dockerized mypy)
-        run: make type-check
-      - name: Unit tests (dockerized)
-        env:
-          PYTEST_ADDOPTS: -q -k 'not heavy'
-        run: make test
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  build:
-    name: Build and push images
-    needs: fast
+      - name: Docker info
+        run: |
+          docker version
+          docker info
+
+      - name: Lint + Type + Unit Tests
+        run: make ci
+
+  integration:
+    name: Integration Tests (docker-compose.itest)
+    needs: unit_and_type
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    env:
+      IMAGE_REPO: local
+      IMAGE_TAG: dev
+      ICE_SKIP_STRESS: 1
+      ICE_ENABLE_WASM: 0
     steps:
-      - uses: actions/checkout@v4
-      - name: Compute image repo (lowercase)
-        shell: bash
-        run: |
-          echo "IMAGE_REPO=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
-          echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Compute tags
-        id: meta
-        shell: bash
+      - name: Docker info
         run: |
-          SHA_TAG=${GITHUB_SHA}
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            REF_TAG="pr-${{ github.event.number }}"
-          else
-            REF_TAG=$(echo "${GITHUB_REF_NAME}" | tr '/' '-')
-          fi
-          REPO_LC=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
-          echo "sha_tag=${SHA_TAG}" >> $GITHUB_OUTPUT
-          echo "ref_tag=${REF_TAG}" >> $GITHUB_OUTPUT
-          echo "repo_lc=${REPO_LC}" >> $GITHUB_OUTPUT
-          echo "REPO_LC=${REPO_LC}" >> $GITHUB_ENV
+          docker version
+          docker info
 
-      - name: Build+push devcheck image
-        run: |
-          docker buildx build \
-            --target devcheck \
-            --push \
-            --tag ${IMAGE_REPO}/iceos-devcheck:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${IMAGE_REPO}/iceos-devcheck:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${IMAGE_REPO}/iceos-devcheck:${SEMVER_TRACK} \
-            --build-arg VCS_REF=${GITHUB_SHA} \
-            --build-arg VERSION=${SEMVER_TRACK} \
-            --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
-            --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-            --cache-from type=gha \
-            --cache-to   type=gha,mode=max \
-            .
-
-      - name: Build+push test image
-        run: |
-          docker buildx build \
-            --target test \
-            --push \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-itest:${SEMVER_TRACK} \
-            --build-arg VCS_REF=${GITHUB_SHA} \
-            --build-arg VERSION=${SEMVER_TRACK} \
-            --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
-            --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-            --cache-from type=gha \
-            --cache-to   type=gha,mode=max \
-            .
-
-      - name: Build+push api image
-        run: |
-          docker buildx build \
-            --target api \
-            --push \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }} \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${{ steps.meta.outputs.ref_tag }} \
-            --tag ${REGISTRY}/${REPO_LC}/iceosv1a-api:${SEMVER_TRACK} \
-            --build-arg VCS_REF=${GITHUB_SHA} \
-            --build-arg VERSION=${SEMVER_TRACK} \
-            --build-arg REPOSITORY=${GITHUB_REPOSITORY} \
-            --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-            --cache-from type=gha \
-            --cache-to   type=gha,mode=max \
-            .
-
-      - name: SBOM (api)
-        uses: anchore/sbom-action@v0
-        with:
-          image: ${{ env.IMAGE_REPO }}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }}
-          format: cyclonedx-json
-
-      - name: Trivy scan (api)
-        uses: aquasecurity/trivy-action@0.25.0
-        with:
-          scan-type: image
-          image-ref: ${{ env.IMAGE_REPO }}/iceosv1a-api:${{ steps.meta.outputs.sha_tag }}
-          format: table
-          ignore-unfixed: true
-          vuln-type: os,library
-          severity: HIGH,CRITICAL
-          scanners: vuln
-          exit-code: '1'
-
-  itest_smoke:
-    name: Integration smoke (compose)
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      - uses: actions/checkout@v4
-      - name: Compute image repo (lowercase)
-        shell: bash
-        run: |
-          echo "IMAGE_REPO=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
-          echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pre-pull base images
-        run: docker pull redis:7-alpine | cat
-      - name: Verify image repo envs
-        run: |
-          : "${IMAGE_REPO:?IMAGE_REPO not set}"
-          : "${IMAGE_TAG:?IMAGE_TAG not set}"
-      - name: Compose up
-        env:
-          ICE_ENABLE_WASM: "0"
-          ICE_SKIP_STRESS: "1"
-          PYTEST_ADDOPTS: "-p no:xdist --timeout=300 -q"
-        run: |
-          docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
-
-  wasm_optin_amd64:
-    name: WASM opt-in (amd64 only)
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      - uses: actions/checkout@v4
-      - name: Compute image repo (lowercase)
-        shell: bash
-        run: |
-          echo "IMAGE_REPO=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
-          echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_ENV"
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pre-pull base images
-        run: docker pull redis:7-alpine | cat
-      - name: Verify WASM capability via health endpoint (curl fallback)
-        env:
-          ICE_ENABLE_WASM: "1"
-          ICE_SKIP_STRESS: "1"
-        run: |
-          set -e
-          docker compose -f docker-compose.itest.yml up -d api redis
-          # Wait up to 30s for service
-          for i in $(seq 1 30); do
-            if docker compose -f docker-compose.itest.yml ps api | grep -q running; then break; fi; sleep 1; done
-          # Try curl if available, else use python
-          if docker compose -f docker-compose.itest.yml exec -T api sh -lc 'command -v curl >/dev/null 2>&1'; then
-            docker compose -f docker-compose.itest.yml exec -T api sh -lc "curl -sf http://localhost:8000/api/v1/meta/registry/health | sed -n '1,200p'"
-          else
-            docker compose -f docker-compose.itest.yml exec -T api sh -lc "python -c 'import json,urllib.request;print(json.loads(urllib.request.urlopen(\"http://localhost:8000/api/v1/meta/registry/health\",timeout=5).read().decode()).get(\"wasm\",{}))'"
-          fi
-      - name: Dump API logs on failure
-        if: failure()
-        run: |
-          docker compose -f docker-compose.itest.yml logs api | tail -n 200
-      - name: Run WASM-marked tests (ICE_ENABLE_WASM=1)
-        env:
-          ICE_ENABLE_WASM: "1"
-          ICE_SKIP_STRESS: "1"
-        run: |
-          docker compose -f docker-compose.itest.yml run --rm itest bash -lc "pytest -c config/testing/pytest.ini -m wasm -q"
+      - name: Run docker compose itest
+        run: make ci-integration
