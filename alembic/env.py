@@ -40,7 +40,7 @@ fileConfig(config.config_file_name)  # type: ignore[arg-type]
 _db_url = os.getenv("DATABASE_URL", "sqlite:///./iceos.db")
 # Force sync driver for Alembic (replace async drivers)
 if "+asyncpg" in _db_url:
-    _db_url = _db_url.replace("+asyncpg", "+psycopg")
+    _db_url = _db_url.replace("+asyncpg", "+psycopg2")
 if _db_url.startswith("sqlite+aiosqlite"):
     _db_url = _db_url.replace("sqlite+aiosqlite", "sqlite", 1)
 config.set_main_option("sqlalchemy.url", _db_url)
