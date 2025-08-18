@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Literal
+from typing import Literal, Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -25,6 +25,8 @@ class StorageHealth(BaseModel):
 
     backend: Literal["postgres", "redis", "in-memory"]
     status: Literal["ready"]
+    migration_head: Optional[str] = None
+    connected: Optional[bool] = None
 
 
 @router.get("/storage", response_model=StorageHealth)
@@ -37,11 +39,27 @@ async def storage_health() -> StorageHealth:  # noqa: D401
     current migration head and connection status.
     """
     db_url = os.getenv("DATABASE_URL") or os.getenv("ICEOS_DB_URL")
+    migration_head: Optional[str] = None
+    connected: Optional[bool] = None
     if db_url:
         backend: Literal["postgres", "redis", "in-memory"] = "postgres"
+        try:
+            # Lazy import to avoid optional dependency at startup when DB is unset
+            from ice_api.db.session import check_connection  # type: ignore
+        except Exception:
+            connected = None
+        else:
+            connected = await check_connection()
+        # In a follow-up, wire the current Alembic head here
+        migration_head = os.getenv("ALEMBIC_HEAD")
     elif os.getenv("REDIS_URL"):
         backend = "redis"
     else:
         backend = "in-memory"
 
-    return StorageHealth(backend=backend, status="ready")
+    return StorageHealth(
+        backend=backend,
+        status="ready",
+        migration_head=migration_head,
+        connected=connected,
+    )
