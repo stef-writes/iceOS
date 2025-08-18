@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from ice_core.models.enums import MemoryGuarantee
 
-from .base import BaseMemory, MemoryConfig, MemoryEntry
+from .memory_base_protocol import BaseMemory, MemoryConfig, MemoryEntry
 
 
 class ProceduralMemory(BaseMemory):

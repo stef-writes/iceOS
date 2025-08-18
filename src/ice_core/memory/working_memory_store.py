@@ -10,7 +10,7 @@ from ice_core.metrics import MEMORY_COST_TOTAL, MEMORY_TOKEN_TOTAL
 from ice_core.models.enums import MemoryGuarantee
 from ice_core.utils.token_counter import TokenCounter
 
-from .base import BaseMemory, MemoryConfig, MemoryEntry
+from .memory_base_protocol import BaseMemory, MemoryConfig, MemoryEntry
 
 
 class WorkingMemory(BaseMemory):

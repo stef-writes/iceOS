@@ -2,11 +2,11 @@
 
 from typing import Any, Dict, List, Optional, Union
 
-from .base import BaseMemory, MemoryConfig, MemoryEntry
-from .episodic import EpisodicMemory
-from .procedural import ProceduralMemory
-from .semantic import SemanticMemory
-from .working import WorkingMemory
+from .episodic_memory_store import EpisodicMemory
+from .memory_base_protocol import BaseMemory, MemoryConfig, MemoryEntry
+from .procedural_memory_store import ProceduralMemory
+from .semantic_memory_store import SemanticMemory
+from .working_memory_store import WorkingMemory
 
 
 class UnifiedMemoryConfig(MemoryConfig):
