@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import AsyncIterator, Optional
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -66,7 +67,7 @@ async def check_connection() -> bool:
         return False
     try:
         async with engine.connect() as conn:  # type: ignore[call-arg]
-            await conn.execute("SELECT 1")  # type: ignore[arg-type]
+            await conn.execute(text("SELECT 1"))
         return True
     except Exception:
         return False
