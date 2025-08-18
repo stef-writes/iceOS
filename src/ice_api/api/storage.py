@@ -45,7 +45,9 @@ async def storage_health() -> StorageHealth:  # noqa: D401
         backend: Literal["postgres", "redis", "in-memory"] = "postgres"
         try:
             # Lazy import to avoid optional dependency at startup when DB is unset
-            from ice_api.db.session import check_connection  # type: ignore
+            from ice_api.db.database_session_async import (
+                check_connection,  # type: ignore
+            )
         except Exception:
             connected = None
         else:
