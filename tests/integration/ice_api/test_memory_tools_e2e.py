@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any, Dict
 
 from fastapi.testclient import TestClient
@@ -50,6 +51,9 @@ def test_memory_write_and_semantic_search_via_mcp() -> None:
         headers=_auth_headers(),
     )
     assert init.status_code == 200
+
+    # Ensure hash embedder in test env for determinism
+    os.environ["ICEOS_EMBEDDINGS_PROVIDER"] = "hash"
 
     # Write two documents into semantic memory
     for key, content in [

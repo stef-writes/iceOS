@@ -3,10 +3,12 @@ from __future__ import annotations
 import datetime as _dt
 import hashlib
 import json
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import Request
 
+from ice_api.db.database_session_async import check_connection, get_session
+from ice_api.db.orm_models_core import ComponentRecord
 from ice_api.redis_client import get_redis
 
 
@@ -132,11 +134,96 @@ class InMemoryComponentRepository(ComponentRepository):
         return dict(self._app.state.components_index)  # type: ignore[attr-defined]
 
 
+class SQLComponentRepository(ComponentRepository):
+    """SQL-backed component repository using SQLAlchemy ORM.
+
+    Stores components in the `components` table with primary key id=f"{type}:{name}".
+    Lock values are derived deterministically from the serialized record so we do
+    not need a dedicated column.
+    """
+
+    def _row_to_record_dict(self, row: ComponentRecord) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "definition": row.definition,
+            "created_at": getattr(row, "created_at", None).isoformat()
+            if getattr(row, "created_at", None)
+            else None,
+            "updated_at": getattr(row, "updated_at", None).isoformat()
+            if getattr(row, "updated_at", None)
+            else None,
+            "version": int(row.version),
+        }
+        return payload
+
+    async def get(
+        self, component_type: str, name: str
+    ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+        comp_id = f"{component_type}:{name}"
+        async for session in get_session():
+            row = await session.get(ComponentRecord, comp_id)
+            if row is None:
+                return None, None
+            payload = self._row_to_record_dict(row)
+            return payload, _hash_lock(payload)
+        return None, None
+
+    async def put(
+        self, component_type: str, name: str, payload: Dict[str, Any], lock: str
+    ) -> None:
+        comp_id = f"{component_type}:{name}"
+        async for session in get_session():
+            row = await session.get(ComponentRecord, comp_id)
+            if row is None:
+                row = ComponentRecord(
+                    id=comp_id,
+                    definition=payload.get("definition", {}),
+                    version=int(payload.get("version", 1)),
+                    org_id=None,
+                )
+                session.add(row)
+            else:
+                row.definition = payload.get("definition", row.definition)
+                row.version = int(payload.get("version", row.version))
+            await session.commit()
+
+    async def set_index(self, key: str, lock: str) -> None:
+        # No-op: index can be derived from rows on demand
+        return None
+
+    async def get_index(self) -> Dict[str, str]:
+        mapping: Dict[str, str] = {}
+        async for session in get_session():
+            result = await session.execute(
+                # Select minimal columns to reconstruct lock deterministically
+                ComponentRecord.__table__.select()  # type: ignore[attr-defined]
+            )
+            rows: List[ComponentRecord] = [
+                ComponentRecord(**dict(r))
+                for r in result.mappings()  # type: ignore[call-arg]
+            ]
+            for r in rows:
+                payload = self._row_to_record_dict(r)
+                mapping[r.id] = _hash_lock(payload)
+        return mapping
+
+
 def choose_component_repo(app: Any) -> ComponentRepository:
     import os
 
     if os.getenv("USE_FAKE_REDIS") == "1":
         return InMemoryComponentRepository(app)
+    # Prefer SQL when DATABASE_URL is configured and reachable
+    if os.getenv("DATABASE_URL") or os.getenv("ICEOS_DB_URL"):
+        try:
+            import anyio
+
+            async def _db_ok() -> bool:
+                return await check_connection()
+
+            if anyio.run(_db_ok):  # type: ignore[arg-type]
+                return SQLComponentRepository()
+        except Exception:
+            pass
     try:
         # verify connectivity
         redis = get_redis()
