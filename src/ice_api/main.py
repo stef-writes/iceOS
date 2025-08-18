@@ -33,6 +33,7 @@ from ice_api.services.component_service import ComponentService
 # New startup helpers
 from ice_api.startup_utils import (
     print_startup_banner,
+    run_alembic_migrations_if_enabled,
     summarise_demo_load,
     timed_import,
     validate_registered_components,
@@ -75,6 +76,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Initialize runtime orchestrator services
     initialize_orchestrator()
+
+    # Optionally run DB migrations
+    run_alembic_migrations_if_enabled()
 
     # Ensure first-party tools are provided via plugin manifests; avoid implicit imports
 

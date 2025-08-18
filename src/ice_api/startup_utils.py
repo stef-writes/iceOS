@@ -8,6 +8,7 @@ for the FastAPI application lifecycle.
 
 import importlib
 import logging
+import os
 import platform
 import time
 from datetime import datetime
@@ -106,3 +107,22 @@ __all__ = [
     "timed_import",
     "READY_FLAG",
 ]
+
+
+def run_alembic_migrations_if_enabled() -> None:
+    """Run Alembic upgrade to head when enabled via env flag.
+
+    Controlled by ICEOS_RUN_MIGRATIONS=1 and only when DATABASE_URL is set.
+    """
+    if os.getenv("ICEOS_RUN_MIGRATIONS", "0") != "1":
+        return
+    if not os.getenv("DATABASE_URL") and not os.getenv("ICEOS_DB_URL"):
+        return
+    try:
+        from alembic import command  # type: ignore
+        from alembic.config import Config  # type: ignore
+
+        cfg = Config("alembic.ini")
+        command.upgrade(cfg, "head")
+    except Exception as exc:  # pragma: no cover
+        logger.warning("Alembic migration skipped due to error: %s", exc)
