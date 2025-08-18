@@ -7,6 +7,11 @@ if [[ -n "${PYTEST_ADDOPTS:-}" ]]; then
   PYTEST_COMMON+=(${PYTEST_ADDOPTS})
 fi
 
+# Robust way to pass a -k expression without word-splitting issues
+if [[ -n "${PYTEST_K:-}" ]]; then
+  PYTEST_COMMON+=(-k "${PYTEST_K}")
+fi
+
 SKIP_STRESS="${ICE_SKIP_STRESS:-1}"
 echo "[itest] ICE_SKIP_STRESS=${SKIP_STRESS}"
 
