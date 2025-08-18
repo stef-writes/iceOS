@@ -20,6 +20,7 @@ Protocol Compliance:
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import logging
 import traceback
@@ -41,6 +42,11 @@ from .mcp import get_result, start_run
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["mcp-jsonrpc"])
+
+# Request context for handler helpers
+REQUEST_CTX: contextvars.ContextVar[Optional[Request]] = contextvars.ContextVar(
+    "mcp_request_ctx", default=None
+)
 
 
 # MCP Protocol Models with comprehensive validation
@@ -235,6 +241,8 @@ async def mcp_jsonrpc_handler(request: Request) -> Union[MCPResponse, Dict[str, 
     request_id = None
 
     try:
+        # Stash request in context var for downstream helpers
+        REQUEST_CTX.set(request)
         # Parse JSON body
         try:
             body = await request.json()
@@ -725,14 +733,7 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
         )
 
     # Inject identity for memory tools to enforce RBAC scoping
-    try:
-        # FastAPI stores the current request in contextvars via request.state in handlers
-        # Here, we rely on a global session request stash if available
-        from starlette_context import context as _ctx  # type: ignore
-
-        current_request: Request | None = _ctx.data.get("request")  # type: ignore[attr-defined]
-    except Exception:
-        current_request = None
+    current_request: Optional[Request] = REQUEST_CTX.get()
 
     if tool_type == "tool" and name in {"memory_write_tool", "memory_search_tool"}:
         org_id = None
