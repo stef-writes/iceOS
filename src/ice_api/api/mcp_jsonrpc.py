@@ -34,6 +34,7 @@ from ice_core.models import NodeType
 from ice_core.models.mcp import Blueprint, NodeSpec, RunRequest
 from ice_core.registry import global_agent_registry, registry
 
+from ..security import get_request_identity
 from .mcp import get_result, start_run
 
 # Setup logging
@@ -722,6 +723,29 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError(
             f"Unsupported tool type: {tool_type}. Valid types: {valid_types}"
         )
+
+    # Inject identity for memory tools to enforce RBAC scoping
+    try:
+        # FastAPI stores the current request in contextvars via request.state in handlers
+        # Here, we rely on a global session request stash if available
+        from starlette_context import context as _ctx  # type: ignore
+
+        current_request: Request | None = _ctx.data.get("request")  # type: ignore[attr-defined]
+    except Exception:
+        current_request = None
+
+    if tool_type == "tool" and name in {"memory_write_tool", "memory_search_tool"}:
+        org_id = None
+        user_id = None
+        if current_request is not None:
+            org_id, user_id = get_request_identity(current_request)
+        inputs = arguments.get("inputs", {})
+        # Override any provided org/user with identity-derived values
+        if org_id is not None:
+            inputs["org_id"] = org_id
+        if user_id is not None:
+            inputs["user_id"] = user_id
+        arguments["inputs"] = inputs
 
     # Validate tool exists before creating blueprint
     await validate_tool_exists(tool_type, name)

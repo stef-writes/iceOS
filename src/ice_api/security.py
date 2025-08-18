@@ -76,3 +76,23 @@ def is_agent_allowed(name: str) -> bool:
     if name in _DENIED_AGENTS:
         return False
     return True
+
+
+# ---------------------------------------------------------------------------
+# Identity extraction --------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+
+def get_request_identity(request: Request) -> tuple[str | None, str | None]:  # noqa: D401
+    """Extract (org_id, user_id) from headers or env for development.
+
+    - Reads `X-Org-Id` and `X-User-Id` headers when present
+    - Falls back to `ICE_DEFAULT_ORG_ID` and `ICE_DEFAULT_USER_ID` env vars
+
+    This is intentionally minimal; later we can back it with DB tokens
+    (`TokenRecord`) or JWT claims without changing call-sites.
+    """
+
+    org_id = request.headers.get("X-Org-Id") or os.getenv("ICE_DEFAULT_ORG_ID")
+    user_id = request.headers.get("X-User-Id") or os.getenv("ICE_DEFAULT_USER_ID")
+    return org_id, user_id
