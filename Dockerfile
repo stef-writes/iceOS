@@ -59,8 +59,10 @@ RUN python -m pip install --no-cache-dir \
       "starlette>=0.47.2" \
       "aiohttp>=3.12.14"
 
-# Copy application source and first-party packs (for plugin manifests)
+# Copy application source, migrations, and first-party packs (for plugin manifests)
 COPY src /app/src
+COPY alembic.ini /app/alembic.ini
+COPY alembic /app/alembic
 COPY packs /app/packs
 ENV PYTHONPATH=/app/src
 
