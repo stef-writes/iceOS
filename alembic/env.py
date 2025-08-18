@@ -41,6 +41,9 @@ config.set_main_option(
     "sqlalchemy.url", os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./iceos.db")
 )
 
+# Import ORM metadata from API DB models
+from ice_api.db.orm_models_core import Base  # noqa: E402
+
 target_metadata = Base.metadata  # type: ignore[assignment]
 
 
