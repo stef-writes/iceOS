@@ -9,8 +9,8 @@ from __future__ import annotations
 import pytest
 
 from ice_core.exceptions import DimensionMismatchError
-from ice_core.memory.base import MemoryConfig
-from ice_core.memory.semantic import SemanticMemory
+from ice_core.memory.memory_base_protocol import MemoryConfig
+from ice_core.memory.semantic_memory_store import SemanticMemory
 
 
 def test_validate_embedding_dimension_passes() -> None:

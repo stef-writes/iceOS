@@ -18,8 +18,8 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from ice_core.memory.base import MemoryConfig
-from ice_core.memory.unified import UnifiedMemory, UnifiedMemoryConfig
+from ice_core.memory.memory_base_protocol import MemoryConfig
+from ice_core.memory.unified_memory_facade import UnifiedMemory, UnifiedMemoryConfig
 
 logger = logging.getLogger(__name__)
 

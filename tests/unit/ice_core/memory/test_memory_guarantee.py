@@ -1,4 +1,4 @@
-from ice_core.memory.base import MemoryConfig
+from ice_core.memory.memory_base_protocol import MemoryConfig
 from ice_core.models.enums import MemoryGuarantee
 
 
@@ -16,7 +16,9 @@ def test_memory_config_accepts_guarantee():
 def test_memory_config_validation():
     cfg = MemoryConfig(backend="memory", guarantee=MemoryGuarantee.EPHEMERAL)
     # No exception expected
-    from ice_core.memory.base import BaseMemory  # noqa: WPS433 – import for test
+    from ice_core.memory.memory_base_protocol import (  # noqa: WPS433 – import for test
+        BaseMemory,
+    )
 
     class _DummyBackend(BaseMemory):
         async def initialize(self):
