@@ -121,7 +121,7 @@ def upgrade() -> None:
         sa.Column("key", sa.String(length=256), nullable=False),
         sa.Column("content_hash", sa.String(length=64), nullable=False),
         sa.Column("model_version", sa.String(length=64), nullable=True),
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("meta_json", sa.JSON(), nullable=True),
         # vector column will be added via raw SQL if Postgres+pgvector is available later
         sa.Column(
             "created_at",
