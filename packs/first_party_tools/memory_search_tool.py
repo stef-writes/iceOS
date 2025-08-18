@@ -23,23 +23,30 @@ class MemorySearchTool(ToolBase):
         from sqlalchemy import text
 
         from ice_api.db.database_session_async import get_session
+        from ice_core.memory.embedders import HashEmbedder
 
         results: List[Dict[str, Any]] = []
         async for session in get_session():
+            # Compute embedding (hash fallback). For OpenAI, swap to OpenAIEmbedder.
+            embedder = HashEmbedder(dim=1536)
+            qvec = await embedder.embed(query)
+
             rows = await session.execute(
                 text(
                     """
                     SELECT id, scope, key, content_hash, model_version, meta_json, created_at
+                         , 1 - (embedding <=> :qvec::vector) AS cosine_similarity
                     FROM semantic_memory
-                    WHERE (:scope IS NULL OR scope = :scope) AND (key ILIKE :q)
-                    ORDER BY id DESC
+                    WHERE (:scope IS NULL OR scope = :scope) AND embedding IS NOT NULL
+                    ORDER BY embedding <-> :qvec::vector
                     LIMIT :limit
                     """
                 ),
-                {"scope": scope, "q": f"%{query}%", "limit": limit},
+                {"scope": scope, "qvec": qvec, "limit": limit},
             )
             for r in rows.mappings():
-                results.append(dict(r))
+                row = dict(r)
+                results.append(row)
         return {"results": results}
 
 

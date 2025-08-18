@@ -24,13 +24,18 @@ class MemoryWriteTool(ToolBase):
         from sqlalchemy import text
 
         from ice_api.db.database_session_async import get_session
+        from ice_core.memory.embedders import HashEmbedder
 
         async for session in get_session():
+            # Compute embedding (hash fallback; can be swapped to OpenAIEmbedder)
+            embedder = HashEmbedder(dim=1536)
+            embedding = await embedder.embed(content)
+
             await session.execute(
                 text(
                     """
-                    INSERT INTO semantic_memory (scope, key, content_hash, model_version, meta_json)
-                    VALUES (:scope, :key, :content_hash, :model_version, :meta_json)
+                    INSERT INTO semantic_memory (scope, key, content_hash, model_version, meta_json, embedding)
+                    VALUES (:scope, :key, :content_hash, :model_version, :meta_json, :embedding)
                     ON CONFLICT (content_hash) DO NOTHING
                     """
                 ),
@@ -40,6 +45,7 @@ class MemoryWriteTool(ToolBase):
                     "content_hash": self._hash_content(content),
                     "model_version": None,
                     "meta_json": metadata or {"content": content},
+                    "embedding": embedding,
                 },
             )
             await session.commit()
