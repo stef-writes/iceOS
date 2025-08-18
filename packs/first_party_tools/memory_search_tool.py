@@ -29,7 +29,8 @@ class MemorySearchTool(ToolBase):
         async for session in get_session():
             # Compute embedding (hash fallback). For OpenAI, swap to OpenAIEmbedder.
             embedder = HashEmbedder(dim=1536)
-            qvec = await embedder.embed(query)
+            qvec_list = await embedder.embed(query)
+            qvec = "[" + ",".join(f"{x:.6f}" for x in qvec_list) + "]"
 
             rows = await session.execute(
                 text(
