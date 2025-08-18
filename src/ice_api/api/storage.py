@@ -46,14 +46,14 @@ async def storage_health() -> StorageHealth:  # noqa: D401
         try:
             # Lazy import to avoid optional dependency at startup when DB is unset
             from ice_api.db.database_session_async import (
-                check_connection,  # type: ignore
+                check_connection,
+                get_applied_migration_head,
             )
         except Exception:
             connected = None
         else:
             connected = await check_connection()
-        # In a follow-up, wire the current Alembic head here
-        migration_head = os.getenv("ALEMBIC_HEAD")
+            migration_head = await get_applied_migration_head()
     elif os.getenv("REDIS_URL"):
         backend = "redis"
     else:

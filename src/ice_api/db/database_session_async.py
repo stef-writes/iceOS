@@ -71,3 +71,22 @@ async def check_connection() -> bool:
         return True
     except Exception:
         return False
+
+
+async def get_applied_migration_head() -> str | None:
+    """Return the applied Alembic head version from the database, if present.
+
+    Returns None when the alembic_version table does not exist or on error.
+    """
+    engine = get_engine()
+    if engine is None:
+        return None
+    try:
+        async with engine.connect() as conn:  # type: ignore[call-arg]
+            result = await conn.execute(
+                text("SELECT version_num FROM alembic_version LIMIT 1")
+            )
+            row = result.first()
+            return str(row[0]) if row else None
+    except Exception:
+        return None
