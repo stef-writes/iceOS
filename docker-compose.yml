@@ -1,4 +1,19 @@
 services:
+  postgres:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-iceos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iceos}
+      POSTGRES_DB: ${POSTGRES_DB:-iceos}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - pg_data:/var/lib/postgresql/data
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--save", "", "--appendonly", "yes"]
@@ -18,6 +33,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - redis
+      - postgres
     ports:
       - "8000:8000"
     volumes:
@@ -37,6 +53,8 @@ services:
       ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
       ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://iceos:iceos@postgres:5432/iceos}
+      ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-1}
       ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/packs/first_party_tools/plugins.v0.yaml}
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
     command: ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
@@ -49,3 +67,4 @@ services:
 volumes:
   redis_data:
   api_data:
+  pg_data:
