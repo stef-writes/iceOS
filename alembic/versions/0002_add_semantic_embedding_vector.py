@@ -5,7 +5,7 @@ from typing import Sequence
 from alembic import op  # type: ignore
 
 # revision identifiers, used by Alembic.
-revision: str = "0002_add_semantic_embedding_vector"
+revision: str = "0002_embed_vec"
 down_revision: str | None = "0001_initial_core_schema"
 branch_labels: Sequence[str] | None = None
 depends_on: Sequence[str] | None = None
