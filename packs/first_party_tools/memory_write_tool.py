@@ -24,9 +24,9 @@ class MemoryWriteTool(ToolBase):
         user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         from ice_api.services.semantic_memory_repository import insert_semantic_entry
-        from ice_core.memory.embedders import HashEmbedder
+        from ice_core.memory.embedders import get_embedder_from_env
 
-        embedder = HashEmbedder(dim=1536)
+        embedder = get_embedder_from_env()
         embedding_vec = await embedder.embed(content)
         await insert_semantic_entry(
             scope=scope or "default",

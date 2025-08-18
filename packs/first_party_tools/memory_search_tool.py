@@ -22,9 +22,9 @@ class MemorySearchTool(ToolBase):
         org_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         from ice_api.services.semantic_memory_repository import search_semantic
-        from ice_core.memory.embedders import HashEmbedder
+        from ice_core.memory.embedders import get_embedder_from_env
 
-        embedder = HashEmbedder(dim=1536)
+        embedder = get_embedder_from_env()
         qvec = await embedder.embed(query)
         rows = await search_semantic(
             scope=scope, query_vec=qvec, limit=limit, org_id=org_id

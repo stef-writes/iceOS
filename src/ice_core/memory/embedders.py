@@ -44,3 +44,23 @@ class OpenAIEmbedder:
         vec = resp.data[0].embedding  # type: ignore[index]
         # Trust API to return normalized floats
         return [float(x) for x in vec]
+
+
+def get_embedder_from_env():
+    """Return OpenAIEmbedder if configured, else HashEmbedder.
+
+    - ICEOS_EMBEDDINGS_PROVIDER=openai and OPENAI_API_KEY present -> OpenAIEmbedder
+    - Otherwise -> HashEmbedder(dim=ICEOS_EMBEDDINGS_DIM or 1536)
+    """
+    provider = os.getenv("ICEOS_EMBEDDINGS_PROVIDER", "hash").lower()
+    if provider == "openai" and os.getenv("OPENAI_API_KEY"):
+        model = os.getenv("ICEOS_EMBEDDINGS_MODEL", "text-embedding-3-small")
+        try:
+            return OpenAIEmbedder(model=model)
+        except Exception:
+            pass
+    try:
+        dim = int(os.getenv("ICEOS_EMBEDDINGS_DIM", "1536"))
+    except Exception:
+        dim = 1536
+    return HashEmbedder(dim=dim)
