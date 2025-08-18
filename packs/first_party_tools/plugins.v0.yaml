@@ -8,3 +8,9 @@ components:
   - node_type: tool
     name: search_tool
     import_path: packs.first_party_tools.search_tool:SearchTool
+  - node_type: tool
+    name: memory_write_tool
+    import_path: packs.first_party_tools.memory_write_tool:MemoryWriteTool
+  - node_type: tool
+    name: memory_search_tool
+    import_path: packs.first_party_tools.memory_search_tool:MemorySearchTool
