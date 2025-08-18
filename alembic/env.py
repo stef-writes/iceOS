@@ -37,9 +37,13 @@ if environ.get("READTHEDOCS") == "True":
 config = context.config  # type: ignore[attr-defined]
 fileConfig(config.config_file_name)  # type: ignore[arg-type]
 
-config.set_main_option(
-    "sqlalchemy.url", os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./iceos.db")
-)
+_db_url = os.getenv("DATABASE_URL", "sqlite:///./iceos.db")
+# Force sync driver for Alembic (replace async drivers)
+if "+asyncpg" in _db_url:
+    _db_url = _db_url.replace("+asyncpg", "+psycopg")
+if _db_url.startswith("sqlite+aiosqlite"):
+    _db_url = _db_url.replace("sqlite+aiosqlite", "sqlite", 1)
+config.set_main_option("sqlalchemy.url", _db_url)
 
 # Import ORM metadata from API DB models
 from ice_api.db.orm_models_core import Base  # noqa: E402
