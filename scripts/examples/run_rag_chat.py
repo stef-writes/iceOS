@@ -64,10 +64,9 @@ async def _ingest(client: IceClient, ns: argparse.Namespace) -> None:
             },
         },
     }
-    async with client._client as http:
-        # Use canonical path with trailing slash to avoid redirects
-        resp = await http.post("/api/mcp/", json=payload)
-        resp.raise_for_status()
+    # Use the client's underlying HTTP session without closing it
+    resp = await client._client.post("/api/mcp/", json=payload)
+    resp.raise_for_status()
 
 
 async def main() -> None:
