@@ -10,7 +10,11 @@ from typing import Any, Dict, List
 
 
 def rag_chat_blueprint(
-    *, model: str = "gpt-4o", scope: str = "kb", top_k: int = 5
+    *,
+    model: str = "gpt-4o",
+    scope: str = "kb",
+    top_k: int = 5,
+    with_citations: bool = False,
 ) -> Dict[str, Any]:
     """Return a minimal RAG chat assistant blueprint.
 
@@ -36,9 +40,18 @@ def rag_chat_blueprint(
             "type": "llm",
             "model": model,
             "prompt": (
-                "Use the retrieved context to answer.\n"
-                "Context: {{ search.results }}\n"
-                "Question: {{ inputs.query }}\n"
+                (
+                    "Use the retrieved context to answer.\n"
+                    "Context: {{ search.results }}\n"
+                    "Question: {{ inputs.query }}\n"
+                )
+                if not with_citations
+                else (
+                    "Answer the question using the context. Then list Sources as keys.\n"
+                    "Context: {{ search.results }}\n"
+                    "Question: {{ inputs.query }}\n"
+                    "Format: <answer>\nSources: <key1>, <key2>, <key3>\n"
+                )
             ),
             "llm_config": {"provider": "openai", "model": model},
             "output_schema": {"text": "string"},

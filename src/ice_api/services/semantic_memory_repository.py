@@ -50,6 +50,11 @@ async def _insert_with_session(
     user_id: str | None,
     model_version: str | None,
 ) -> Optional[int]:
+    # Ensure embedding matches pgvector column dimension (1536). Adjust only by error to avoid silent drift.
+    if embedding_vec is not None and len(embedding_vec) != 1536:
+        raise ValueError(
+            f"Embedding dimension mismatch: expected 1536, got {len(embedding_vec)}"
+        )
     qvec_literal = (
         "[" + ",".join(f"{x:.6f}" for x in embedding_vec) + "]"
         if embedding_vec
