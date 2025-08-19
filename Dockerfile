@@ -184,7 +184,7 @@ WORKDIR /app
 RUN python -m pip install --no-cache-dir \
       mypy==1.10.0 pydantic==2.8.2 pydantic-core==2.20.1 \
       typing-extensions==4.12.2 types-PyYAML==6.0.12.20250516 types-redis==4.6.0.20241004 \
-      sqlalchemy==2.0.32 sqlalchemy2-stubs==0.0.2a38
+      sqlalchemy==2.0.32
 
 COPY src /app/src
 COPY config /app/config
