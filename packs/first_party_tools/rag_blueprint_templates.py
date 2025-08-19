@@ -62,7 +62,7 @@ def rag_chat_blueprint(
             "type": "tool",
             "tool_name": "memory_write_tool",
             "tool_args": {
-                "key": "chat:{{ inputs.query }}",
+                "key": "chat:{{ inputs.session_id }}:{{ inputs.query }}",
                 "content": "{{ llm.response }}",
                 "scope": scope,
                 "org_id": "{{ inputs.org_id }}",

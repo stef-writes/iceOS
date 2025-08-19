@@ -40,6 +40,7 @@ def _args() -> argparse.Namespace:
     p.add_argument("--debug-retrieval", action="store_true")
     p.add_argument("--json", dest="as_json", action="store_true")
     p.add_argument("--hash-embedder", action="store_true")
+    p.add_argument("--session-id", default="demo_session")
     return p.parse_args()
 
 
@@ -103,7 +104,12 @@ async def main() -> None:
         # Execute with explicit inputs
         exec_id = await client.run(
             blueprint=bp,
-            inputs={"query": ns.query, "org_id": ns.org, "user_id": ns.user},
+            inputs={
+                "query": ns.query,
+                "org_id": ns.org,
+                "user_id": ns.user,
+                "session_id": ns.session_id,
+            },
         )
         final = await client.poll_until_complete(exec_id, timeout=60)
         out: Mapping[str, Any] = final
