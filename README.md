@@ -303,7 +303,7 @@ Notes:
 - First‑party tools are loaded via plugin manifests set by `ICEOS_PLUGIN_MANIFESTS`.
 - The unified registry is idempotent; loading the same manifest multiple times is safe.
 - Containers export `PYTHONPATH=/app/src:/app` so imports like `packs.first_party_tools.*` resolve.
-- To extend timeouts: `PYTEST_ADDOPTS='-p no:xdist --timeout=300 -q'`.
+- Integration runner uses fixed pytest options: `-p no:xdist --timeout=300 -q`.
 
 Runner behavior:
 - The itest container executes `scripts/itest_runner.sh`, which runs suites sequentially to reduce peak memory usage.
@@ -312,7 +312,7 @@ Runner behavior:
 
 Example (local, with stress skipped):
 ```bash
-ICE_SKIP_STRESS=1 PYTEST_ADDOPTS='-p no:xdist --timeout=300 -q' \
+ICE_SKIP_STRESS=1 \
 IMAGE_REPO=local IMAGE_TAG=dev \
 docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
 ```

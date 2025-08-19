@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
+from pydantic import BaseModel, Field
 
 from ice_api.redis_client import get_redis
 from ice_core.models.mcp import Blueprint
@@ -23,6 +24,63 @@ class _Evt:
 
 
 router = APIRouter(prefix="/api/v1/executions", tags=["executions"])
+
+
+class ExecutionStartResponse(BaseModel):
+    """Response for starting a workflow execution.
+
+    Args:
+        execution_id (str): Identifier for the created execution.
+        status (str): Current status (accepted, running, completed, failed, timeout).
+        result (Dict[str, Any] | None): Final result when completed.
+
+    Returns:
+        ExecutionStartResponse: Response model containing execution details.
+    """
+
+    execution_id: str
+    status: str
+    result: Optional[Dict[str, Any]] = None
+
+
+class ExecutionStatusResponse(BaseModel):
+    """Response model for execution status."""
+
+    execution_id: str
+    status: str
+    blueprint_id: Optional[str] = None
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    events: Optional[List[Dict[str, Any]]] = None
+
+
+class ExecutionsListItem(BaseModel):
+    execution_id: str
+    status: str
+    blueprint_id: str
+
+
+class ExecutionsListResponse(BaseModel):
+    executions: List[ExecutionsListItem]
+
+
+class ExecutionStartRequest(BaseModel):
+    """Request body to start a workflow execution.
+
+    Args:
+        blueprint_id (str): Identifier of a previously stored blueprint.
+        inputs (Dict[str, Any] | None): Optional initial inputs passed to the workflow.
+
+    Returns:
+        None
+    """
+
+    blueprint_id: str = Field(..., description="Stored blueprint id")
+    inputs: Optional[Dict[str, Any]] = Field(
+        default=None, description="Optional initial inputs for the workflow"
+    )
+
+
 from typing import TypedDict, cast
 
 from ice_api.dependencies import rate_limit
@@ -198,14 +256,14 @@ async def _run_workflow_async(
 )
 async def start_execution(  # noqa: D401 – API route
     request: Request,
-    payload: Dict[str, Any] = Body(..., embed=True),
+    payload: ExecutionStartRequest = Body(...),
     wait_seconds: float | None = Query(
         default=None,
         description=(
             "Optional: block up to N seconds and return final status/result instead of an execution_id."
         ),
     ),
-) -> Dict[str, Any]:
+) -> "ExecutionStartResponse":
     """Kick off a workflow execution.
 
     Expected JSON body::
@@ -215,11 +273,8 @@ async def start_execution(  # noqa: D401 – API route
         }
     """
 
-    blueprint_id: str | None = payload.get("blueprint_id")
-    if not blueprint_id:
-        raise HTTPException(status_code=422, detail="blueprint_id is required")
-
-    inputs = payload.get("inputs")
+    blueprint_id = payload.blueprint_id
+    inputs = payload.inputs
 
     blueprint = await _get_blueprint(request, blueprint_id)
 
@@ -297,29 +352,29 @@ async def start_execution(  # noqa: D401 – API route
             rec = exec_store.get(execution_id, {})
             status_val = rec.get("status")
             if status_val in {"completed", "failed"}:
-                out: Dict[str, Any] = {
-                    "execution_id": execution_id,
-                    "status": status_val,
-                }
-                if "result" in rec:
-                    out["result"] = rec["result"]
-                if "error" in rec:
-                    out["error"] = rec["error"]
-                return out
+                return ExecutionStartResponse(
+                    execution_id=execution_id,
+                    status=str(status_val),
+                    result=(
+                        rec["result"] if isinstance(rec.get("result"), dict) else None
+                    ),
+                )
             await asyncio.sleep(0.2)
         # Timed out – return the id so clients can poll later
-        return {
-            "execution_id": execution_id,
-            "status": exec_store[execution_id].get("status", "pending"),
-        }
+        return ExecutionStartResponse(
+            execution_id=execution_id,
+            status=str(exec_store[execution_id].get("status", "pending")),
+        )
 
-    return {"execution_id": execution_id}
+    return ExecutionStartResponse(execution_id=execution_id, status="accepted")
 
 
 @router.get(
     "/{execution_id}", dependencies=[Depends(rate_limit), Depends(require_auth)]
 )
-async def get_execution_status(request: Request, execution_id: str) -> Dict[str, Any]:  # noqa: D401
+async def get_execution_status(
+    request: Request, execution_id: str
+) -> ExecutionStatusResponse:  # noqa: D401
     # Prefer Redis as the source of truth; on error, fall back to in-memory
     try:
         redis = get_redis()
@@ -352,7 +407,26 @@ async def get_execution_status(request: Request, execution_id: str) -> Dict[str,
                         decoded["result"] = _json.loads(val)
             except Exception:
                 pass
-            return decoded
+            return ExecutionStatusResponse(
+                execution_id=execution_id,
+                status=str(decoded.get("status", "unknown")),
+                blueprint_id=(
+                    str(decoded.get("blueprint_id"))
+                    if decoded.get("blueprint_id")
+                    else None
+                ),
+                result=(
+                    decoded["result"]
+                    if ("result" in decoded and isinstance(decoded.get("result"), dict))
+                    else None
+                ),
+                error=str(decoded.get("error")) if decoded.get("error") else None,
+                events=(
+                    decoded["events"]
+                    if ("events" in decoded and isinstance(decoded.get("events"), list))
+                    else None
+                ),
+            )
     except Exception:
         # Ignore Redis connectivity issues
         pass
@@ -361,11 +435,33 @@ async def get_execution_status(request: Request, execution_id: str) -> Dict[str,
     if execution_id not in store:
         raise HTTPException(status_code=404, detail="Execution not found")
     record = store[execution_id]
-    return {k: v for k, v in record.items() if not k.startswith("_")}
+    public = {k: v for k, v in record.items() if not k.startswith("_")}
+    result_val: Optional[Dict[str, Any]] = None
+    _rv = public.get("result")
+    if isinstance(_rv, dict):
+        from typing import cast as _cast
+
+        result_val = _cast(Dict[str, Any], _rv)
+    events_val: Optional[List[Dict[str, Any]]] = None
+    _ev = public.get("events")
+    if isinstance(_ev, list) and all(isinstance(e, dict) for e in _ev):
+        from typing import cast as _cast
+
+        events_val = _cast(List[Dict[str, Any]], _ev)
+    return ExecutionStatusResponse(
+        execution_id=execution_id,
+        status=str(public.get("status", "unknown")),
+        blueprint_id=str(public.get("blueprint_id"))
+        if public.get("blueprint_id")
+        else None,
+        result=result_val,
+        error=str(public.get("error")) if public.get("error") else None,
+        events=events_val,
+    )
 
 
 @router.get("/", dependencies=[Depends(rate_limit), Depends(require_auth)])
-async def list_executions(request: Request) -> Dict[str, Any]:  # noqa: D401
+async def list_executions(request: Request) -> ExecutionsListResponse:  # noqa: D401
     """List known executions from Redis (authoritative) with basic fields."""
     # We don't have a native Redis scan in stub; rely on in-memory store if present
     store = _get_exec_store(request)
@@ -378,7 +474,16 @@ async def list_executions(request: Request) -> Dict[str, Any]:  # noqa: D401
                 "blueprint_id": rec.get("blueprint_id", ""),
             }
         )
-    return {"executions": results}
+    return ExecutionsListResponse(
+        executions=[
+            ExecutionsListItem(
+                execution_id=rec["execution_id"],
+                status=rec["status"],
+                blueprint_id=rec["blueprint_id"],
+            )
+            for rec in results
+        ]
+    )
 
 
 @router.post(

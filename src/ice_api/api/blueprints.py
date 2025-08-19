@@ -6,7 +6,7 @@ import uuid
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Body, HTTPException, Request, status
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from ice_api.redis_client import get_redis
 from ice_api.security import is_agent_allowed, is_tool_allowed
@@ -194,6 +194,21 @@ from ice_api.dependencies import rate_limit
 from ice_api.security import require_auth
 
 
+class BlueprintCreateResponse(BaseModel):
+    """Response for blueprint creation.
+
+    Args:
+        id (str): Assigned blueprint identifier.
+        version_lock (str): Version lock for optimistic concurrency.
+
+    Returns:
+        BlueprintCreateResponse: Response model containing identifiers.
+    """
+
+    id: str
+    version_lock: str
+
+
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
@@ -201,22 +216,21 @@ from ice_api.security import require_auth
 )
 async def create_blueprint(  # noqa: D401 – API route
     request: Request,
-    payload: Dict[str, Any] = Body(..., description="Blueprint JSON payload"),
-) -> Dict[str, str]:
+    blueprint: Blueprint = Body(..., description="Blueprint JSON payload"),
+) -> "BlueprintCreateResponse":
     """Create a blueprint using optimistic concurrency.
 
-    The client **must** send header ``X-Version-Lock: __new__`` to signal it
-    created the object offline. This avoids races when two users create a
-    blueprint with the same natural-language spec concurrently.
-    """
-    # Enforce header
-    _assert_version_lock(request, "__new__")
+    Args:
+        request (Request): FastAPI request object (used for headers and app state).
+        blueprint (Blueprint): Fully-typed Blueprint payload.
 
-    # Validate payload
-    try:
-        blueprint = Blueprint.model_validate(payload)
-    except ValidationError as exc:
-        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+    Returns:
+        BlueprintCreateResponse: Identifier and version lock of the stored blueprint.
+
+    Example:
+        POST /api/v1/blueprints/ with header X-Version-Lock: __new__ and a Blueprint body.
+    """
+    _assert_version_lock(request, "__new__")
 
     # Enforce resolvability and access
     _validate_resolvable_and_allowed(blueprint)
@@ -225,7 +239,6 @@ async def create_blueprint(  # noqa: D401 – API route
     try:
         await _save_blueprint(blueprint_id, blueprint)
     except Exception:
-        # In-memory fallback
         store = getattr(request.app.state, "blueprints", None)
         if store is not None:
             store[blueprint_id] = blueprint
@@ -233,7 +246,12 @@ async def create_blueprint(  # noqa: D401 – API route
             request.app.state.blueprints = {blueprint_id: blueprint}
 
     version_lock = _calculate_version_lock(blueprint)
-    return {"id": blueprint_id, "version_lock": version_lock}
+    return BlueprintCreateResponse(id=blueprint_id, version_lock=version_lock)
+
+
+class BlueprintGetResponse(BaseModel):
+    data: Dict[str, Any]
+    version_lock: str
 
 
 @router.get(
@@ -243,7 +261,7 @@ async def get_blueprint(
     request: Request,
     blueprint_id: str,
     response: Response,
-) -> Dict[str, Any]:  # noqa: D401 – API route
+) -> BlueprintGetResponse:  # noqa: D401 – API route
     """Return a stored Blueprint by *id* with optimistic version-lock header."""
     try:
         bp = await _load_blueprint(blueprint_id)
@@ -256,17 +274,22 @@ async def get_blueprint(
     # Compute version lock and expose as header
     version_lock = _calculate_version_lock(bp)
     response.headers["X-Version-Lock"] = version_lock
-    return bp.model_dump()
+    return BlueprintGetResponse(data=bp.model_dump(), version_lock=version_lock)
 
 
 @router.patch(
     "/{blueprint_id}", dependencies=[Depends(rate_limit), Depends(require_auth)]
 )
+class BlueprintPatchResponse(BaseModel):
+    id: str
+    node_count: int
+
+
 async def patch_blueprint(  # noqa: D401
     request: Request,
     blueprint_id: str,
     payload: Dict[str, Any] = Body(..., description="Partial blueprint patch"),
-) -> Dict[str, Any]:
+) -> BlueprintPatchResponse:
     """Incrementally update a stored blueprint.
 
     Payload schema (minimal):
@@ -305,7 +328,7 @@ async def patch_blueprint(  # noqa: D401
         store = getattr(request.app.state, "blueprints", None)
         if store is not None:
             store[blueprint_id] = bp
-    return {"id": blueprint_id, "node_count": len(bp.nodes)}
+    return BlueprintPatchResponse(id=blueprint_id, node_count=len(bp.nodes))
 
 
 # ---------------------------------------------------------------------------
@@ -343,11 +366,16 @@ async def delete_blueprint(  # noqa: D401
 @router.put(
     "/{blueprint_id}", dependencies=[Depends(rate_limit), Depends(require_auth)]
 )
+class BlueprintReplaceResponse(BaseModel):
+    id: str
+    version_lock: str
+
+
 async def replace_blueprint(  # noqa: D401
     request: Request,
     blueprint_id: str,
     payload: Dict[str, Any] = Body(..., description="Full blueprint JSON payload"),
-) -> Dict[str, str]:
+) -> BlueprintReplaceResponse:
     """Replace an existing blueprint in one shot (optimistic concurrency)."""
     current = await _load_blueprint(blueprint_id)
 
@@ -366,7 +394,7 @@ async def replace_blueprint(  # noqa: D401
 
     await _save_blueprint(blueprint_id, bp)
     new_lock = _calculate_version_lock(bp)
-    return {"id": blueprint_id, "version_lock": new_lock}
+    return BlueprintReplaceResponse(id=blueprint_id, version_lock=new_lock)
 
 
 # ---------------------------------------------------------------------------
@@ -379,13 +407,18 @@ async def replace_blueprint(  # noqa: D401
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(rate_limit), Depends(require_auth)],
 )
+class BlueprintCloneResponse(BaseModel):
+    id: str
+    version_lock: str
+
+
 async def clone_blueprint(  # noqa: D401
     request: Request,
     blueprint_id: str,
-) -> Dict[str, str]:
+) -> BlueprintCloneResponse:
     """Create a deep copy of an existing blueprint and return the new id."""
     original = await _load_blueprint(blueprint_id)
     new_id = str(uuid.uuid4())
     await _save_blueprint(new_id, original.model_copy(deep=True))
     new_lock = _calculate_version_lock(original)
-    return {"id": new_id, "version_lock": new_lock}
+    return BlueprintCloneResponse(id=new_id, version_lock=new_lock)

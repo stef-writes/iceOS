@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import text
+import sqlalchemy as sa
+from sqlalchemy import bindparam, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ice_api.db.database_session_async import get_session
@@ -60,15 +62,20 @@ async def _insert_with_session(
         if embedding_vec
         else None
     )
-    result = await session.execute(
+    stmt = (
         text(
             """
             INSERT INTO semantic_memory (scope, key, content_hash, model_version, meta_json, embedding, org_id, user_id)
-            VALUES (:scope, :key, :content_hash, :model_version, :meta_json, :embedding::vector, :org_id, :user_id)
+            VALUES (:scope, :key, :content_hash, :model_version, :meta_json, (:embedding)::vector, :org_id, :user_id)
             ON CONFLICT (org_id, content_hash) DO NOTHING
             RETURNING id
             """
-        ),
+        )
+        # Ensure JSON param is adapted correctly by asyncpg
+        .bindparams(bindparam("meta_json", type_=JSONB))
+    )
+    result = await session.execute(
+        stmt,
         {
             "scope": scope,
             "key": key,
@@ -95,21 +102,31 @@ async def search_semantic(
     qvec_literal = "[" + ",".join(f"{x:.6f}" for x in query_vec) + "]"
     rows_out: List[Dict[str, Any]] = []
     async for session in get_session():
-        rows = await session.execute(
-            text(
-                """
+        stmt = text(
+            """
                 SELECT id, scope, key, content_hash, model_version, meta_json, created_at,
-                       1 - (embedding <=> :qvec::vector) AS cosine_similarity
+                       1 - (embedding <=> (:qvec)::vector) AS cosine_similarity
                 FROM semantic_memory
                 WHERE (:scope IS NULL OR scope = :scope)
                   AND (:org_id IS NULL OR org_id = :org_id)
                   AND embedding IS NOT NULL
-                ORDER BY embedding <-> :qvec::vector
+                ORDER BY embedding <-> (:qvec)::vector
                 LIMIT :limit
                 """
-            ),
+        ).bindparams(
+            bindparam("qvec", type_=sa.Text()),
+            bindparam("scope", type_=sa.String()),
+            bindparam("org_id", type_=sa.String()),
+            bindparam("limit", type_=sa.Integer()),
+        )
+        rows = await session.execute(
+            stmt,
             {"scope": scope, "qvec": qvec_literal, "limit": limit, "org_id": org_id},
         )
         for r in rows.mappings():
-            rows_out.append(dict(r))
+            row_dict = dict(r)
+            created_at_val = row_dict.get("created_at")
+            if created_at_val is not None and hasattr(created_at_val, "isoformat"):
+                row_dict["created_at"] = created_at_val.isoformat()
+            rows_out.append(row_dict)
     return rows_out

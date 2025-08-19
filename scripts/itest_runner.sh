@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PYTEST_COMMON=(-c config/testing/pytest.ini)
-if [[ -n "${PYTEST_ADDOPTS:-}" ]]; then
-  # shellcheck disable=SC2206
-  PYTEST_COMMON+=(${PYTEST_ADDOPTS})
-fi
+PYTEST_COMMON=(-c config/testing/pytest.ini -p no:xdist --timeout=300 -q)
 
 # Robust way to pass a -k expression without word-splitting issues
 if [[ -n "${PYTEST_K:-}" ]]; then

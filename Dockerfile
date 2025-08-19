@@ -53,18 +53,15 @@ RUN python -m pip install --upgrade "pip==24.1.2" \
     && pip install --no-cache-dir -r /tmp/requirements.txt \
     && rm -f /tmp/requirements.txt
 
-# Upgrade specific Python packages to patched versions to address known CVEs
-RUN python -m pip install --no-cache-dir \
-      "h11>=0.16.0" \
-      "starlette>=0.47.2" \
-      "aiohttp>=3.12.14"
+# Rely solely on Poetry-exported requirements to avoid dependency drift
 
 # Copy application source, migrations, and first-party packs (for plugin manifests)
 COPY src /app/src
+COPY scripts /app/scripts
 COPY alembic.ini /app/alembic.ini
 COPY alembic /app/alembic
 COPY packs /app/packs
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app/src:/app
 
 # Expose default FastAPI port
 EXPOSE 8000
@@ -115,12 +112,7 @@ COPY --from=builder /tmp/requirements-dev.txt /tmp/requirements-dev.txt
 RUN sed -i '/^pip==/d' /tmp/requirements-dev.txt && sed -i '/^setuptools==/d' /tmp/requirements-dev.txt
 RUN python -m pip install --no-cache-dir --timeout 120 --retries 5 -r /tmp/requirements.txt -r /tmp/requirements-dev.txt
 
-# Upgrade specific Python packages in test image to patched versions
-RUN python -m pip install --no-cache-dir \
-      "h11>=0.16.0" \
-      "starlette>=0.47.2" \
-      "aiohttp>=3.12.14" \
-      "sqlalchemy2-stubs==0.0.2a38"
+# Keep test image aligned with lockfile; avoid ad-hoc upgrades or stubs that fight the plugin
 
 # Copy application source and test config
 COPY src /app/src

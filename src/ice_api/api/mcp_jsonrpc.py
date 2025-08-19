@@ -27,7 +27,7 @@ import traceback
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ValidationInfo, field_validator
 
 from ice_core import runtime as rt
@@ -735,7 +735,13 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
     # Inject identity for memory tools to enforce RBAC scoping
     current_request: Optional[Request] = REQUEST_CTX.get()
 
-    if tool_type == "tool" and name in {"memory_write_tool", "memory_search_tool"}:
+    if tool_type == "tool" and name in {
+        "memory_write_tool",
+        "memory_search_tool",
+        "ingestion_tool",
+        "recent_session_tool",
+        "memory_summarize_tool",
+    }:
         org_id = None
         user_id = None
         if current_request is not None:
@@ -1147,55 +1153,50 @@ async def wait_for_completion(run_id: str, timeout: float = 30.0) -> Dict[str, A
     logger.info(f"Waiting for completion of run {run_id} with {timeout}s timeout")
 
     while True:
+        # Check timeout first
+        elapsed = asyncio.get_event_loop().time() - start_time
+        if elapsed >= timeout:
+            logger.warning(f"Run {run_id} timed out after {elapsed:.2f}s")
+            return {
+                "status": "timeout",
+                "output": None,
+                "error": f"Execution timeout after {timeout} seconds",
+            }
+
         try:
-            # Check if timeout exceeded
-            elapsed = asyncio.get_event_loop().time() - start_time
-            if elapsed >= timeout:
-                logger.warning(f"Run {run_id} timed out after {elapsed:.2f}s")
-                return {
-                    "status": "timeout",
-                    "output": None,
-                    "error": f"Execution timeout after {timeout} seconds",
-                }
-
-            # Get current result
+            # Directly call the internal get_result (returns RunResult or raises 202 while running)
             result = await get_result(run_id)
-
-            if hasattr(result, "status"):
-                status = result.status
-                if status in ["completed", "failed"]:
-                    logger.info(f"Run {run_id} finished with status: {status}")
-                    return {
-                        "status": status,
-                        "output": getattr(result, "output", None),
-                        "error": getattr(result, "error", None),
-                    }
-                elif status == "running":
-                    # Still running, continue polling
-                    await asyncio.sleep(poll_interval)
-                    continue
-                else:
-                    logger.warning(f"Run {run_id} has unknown status: {status}")
-                    return {
-                        "status": status,
-                        "output": getattr(result, "output", None),
-                        "error": f"Unknown status: {status}",
-                    }
-            else:
-                logger.error(f"Run {run_id} result has no status attribute")
-                return {
-                    "status": "error",
-                    "output": None,
-                    "error": "Invalid result format",
-                }
-
+        except HTTPException as http_exc:
+            # 202 indicates still running – keep polling
+            if getattr(http_exc, "status_code", None) == 202:
+                await asyncio.sleep(poll_interval)
+                continue
+            # Other HTTP errors are terminal for this wait loop
+            logger.error(
+                f"Run {run_id} status check failed: {http_exc.status_code} {http_exc.detail}"
+            )
+            return {
+                "status": "failed",
+                "output": None,
+                "error": str(http_exc.detail),
+            }
         except Exception as e:
             logger.error(f"Error checking run {run_id} status: {e}")
-            return {
-                "status": "error",
-                "output": None,
-                "error": f"Error checking status: {str(e)}",
-            }
+            return {"status": "failed", "output": None, "error": str(e)}
+
+        # Map RunResult fields to a normalized status contract for MCP layer
+        try:
+            success = getattr(result, "success", False)
+            output = getattr(result, "output", None)
+            error = getattr(result, "error", None)
+            if success:
+                logger.info(f"Run {run_id} finished with success")
+                return {"status": "completed", "output": output, "error": error}
+            # If explicitly marked unsuccessful, surface as failed
+            return {"status": "failed", "output": output, "error": error}
+        except Exception as e:  # Defensive: unexpected model shape
+            logger.error(f"Invalid run result format for {run_id}: {e}")
+            return {"status": "failed", "output": None, "error": str(e)}
 
 
 def get_template_blueprint(template_name: str) -> Dict[str, Any]:

@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -11,21 +10,30 @@ import httpx
 from ice_api.services.semantic_memory_repository import insert_semantic_entry
 from ice_core.base_tool import ToolBase
 from ice_core.memory.embedders import get_embedder_from_env
-from ice_core.protocols.tool import ToolConfig
 from ice_core.registry import registry
-from ice_core.validation.validated_protocol import validated_protocol
 
 
-@dataclass
 class IngestionInputs:
-    source_type: str  # "url" | "file" | "text"
-    source: str
-    scope: str = "kb"
-    chunk_size: int = 1000
-    overlap: int = 200
-    metadata: Optional[Dict[str, Any]] = None
-    org_id: Optional[str] = None
-    user_id: Optional[str] = None
+    def __init__(
+        self,
+        *,
+        source_type: str,
+        source: str,
+        scope: str = "kb",
+        chunk_size: int = 1000,
+        overlap: int = 200,
+        metadata: Optional[Dict[str, Any]] = None,
+        org_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> None:
+        self.source_type = source_type
+        self.source = source
+        self.scope = scope
+        self.chunk_size = chunk_size
+        self.overlap = overlap
+        self.metadata = metadata
+        self.org_id = org_id
+        self.user_id = user_id
 
 
 def _chunk(text: str, size: int, overlap: int) -> List[str]:
@@ -41,16 +49,33 @@ def _chunk(text: str, size: int, overlap: int) -> List[str]:
 
 
 class IngestionTool(ToolBase):
-    name = "ingestion_tool"
-    description = (
+    name: str = "ingestion_tool"
+    description: str = (
         "Ingest URL/file/text into semantic memory with chunking and embeddings."
     )
 
-    @validated_protocol
-    async def run(
-        self, inputs: Dict[str, Any], config: ToolConfig | None = None
+    async def _execute_impl(
+        self,
+        *,
+        source_type: str,
+        source: str,
+        scope: str = "kb",
+        chunk_size: int = 1000,
+        overlap: int = 200,
+        metadata: Optional[Dict[str, Any]] = None,
+        org_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        args = IngestionInputs(**inputs)
+        args = IngestionInputs(
+            source_type=source_type,
+            source=source,
+            scope=scope,
+            chunk_size=chunk_size,
+            overlap=overlap,
+            metadata=metadata,
+            org_id=org_id,
+            user_id=user_id,
+        )
         # Fetch content
         if args.source_type == "url":
             # Basic safety: allowed schemes and size cap

@@ -32,6 +32,7 @@ services:
     depends_on:
       - redis
       - postgres
+    # Keep a single healthcheck (detailed) below
     ports:
       - "8000:8000"
     volumes:
@@ -57,10 +58,10 @@ services:
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
     command: ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
     healthcheck:
-      test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request,sys\ntry:\n  with urllib.request.urlopen('http://localhost:8000/api/v1/meta/registry/health', timeout=3) as r:\n    data = r.read()\n    sys.exit(0 if b'tools_count' in data else 1)\nexcept Exception:\n  sys.exit(1)\nPY"]
-      interval: 10s
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/readyz"]
+      interval: 5s
       timeout: 3s
-      retries: 30
+      retries: 10
 
 volumes:
   redis_data:

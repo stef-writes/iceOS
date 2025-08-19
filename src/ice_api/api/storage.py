@@ -27,6 +27,7 @@ class StorageHealth(BaseModel):
     status: Literal["ready"]
     migration_head: Optional[str] = None
     connected: Optional[bool] = None
+    unscoped_rows: Optional[int] = None
 
 
 @router.get("/storage", response_model=StorageHealth)
@@ -41,6 +42,7 @@ async def storage_health() -> StorageHealth:  # noqa: D401
     db_url = os.getenv("DATABASE_URL") or os.getenv("ICEOS_DB_URL")
     migration_head: Optional[str] = None
     connected: Optional[bool] = None
+    unscoped_rows: Optional[int] = None
     if db_url:
         backend: Literal["postgres", "redis", "in-memory"] = "postgres"
         try:
@@ -54,6 +56,20 @@ async def storage_health() -> StorageHealth:  # noqa: D401
         else:
             connected = await check_connection()
             migration_head = await get_applied_migration_head()
+            try:
+                from sqlalchemy import text
+
+                from ice_api.db.database_session_async import get_session
+
+                async for s in get_session():
+                    res = await s.execute(
+                        text(
+                            "SELECT COUNT(*) FROM semantic_memory WHERE org_id IS NULL OR user_id IS NULL"
+                        )
+                    )
+                    unscoped_rows = int(res.scalar_one())
+            except Exception:
+                unscoped_rows = None
     elif os.getenv("REDIS_URL"):
         backend = "redis"
     else:
@@ -64,4 +80,5 @@ async def storage_health() -> StorageHealth:  # noqa: D401
         status="ready",
         migration_head=migration_head,
         connected=connected,
+        unscoped_rows=unscoped_rows,
     )
