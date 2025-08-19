@@ -17,3 +17,6 @@ components:
   - node_type: tool
     name: ingestion_tool
     import_path: packs.first_party_tools.ingestion_tool:IngestionTool
+  - node_type: tool
+    name: memory_summarize_tool
+    import_path: packs.first_party_tools.memory_summarize_tool:MemorySummarizeTool
