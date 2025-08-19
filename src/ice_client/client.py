@@ -423,7 +423,8 @@ class IceClient:
 
         url = "/api/v1/executions/"
         body: MutableMapping[str, Any] = {
-            "payload": {"blueprint_id": bp_id, "inputs": dict(inputs or {})}
+            "blueprint_id": bp_id,
+            "inputs": dict(inputs or {}),
         }
         resp = await self._client.post(url, json=body)
         _raise_for_status(resp)
