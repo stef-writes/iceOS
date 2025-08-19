@@ -15,7 +15,7 @@ from logging.config import fileConfig
 from os import environ
 from pathlib import Path
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 
 from alembic import context  # type: ignore
 
@@ -84,6 +84,31 @@ def run_migrations_offline() -> None:
         context.run_migrations()  # type: ignore[attr-defined]
 
 
+def _ensure_alembic_version_compat(connection) -> None:
+    """Ensure alembic_version exists and can store long revision ids.
+
+    Some older DBs may have version_num as VARCHAR(32). We widen to 255 to
+    support longer revision identifiers before applying upgrades.
+    """
+    try:
+        connection.execute(
+            text(
+                "CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(255) PRIMARY KEY)"
+            )
+        )
+    except Exception:
+        pass
+    try:
+        connection.execute(
+            text(
+                "ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)"
+            )
+        )
+    except Exception:
+        # Table may not exist yet in fresh DB; harmless
+        pass
+
+
 def run_migrations_online() -> None:
     """Run migrations in "online" mode – direct DB connection."""
 
@@ -94,6 +119,8 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        # Pre-check alembic_version table/column width for robust upgrades
+        _ensure_alembic_version_compat(connection)
         context.configure(  # type: ignore[attr-type]
             connection=connection, target_metadata=target_metadata
         )
