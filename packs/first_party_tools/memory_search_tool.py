@@ -10,7 +10,7 @@ from ice_core.base_tool import ToolBase
 class MemorySearchTool(ToolBase):
     name: str = "memory_search_tool"
     description: str = Field(
-        "Search semantic memory entries by exact key or scope prefix (placeholder vector search)"
+        "Semantic search over pgvector (cosine), scoped by org and optional scope."
     )
 
     async def _execute_impl(

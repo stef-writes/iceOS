@@ -60,7 +60,7 @@ async def _insert_with_session(
             """
             INSERT INTO semantic_memory (scope, key, content_hash, model_version, meta_json, embedding, org_id, user_id)
             VALUES (:scope, :key, :content_hash, :model_version, :meta_json, :embedding::vector, :org_id, :user_id)
-            ON CONFLICT (content_hash) DO NOTHING
+            ON CONFLICT (org_id, content_hash) DO NOTHING
             RETURNING id
             """
         ),
