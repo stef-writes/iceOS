@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import os
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
@@ -52,10 +53,22 @@ class IngestionTool(ToolBase):
         args = IngestionInputs(**inputs)
         # Fetch content
         if args.source_type == "url":
+            # Basic safety: allowed schemes and size cap
+            if not (
+                args.source.startswith("http://") or args.source.startswith("https://")
+            ):
+                return {"error": "unsupported URL scheme"}
             async with httpx.AsyncClient(timeout=20.0) as client:
                 resp = await client.get(args.source)
                 resp.raise_for_status()
-                content = resp.text
+                ctype = resp.headers.get("content-type", "")
+                if not (ctype.startswith("text/") or "json" in ctype):
+                    return {"error": f"disallowed content-type: {ctype}"}
+                raw = resp.content
+                max_bytes = int(os.getenv("ICE_INGEST_MAX_BYTES", "5242880"))
+                if len(raw) > max_bytes:
+                    return {"error": f"document too large: {len(raw)} bytes"}
+                content = raw.decode("utf-8", errors="ignore")
         elif args.source_type == "file":
             base_dir = os.getenv("ICE_INGEST_BASE", "/app/data")
             path = os.path.join(base_dir, args.source)
@@ -72,11 +85,11 @@ class IngestionTool(ToolBase):
 
         async def _process_chunk(idx: int, text: str) -> None:
             vec = await embedder.embed(text)
-            key = f"ingest:{idx}:{hash(text)}"
+            key = f"_ing:{idx}:{hashlib.sha256(text.encode()).hexdigest()[:12]}"
             row_id = await insert_semantic_entry(
                 scope=args.scope,
                 key=key,
-                content_hash=str(hash(text)),
+                content_hash=hashlib.sha256(text.encode()).hexdigest(),
                 meta_json=args.metadata or {},
                 embedding_vec=vec,
                 org_id=args.org_id,

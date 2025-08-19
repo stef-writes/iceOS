@@ -29,7 +29,19 @@ class MemorySearchTool(ToolBase):
         rows = await search_semantic(
             scope=scope, query_vec=qvec, limit=limit, org_id=org_id
         )
-        return {"results": rows}
+        out: Dict[str, Any] = {"results": rows}
+        # Optional observability for debugging retrieval
+        import os
+
+        if os.getenv("ICE_DEBUG_RETRIEVAL", "0") == "1":
+            out["debug"] = [
+                {
+                    "key": r.get("key"),
+                    "cosine_similarity": r.get("cosine_similarity"),
+                }
+                for r in rows
+            ]
+        return out
 
 
 def create_memory_search_tool(**kwargs: Any) -> MemorySearchTool:
