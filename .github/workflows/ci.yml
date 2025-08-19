@@ -35,6 +35,7 @@ jobs:
       IMAGE_TAG: dev
       ICE_SKIP_STRESS: 1
       ICE_ENABLE_WASM: 0
+      ICEOS_EMBEDDINGS_PROVIDER: hash
     steps:
       - name: Checkout
         uses: actions/checkout@v4

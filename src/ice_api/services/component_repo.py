@@ -143,14 +143,12 @@ class SQLComponentRepository(ComponentRepository):
     """
 
     def _row_to_record_dict(self, row: ComponentRecord) -> Dict[str, Any]:
+        created = getattr(row, "created_at", None)
+        updated = getattr(row, "updated_at", None)
         payload: Dict[str, Any] = {
             "definition": row.definition,
-            "created_at": getattr(row, "created_at", None).isoformat()
-            if getattr(row, "created_at", None)
-            else None,
-            "updated_at": getattr(row, "updated_at", None).isoformat()
-            if getattr(row, "updated_at", None)
-            else None,
+            "created_at": created.isoformat() if created is not None else None,
+            "updated_at": updated.isoformat() if updated is not None else None,
             "version": int(row.version),
         }
         return payload

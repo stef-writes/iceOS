@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+from typing import cast
 
 try:  # Optional dependency; loaded via extras
     import openai  # type: ignore
@@ -27,6 +28,10 @@ class HashEmbedder:
         norm = (sum(x * x for x in vals) ** 0.5) or 1.0
         return [x / norm for x in vals]
 
+    def estimate_cost(self, text: str) -> float:
+        # Offline deterministic embedder – no external cost
+        return 0.0
+
 
 class OpenAIEmbedder:
     """OpenAI embedding adapter using text-embedding-3-small by default."""
@@ -45,8 +50,15 @@ class OpenAIEmbedder:
         # Trust API to return normalized floats
         return [float(x) for x in vec]
 
+    def estimate_cost(self, text: str) -> float:
+        # Rough heuristic: cost proportional to size; tune later
+        return max(0.0, len(text) / 1000.0 * 0.0001)
 
-def get_embedder_from_env():
+
+from ice_core.protocols.embedder import IEmbedder
+
+
+def get_embedder_from_env() -> IEmbedder:
     """Return OpenAIEmbedder if configured, else HashEmbedder.
 
     - ICEOS_EMBEDDINGS_PROVIDER=openai and OPENAI_API_KEY present -> OpenAIEmbedder
@@ -56,11 +68,11 @@ def get_embedder_from_env():
     if provider == "openai" and os.getenv("OPENAI_API_KEY"):
         model = os.getenv("ICEOS_EMBEDDINGS_MODEL", "text-embedding-3-small")
         try:
-            return OpenAIEmbedder(model=model)
+            return cast(IEmbedder, OpenAIEmbedder(model=model))
         except Exception:
             pass
     try:
         dim = int(os.getenv("ICEOS_EMBEDDINGS_DIM", "1536"))
     except Exception:
         dim = 1536
-    return HashEmbedder(dim=dim)
+    return cast(IEmbedder, HashEmbedder(dim=dim))

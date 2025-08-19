@@ -119,7 +119,8 @@ RUN python -m pip install --no-cache-dir --timeout 120 --retries 5 -r /tmp/requi
 RUN python -m pip install --no-cache-dir \
       "h11>=0.16.0" \
       "starlette>=0.47.2" \
-      "aiohttp>=3.12.14"
+      "aiohttp>=3.12.14" \
+      "sqlalchemy2-stubs==0.0.2a38"
 
 # Copy application source and test config
 COPY src /app/src
