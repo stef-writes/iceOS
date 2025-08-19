@@ -72,3 +72,30 @@ def rag_chat_blueprint(
         },
     ]
     return {"schema_version": "1.2.0", "nodes": nodes}
+
+
+def rag_reflection_blueprint(
+    *, model: str = "gpt-4o", scope: str = "kb", top_k: int = 5, style: str = "concise"
+) -> Dict[str, Any]:
+    """RAG blueprint with a reflection step that summarizes after answering."""
+
+    base = rag_chat_blueprint(
+        model=model, scope=scope, top_k=top_k, with_citations=False
+    )
+    # Append summarize node after write
+    base["nodes"].append(
+        {
+            "id": "summarize",
+            "type": "tool",
+            "tool_name": "memory_summarize_tool",
+            "tool_args": {
+                "scope": scope,
+                "limit": top_k,
+                "style": style,
+                "org_id": "{{ inputs.org_id }}",
+                "user_id": "{{ inputs.user_id }}",
+            },
+            "dependencies": ["write"],
+        }
+    )
+    return base
