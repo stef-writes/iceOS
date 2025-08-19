@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional
 
 import sqlalchemy as sa
@@ -8,6 +9,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ice_api.db.database_session_async import get_session
+
+logger = logging.getLogger(__name__)
 
 
 async def insert_semantic_entry(
@@ -26,6 +29,15 @@ async def insert_semantic_entry(
     Returns the new row id or None if it already existed.
     """
     async for session in get_session():
+        logger.info(
+            "semantic_memory.insert",
+            extra={
+                "scope": scope,
+                "org_id": org_id,
+                "user_id": user_id,
+                "model_version": model_version,
+            },
+        )
         return await _insert_with_session(
             session=session,
             scope=scope,
@@ -102,6 +114,10 @@ async def search_semantic(
     qvec_literal = "[" + ",".join(f"{x:.6f}" for x in query_vec) + "]"
     rows_out: List[Dict[str, Any]] = []
     async for session in get_session():
+        logger.info(
+            "semantic_memory.search",
+            extra={"scope": scope, "org_id": org_id, "limit": limit},
+        )
         stmt = text(
             """
                 SELECT id, scope, key, content_hash, model_version, meta_json, created_at,

@@ -304,6 +304,9 @@ Notes:
 - The unified registry is idempotent; loading the same manifest multiple times is safe.
 - Containers export `PYTHONPATH=/app/src:/app` so imports like `packs.first_party_tools.*` resolve.
 - Integration runner uses fixed pytest options: `-p no:xdist --timeout=300 -q`.
+- Canonical API routes use trailing slashes for collections (e.g. `/api/v1/executions/`).
+- Execution and blueprint endpoints return typed Pydantic models.
+- RAG via HTTP: call `/api/v1/mcp/` and include `Authorization: Bearer <token>`; optionally set `X-Org-Id`/`X-User-Id`.
 
 Runner behavior:
 - The itest container executes `scripts/itest_runner.sh`, which runs suites sequentially to reduce peak memory usage.
