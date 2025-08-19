@@ -20,3 +20,6 @@ components:
   - node_type: tool
     name: memory_summarize_tool
     import_path: packs.first_party_tools.memory_summarize_tool:MemorySummarizeTool
+  - node_type: tool
+    name: recent_session_tool
+    import_path: packs.first_party_tools.recent_session_tool:RecentSessionTool
