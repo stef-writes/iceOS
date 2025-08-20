@@ -22,16 +22,25 @@ logger = logging.getLogger(__name__)
 
 
 def _expected_token() -> str:
-    """Return the configured API bearer token (dev default)."""
-    return os.getenv("ICE_API_TOKEN", "dev-token").strip()
+    """Return the configured API bearer token (dev default gated by env)."""
+    dev_default_allowed = os.getenv("ICE_ALLOW_DEV_TOKEN", "0") == "1"
+    token = os.getenv(
+        "ICE_API_TOKEN", "" if not dev_default_allowed else "dev-token"
+    ).strip()
+    return token
 
 
 async def require_auth(authorization: str = Header(...)) -> str:  # noqa: D401
-    """FastAPI dependency enforcing bearer token."""
+    """FastAPI dependency enforcing bearer token.
+
+    - In production, requires ICE_API_TOKEN to be set unless ICE_ALLOW_DEV_TOKEN=1
+    - Also accepts DB-backed tokens via TokenRecord
+    """
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = authorization.removeprefix("Bearer ").strip()
-    if token == _expected_token():
+    expected = _expected_token()
+    if expected and token == expected:
         return token
     # Allow DB-backed tokens as well
     try:
@@ -41,6 +50,17 @@ async def require_auth(authorization: str = Header(...)) -> str:  # noqa: D401
     if resolved is None:
         raise HTTPException(status_code=403, detail="Invalid token")
     return token
+
+
+def require_scopes(required: set[str], token_scopes: Optional[set[str]]) -> None:
+    """Enforce that token scopes include required scopes.
+
+    Raises 403 when scopes are insufficient. No-op when required is empty.
+    """
+    if not required:
+        return
+    if not token_scopes or not required.issubset(token_scopes):
+        raise HTTPException(status_code=403, detail="Insufficient scope")
 
 
 async def check_budget(request: Request) -> None:  # noqa: D401
@@ -135,16 +155,16 @@ async def resolve_token_identity(token: str) -> Optional[dict[str, Optional[str]
     """Lookup token in DB and return identity claims.
 
     Args:
-        token (str): Raw bearer token presented by client.
+            token (str): Raw bearer token presented by client.
 
     Returns:
-        dict[str, Optional[str]] | None: Mapping with org_id, user_id, project_id, scopes.
+            dict[str, Optional[str]] | None: Mapping with org_id, user_id, project_id, scopes.
 
     Example:
-        >>> # within an async context
-        >>> claims = await resolve_token_identity("abc")
-        >>> claims is None or "org_id" in claims
-        True
+            >>> # within an async context
+            >>> claims = await resolve_token_identity("abc")
+            >>> claims is None or "org_id" in claims
+            True
     """
     token_hash = hashlib.sha256(token.encode()).hexdigest()
     async for session in get_session():
@@ -159,11 +179,17 @@ async def resolve_token_identity(token: str) -> Optional[dict[str, Optional[str]
             and _dt.datetime.now(tz=expires_at.tzinfo) >= expires_at
         ):
             return None
+        scopes_raw = getattr(row, "scopes", None)
+        scopes_set = (
+            set(scopes_raw.split(","))
+            if isinstance(scopes_raw, str) and scopes_raw
+            else None
+        )
         return {
             "org_id": getattr(row, "org_id", None),
             "user_id": getattr(row, "user_id", None),
             "project_id": getattr(row, "project_id", None),
-            "scopes": getattr(row, "scopes", None),
+            "scopes": scopes_set,  # normalized to set[str]
         }
     return None
 

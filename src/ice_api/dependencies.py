@@ -26,8 +26,8 @@ def get_context_manager(request: Request) -> Any:
 # Simple in-process rate limiter (shared across routes) ----------------------
 # ---------------------------------------------------------------------------
 _RATE_LIMIT: Dict[Tuple[str, str], list[float]] = {}
-_RATE_WINDOW = 10.0  # seconds
-_RATE_MAX = 5  # requests per window
+_RATE_WINDOW = float(os.getenv("ICE_RATE_WINDOW_SECONDS", "10.0"))
+_RATE_MAX = int(os.getenv("ICE_RATE_MAX_REQUESTS", "5"))
 
 
 def rate_limit(request: Request, token: str = Depends(require_auth)) -> None:  # noqa: D401

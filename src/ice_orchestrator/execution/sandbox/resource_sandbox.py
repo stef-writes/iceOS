@@ -56,6 +56,8 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
         # Metrics snapshot
         self._cpu_start: float | None = None
         self._rss_start: int | None = None
+        # Original rlimits snapshot for restoration
+        self._orig_limits: dict[int, tuple[int, int]] = {}
 
     # --------------------------------------------------------------
     # Async context management
@@ -102,6 +104,16 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
             # Metrics must never break sandbox teardown.
             pass
 
+        # Restore original rlimits to avoid leaking constraints to other threads
+        try:
+            for res, limits in self._orig_limits.items():
+                try:
+                    resource.setrlimit(res, limits)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         # Propagate exceptions (do not suppress)
         return False
 
@@ -125,12 +137,18 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
     def _apply_rlimits(self) -> None:
         # RLIMIT_AS (virtual memory)
         try:
+            self._orig_limits[resource.RLIMIT_AS] = resource.getrlimit(
+                resource.RLIMIT_AS
+            )
             resource.setrlimit(resource.RLIMIT_AS, (self._mem_bytes, self._mem_bytes))
         except (ValueError, OSError):
             # macOS typically raises; ignore.
             pass
         # RLIMIT_CPU
         try:
+            self._orig_limits[resource.RLIMIT_CPU] = resource.getrlimit(
+                resource.RLIMIT_CPU
+            )
             resource.setrlimit(
                 resource.RLIMIT_CPU, (self._cpu_seconds, self._cpu_seconds)
             )
@@ -138,6 +156,9 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
             pass
         # Disable core dumps
         try:
+            self._orig_limits[resource.RLIMIT_CORE] = resource.getrlimit(
+                resource.RLIMIT_CORE
+            )
             resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
         except (ValueError, OSError):
             pass
