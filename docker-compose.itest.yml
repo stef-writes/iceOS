@@ -62,6 +62,9 @@ services:
       ICEOS_RUN_MIGRATIONS: 1
       ICEOS_REQUIRE_DB: 1
       ICEOS_EMBEDDINGS_PROVIDER: ${ICEOS_EMBEDDINGS_PROVIDER:-hash}
+      # Disable seccomp-based syscall filtering in integration tests to avoid flakiness under constrained runners
+      ICE_SKIP_STRESS: ${ICE_SKIP_STRESS:-"1"}
+      ICE_DISABLE_SECCOMP: ${ICE_DISABLE_SECCOMP:-"1"}
     command:
       ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
     healthcheck:
