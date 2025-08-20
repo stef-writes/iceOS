@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:7-alpine
+    image: redis:7.2-alpine
     command: ["redis-server", "--save", "", "--appendonly", "yes"]
     ports:
       - "6379:6379"
@@ -12,22 +12,42 @@ services:
       timeout: 3s
       retries: 30
 
+  postgres:
+    image: ankane/pgvector:0.5.1-pg15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-iceos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iceos}
+      POSTGRES_DB: ${POSTGRES_DB:-iceos}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_release:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
   api:
-    image: ghcr.io/yourorg/ice-api:latest
+    image: ghcr.io/yourorg/ice-api:${IMAGE_TAG:-v0.1.0}
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     ports:
       - "8000:8000"
     env_file:
       - config/dev.env.example
     environment:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
+      ICE_ALLOW_DEV_TOKEN: ${ICE_ALLOW_DEV_TOKEN:-0}
+      ICE_API_TOKEN: ${ICE_API_TOKEN}
       ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
       # Database (required): run migrations and require DB at startup
       ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-1}
       ICEOS_REQUIRE_DB: ${ICEOS_REQUIRE_DB:-1}
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-iceos}:${POSTGRES_PASSWORD:-iceos}@postgres:5432/${POSTGRES_DB:-iceos}
       # Optional telemetry (enable only if collector present)
       # OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # OTEL_SERVICE_NAME: ice-api
@@ -46,3 +66,4 @@ services:
 
 volumes:
   redis_data:
+  pg_release:

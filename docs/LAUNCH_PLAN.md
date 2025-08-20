@@ -1,3 +1,36 @@
+## Launch Plan: Data & Migrations
+
+### Postgres / pgvector versions
+- Use `ankane/pgvector:0.5.1-pg15` (Postgres 15 + pgvector 0.5.1) in Compose.
+- For managed Postgres, install `pgvector` extension at the same version.
+
+### Migrations on cold start
+- Env flags:
+  - `ICEOS_RUN_MIGRATIONS=1` (run Alembic upgrade to head at boot)
+  - `ICEOS_REQUIRE_DB=1` (fail startup if DB not reachable)
+  - `DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/dbname`
+- The app will:
+  - Convert DSN to psycopg2 for Alembic
+  - Run `ensure_version` and `upgrade head`
+  - Verify schema exists (`semantic_memory` table)
+  - Fallback to offline SQL if needed
+
+### Backup / Restore
+- Backups (daily):
+  - `pg_dump -Fc -d "$DATABASE_URL_PG" -f /backups/iceos_$(date +%F).dump`
+  - Where `$DATABASE_URL_PG` is the psycopg2 DSN (postgresql://)
+- Restore DR drill:
+  - Provision a new Postgres instance
+  - `createdb iceos`
+  - `pg_restore -d "$DATABASE_URL_PG" /backups/iceos_YYYY-MM-DD.dump`
+  - Start API with `ICEOS_RUN_MIGRATIONS=1` and validate `/readyz` healthy
+  - Run integration smoke: `make ci-integration`
+
+### Operational Checks
+- Confirm Alembic `head` recorded (`alembic_version` row present)
+- Confirm `semantic_memory` table exists and accepts writes
+- Monitor startup logs for `Alembic applied_head=`
+
 ## Launch Plan – Step 1 (MVP)
 
 ### What must be finished to launch
