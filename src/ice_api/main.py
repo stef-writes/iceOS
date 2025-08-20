@@ -536,9 +536,9 @@ if os.getenv("ICEOS_ENABLE_METRICS", "0") == "1":
 # ------------------------------------------------------------------
 
 
-@app.get("/livez", tags=["health"], response_model=Dict[str, str])
-async def live_check() -> Dict[str, str]:  # noqa: D401
-    """Liveness probe – always returns 200 when the server process is running."""
+@app.get("/healthz", tags=["health"], response_model=Dict[str, str])
+async def health_check_legacy() -> Dict[str, str]:  # noqa: D401
+    """Health probe – returns 200 when process is running (legacy alias)."""
     return {"status": "live"}
 
 
