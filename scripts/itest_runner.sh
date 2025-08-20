@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PYTEST_COMMON=(-c config/testing/pytest.ini -p no:xdist --timeout=300 -q)
+PYTEST_COMMON=(-c config/testing/pytest.ini -p no:xdist --timeout=300 -q -vv --log-cli-level=INFO --durations=20 --durations-min=0.1)
 
 # Robust way to pass a -k expression without word-splitting issues
 if [[ -n "${PYTEST_K:-}" ]]; then

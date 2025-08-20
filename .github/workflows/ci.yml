@@ -42,15 +42,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Docker info
         run: |
           docker version
           docker info
 
-      - name: Build API and test images
+      - name: Build API and test images (with cache)
         run: |
-          docker build --no-cache --target api -t ${IMAGE_REPO}/iceosv1a-api:${IMAGE_TAG} .
-          docker build --no-cache --target test -t ${IMAGE_REPO}/iceosv1a-itest:${IMAGE_TAG} .
+          docker buildx build \
+            --load \
+            --cache-from type=gha,scope=api \
+            --cache-to type=gha,scope=api,mode=max \
+            --target api -t ${IMAGE_REPO}/iceosv1a-api:${IMAGE_TAG} .
+          docker buildx build \
+            --load \
+            --cache-from type=gha,scope=itest \
+            --cache-to type=gha,scope=itest,mode=max \
+            --target test -t ${IMAGE_REPO}/iceosv1a-itest:${IMAGE_TAG} .
 
       - name: Run docker compose itest
         run: make ci-integration

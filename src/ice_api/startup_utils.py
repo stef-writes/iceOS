@@ -36,6 +36,7 @@ def print_startup_banner(app_version: str, git_sha: str | None = None) -> None:
         f"│ Version     : {app_version}",
         f"│ Python      : {platform.python_version()} - {platform.system()} {platform.release()}",
         f"│ Start time  : {datetime.utcnow().isoformat()}Z",
+        f"│ PID         : {os.getpid()}",
         "╰" + "─" * 60,
         "",
     ]
