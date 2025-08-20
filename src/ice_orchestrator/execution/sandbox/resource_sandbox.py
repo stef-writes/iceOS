@@ -14,6 +14,7 @@ This consolidates duplicated sandbox logic so every executor
 
 import asyncio
 import contextlib
+import os
 import platform
 import resource
 from types import TracebackType
@@ -142,6 +143,12 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
             pass
 
     def _apply_seccomp(self) -> None:  # pragma: linux-only
+        # Allow disabling seccomp in test/CI environments where thread creation is required
+        if (
+            os.getenv("ICE_DISABLE_SECCOMP", "0") == "1"
+            or os.getenv("ICE_SKIP_STRESS", "0") == "1"
+        ):
+            return
         if platform.system() != "Linux" or seccomp is None:
             return  # no-op on non-Linux or missing module
         # Allow basic syscalls only (whitelist)
@@ -155,6 +162,10 @@ class ResourceSandbox(contextlib.AbstractAsyncContextManager["ResourceSandbox"])
             "getpid",
             "futex",
             "nanosleep",
+            # Allow thread/process creation for runtime components and clean shutdown
+            "clone",
+            "set_robust_list",
+            "set_tid_address",
         ]
         for name in allowed:
             try:
