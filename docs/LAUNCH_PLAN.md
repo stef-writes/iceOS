@@ -15,6 +15,17 @@
   - Verify schema exists (`semantic_memory` table)
   - Fallback to offline SQL if needed
 
+### Sandbox overrides (resource limits)
+- Defaults:
+  - Timeout: 30s (asyncio cancel)
+  - Memory: 512 MB (RLIMIT_AS)
+  - CPU: 10 seconds (RLIMIT_CPU)
+- Overrides via env (set in API container):
+  - Not currently env-driven; adjust in `ResourceSandbox` constructor at call sites if stricter limits needed.
+- CI/staging knobs:
+  - `ICE_DISABLE_SECCOMP=1` (disable seccomp syscall filter; only for tests)
+  - `ICE_SKIP_STRESS=1` (skip heavy stress tests; only for CI)
+
 ### Backup / Restore
 - Backups (daily):
   - `pg_dump -Fc -d "$DATABASE_URL_PG" -f /backups/iceos_$(date +%F).dump`

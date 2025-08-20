@@ -84,8 +84,19 @@ class IngestionTool(ToolBase):
             ):
                 return {"error": "unsupported URL scheme"}
             async with httpx.AsyncClient(timeout=20.0) as client:
-                resp = await client.get(args.source)
-                resp.raise_for_status()
+                # simple exponential backoff for transient failures
+                last_exc: Exception | None = None
+                for attempt in range(4):
+                    try:
+                        resp = await client.get(args.source)
+                        resp.raise_for_status()
+                        break
+                    except Exception as exc:
+                        last_exc = exc
+                        await asyncio.sleep(0.2 * (2**attempt))
+                else:
+                    assert last_exc is not None
+                    raise last_exc
                 ctype = resp.headers.get("content-type", "")
                 if not (ctype.startswith("text/") or "json" in ctype):
                     return {"error": f"disallowed content-type: {ctype}"}

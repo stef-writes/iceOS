@@ -13,7 +13,7 @@ services:
       retries: 30
 
   postgres:
-    image: ankane/pgvector:0.5.1-pg15
+    image: ankane/pgvector:pg15
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-iceos}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iceos}

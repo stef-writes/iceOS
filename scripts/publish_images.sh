@@ -24,11 +24,13 @@ if ! docker buildx inspect iceos >/dev/null 2>&1; then
   docker buildx create --name iceos --use >/dev/null
 fi
 
-echo "Building and pushing $IMAGE_API:$VERSION and :latest (linux/amd64,linux/arm64)"
+GIT_SHA=${GITHUB_SHA:-$(git rev-parse --short HEAD 2>/dev/null || echo "local")}
+echo "Building and pushing $IMAGE_API:$VERSION, :$GIT_SHA and :latest (linux/amd64,linux/arm64)"
 
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
   -t "$IMAGE_API:$VERSION" \
+  -t "$IMAGE_API:$GIT_SHA" \
   -t "$IMAGE_API:latest" \
   -f Dockerfile \
   --push .

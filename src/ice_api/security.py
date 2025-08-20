@@ -180,16 +180,13 @@ async def resolve_token_identity(token: str) -> Optional[dict[str, Optional[str]
         ):
             return None
         scopes_raw = getattr(row, "scopes", None)
-        scopes_set = (
-            set(scopes_raw.split(","))
-            if isinstance(scopes_raw, str) and scopes_raw
-            else None
-        )
+        # Keep return type stable as Optional[str] to satisfy typing across callers
+        scopes_val = scopes_raw if isinstance(scopes_raw, str) and scopes_raw else None
         return {
             "org_id": getattr(row, "org_id", None),
             "user_id": getattr(row, "user_id", None),
             "project_id": getattr(row, "project_id", None),
-            "scopes": scopes_set,  # normalized to set[str]
+            "scopes": scopes_val,
         }
     return None
 

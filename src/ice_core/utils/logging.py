@@ -46,7 +46,8 @@ def setup_logger() -> logging.Logger:
         class _JSONFormatter(logging.Formatter):
             """Very small JSON-lines formatter (one object per line).
 
-            Adds *trace_id* and *span_id* when OpenTelemetry context is present.
+            Adds *trace_id* and *span_id* when OpenTelemetry context is present, and
+            propagates a best-effort request_id if attached to the record by middleware.
             """
 
             def _trace_context(self) -> Dict[str, Optional[str]]:  # noqa: D401
@@ -71,6 +72,11 @@ def setup_logger() -> logging.Logger:
                     "message": record.getMessage(),
                 }
                 rec_dict.update(self._trace_context())
+
+                # Correlation/request id if present
+                req_id = getattr(record, "request_id", None)
+                if isinstance(req_id, str) and req_id:
+                    rec_dict["request_id"] = req_id
 
                 # Merge any extra attributes --------------------------
                 for key, value in record.__dict__.items():

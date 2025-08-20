@@ -2,7 +2,7 @@
 
 PYTHON := $(shell which python)
 
-.PHONY: install lint lint-docker format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix
+.PHONY: install lint lint-docker format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix lock-check lock-check-docker
 
 install:
 	poetry install --with dev --no-interaction
@@ -18,6 +18,17 @@ lint-docker:
 		python:3.11.9-slim bash -lc '\
 		  python -m pip install --no-cache-dir --timeout 120 --retries 5 ruff==0.5.6 && \
 		  ruff check . \
+		'
+
+lock-check:
+	poetry lock --check || (echo "Lock drift detected. Run 'poetry lock --no-update' locally and commit the lockfile." && exit 1)
+
+lock-check-docker:
+	docker run --rm -t \
+		-v "$$PWD:/repo" -w /repo \
+		python:3.11.9-slim bash -lc '\
+		  python -m pip install --no-cache-dir --timeout 120 --retries 5 poetry==1.8.3 && \
+		  poetry lock --check \
 		'
 
 format:
@@ -58,7 +69,7 @@ test:
 		-e ICE_STRICT_SERIALIZATION=1 \
 		iceos-test pytest -c config/testing/pytest.ini tests/unit -q --ignore=tests/unit/ice_builder --ignore=tests/unit/ice_cli
 
-ci: lint-docker type-check test
+ci: lint-docker lock-check-docker type-check test
 
 ci-integration:
 	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=0 ICE_SKIP_STRESS=1 \
