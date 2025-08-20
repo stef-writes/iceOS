@@ -2,7 +2,17 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -105,14 +115,21 @@ class SemanticMemoryRecord(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     scope: Mapped[str] = mapped_column(String(128), index=True)
     key: Mapped[str] = mapped_column(String(256), index=True)
-    content_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    content_hash: Mapped[str] = mapped_column(String(64), index=True)
     model_version: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     meta_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
-    org_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    # Real pgvector column to be added in migration; use JSON/text placeholder here is avoided.
+    org_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
-    __table_args__ = (Index("ix_semantic_scope_key", "scope", "key"),)
+    # The pgvector "embedding" column is created via Alembic migration. We avoid
+    # declaring a SQLAlchemy field for it to keep ORM free of an extra type
+    # dependency; repository functions use SQL text for inserts/queries.
+
+    __table_args__ = (
+        Index("ix_semantic_scope_key", "scope", "key"),
+        Index("ix_semantic_org_scope", "org_id", "scope"),
+        UniqueConstraint("org_id", "content_hash", name="uq_semantic_org_content_hash"),
+    )

@@ -12,7 +12,7 @@ async def _mcp(
     client: httpx.AsyncClient, headers: dict, method: str, params: dict
 ) -> dict:
     r = await client.post(
-        "/api/mcp",
+        "/api/mcp/",
         headers=headers,
         json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
     )

@@ -20,6 +20,8 @@ class MemorySearchTool(ToolBase):
         scope: Optional[str] = None,
         limit: int = 10,
         org_id: Optional[str] = None,
+        category: Optional[str] = None,
+        tags: Optional[list[str]] = None,
     ) -> Dict[str, Any]:
         from ice_api.services.semantic_memory_repository import search_semantic
         from ice_core.memory.embedders import get_embedder_from_env
@@ -27,8 +29,14 @@ class MemorySearchTool(ToolBase):
         embedder = get_embedder_from_env()
         qvec = await embedder.embed(query)
         rows = await search_semantic(
-            scope=scope, query_vec=qvec, limit=limit, org_id=org_id
+            scope=scope,
+            query_vec=qvec,
+            limit=limit,
+            org_id=org_id,
+            category=category,
+            tags=tags,
         )
+        # TODO: implement metadata filtering in repository (category/tags) and remove client-side ignore
         out: Dict[str, Any] = {"results": rows}
         # Optional observability for debugging retrieval
         import os

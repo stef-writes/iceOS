@@ -4,19 +4,19 @@
 
 - **WASM sandbox (wasmtime)**: `ICE_ENABLE_WASM=1` (default) to run code nodes in a sandbox. Disabled or missing wasmtime → runtime error.
 - **LLM providers**: OpenAI (required), Anthropic, DeepSeek supported. API keys via `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`.
-- Database/pgvector: design in progress (registry, executions, semantic memory); Redis remains the ephemeral cache for now.
+- Database/pgvector (production‑ready): Postgres with `pgvector` backs components, blueprints, executions/events, tokens, and semantic memory (vector search). Redis is used only for ephemeral caches.
 
 See Dockerfile for enforced extras export.
 
 ## Production Deployment (Docker Compose)
 
-Quick start with the full stack (API + Redis):
+Quick start with the full stack (API + Postgres/pgvector + Redis cache):
 
 ```bash
 docker compose up --build
 ```
 
-Environment variables are sourced from `config/dev.env.example` and can be overridden in the compose file. For Redis hardening and retention:
+Environment variables are sourced from `config/dev.env.example` and can be overridden in the compose file. The API container sets `ICEOS_RUN_MIGRATIONS=1` and `ICEOS_REQUIRE_DB=1` so Alembic upgrades run and readiness requires a healthy DB and applied head. For Redis hardening and retention:
 
 ```env
 REDIS_URL=rediss://user:pass@host:6379/0
@@ -76,7 +76,7 @@ resp = await client.chat_turn("your_agent", "sess_123", "Hello")
 print(resp["assistant_message"])
 ```
 
-> *No-fluff, fully-typed, test-driven micro-framework for composable AI/LLM workflows in Python 3.10.*
+> *No-fluff, fully-typed, test-driven micro-framework for composable AI/LLM workflows in Python 3.11.9.*
 
 ---
 
@@ -132,7 +132,7 @@ WASM gate for code nodes:
 
 ## 2. Requirements
 
-* Python **3.10** (3.11 works but isn’t CI-gated yet)
+* Python **3.11.9** (pinned in Docker/CI)
 * `make` & a modern C compiler (for `uvicorn`, `httpx` wheels)
 * Optional: Docker (for sandboxing Kuyamux WASM tests)
 
@@ -163,6 +163,12 @@ Environment variables (copy `.env.example` to `.env` or export manually):
 # Required only for live demos
 OPENAI_API_KEY="sk-..."
 ICE_TEST_MODE=1   # set to 0 for live network calls
+
+# Database (Postgres + pgvector)
+DATABASE_URL=postgresql+asyncpg://iceos:iceos@localhost:5432/iceos
+# Run Alembic migrations and require DB readiness at startup (recommended for prod)
+ICEOS_RUN_MIGRATIONS=1
+ICEOS_REQUIRE_DB=1
 ```
 
 ---

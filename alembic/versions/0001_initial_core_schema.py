@@ -14,12 +14,6 @@ depends_on: Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    # Create pgvector extension if running on Postgres
-    try:
-        op.execute("CREATE EXTENSION IF NOT EXISTS vector")  # type: ignore[arg-type]
-    except Exception:
-        pass
-
     op.create_table(
         "components",
         sa.Column("id", sa.String(length=255), primary_key=True),
@@ -122,22 +116,45 @@ def upgrade() -> None:
         sa.Column("content_hash", sa.String(length=64), nullable=False),
         sa.Column("model_version", sa.String(length=64), nullable=True),
         sa.Column("meta_json", sa.JSON(), nullable=True),
-        # Optional pgvector column; ignore on non-Postgres
+        sa.Column("org_id", sa.String(length=64), nullable=False),
+        sa.Column("user_id", sa.String(length=64), nullable=False),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
             server_default=sa.text("CURRENT_TIMESTAMP"),
         ),
     )
+    # Helpful indexes and constraints
     op.create_index("ix_semantic_scope_key", "semantic_memory", ["scope", "key"])
+    op.create_index("ix_semantic_org_scope", "semantic_memory", ["org_id", "scope"])
+    # Composite uniqueness: prevent duplicates per org
     op.create_unique_constraint(
-        "uq_semantic_content_hash", "semantic_memory", ["content_hash"]
+        "uq_semantic_org_content_hash",
+        "semantic_memory",
+        ["org_id", "content_hash"],
     )
+    # Add pgvector embedding column idempotently (Postgres only)
+    # Use autocommit to avoid aborting the transactional migration when permissions are missing.
     try:
-        op.execute(
-            "ALTER TABLE semantic_memory ADD COLUMN IF NOT EXISTS embedding vector(1536)"
-        )  # type: ignore[arg-type]
+        bind = op.get_bind()  # type: ignore[attr-defined]
+        if getattr(bind.dialect, "name", "") == "postgresql":
+            ac = bind.execution_options(isolation_level="AUTOCOMMIT")
+            try:
+                ac.execute(sa.text("CREATE EXTENSION IF NOT EXISTS vector"))
+            except Exception:
+                # Ignore permission errors; extension may be managed by DBA.
+                pass
+            try:
+                ac.execute(
+                    sa.text(
+                        "ALTER TABLE semantic_memory ADD COLUMN IF NOT EXISTS embedding vector(1536)"
+                    )
+                )
+            except Exception:
+                # If extension is unavailable or other errors, continue without embedding column.
+                pass
     except Exception:
+        # Non-postgres or unexpected issues: continue; core tables already created.
         pass
 
 

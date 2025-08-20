@@ -10,7 +10,7 @@ import datetime as _dt
 import hashlib
 import logging
 import os
-from typing import Optional
+from typing import Optional, cast
 
 from fastapi import Header, HTTPException, Request
 
@@ -171,6 +171,7 @@ def _resolve_token_sync(token: str) -> Optional[dict[str, Optional[str]]]:
     try:
         import anyio
 
-        return anyio.run(resolve_token_identity, token)  # type: ignore[arg-type]
+        result = anyio.run(resolve_token_identity, token)  # type: ignore[arg-type]
+        return cast(Optional[dict[str, Optional[str]]], result)
     except Exception:
         return None

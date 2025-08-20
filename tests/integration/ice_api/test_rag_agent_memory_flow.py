@@ -16,7 +16,7 @@ async def test_rag_like_flow_with_memory_tools() -> None:
     ) as c:
         # Init MCP
         r = await c.post(
-            "/api/mcp",
+            "/api/mcp/",
             headers=headers,
             json={"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {}},
         )
@@ -28,7 +28,7 @@ async def test_rag_like_flow_with_memory_tools() -> None:
             ("doc.fruit.banana", "Bananas are yellow fruits."),
         ]:
             r = await c.post(
-                "/api/mcp",
+                "/api/mcp/",
                 headers=headers,
                 json={
                     "jsonrpc": "2.0",
@@ -52,7 +52,7 @@ async def test_rag_like_flow_with_memory_tools() -> None:
 
         # Query semantically – emulate RAG retrieval step
         r = await c.post(
-            "/api/mcp",
+            "/api/mcp/",
             headers=headers,
             json={
                 "jsonrpc": "2.0",

@@ -24,6 +24,10 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
       ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
+      # Database (required): run migrations and require DB at startup
+      ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-1}
+      ICEOS_REQUIRE_DB: ${ICEOS_REQUIRE_DB:-1}
+      DATABASE_URL: ${DATABASE_URL}
       # Optional telemetry (enable only if collector present)
       # OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # OTEL_SERVICE_NAME: ice-api

@@ -29,10 +29,12 @@ services:
 
   api:
     # In CI this should be a prebuilt image; locally you can swap to `build:` if you want.
-    image: ${IMAGE_REPO}/iceosv1a-api:${IMAGE_TAG:-dev}
+    image: ${IMAGE_REPO:-local}/iceosv1a-api:${IMAGE_TAG:-dev}
     depends_on:
-      - redis
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     ports:
       - "8000:8000"
     volumes:
@@ -58,6 +60,8 @@ services:
       ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
       DATABASE_URL: postgresql+asyncpg://iceos:iceos@postgres:5432/iceos
       ICEOS_RUN_MIGRATIONS: 1
+      ICEOS_REQUIRE_DB: 1
+      ICEOS_EMBEDDINGS_PROVIDER: ${ICEOS_EMBEDDINGS_PROVIDER:-hash}
     command:
       ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
     healthcheck:
@@ -72,7 +76,7 @@ services:
 
   itest:
     # Prebuilt “test” image that already has pytest + code under /app
-    image: ${IMAGE_REPO}/iceosv1a-itest:${IMAGE_TAG:-dev}
+    image: ${IMAGE_REPO:-local}/iceosv1a-itest:${IMAGE_TAG:-dev}
     depends_on:
       api:
         condition: service_healthy
@@ -85,6 +89,8 @@ services:
       ICE_ENABLE_WASM: ${ICE_ENABLE_WASM:-"0"}
       ICE_SKIP_STRESS: ${ICE_SKIP_STRESS:-"1"}
       REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql+asyncpg://iceos:iceos@postgres:5432/iceos
+      ICEOS_RUN_MIGRATIONS: 1
     env_file:
       - env.ci
     command: ["bash", "-lc", "chmod +x scripts/itest_runner.sh && ./scripts/itest_runner.sh"]

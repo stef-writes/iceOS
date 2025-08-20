@@ -34,7 +34,7 @@ def _mcp(method: str, params: Dict[str, Any] | None = None) -> Dict[str, Any]:
     payload = {"jsonrpc": "2.0", "id": 1, "method": method}
     if params is not None:
         payload["params"] = params
-    res = client.post("/api/mcp", json=payload, headers=_auth_headers())
+    res = client.post("/api/mcp/", json=payload, headers=_auth_headers())
     assert res.status_code == 200, res.text
     body = res.json()
     assert "result" in body, body
@@ -46,7 +46,7 @@ def test_memory_write_and_semantic_search_via_mcp() -> None:
 
     # Initialize MCP session
     init = client.post(
-        "/api/mcp",
+        "/api/mcp/",
         json={"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {}},
         headers=_auth_headers(),
     )

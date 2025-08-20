@@ -47,7 +47,7 @@ async def test_db_token_resolves_identity_and_scopes_requests() -> None:
             },
         }
         r = await c.post(
-            "/api/v1/mcp/",
+            "/api/mcp/",
             json=payload,
             headers={"Authorization": f"Bearer {raw_token}"},
         )
@@ -65,7 +65,7 @@ async def test_db_token_resolves_identity_and_scopes_requests() -> None:
             },
         }
         r2 = await c.post(
-            "/api/v1/mcp/",
+            "/api/mcp/",
             json=search_payload,
             headers={"Authorization": f"Bearer {raw_token}"},
         )

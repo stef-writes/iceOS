@@ -110,6 +110,8 @@ async def search_semantic(
     query_vec: list[float],
     limit: int = 10,
     org_id: str | None = None,
+    category: str | None = None,
+    tags: List[str] | None = None,
 ) -> List[Dict[str, Any]]:
     qvec_literal = "[" + ",".join(f"{x:.6f}" for x in query_vec) + "]"
     rows_out: List[Dict[str, Any]] = []
@@ -125,6 +127,8 @@ async def search_semantic(
                 FROM semantic_memory
                 WHERE (:scope IS NULL OR scope = :scope)
                   AND (:org_id IS NULL OR org_id = :org_id)
+                  AND (:category IS NULL OR meta_json->> 'category' = :category)
+                  AND (:tags_filter IS NULL OR meta_json @> :tags_filter::jsonb)
                   AND embedding IS NOT NULL
                 ORDER BY embedding <-> (:qvec)::vector
                 LIMIT :limit
@@ -133,11 +137,21 @@ async def search_semantic(
             bindparam("qvec", type_=sa.Text()),
             bindparam("scope", type_=sa.String()),
             bindparam("org_id", type_=sa.String()),
+            bindparam("category", type_=sa.String()),
+            bindparam("tags_filter", type_=JSONB),
             bindparam("limit", type_=sa.Integer()),
         )
+        tags_filter: Optional[Dict[str, List[str]]] = {"tags": tags} if tags else None
         rows = await session.execute(
             stmt,
-            {"scope": scope, "qvec": qvec_literal, "limit": limit, "org_id": org_id},
+            {
+                "scope": scope,
+                "qvec": qvec_literal,
+                "limit": limit,
+                "org_id": org_id,
+                "category": category,
+                "tags_filter": tags_filter,
+            },
         )
         for r in rows.mappings():
             row_dict = dict(r)

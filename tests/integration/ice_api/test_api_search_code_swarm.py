@@ -93,12 +93,7 @@ async def test_api_llm_to_search_to_llm() -> None:
         r = await c.post(
             "/api/v1/executions/",
             headers={**headers, "Content-Type": "application/json"},
-            json={
-                "payload": {
-                    "blueprint_id": bp_id,
-                    "inputs": {"topic": "renewable energy"},
-                }
-            },
+            json={"blueprint_id": bp_id, "inputs": {"topic": "renewable energy"}},
         )
         assert r.status_code == 202, r.text
         body = await _await_done(c, r.json()["execution_id"], headers)
@@ -142,7 +137,7 @@ output = {"a": inputs.get("a", 0), "b": inputs.get("b", 0), "sum": inputs.get("a
         r = await c.post(
             "/api/v1/executions/",
             headers={**headers, "Content-Type": "application/json"},
-            json={"payload": {"blueprint_id": bp_id, "inputs": {"a": 2, "b": 3}}},
+            json={"blueprint_id": bp_id, "inputs": {"a": 2, "b": 3}},
         )
         assert r.status_code == 202, r.text
         body = await _await_done(c, r.json()["execution_id"], headers)
@@ -194,7 +189,7 @@ async def test_api_swarm_node_smoke() -> None:
         r = await c.post(
             "/api/v1/executions/",
             headers={**headers, "Content-Type": "application/json"},
-            json={"payload": {"blueprint_id": bp_id, "inputs": {}}},
+            json={"blueprint_id": bp_id, "inputs": {}},
         )
         assert r.status_code == 202, r.text
         body = await _await_done(c, r.json()["execution_id"], headers)

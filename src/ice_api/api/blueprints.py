@@ -277,14 +277,16 @@ async def get_blueprint(
     return BlueprintGetResponse(data=bp.model_dump(), version_lock=version_lock)
 
 
-@router.patch(
-    "/{blueprint_id}", dependencies=[Depends(rate_limit), Depends(require_auth)]
-)
 class BlueprintPatchResponse(BaseModel):
     id: str
     node_count: int
 
 
+@router.patch(
+    "/{blueprint_id}",
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+    response_model=BlueprintPatchResponse,
+)
 async def patch_blueprint(  # noqa: D401
     request: Request,
     blueprint_id: str,
@@ -363,14 +365,16 @@ async def delete_blueprint(  # noqa: D401
 # ---------------------------------------------------------------------------
 
 
-@router.put(
-    "/{blueprint_id}", dependencies=[Depends(rate_limit), Depends(require_auth)]
-)
 class BlueprintReplaceResponse(BaseModel):
     id: str
     version_lock: str
 
 
+@router.put(
+    "/{blueprint_id}",
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+    response_model=BlueprintReplaceResponse,
+)
 async def replace_blueprint(  # noqa: D401
     request: Request,
     blueprint_id: str,
@@ -402,16 +406,17 @@ async def replace_blueprint(  # noqa: D401
 # ---------------------------------------------------------------------------
 
 
-@router.post(
-    "/{blueprint_id}/clone",
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(rate_limit), Depends(require_auth)],
-)
 class BlueprintCloneResponse(BaseModel):
     id: str
     version_lock: str
 
 
+@router.post(
+    "/{blueprint_id}/clone",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+    response_model=BlueprintCloneResponse,
+)
 async def clone_blueprint(  # noqa: D401
     request: Request,
     blueprint_id: str,

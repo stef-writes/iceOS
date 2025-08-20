@@ -85,7 +85,7 @@ def test_run_blocked_when_estimate_exceeds_budget():
 
         start = client.post(
             "/api/v1/executions/",
-            json={"payload": {"blueprint_id": bp_id}},
+            json={"blueprint_id": bp_id},
             headers={"Authorization": "Bearer dev-token"},
         )
         assert start.status_code in (400, 402)

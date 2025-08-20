@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import os
+from pathlib import Path
 from typing import Any, Mapping
 
 import httpx
@@ -41,7 +42,15 @@ def _args() -> argparse.Namespace:
     p.add_argument("--json", dest="as_json", action="store_true")
     p.add_argument("--hash-embedder", action="store_true")
     p.add_argument("--session-id", default="demo_session")
+    # New: optional file inputs and style/tone hints
+    p.add_argument("--files", default="", help="Comma-separated text files to ingest")
+    p.add_argument("--style", default="concise")
+    p.add_argument("--tone", default="neutral")
     return p.parse_args()
+
+
+def _split_files(raw: str) -> list[Path]:
+    return [Path(p.strip()) for p in raw.split(",") if p.strip()] if raw.strip() else []
 
 
 async def _ingest(client: IceClient, ns: argparse.Namespace) -> None:
@@ -64,7 +73,22 @@ async def _ingest(client: IceClient, ns: argparse.Namespace) -> None:
             },
         },
     }
-    # Use the client's underlying HTTP session without closing it
+    # If file list provided, override source_type/source per file
+    files = _split_files(ns.files)
+    if files:
+        for fp in files:
+            text = fp.read_text(encoding="utf-8")
+            payload["params"]["arguments"]["inputs"].update(
+                {
+                    "source_type": "text",
+                    "source": text,
+                    "filename": fp.name,
+                }
+            )
+            resp = await client._client.post("/api/mcp/", json=payload)
+            resp.raise_for_status()
+        return
+    # Fallback: single source from args
     resp = await client._client.post("/api/mcp/", json=payload)
     resp.raise_for_status()
 
@@ -109,6 +133,8 @@ async def main() -> None:
                 "org_id": ns.org,
                 "user_id": ns.user,
                 "session_id": ns.session_id,
+                "style": ns.style,
+                "tone": ns.tone,
             },
         )
         final = await client.poll_until_complete(exec_id, timeout=60)
@@ -123,7 +149,11 @@ async def main() -> None:
         try:
             llm_out = out.get("result", {}).get("output", {}).get("llm", {})
             print(
-                "\nAssistant:\n"
+                "\nAssistant ("
+                + ns.tone
+                + ", "
+                + ns.style
+                + "):\n"
                 + str(llm_out.get("response", llm_out.get("text", ""))).strip()
             )
         except Exception:

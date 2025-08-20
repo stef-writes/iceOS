@@ -37,25 +37,23 @@ if environ.get("READTHEDOCS") == "True":
 config = context.config  # type: ignore[attr-defined]
 fileConfig(config.config_file_name)  # type: ignore[arg-type]
 
-# Build a sync sqlalchemy.url for Alembic
-_db_url = os.getenv("DATABASE_URL", "sqlite:///./iceos.db")
-# Force psycopg2 for Postgres (SQLAlchemy defaults to psycopg v3 otherwise)
-if _db_url.startswith("postgresql+asyncpg"):
-    _db_url = _db_url.replace("postgresql+asyncpg", "postgresql+psycopg2", 1)
-elif _db_url.startswith("postgresql+") and "+psycopg2" not in _db_url:
-    # Coerce any explicit driver to psycopg2
-    base, _, rest = _db_url.partition("+")
-    _db_url = (
-        f"{base}+psycopg2{rest[rest.find('://') :]}"
-        if rest
-        else f"{base}+psycopg2{_db_url[len(base):]}"
-    )
-elif _db_url.startswith("postgresql://"):
-    _db_url = _db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-# Normalize sqlite to sync driver
-if _db_url.startswith("sqlite+aiosqlite"):
-    _db_url = _db_url.replace("sqlite+aiosqlite", "sqlite", 1)
+def _sync_url_from_env() -> str:
+    """Return a sync SQLAlchemy URL for Alembic.
+
+    Prefers ALEMBIC_SYNC_URL; falls back to DATABASE_URL after normalizing
+    common async forms to sync.
+    """
+
+    url = os.getenv("ALEMBIC_SYNC_URL") or os.getenv("DATABASE_URL", "")
+    url = url.replace("+asyncpg", "")
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
+    # sqlite and other schemes pass through
+    return url
+
+
+_db_url = _sync_url_from_env() or "sqlite:///./iceos.db"
 config.set_main_option("sqlalchemy.url", _db_url)
 
 # Import ORM metadata from API DB models

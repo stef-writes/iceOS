@@ -36,6 +36,8 @@ jobs:
       ICE_SKIP_STRESS: 1
       ICE_ENABLE_WASM: 0
       ICEOS_EMBEDDINGS_PROVIDER: hash
+      ICEOS_RUN_MIGRATIONS: 1
+      ICEOS_REQUIRE_DB: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,6 +46,11 @@ jobs:
         run: |
           docker version
           docker info
+
+      - name: Build API and test images
+        run: |
+          docker build --no-cache --target api -t ${IMAGE_REPO}/iceosv1a-api:${IMAGE_TAG} .
+          docker build --no-cache --target test -t ${IMAGE_REPO}/iceosv1a-itest:${IMAGE_TAG} .
 
       - name: Run docker compose itest
         run: make ci-integration

@@ -109,20 +109,129 @@ __all__ = [
 ]
 
 
-def run_alembic_migrations_if_enabled() -> None:
+async def run_alembic_migrations_if_enabled() -> None:
     """Run Alembic upgrade to head when enabled via env flag.
 
     Controlled by ICEOS_RUN_MIGRATIONS=1 and only when DATABASE_URL is set.
     """
+    require_db = os.getenv("ICEOS_REQUIRE_DB", "0") == "1"
     if os.getenv("ICEOS_RUN_MIGRATIONS", "0") != "1":
+        # If DB is required for startup, fail early when migrations are disabled
+        if require_db:
+            raise RuntimeError("ICEOS_REQUIRE_DB=1 is set but ICEOS_RUN_MIGRATIONS!=1")
         return
     if not os.getenv("DATABASE_URL") and not os.getenv("ICEOS_DB_URL"):
+        if require_db:
+            raise RuntimeError(
+                "ICEOS_REQUIRE_DB=1 is set but no DATABASE_URL/ICEOS_DB_URL configured"
+            )
         return
     try:
         from alembic import command  # type: ignore
         from alembic.config import Config  # type: ignore
 
         cfg = Config("alembic.ini")
-        command.upgrade(cfg, "head")
+        # Log script location and env URL for diagnostics
+        logger.info(
+            "Alembic script_location=%s", cfg.get_main_option("script_location")
+        )
+        logger.info("Alembic DATABASE_URL=%s", os.getenv("DATABASE_URL"))
+        # Force sync DSN for Alembic (psycopg2) based on env
+        db_url = os.getenv("DATABASE_URL", "").strip()
+        if db_url.startswith("postgresql+asyncpg"):
+            db_url = db_url.replace("postgresql+asyncpg", "postgresql+psycopg2", 1)
+        elif db_url.startswith("postgresql://"):
+            db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        if db_url:
+            cfg.set_main_option("sqlalchemy.url", db_url)
+        # Ensure version table exists (no-op if present), then upgrade
+        try:
+            command.ensure_version(cfg)
+        except Exception:
+            logger.exception("Alembic ensure_version raised")
+        try:
+            command.upgrade(cfg, "head")
+        except Exception:
+            logger.exception("Alembic upgrade head failed")
+            raise
+
+        # Hard guard: verify alembic head applied and semantic_memory table exists
+        from sqlalchemy import text
+
+        from ice_api.db.database_session_async import (
+            get_applied_migration_head,
+            get_engine,
+        )
+
+        head = await get_applied_migration_head()
+        logger.info("Alembic applied_head=%s", head)
+        engine = get_engine()
+        if engine is None:
+            raise RuntimeError("No database engine available after migration")
+
+        async def _schema_exists() -> bool:
+            try:
+                async with engine.connect() as conn:  # type: ignore[call-arg]
+                    q = text(
+                        "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='semantic_memory')"
+                    )
+                    res = await conn.execute(q)
+                    return bool(res.scalar())
+            except Exception:
+                return False
+
+        if not await _schema_exists():
+            logger.warning(
+                "Primary migration verification failed; attempting offline SQL fallback"
+            )
+
+            # Fallback: generate offline SQL and apply via psycopg2 synchronously for robustness
+            import os as _os
+            import shlex as _shlex
+            import subprocess as _sp
+            from typing import List as _List
+
+            cmd = f"alembic -c { _shlex.quote(cfg.config_file_name or 'alembic.ini') } upgrade head --sql"
+            cp = _sp.run(cmd, shell=True, capture_output=True, text=True)  # noqa: S603
+            if cp.returncode != 0:
+                raise RuntimeError(f"alembic --sql failed: {cp.stderr}")
+            sql_text = cp.stdout
+
+            import re as _re
+
+            import psycopg2 as _pg
+
+            dsn = _os.getenv("DATABASE_URL", "").strip()
+            if dsn.startswith("postgresql+asyncpg"):
+                dsn = dsn.replace("postgresql+asyncpg", "postgresql", 1)
+            if not dsn.startswith("postgresql://"):
+                raise RuntimeError(
+                    "DATABASE_URL must be a Postgres DSN for offline SQL fallback"
+                )
+            conn = _pg.connect(dsn)
+            conn.autocommit = True
+            cur = conn.cursor()
+            stmts: _List[str] = [
+                s.strip() for s in _re.split(r";\s*\n", sql_text) if s.strip()
+            ]
+            for stmt in stmts:
+                try:
+                    cur.execute(stmt)
+                except Exception:
+                    # Continue applying best-effort; extension creation may fail if lacking perms
+                    pass
+            cur.close()
+            conn.close()
+
+            if not await _schema_exists():
+                raise RuntimeError(
+                    "Offline SQL fallback did not create required tables"
+                )
+        # If table exists but head is None, log a warning instead of failing hard.
+        if head is None:
+            logger.warning(
+                "Alembic head is None but schema is present; proceeding. Consider running 'alembic stamp head' to record the current revision."
+            )
     except Exception as exc:  # pragma: no cover
-        logger.warning("Alembic migration skipped due to error: %s", exc)
+        logger.warning("Alembic migration/verification failed: %s", exc)
+        raise

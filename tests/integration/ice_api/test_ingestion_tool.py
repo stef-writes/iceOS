@@ -20,7 +20,7 @@ async def test_ingest_and_search() -> None:
     ) as c:
         # Init MCP
         r = await c.post(
-            "/api/mcp",
+            "/api/mcp/",
             headers=headers,
             json={"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {}},
         )
@@ -28,7 +28,7 @@ async def test_ingest_and_search() -> None:
 
         # Ingest simple text
         r = await c.post(
-            "/api/mcp",
+            "/api/mcp/",
             headers=headers,
             json={
                 "jsonrpc": "2.0",
@@ -50,7 +50,7 @@ async def test_ingest_and_search() -> None:
 
         # Search for it
         r = await c.post(
-            "/api/mcp",
+            "/api/mcp/",
             headers=headers,
             json={
                 "jsonrpc": "2.0",

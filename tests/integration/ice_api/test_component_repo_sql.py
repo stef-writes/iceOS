@@ -19,6 +19,7 @@ async def test_component_register_and_list_sql_repo() -> None:
             "type": "tool",
             "name": "unit_sql_repo_demo",
             "package": "packs.first_party_tools.writer_tool",
+            "description": "Writer tool for integration test registration",
             "auto_register": False,
             "validate_only": False,
         }

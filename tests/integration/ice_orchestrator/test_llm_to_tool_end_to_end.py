@@ -68,12 +68,7 @@ async def _run_flow() -> Dict[str, Any]:
         r = await c.post(
             "/api/v1/executions/",
             headers={**headers, "Content-Type": "application/json"},
-            json={
-                "payload": {
-                    "blueprint_id": bp_id,
-                    "inputs": {"topic": "integration testing"},
-                }
-            },
+            json={"blueprint_id": bp_id, "inputs": {"topic": "integration testing"}},
         )
         assert r.status_code == 202, r.text
         exec_id = r.json()["execution_id"]

@@ -86,7 +86,7 @@ async def test_api_llm_only() -> None:
         r = await _post_json(
             c,
             "/api/v1/executions/",
-            {"payload": {"blueprint_id": bp_id, "inputs": {"name": "World"}}},
+            {"blueprint_id": bp_id, "inputs": {"name": "World"}},
             {**headers, "Content-Type": "application/json"},
         )
         assert r.status_code == 202, r.text
@@ -137,7 +137,7 @@ async def test_api_llm_to_tool() -> None:
         r = await _post_json(
             c,
             "/api/v1/executions/",
-            {"payload": {"blueprint_id": bp_id, "inputs": {"msg": "ok"}}},
+            {"blueprint_id": bp_id, "inputs": {"msg": "ok"}},
             {**headers, "Content-Type": "application/json"},
         )
         assert r.status_code == 202, r.text
@@ -183,7 +183,7 @@ async def test_api_agent_to_tool() -> None:
         r = await _post_json(
             c,
             "/api/v1/executions/",
-            {"payload": {"blueprint_id": bp_id, "inputs": {}}},
+            {"blueprint_id": bp_id, "inputs": {}},
             {**headers, "Content-Type": "application/json"},
         )
         assert r.status_code == 202, r.text

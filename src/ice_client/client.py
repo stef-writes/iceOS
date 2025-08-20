@@ -508,6 +508,58 @@ class IceClient:
                     # Not needed now – but could be exposed to caller.
                     continue
 
+    # -------------------------------------------------------------- uploads API
+    async def upload_files(
+        self,
+        file_paths: list[str],
+        *,
+        scope: str = "kb",
+        chunk_size: int = 1000,
+        overlap: int = 200,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> Mapping[str, Any]:
+        """Upload one or more files to be ingested into semantic memory.
+
+        Parameters
+        ----------
+        file_paths : list[str]
+            Paths to text files to upload.
+        scope : str
+            Memory scope key.
+        chunk_size : int
+            Chunk size for splitting.
+        overlap : int
+            Overlap between chunks.
+        metadata : Mapping[str, Any] | None
+            Optional metadata to merge (e.g., {"category":"resume","tags":["python"]}).
+
+        Returns
+        -------
+        Mapping[str, Any]
+            UploadResponse payload with items and ingested keys.
+        """
+        from json import dumps as _dumps
+        from pathlib import Path
+
+        files_param: list[tuple[str, tuple[str, bytes, str]]] = []
+        for p in file_paths:
+            data = Path(p).read_bytes()
+            files_param.append(("files", (Path(p).name, data, "text/plain")))
+        data_param: dict[str, str] = {
+            "scope": scope,
+            "chunk_size": str(chunk_size),
+            "overlap": str(overlap),
+        }
+        if metadata is not None:
+            data_param["metadata_json"] = _dumps(dict(metadata))
+        resp = await self._client.post(
+            "/api/v1/uploads/files", data=data_param, files=files_param
+        )
+        _raise_for_status(resp)
+        obj: Any = resp.json()
+        assert isinstance(obj, dict)
+        return obj
+
     # ---------------------------------------------- Studio convenience APIs
     async def run_and_wait(
         self,

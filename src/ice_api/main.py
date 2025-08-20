@@ -23,6 +23,7 @@ except ModuleNotFoundError:  # pragma: no cover – OTEL optional
     _OTEL_AVAILABLE = False
 
 from ice_api.api.mcp import router as mcp_router
+from ice_api.api.uploads import router as uploads_router
 
 # keep import grouping minimal; remove unused service imports
 from ice_api.errors import add_exception_handlers
@@ -78,31 +79,35 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     initialize_orchestrator()
 
     # Optionally run DB migrations
-    run_alembic_migrations_if_enabled()
+    await run_alembic_migrations_if_enabled()
 
     # Ensure first-party tools are provided via plugin manifests; avoid implicit imports
 
     # ------------------------------------------------------------------
     # Plugin manifests (opt-in starter packs and org components) --------
     # ------------------------------------------------------------------
-    # Load declarative plugins manifests specified via env var. Each entry is a
-    # JSON or YAML file containing plugins.v0 components with import paths.
-    manifests_env = os.getenv("ICEOS_PLUGIN_MANIFESTS", "").strip()
-    if manifests_env:
-        import logging as _logging
-        import pathlib
+    try:
+        # Load declarative plugins manifests specified via env var. Each entry is a
+        # JSON or YAML file containing plugins.v0 components with import paths.
+        manifests_env = os.getenv("ICEOS_PLUGIN_MANIFESTS", "").strip()
+        if manifests_env:
+            import logging as _logging
+            import pathlib
 
-        _plog = _logging.getLogger(__name__)
-        manifest_paths = [p.strip() for p in manifests_env.split(",") if p.strip()]
-        for mp in manifest_paths:
-            path = pathlib.Path(mp)
-            count = registry.load_plugins(str(path), allow_dynamic=True)
-            _plog.info("Loaded %d components from manifest %s", count, path)
-        # Fail fast if no tool factories are registered after manifest load
-        if not registry.available_tool_factories():
-            raise RuntimeError(
-                "No tool factories registered after loading plugin manifests."
-            )
+            _plog = _logging.getLogger(__name__)
+            manifest_paths = [p.strip() for p in manifests_env.split(",") if p.strip()]
+            for mp in manifest_paths:
+                path = pathlib.Path(mp)
+                count = registry.load_plugins(str(path), allow_dynamic=True)
+                _plog.info("Loaded %d components from manifest %s", count, path)
+            # Fail fast if no tool factories are registered after manifest load
+            if not registry.available_tool_factories():
+                raise RuntimeError(
+                    "No tool factories registered after loading plugin manifests."
+                )
+    except Exception:  # Log full context for startup diagnostics
+        logger.exception("Startup failed during plugin manifest load")
+        raise
 
     # ------------------------------------------------------------------
     # Progressive demo loader with timing --------------------------------
@@ -514,6 +519,7 @@ from ice_api.ws.executions import router as exec_ws_router
 
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
 app.include_router(exec_ws_router, prefix="/ws", tags=["websocket"])
+app.include_router(uploads_router, prefix="/api/v1/uploads", tags=["uploads"])
 
 if os.getenv("ICEOS_ENABLE_METRICS", "0") == "1":
     try:

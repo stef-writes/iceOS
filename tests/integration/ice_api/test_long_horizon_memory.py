@@ -10,7 +10,7 @@ pytestmark = pytest.mark.asyncio
 
 async def _mcp(c: httpx.AsyncClient, headers: dict, method: str, params: dict) -> dict:
     r = await c.post(
-        "/api/mcp",
+        "/api/mcp/",
         headers=headers,
         json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
     )

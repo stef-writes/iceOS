@@ -54,6 +54,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://iceos:iceos@postgres:5432/iceos}
       ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-1}
+      ICEOS_REQUIRE_DB: ${ICEOS_REQUIRE_DB:-1}
       ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/packs/first_party_tools/plugins.v0.yaml}
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
     command: ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]

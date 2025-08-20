@@ -83,6 +83,13 @@ async def get_applied_migration_head() -> str | None:
         return None
     try:
         async with engine.connect() as conn:  # type: ignore[call-arg]
+            # Check if alembic_version table exists first to avoid noisy errors
+            exists = await conn.execute(
+                text("SELECT to_regclass('alembic_version') IS NOT NULL")
+            )
+            exists_row = exists.first()
+            if not exists_row or exists_row[0] is not True:
+                return None
             result = await conn.execute(
                 text("SELECT version_num FROM alembic_version LIMIT 1")
             )

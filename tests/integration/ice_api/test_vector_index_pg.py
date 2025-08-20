@@ -6,12 +6,15 @@ from ice_api.services.vector_index_pg import PgVectorIndex
 
 
 async def _run() -> bool:
-    index = PgVectorIndex(embedding_dimension=8)
+    index = PgVectorIndex(embedding_dimension=1536)
 
-    # Two orthogonal-ish vectors; q closer to v1
-    v1 = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    v2 = [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    q = [0.9, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    # Build simple 1536-D vectors where first components dominate
+    def pad(vec):
+        return vec + [0.0] * (1536 - len(vec))
+
+    v1 = pad([1.0, 0.0])
+    v2 = pad([0.0, 1.0])
+    q = pad([0.9, 0.1])
 
     # Upsert
     await index.upsert("kb", "doc1", v1, model_version="test")
