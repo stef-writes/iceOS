@@ -44,11 +44,11 @@ type:
 
 type-check:
 	docker build --target devcheck -t iceos-devcheck . && \
-	docker run --rm -t \
-		-v "$$PWD/src:/app/src" \
-		-v "$$PWD/typings:/app/typings" \
-		-v "$$PWD/config:/app/config" \
-		iceos-devcheck
+		docker run --rm -t \
+			-v "$$PWD/src:/app/src" \
+			-v "$$PWD/typings:/app/typings" \
+			-v "$$PWD/config:/app/config" \
+			iceos-devcheck
 
 type-nuke:
 	MYPY_CACHE_DIR=/dev/null poetry run mypy --no-incremental --config-file config/typing/mypy.ini src
@@ -61,13 +61,25 @@ type-docker:
 	  -v "$(PWD)/config:/app/config" \
 	  iceos-devcheck | cat
 
+# Coverage (unit tests)
+COV_MIN ?= 85
+
 test:
 	docker build --target test -t iceos-test . && \
-	docker run --rm -t \
-		-e ICE_ENABLE_INLINE_CODE=1 \
-		-e ICE_COMPUTE_GRAPH_CENTRALITY=1 \
-		-e ICE_STRICT_SERIALIZATION=1 \
-		iceos-test pytest -c config/testing/pytest.ini tests/unit -q --ignore=tests/unit/ice_builder --ignore=tests/unit/ice_cli
+		docker run --rm -t \
+			-e ICE_ENABLE_INLINE_CODE=1 \
+			-e ICE_COMPUTE_GRAPH_CENTRALITY=1 \
+			-e ICE_STRICT_SERIALIZATION=1 \
+			iceos-test pytest -c config/testing/pytest.ini tests/unit -q --ignore=tests/unit/ice_builder --ignore=tests/unit/ice_cli
+
+# Coverage gate target (unit tests with coverage)
+test-coverage:
+	docker build --target test -t iceos-test . && \
+		docker run --rm -t \
+			-e ICE_ENABLE_INLINE_CODE=1 \
+			-e ICE_COMPUTE_GRAPH_CENTRALITY=1 \
+			-e ICE_STRICT_SERIALIZATION=1 \
+			iceos-test pytest -c config/testing/pytest.ini --cov=src --cov-report=term-missing --cov-fail-under=$(COV_MIN) tests/unit -q --ignore=tests/unit/ice_builder --ignore=tests/unit/ice_cli
 
 ci: lint-docker lock-check-docker type-check test
 
