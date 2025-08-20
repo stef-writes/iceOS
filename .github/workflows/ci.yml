@@ -38,6 +38,7 @@ jobs:
       ICEOS_EMBEDDINGS_PROVIDER: hash
       ICEOS_RUN_MIGRATIONS: 1
       ICEOS_REQUIRE_DB: 1
+      ICE_SKIP_EXTERNAL: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v4

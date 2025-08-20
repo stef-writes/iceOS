@@ -369,6 +369,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     import ice_api.startup_utils as su
 
     su.READY_FLAG = True
+    try:
+        logger.info(
+            "startupComplete",
+            extra={"pid": os.getpid(), "version": app.version},
+        )
+    except Exception:
+        pass
 
     yield
 
