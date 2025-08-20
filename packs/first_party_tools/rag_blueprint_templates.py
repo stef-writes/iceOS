@@ -15,6 +15,8 @@ def rag_chat_blueprint(
     scope: str = "kb",
     top_k: int = 5,
     with_citations: bool = False,
+    category: str | None = None,
+    tags: List[str] | None = None,
 ) -> Dict[str, Any]:
     """Return a minimal RAG chat assistant blueprint.
 
@@ -22,17 +24,24 @@ def rag_chat_blueprint(
     - memory_search_tool → LLM → (optional) memory_write_tool as transcript
     """
 
+    # Build tool args for search with optional metadata filters
+    search_args: Dict[str, Any] = {
+        "query": "{{ inputs.query }}",
+        "scope": scope,
+        "limit": top_k,
+        "org_id": "{{ inputs.org_id }}",
+    }
+    if category is not None:
+        search_args["category"] = category
+    if tags:
+        search_args["tags"] = tags
+
     nodes: List[Dict[str, Any]] = [
         {
             "id": "search",
             "type": "tool",
             "tool_name": "memory_search_tool",
-            "tool_args": {
-                "query": "{{ inputs.query }}",
-                "scope": scope,
-                "limit": top_k,
-                "org_id": "{{ inputs.org_id }}",
-            },
+            "tool_args": search_args,
             "dependencies": [],
         },
         {
@@ -63,7 +72,7 @@ def rag_chat_blueprint(
             "tool_name": "memory_write_tool",
             "tool_args": {
                 "key": "chat:{{ inputs.session_id }}:{{ inputs.query }}",
-                "content": "{{ llm.response }}",
+                "content": "{{ llm.text }}",
                 "scope": scope,
                 "org_id": "{{ inputs.org_id }}",
                 "user_id": "{{ inputs.user_id }}",
