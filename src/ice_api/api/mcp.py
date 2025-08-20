@@ -46,7 +46,7 @@ import os
 
 # Redis helper
 from ice_api.redis_client import get_redis
-from ice_core.models import NodeType
+from ice_core.models import INode, NodeType
 from ice_core.models.enums import ModelProvider
 from ice_core.models.llm import LLMConfig
 from ice_core.models.mcp import (
@@ -1568,13 +1568,13 @@ async def validate_component_definition(
                         # Register callable factory directly to avoid dynamic module paths
                         from typing import cast as _cast
 
-                        from ice_core.protocols.node import INode
+                        from ice_core.protocols.tool import ITool
                         from ice_core.unified_registry import (
                             register_tool_factory_callable as _reg_callable,
                         )
 
-                        def _factory(**kwargs: Any) -> INode:
-                            return _cast(INode, tool_class(**kwargs))
+                        def _factory(**kwargs: Any) -> ITool:
+                            return _cast(ITool, tool_class(**kwargs))
 
                         _reg_callable(definition.name, _factory)
                         result.registered = True
@@ -1670,7 +1670,7 @@ async def validate_component_definition(
                             import_module("ice_orchestrator.workflow"), "Workflow"
                         )
 
-                        def _factory(**kwargs: Any) -> INode:  # type: ignore[no-redef]
+                        def _wf_factory(**kwargs: Any) -> INode:
                             # Convert MCP NodeSpec definitions to runtime NodeConfig objects
                             from ice_core.utils.node_conversion import (
                                 convert_node_specs,
@@ -1687,7 +1687,7 @@ async def validate_component_definition(
                             )
 
                         mod = types.ModuleType("dynamic_workflows")
-                        setattr(mod, f"create_{definition.name}", _factory)
+                        setattr(mod, f"create_{definition.name}", _wf_factory)
                         sys.modules["dynamic_workflows"] = mod
                         register_workflow_factory(
                             definition.name,

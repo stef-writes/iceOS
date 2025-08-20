@@ -25,6 +25,7 @@ from ice_core.models import INode, NodeConfig, NodeExecutionResult
 from ice_core.models.enums import NodeType
 from ice_core.models.mcp import AgentDefinition
 from ice_core.protocols.agent import IAgent
+from ice_core.protocols.tool import ITool
 from ice_core.protocols.workflow import WorkflowLike
 
 # Type aliases for node executors
@@ -67,7 +68,7 @@ class Registry(BaseModel):
     _tool_factories: Dict[str, str] = PrivateAttr(
         default_factory=dict
     )  # Maps tool names to factory import paths
-    _tool_factory_cache: Dict[str, Callable[..., INode]] = PrivateAttr(
+    _tool_factory_cache: Dict[str, Callable[..., ITool]] = PrivateAttr(
         default_factory=dict
     )
     # Workflow factory registry (module:function strings)
@@ -214,7 +215,7 @@ class Registry(BaseModel):
         """List all registered agent names."""
         return list(self._agents.keys())
 
-    def get_tool(self, name: str) -> INode:
+    def get_tool(self, name: str) -> ITool:
         """Get a tool instance by name via factory."""
         return self.get_tool_instance(name)
 
@@ -545,7 +546,7 @@ class Registry(BaseModel):
             # Leave cache empty; instance resolution will import at first use
             pass
 
-    def get_tool_instance(self, name: str, **kwargs: Any) -> INode:
+    def get_tool_instance(self, name: str, **kwargs: Any) -> ITool:
         """Instantiate a tool via its registered factory and return *fresh* instance.
 
         The factory must return an object that inherits ``ToolBase`` and passes
@@ -612,9 +613,16 @@ class Registry(BaseModel):
 
         # Run idempotent validate() if the tool exposes it
         if hasattr(tool_instance, "validate") and callable(tool_instance.validate):
-            # Skip Pydantic's validate method which requires a value argument
-            if not hasattr(tool_instance.validate, "__self__"):
-                tool_instance.validate()
+            try:
+                # Prefer idempotent no-arg validate() on tools; avoid BaseModel.validate(value)
+                from inspect import signature as _sig
+
+                sig = _sig(tool_instance.validate)  # type: ignore[arg-type]
+                if len(sig.parameters) == 0:
+                    tool_instance.validate()  # type: ignore[call-arg]
+            except Exception:
+                # Best-effort validation; ignore if signature mismatch
+                pass
 
         return tool_instance
 
@@ -1003,7 +1011,7 @@ def register_tool_factory(name: str, import_path: str) -> None:  # noqa: D401
     registry.register_tool_factory(name, import_path)
 
 
-def register_tool_factory_callable(name: str, factory: Callable[..., INode]) -> None:  # noqa: D401
+def register_tool_factory_callable(name: str, factory: Callable[..., ITool]) -> None:  # noqa: D401
     """Register a tool factory directly via a callable.
 
     This avoids dynamic module import paths and aligns with repo-driven
@@ -1013,7 +1021,7 @@ def register_tool_factory_callable(name: str, factory: Callable[..., INode]) -> 
     registry._tool_factory_cache[name] = factory  # type: ignore[attr-defined]
 
 
-def get_tool_instance(name: str, **kwargs: Any) -> INode:  # noqa: D401
+def get_tool_instance(name: str, **kwargs: Any) -> ITool:  # noqa: D401
     """Convenience wrapper around ``Registry.get_tool_instance``."""
     return registry.get_tool_instance(name, **kwargs)
 

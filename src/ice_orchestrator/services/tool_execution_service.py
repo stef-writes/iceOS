@@ -7,7 +7,7 @@ from typing import Any, Dict, Optional
 
 from ice_core.metrics import EXEC_COMPLETED, EXEC_STARTED
 from ice_core.models import NodeType
-from ice_core.protocols.node import INode
+from ice_core.protocols.tool import ITool
 from ice_core.unified_registry import registry
 
 
@@ -84,7 +84,7 @@ class ToolExecutionService:
         coerced: Dict[str, Any] = {str(k): v for k, v in result.items()}
         return coerced
 
-    def _get_tool_instance(self, tool_name: str) -> Optional[INode]:
+    def _get_tool_instance(self, tool_name: str) -> Optional[ITool]:
         """Get tool instance from unified registry.
 
         Tries, in order:
@@ -96,20 +96,33 @@ class ToolExecutionService:
         try:
             from ice_core.unified_registry import get_tool_instance as _get_via_factory
 
-            return _get_via_factory(tool_name)  # type: ignore[return-value]
+            tool = _get_via_factory(tool_name)
+            return tool
         except Exception:
             pass
 
         # 2) Legacy: pre-instantiated instance lookup
-        tool_instance = registry._instances.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[no-any-return]
+        tool_instance = registry._instances.get(NodeType.TOOL, {}).get(tool_name)
         if tool_instance:
-            return tool_instance
+            from typing import cast as _cast
+
+            from ice_core.protocols.tool import ITool as _ITool
+
+            return _cast(
+                Optional[_ITool],
+                tool_instance if isinstance(tool_instance, object) else None,
+            )
 
         # 3) Legacy: class registry
         tool_class = registry._nodes.get(NodeType.TOOL, {}).get(tool_name)  # type: ignore[attr-defined]
         if tool_class:
             try:
-                return tool_class()  # type: ignore[no-any-return]
+                inst = tool_class()
+                from typing import cast as _cast
+
+                from ice_core.protocols.tool import ITool as _ITool
+
+                return _cast(Optional[_ITool], inst)
             except Exception:
                 return None
 

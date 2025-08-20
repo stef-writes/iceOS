@@ -276,10 +276,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                                     except Exception:
                                         continue
                                 if klass is not None:
-                                    from ice_core.protocols.node import INode
+                                    from ice_core.protocols.tool import ITool
 
-                                    def _factory(**kwargs: Any) -> INode:
-                                        return cast(INode, klass(**kwargs))
+                                    def _factory(**kwargs: Any) -> ITool:
+                                        return cast(ITool, klass(**kwargs))
 
                                     _reg_callable(d.name, _factory)
                             elif d.tool_factory_code:
@@ -298,10 +298,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
                                         except Exception:
                                             continue
                                 if fac is not None:
-                                    from ice_core.protocols.node import INode as _INode
+                                    from ice_core.protocols.tool import ITool as _ITool
 
                                     _reg_callable(
-                                        d.name, cast("Callable[..., _INode]", fac)
+                                        d.name, cast("Callable[..., _ITool]", fac)
                                     )
                     except Exception:
                         pass
