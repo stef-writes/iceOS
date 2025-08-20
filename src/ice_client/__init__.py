@@ -2,7 +2,7 @@
 
 This package intentionally contains *no* orchestrator logic – it is a thin
 network client that turns convenience method calls into HTTP / Server-Sent
-Event requests against the `/api/v1/mcp` REST facade exposed by the private
+Event requests against the `/api/mcp` REST facade exposed by the private
 orchestrator service.
 
 The API surface is deliberately minimal: only what Frosty and other end-user

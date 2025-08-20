@@ -5,6 +5,7 @@ from typing import Any, Dict
 from pydantic import Field
 
 from ice_core.base_tool import ToolBase
+from ice_core.registry import registry
 
 
 class WriterTool(ToolBase):
@@ -24,3 +25,7 @@ class WriterTool(ToolBase):
 
 def create_writer_tool(**kwargs: Any) -> WriterTool:
     return WriterTool(**kwargs)
+
+
+# Register for dev/test convenience
+registry.register_tool_factory("writer_tool", __name__ + ":create_writer_tool")

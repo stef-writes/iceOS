@@ -20,8 +20,8 @@ async def _run() -> bool:
     await index.upsert("kb", "doc1", v1, model_version="test")
     await index.upsert("kb", "doc2", v2, model_version="test")
 
-    # Query
-    res = await index.query("kb", q, k=2)
+    # Query – pass org_id to match default storage behavior (_default_org)
+    res = await index.query("kb", q, k=2, filter={"org_id": "_default_org"})
     assert res and res[0][0] == "doc1"
     return True
 

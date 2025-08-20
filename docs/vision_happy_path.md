@@ -208,9 +208,9 @@ Error surfaces | Compile error in Studio; or `TypeError` in executor if factory 
 
 ```python
 # Production API endpoints
-POST   /api/v1/mcp/blueprints/partial              # Create new partial
-PUT    /api/v1/mcp/blueprints/partial/{id}         # Add/remove/update nodes
-POST   /api/v1/mcp/blueprints/partial/{id}/finalize # Convert to executable
+POST   /api/mcp/blueprints/partial              # Create new partial
+PUT    /api/mcp/blueprints/partial/{id}         # Add/remove/update nodes
+POST   /api/mcp/blueprints/partial/{id}/finalize # Convert to executable
 
 # Live validation with AI suggestions
 partial._validate_incremental()

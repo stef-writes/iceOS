@@ -77,9 +77,18 @@ async def _insert_with_session(
     stmt = (
         text(
             """
-            INSERT INTO semantic_memory (scope, key, content_hash, model_version, meta_json, embedding, org_id, user_id)
-            VALUES (:scope, :key, :content_hash, :model_version, :meta_json, (:embedding)::vector, :org_id, :user_id)
-            ON CONFLICT (org_id, content_hash) DO NOTHING
+            INSERT INTO semantic_memory (
+                scope, key, content_hash, model_version, meta_json, embedding, org_id, user_id
+            )
+            VALUES (
+                :scope, :key, :content_hash, :model_version, :meta_json, (:embedding)::vector, :org_id, :user_id
+            )
+            ON CONFLICT (org_id, content_hash) DO UPDATE SET
+                key = EXCLUDED.key,
+                scope = EXCLUDED.scope,
+                model_version = EXCLUDED.model_version,
+                meta_json = COALESCE(semantic_memory.meta_json::jsonb, '{}'::jsonb) || EXCLUDED.meta_json::jsonb,
+                embedding = EXCLUDED.embedding
             RETURNING id
             """
         )
@@ -95,12 +104,27 @@ async def _insert_with_session(
             "model_version": model_version,
             "meta_json": meta_json,
             "embedding": qvec_literal,
-            "org_id": org_id,
-            "user_id": user_id,
+            "org_id": org_id or "_default_org",
+            "user_id": user_id or "_default_user",
         },
     )
     row = result.first()
     await session.commit()
+    try:
+        # Diagnostics: count rows for org/scope
+        cnt_res = await session.execute(
+            text(
+                "SELECT COUNT(*) FROM semantic_memory WHERE org_id = :org AND scope = :scope"
+            ),
+            {"org": org_id or "_default_org", "scope": scope},
+        )
+        cnt = int(cnt_res.scalar() or 0)
+        logger.debug(
+            "semantic_memory.insert_post_count",
+            extra={"org_id": org_id or "_default_org", "scope": scope, "count": cnt},
+        )
+    except Exception:
+        pass
     return int(row[0]) if row else None
 
 
@@ -120,43 +144,62 @@ async def search_semantic(
             "semantic_memory.search",
             extra={"scope": scope, "org_id": org_id, "limit": limit},
         )
-        stmt = text(
-            """
-                SELECT id, scope, key, content_hash, model_version, meta_json, created_at,
-                       1 - (embedding <=> (:qvec)::vector) AS cosine_similarity
-                FROM semantic_memory
-                WHERE (:scope IS NULL OR scope = :scope)
-                  AND (:org_id IS NULL OR org_id = :org_id)
-                  AND (:category IS NULL OR meta_json->> 'category' = :category)
-                  AND (:tags_filter IS NULL OR meta_json @> :tags_filter::jsonb)
-                  AND embedding IS NOT NULL
-                ORDER BY embedding <-> (:qvec)::vector
-                LIMIT :limit
-                """
-        ).bindparams(
+        # Build SQL conditionally to avoid NULL-typed parameter edge cases
+        where_clauses = [
+            "(:scope IS NULL OR scope = :scope)",
+            "(:org_id IS NULL OR org_id = :org_id)",
+            "embedding IS NOT NULL",
+        ]
+        params: Dict[str, Any] = {
+            "scope": scope,
+            "org_id": org_id,
+            "qvec": qvec_literal,
+            "limit": limit,
+        }
+        if category is not None:
+            where_clauses.append("meta_json->> 'category' = :category")
+            params["category"] = category
+        if tags:
+            where_clauses.append("CAST(meta_json AS JSONB) @> (:tags_filter)::JSONB")
+            params["tags_filter"] = {"tags": tags}
+
+        sql = f"""
+            SELECT id, scope, key, content_hash, model_version, meta_json, created_at,
+                   1 - (embedding <=> (:qvec)::vector) AS cosine_similarity
+            FROM semantic_memory
+            WHERE {' AND '.join(where_clauses)}
+            ORDER BY embedding <-> (:qvec)::vector
+            LIMIT :limit
+        """
+        stmt = text(sql).bindparams(
             bindparam("qvec", type_=sa.Text()),
             bindparam("scope", type_=sa.String()),
             bindparam("org_id", type_=sa.String()),
-            bindparam("category", type_=sa.String()),
-            bindparam("tags_filter", type_=JSONB),
             bindparam("limit", type_=sa.Integer()),
         )
-        tags_filter: Optional[Dict[str, List[str]]] = {"tags": tags} if tags else None
-        rows = await session.execute(
-            stmt,
-            {
-                "scope": scope,
-                "qvec": qvec_literal,
-                "limit": limit,
-                "org_id": org_id,
-                "category": category,
-                "tags_filter": tags_filter,
-            },
-        )
+        if category is not None:
+            stmt = stmt.bindparams(bindparam("category", type_=sa.String()))
+        if tags:
+            stmt = stmt.bindparams(bindparam("tags_filter", type_=JSONB))
+
+        rows = await session.execute(stmt, params)
+        fetched: list[Dict[str, Any]] = []
         for r in rows.mappings():
             row_dict = dict(r)
             created_at_val = row_dict.get("created_at")
             if created_at_val is not None and hasattr(created_at_val, "isoformat"):
                 row_dict["created_at"] = created_at_val.isoformat()
-            rows_out.append(row_dict)
+            fetched.append(row_dict)
+        rows_out.extend(fetched)
+        try:
+            logger.debug(
+                "semantic_memory.search_results",
+                extra={
+                    "scope": scope,
+                    "org_id": org_id,
+                    "returned": len(fetched),
+                },
+            )
+        except Exception:
+            pass
     return rows_out

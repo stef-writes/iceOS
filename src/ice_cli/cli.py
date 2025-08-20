@@ -307,8 +307,8 @@ def schemas_import(file_path: str, type: str) -> None:
             click.echo(f"   Blueprint ID: {blueprint.blueprint_id}")
             click.echo(f"   Schema Version: {blueprint.schema_version}")
             click.echo("\n💡 Next steps:")
-            click.echo("   - POST /api/v1/mcp/blueprints to register")
-            click.echo("   - POST /api/v1/mcp/runs to execute directly")
+            click.echo("   - POST /api/mcp/blueprints to register")
+            click.echo("   - POST /api/mcp/runs to execute directly")
         else:  # component
             component = ComponentDefinition(**data)
             click.echo("✅ Imported ComponentDefinition!")

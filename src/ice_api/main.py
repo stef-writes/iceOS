@@ -510,7 +510,7 @@ app.include_router(
 # Secure MCP REST router behind auth
 app.include_router(
     mcp_router,
-    prefix="/api/v1/mcp",
+    prefix="/api/mcp",
     tags=["mcp"],
     dependencies=[Depends(require_auth)],
 )
@@ -519,7 +519,7 @@ from ice_api.ws.executions import router as exec_ws_router
 
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
 app.include_router(exec_ws_router, prefix="/ws", tags=["websocket"])
-app.include_router(uploads_router, prefix="/api/v1/uploads", tags=["uploads"])
+app.include_router(uploads_router, prefix="", tags=["uploads"])
 
 if os.getenv("ICEOS_ENABLE_METRICS", "0") == "1":
     try:

@@ -74,22 +74,42 @@ async def upload_files(  # noqa: D401
         except Exception:
             base_meta = {}
 
+    # Ensure tools are available in ASGI test context (no lifespan)
+    if not registry.has_tool("ingestion_tool"):
+        try:
+            import os as _os
+
+            if _os.getenv("ICEOS_PLUGIN_FORCE_IMPORT", "0") == "1":
+                from pathlib import Path as _Path
+
+                manifest = (
+                    _Path(__file__).parents[3]
+                    / "packs/first_party_tools/plugins.v0.yaml"
+                )
+                _os.environ.setdefault("ICEOS_PLUGIN_MANIFESTS", str(manifest))
+                registry.load_plugins(str(manifest), allow_dynamic=True)
+                if not registry.has_tool("ingestion_tool"):
+                    # Force-import module to trigger on-import factory registration
+                    import importlib as _importlib
+
+                    _importlib.import_module("packs.first_party_tools.ingestion_tool")
+        except Exception:
+            pass
+
     tool = registry.get_tool_instance("ingestion_tool")
     items: List[UploadResponseItem] = []
     for uf in files:
         content = (await uf.read()).decode("utf-8", errors="ignore")
         metadata = {**base_meta, "filename": uf.filename}
         result = await tool.execute(
-            inputs={
-                "source_type": "text",
-                "source": content,
-                "scope": scope,
-                "chunk_size": chunk_size,
-                "overlap": overlap,
-                "metadata": metadata,
-                "org_id": org_id,
-                "user_id": user_id,
-            }
+            source_type="text",
+            source=content,
+            scope=scope,
+            chunk_size=chunk_size,
+            overlap=overlap,
+            metadata=metadata,
+            org_id=org_id,
+            user_id=user_id,
         )
         # ToolBase returns dict already; tolerate both dict and potential legacy shapes
         keys: List[str]

@@ -61,7 +61,7 @@ async def test_uploads_and_filtered_search() -> None:
                 },
             },
         }
-        r2 = await c.post("/api/v1/mcp/", json=payload, headers=headers)
+        r2 = await c.post("/api/mcp/", json=payload, headers=headers)
         assert r2.status_code == 200, r2.text
         data = r2.json()
         assert "result" in data

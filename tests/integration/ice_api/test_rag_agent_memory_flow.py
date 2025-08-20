@@ -74,5 +74,18 @@ async def test_rag_like_flow_with_memory_tools() -> None:
         assert r.status_code == 200
         result = r.json()["result"]
         content_items = result.get("content", [])
-        text_blob = content_items[0].get("text", "{}")
-        assert "doc.capital.paris" in text_blob
+        text_blob = content_items[0].get("text", "{}") if content_items else "{}"
+        import json as _json
+
+        try:
+            parsed = _json.loads(text_blob)
+        except Exception:
+            parsed = {}
+        rows = parsed.get("results")
+        if not rows and isinstance(parsed.get("output"), dict):
+            try:
+                only_val = next(iter(parsed["output"].values()))
+                rows = only_val.get("results") if isinstance(only_val, dict) else None
+            except Exception:
+                rows = None
+        assert rows and any(r.get("key") == "doc.capital.paris" for r in rows), parsed

@@ -570,9 +570,34 @@ class Registry(BaseModel):
                 )
             self._tool_factory_cache[name] = factory  # Cache for next call
         else:
-            from ice_core.exceptions import ToolFactoryResolutionError
+            # Fallback: if a Tool class is registered under this name, synthesize
+            # a callable factory on the fly to preserve class-first registrations.
+            try:
+                tool_cls = self._nodes.get(NodeType.TOOL, {}).get(name)  # type: ignore[index]
+            except Exception:
+                tool_cls = None
+            if tool_cls is not None:
+                try:
+                    from ice_core.base_tool import ToolBase as _ToolBase
 
-            raise ToolFactoryResolutionError(name, "factory not registered")
+                    if isinstance(tool_cls, type) and issubclass(tool_cls, _ToolBase):
+
+                        def _factory_bound(**kw: Any) -> INode:
+                            return tool_cls(**kw)  # type: ignore[return-value]
+
+                        # Cache synthesized factory for future calls
+                        self._tool_factory_cache[name] = _factory_bound  # type: ignore[assignment]
+                        factory = _factory_bound
+                    else:
+                        raise TypeError("registered tool class is invalid")
+                except Exception:
+                    from ice_core.exceptions import ToolFactoryResolutionError
+
+                    raise ToolFactoryResolutionError(name, "factory not registered")
+            else:
+                from ice_core.exceptions import ToolFactoryResolutionError
+
+                raise ToolFactoryResolutionError(name, "factory not registered")
 
         tool_instance = factory(**kwargs)
 

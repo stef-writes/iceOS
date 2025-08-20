@@ -115,7 +115,7 @@ class IngestionTool(ToolBase):
                 scope=args.scope,
                 key=key,
                 content_hash=hashlib.sha256(text.encode()).hexdigest(),
-                meta_json=args.metadata or {},
+                meta_json={**(args.metadata or {}), "content": text},
                 embedding_vec=vec,
                 org_id=args.org_id,
                 user_id=args.user_id,

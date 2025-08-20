@@ -66,7 +66,7 @@ class IceClient:
         Per-request timeout in seconds.  Defaults to 60 seconds.
     """
 
-    _API_PREFIX: Final[str] = "/api/v1/mcp"
+    _API_PREFIX: Final[str] = "/api/mcp"
 
     def __init__(
         self,

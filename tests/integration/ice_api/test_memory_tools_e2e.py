@@ -12,7 +12,7 @@ client = TestClient(app)
 
 
 def _auth_headers() -> Dict[str, str]:
-    return {"Authorization": "Bearer dev-token"}
+    return {"Authorization": "Bearer dev-token", "X-Org-Id": "o1", "X-User-Id": "u1"}
 
 
 def _ensure_plugins_loaded() -> None:
@@ -69,8 +69,6 @@ def test_memory_write_and_semantic_search_via_mcp() -> None:
                         "key": key,
                         "content": content,
                         "scope": "kb",
-                        "org_id": "o1",
-                        "user_id": "u1",
                     }
                 },
             },
@@ -85,20 +83,21 @@ def test_memory_write_and_semantic_search_via_mcp() -> None:
                 "inputs": {
                     "query": "france capital",
                     "scope": "kb",
-                    "org_id": "o1",
                     "limit": 5,
                 }
             },
         },
     )
 
-    # The MCP response wraps tool output as text content; parse JSON if present
-    # Our MCP handler returns {"content": [{"text": json.dumps(output)}]}
+    # Parse JSON text and tolerate both wrapped and unwrapped tool outputs
     content_items = result.get("content", [])
     assert isinstance(content_items, list) and content_items, result
     text = content_items[0].get("text", "{}")
     payload = json.loads(text)
     rows = payload.get("results") or payload.get("result") or []
+    if not rows and isinstance(payload.get("output"), dict):
+        only_val = next(iter(payload["output"].values()), {})
+        rows = only_val.get("results") if isinstance(only_val, dict) else []
     assert isinstance(rows, list) and rows, payload
     top = rows[0]
     assert top.get("key") == "doc1"

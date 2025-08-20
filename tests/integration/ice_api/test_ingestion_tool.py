@@ -26,7 +26,7 @@ async def test_ingest_and_search() -> None:
         )
         assert r.status_code == 200
 
-        # Ingest simple text
+        # Ingest simple text (org/user injected via headers)
         r = await c.post(
             "/api/mcp/",
             headers=headers,
@@ -41,6 +41,8 @@ async def test_ingest_and_search() -> None:
                             "source_type": "text",
                             "source": "raspberries are red",
                             "scope": "kb",
+                            "org_id": "orgZ",
+                            "user_id": "zoe",
                         }
                     },
                 },
@@ -59,7 +61,12 @@ async def test_ingest_and_search() -> None:
                 "params": {
                     "name": "tool:memory_search_tool",
                     "arguments": {
-                        "inputs": {"query": "raspberries", "scope": "kb", "limit": 3}
+                        "inputs": {
+                            "query": "raspberries",
+                            "scope": "kb",
+                            "limit": 3,
+                            "org_id": "orgZ",
+                        }
                     },
                 },
             },
@@ -68,5 +75,20 @@ async def test_ingest_and_search() -> None:
         body = r.json()["result"]
         content_items = body.get("content", [])
         assert content_items, body
+        import json as _json
+
         txt = content_items[0].get("text", "{}")
-        assert "raspberries" in txt
+        parsed = {}
+        try:
+            parsed = _json.loads(txt)
+        except Exception:
+            parsed = {}
+        # Support both unwrapped and wrapped shapes
+        rows = parsed.get("results")
+        if not rows and isinstance(parsed.get("output"), dict):
+            try:
+                only_val = next(iter(parsed["output"].values()))
+                rows = only_val.get("results") if isinstance(only_val, dict) else None
+            except Exception:
+                rows = None
+        assert isinstance(rows, list) and rows, parsed

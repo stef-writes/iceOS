@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from pydantic import Field
 
 from ice_core.base_tool import ToolBase
+from ice_core.registry import registry
 
 
 class MemorySearchTool(ToolBase):
@@ -54,3 +55,9 @@ class MemorySearchTool(ToolBase):
 
 def create_memory_search_tool(**kwargs: Any) -> MemorySearchTool:
     return MemorySearchTool(**kwargs)
+
+
+# Register factory for dev/test convenience so ASGI tests see the tool
+registry.register_tool_factory(
+    "memory_search_tool", __name__ + ":create_memory_search_tool"
+)

@@ -44,7 +44,7 @@ async def register_tool(
         "auto_register": True,
     }
     response = await client.post(
-        "http://localhost:8000/api/v1/mcp/components/validate",
+        "http://localhost:8000/api/mcp/components/validate",
         json=payload,
         timeout=None,
     )

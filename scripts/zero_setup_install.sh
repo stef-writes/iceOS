@@ -85,7 +85,7 @@ SHOW_TOKEN=$(echo "$RAW_TOKEN" | sed -E 's/(.{0,2}).*(.{4})/\1****\2/')
 echo "  Token  : ${SHOW_TOKEN}  (full value in .env)"
 echo "  API    : ${API_URL}"
 echo "  Docs   : ${API_URL}/docs"
-echo "  SSE    : MCP runs at /api/v1/mcp/runs + /runs/{id}/events"
+echo "  SSE    : MCP runs at /api/mcp/runs + /runs/{id}/events"
 echo ""
 echo "Examples:"
 echo "  curl -s -H 'Authorization: Bearer $(grep '^ICE_API_TOKEN=' .env | cut -d= -f2)' ${API_URL}/api/v1/meta/registry/health"

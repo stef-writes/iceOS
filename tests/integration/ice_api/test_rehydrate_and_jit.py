@@ -6,7 +6,7 @@ import os
 import httpx
 import pytest
 
-BASE = "http://127.0.0.1:8000/api/v1/mcp"
+BASE = "http://127.0.0.1:8000/api/mcp"
 AUTH = {"Authorization": "Bearer dev-token"}
 
 

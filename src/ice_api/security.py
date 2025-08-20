@@ -6,6 +6,7 @@ development default of ``dev-token``.
 
 from __future__ import annotations
 
+import asyncio as _asyncio
 import datetime as _dt
 import hashlib
 import logging
@@ -25,7 +26,7 @@ def _expected_token() -> str:
     return os.getenv("ICE_API_TOKEN", "dev-token").strip()
 
 
-def require_auth(authorization: str = Header(...)) -> str:  # noqa: D401
+async def require_auth(authorization: str = Header(...)) -> str:  # noqa: D401
     """FastAPI dependency enforcing bearer token."""
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
@@ -34,7 +35,7 @@ def require_auth(authorization: str = Header(...)) -> str:  # noqa: D401
         return token
     # Allow DB-backed tokens as well
     try:
-        resolved = _resolve_token_sync(token)
+        resolved = await resolve_token_identity(token)
     except Exception:
         resolved = None
     if resolved is None:
@@ -110,12 +111,16 @@ def get_request_identity(request: Request) -> tuple[str | None, str | None]:  # 
     auth = request.headers.get("Authorization")
     if auth and auth.startswith("Bearer "):
         token = auth.removeprefix("Bearer ").strip()
+        # Best-effort sync resolution only when not in a running loop
         try:
-            rec = _resolve_token_sync(token)
-            if rec is not None:
-                return rec.get("org_id"), rec.get("user_id")
-        except Exception:
-            pass
+            _asyncio.get_running_loop()
+        except RuntimeError:
+            try:
+                rec = _resolve_token_sync(token)
+                if rec is not None:
+                    return rec.get("org_id"), rec.get("user_id")
+            except Exception:
+                pass
     org_id = request.headers.get("X-Org-Id") or os.getenv("ICE_DEFAULT_ORG_ID")
     user_id = request.headers.get("X-User-Id") or os.getenv("ICE_DEFAULT_USER_ID")
     return org_id, user_id

@@ -30,14 +30,14 @@ def test_finalize_blocked_when_estimate_exceeds_budget():
     with _env(ORG_BUDGET_USD="0.00"):
         # Create partial and attempt finalize without lock first (expect 428)
         res = client.post(
-            "/api/v1/mcp/blueprints/partial",
+            "/api/mcp/blueprints/partial",
             headers={"Authorization": "Bearer dev-token"},
         )
         assert res.status_code == 200
         pb_id = res.json()["blueprint_id"]
 
         get_pb = client.get(
-            f"/api/v1/mcp/blueprints/partial/{pb_id}",
+            f"/api/mcp/blueprints/partial/{pb_id}",
             headers={"Authorization": "Bearer dev-token"},
         )
         lock = get_pb.headers.get("X-Version-Lock")
@@ -45,7 +45,7 @@ def test_finalize_blocked_when_estimate_exceeds_budget():
 
     # Attempt finalize with lock – should 400 because partial has no nodes
     fin = client.post(
-        f"/api/v1/mcp/blueprints/partial/{pb_id}/finalize",
+        f"/api/mcp/blueprints/partial/{pb_id}/finalize",
         headers={"Authorization": "Bearer dev-token", "X-Version-Lock": lock},
     )
     assert fin.status_code == 400

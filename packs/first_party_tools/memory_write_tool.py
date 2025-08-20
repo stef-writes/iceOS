@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from pydantic import Field
 
 from ice_core.base_tool import ToolBase
+from ice_core.registry import registry
 
 
 class MemoryWriteTool(ToolBase):
@@ -55,3 +56,9 @@ class MemoryWriteTool(ToolBase):
 
 def create_memory_write_tool(**kwargs: Any) -> MemoryWriteTool:
     return MemoryWriteTool(**kwargs)
+
+
+# Register for dev/test convenience
+registry.register_tool_factory(
+    "memory_write_tool", __name__ + ":create_memory_write_tool"
+)

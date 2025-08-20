@@ -254,6 +254,40 @@ async def mcp_jsonrpc_handler(request: Request) -> Union[MCPResponse, Dict[str, 
                 "error": {"code": -32700, "message": "Parse error", "data": str(e)},
             }
 
+        # Ensure baseline first-party tools exist when running without app lifespan
+        try:
+            import os as _os
+
+            if _os.getenv("ICEOS_PLUGIN_FORCE_IMPORT", "0") == "1":
+                if not (
+                    registry.has_tool("ingestion_tool")
+                    and registry.has_tool("memory_search_tool")
+                ):
+                    import importlib as _importlib
+                    from pathlib import Path as _Path
+
+                    manifest = (
+                        _Path(__file__).parents[3]
+                        / "packs/first_party_tools/plugins.v0.yaml"
+                    )
+                    _os.environ.setdefault("ICEOS_PLUGIN_MANIFESTS", str(manifest))
+                    registry.load_plugins(str(manifest), allow_dynamic=True)
+                    # As a last resort, force-import the tool modules which register factories on import
+                    if not registry.has_tool("ingestion_tool"):
+                        _importlib.import_module(
+                            "packs.first_party_tools.ingestion_tool"
+                        )
+                    if not registry.has_tool("memory_search_tool"):
+                        _importlib.import_module(
+                            "packs.first_party_tools.memory_search_tool"
+                        )
+                    if not registry.has_tool("memory_write_tool"):
+                        _importlib.import_module(
+                            "packs.first_party_tools.memory_write_tool"
+                        )
+        except Exception:
+            pass
+
         # Validate MCP request structure
         try:
             mcp_request = MCPRequest(**body)
@@ -853,6 +887,8 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
             nodes=[node_spec],
         )
 
+        # For tool nodes (including ingestion/memory tools), pass inputs flattened
+        # so ToolBase validation sees positional kwargs rather than nested dict
         run_request = RunRequest(blueprint=blueprint)
         run_ack = await start_run(run_request)
 
@@ -880,6 +916,21 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
         # Format result according to MCP spec
         if result.get("status") == "completed":
             output = result.get("output", {})
+            # Some runtimes return a NodeExecutionResult-like dict at the top level
+            # e.g. { execution_time, error, metadata, output: { node_id: {..tool dict.. } } }
+            if (
+                isinstance(output, dict)
+                and "output" in output
+                and any(k in output for k in ("execution_time", "metadata", "error"))
+            ):
+                inner = output.get("output")
+                if isinstance(inner, dict):
+                    output = inner
+            # Unwrap single-node tool outputs to the tool's dict for a stable contract
+            if isinstance(output, dict) and len(output) == 1:
+                only_val = list(output.values())[0]
+                if isinstance(only_val, dict):
+                    output = only_val
             return {
                 "content": [
                     {"type": "text", "text": json.dumps(output, indent=2, default=str)}

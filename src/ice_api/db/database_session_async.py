@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import os
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, Dict, Optional
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -10,9 +11,10 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
-_engine: Optional[AsyncEngine] = None
-_session_factory: Optional[async_sessionmaker[AsyncSession]] = None
+_engines: Dict[int, AsyncEngine] = {}
+_session_factories: Dict[int, async_sessionmaker[AsyncSession]] = {}
 
 
 def _get_database_url() -> Optional[str]:
@@ -25,32 +27,42 @@ def _get_database_url() -> Optional[str]:
     return url
 
 
+def _loop_key() -> int:
+    try:
+        return id(asyncio.get_running_loop())
+    except RuntimeError:
+        # No running loop; treat as singleton context
+        return 0
+
+
 def get_engine() -> Optional[AsyncEngine]:
-    global _engine
-    if _engine is not None:
-        return _engine
+    key = _loop_key()
+    if key in _engines:
+        return _engines[key]
     url = _get_database_url()
     if not url:
         return None
-    _engine = create_async_engine(
+    # Use NullPool to avoid cross-event-loop issues in async tests and ASGI transports
+    engine = create_async_engine(
         url,
         echo=os.getenv("DB_ECHO", "0") == "1",
-        pool_size=int(os.getenv("DB_POOL_SIZE", "5")),
-        max_overflow=int(os.getenv("DB_MAX_OVERFLOW", "10")),
         pool_pre_ping=True,
+        poolclass=NullPool,
     )
-    return _engine
+    _engines[key] = engine
+    return engine
 
 
 def get_session_factory() -> Optional[async_sessionmaker[AsyncSession]]:
-    global _session_factory
-    if _session_factory is not None:
-        return _session_factory
+    key = _loop_key()
+    if key in _session_factories:
+        return _session_factories[key]
     engine = get_engine()
     if engine is None:
         return None
-    _session_factory = async_sessionmaker(engine, expire_on_commit=False)
-    return _session_factory
+    factory = async_sessionmaker(engine, expire_on_commit=False)
+    _session_factories[key] = factory
+    return factory
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:

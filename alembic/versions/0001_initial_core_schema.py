@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Sequence
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql as psql
 
 from alembic import op  # type: ignore
 
@@ -115,7 +116,7 @@ def upgrade() -> None:
         sa.Column("key", sa.String(length=256), nullable=False),
         sa.Column("content_hash", sa.String(length=64), nullable=False),
         sa.Column("model_version", sa.String(length=64), nullable=True),
-        sa.Column("meta_json", sa.JSON(), nullable=True),
+        sa.Column("meta_json", psql.JSONB(), nullable=True),
         sa.Column("org_id", sa.String(length=64), nullable=False),
         sa.Column("user_id", sa.String(length=64), nullable=False),
         sa.Column(

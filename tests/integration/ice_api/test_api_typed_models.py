@@ -96,11 +96,10 @@ async def test_blueprint_typed_get_patch_put_clone() -> None:
                 }
             ]
         }
-        r = await _post_json(
-            c,
+        r = await c.patch(
             f"/api/v1/blueprints/{bp_id}",
-            patch_payload,
-            {**headers, "X-Version-Lock": server_lock},
+            headers={**headers, "X-Version-Lock": server_lock},
+            json=patch_payload,
         )
         assert r.status_code == 200, r.text
         patch_body = r.json()

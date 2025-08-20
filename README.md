@@ -45,7 +45,7 @@ This script:
 
 Single-turn chat with a data-first agent definition:
 
-POST `/api/v1/mcp/chat/{agent_name}`
+POST `/api/mcp/chat/{agent_name}`
 
 Body:
 
@@ -312,7 +312,7 @@ Notes:
 - Integration runner uses fixed pytest options: `-p no:xdist --timeout=300 -q`.
 - Canonical API routes use trailing slashes for collections (e.g. `/api/v1/executions/`).
 - Execution and blueprint endpoints return typed Pydantic models.
-- RAG via HTTP: call `/api/v1/mcp/` and include `Authorization: Bearer <token>`; optionally set `X-Org-Id`/`X-User-Id`.
+- RAG via HTTP: call `/api/mcp/` and include `Authorization: Bearer <token>`; optionally set `X-Org-Id`/`X-User-Id`.
 
 Runner behavior:
 - The itest container executes `scripts/itest_runner.sh`, which runs suites sequentially to reduce peak memory usage.
@@ -398,7 +398,7 @@ Below are the core stages a user goes through to build a robust system, with the
 
 3) Validate/Compile (MCP compiler tier)
    - Goal: convert partial blueprints into validated, frozen specs; catch errors early.
-   - API (MCP REST): `POST /api/v1/mcp/components/validate`, partial blueprint routes, `finalize`
+   - API (MCP REST): `POST /api/mcp/components/validate`, partial blueprint routes, `finalize`
    - API (MCP JSON-RPC): `POST /api/mcp` methods: `initialize`, `components/validate`, `prompts/*`, `tools/*`, `network.execute`
    - CLI: `ice build` (from DSL/YAML), `ice push` (upload JSON)
 
@@ -452,11 +452,11 @@ Key endpoints
 - `POST /api/v1/blueprints/` (X-Version-Lock: __new__) → id + lock
 - `GET /api/v1/blueprints/{id}` → body + X-Version-Lock
 - `PATCH|PUT|DELETE /api/v1/blueprints/{id}` (optimistic locking)
-- `POST /api/v1/mcp/blueprints/partial` → partial blueprint id
-- `GET /api/v1/mcp/blueprints/partial/{id}` → body + X-Version-Lock
-- `PUT /api/v1/mcp/blueprints/partial/{id}` (requires X-Version-Lock)
-- `POST /api/v1/mcp/blueprints/partial/{id}/finalize` (requires X-Version-Lock)
-- `POST /api/v1/mcp/blueprints/partial/{id}/suggest` (read-only; `commit=true` requires X-Version-Lock)
+- `POST /api/mcp/blueprints/partial` → partial blueprint id
+- `GET /api/mcp/blueprints/partial/{id}` → body + X-Version-Lock
+- `PUT /api/mcp/blueprints/partial/{id}` (requires X-Version-Lock)
+- `POST /api/mcp/blueprints/partial/{id}/finalize` (requires X-Version-Lock)
+- `POST /api/mcp/blueprints/partial/{id}/suggest` (read-only; `commit=true` requires X-Version-Lock)
 - `POST /api/v1/executions/` → execution_id
 - `GET /api/v1/executions/{execution_id}`
 - `GET /api/v1/executions` (list)

@@ -127,6 +127,15 @@ async def run_alembic_migrations_if_enabled() -> None:
             )
         return
     try:
+        # In some minimal test contexts (e.g., TestClient in test image), alembic.ini
+        # is not present. Skip migrations gracefully in that case.
+        import pathlib as _pathlib
+
+        if not _pathlib.Path("alembic.ini").exists():
+            logger.warning(
+                "alembic.ini not found – skipping migrations in this context"
+            )
+            return
         from alembic import command  # type: ignore
         from alembic.config import Config  # type: ignore
 
