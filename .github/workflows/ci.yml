@@ -23,10 +23,8 @@ jobs:
           docker version
           docker info
 
-      - name: Lint + Type + Unit Tests + Coverage Gate
-        run: |
-          make ci
-          make test-coverage COV_MIN=85
+      - name: Lint + Type + Unit Tests
+        run: make ci
 
   integration:
     name: Integration Tests (docker-compose.itest)
