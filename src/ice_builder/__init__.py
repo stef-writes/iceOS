@@ -10,7 +10,7 @@ complete the refactor.
 
 import os
 from contextlib import suppress
-from importlib import metadata
+from importlib import metadata as _metadata
 from typing import List as _List
 
 # ---------------------------------------------------------------------------
@@ -50,4 +50,10 @@ with suppress(ImportError):
 
 _public_all: _List[str] = globals().get("__all__", [])  # type: ignore[arg-type]
 __all__: _List[str] = _public_all + _dsl.__all__ + __all_extra
-__version__ = metadata.version("iceos")
+# Resolve package version if distribution metadata is available; fall back to a
+# neutral default to avoid import-time failures in non-installed environments
+# (e.g., dockerized test image running from source).
+try:  # pragma: no cover - trivial guard
+    __version__ = _metadata.version("iceos")
+except Exception:
+    __version__ = "0.0.0"

@@ -66,3 +66,40 @@ jobs:
 
       - name: Run docker compose itest
         run: make ci-integration
+
+  full_collection:
+    name: Full Test Collection (no ignores)
+    needs: unit_and_type
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build test image
+        run: docker build --target test -t iceos-test .
+      - name: Collect all tests
+        run: docker run --rm -t iceos-test pytest -q --collect-only -o addopts="" tests
+
+  wasm_optional:
+    name: WASM Tests (optional)
+    needs: unit_and_type
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run wasm suite
+        run: make ci-wasm
+        continue-on-error: true
+
+  stress_optional:
+    name: Stress Tests (resource sandbox, optional)
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Run stress suite
+        run: |
+          IMAGE_REPO=local IMAGE_TAG=dev ICE_SKIP_STRESS=0 \
+          docker compose -f docker-compose.itest.yml run --rm itest \
+            bash -lc 'pytest -c config/testing/pytest.ini -q tests/integration/ice_orchestrator/test_resource_sandbox.py'
+        continue-on-error: true

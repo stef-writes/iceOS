@@ -14,6 +14,12 @@ echo "[itest] ICE_SKIP_STRESS=${SKIP_STRESS}"
 echo "[itest] Running ice_api suite..."
 pytest "${PYTEST_COMMON[@]}" tests/integration/ice_api
 
+echo "[itest] Running ice_core suite..."
+pytest "${PYTEST_COMMON[@]}" tests/integration/ice_core
+
+echo "[itest] Running root integration tests..."
+pytest "${PYTEST_COMMON[@]}" tests/integration/test_working_schema_validation.py
+
 echo "[itest] Running ice_orchestrator suite (per-file)..."
 shopt -s nullglob
 for f in tests/integration/ice_orchestrator/test_*.py; do
