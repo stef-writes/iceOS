@@ -15,8 +15,14 @@ from ice_api.services.semantic_memory_repository import insert_semantic_entry
 router = APIRouter(prefix="/api/v1/library", dependencies=[Depends(require_auth)])
 
 
+MAX_CONTENT_BYTES = 1_000_000
+ALLOWED_MIMES = {"text/plain", "text/markdown", "application/json"}
+
+
 class LibraryAssetIn(BaseModel):
-    label: str = Field(..., description="Human label, unique per user")
+    label: str = Field(
+        ..., description="Human label, unique per user", min_length=1, max_length=128
+    )
     content: str = Field(..., description="Text content to store")
     mime: Optional[str] = Field(None, description="MIME type, e.g., text/plain")
     scope: str = Field("library", description="Logical scope, defaults to 'library'")
@@ -46,7 +52,12 @@ async def add_asset(payload: LibraryAssetIn) -> Dict[str, Any]:
     - Key format: asset:{user_id}:{label}
     """
 
-    content_hash = sha256(payload.content.encode("utf-8")).hexdigest()
+    raw = payload.content.encode("utf-8")
+    if len(raw) > MAX_CONTENT_BYTES:
+        raise HTTPException(status_code=413, detail="Content too large")
+    if payload.mime and payload.mime not in ALLOWED_MIMES:
+        raise HTTPException(status_code=415, detail="Unsupported MIME type")
+    content_hash = sha256(raw).hexdigest()
     key = _asset_key(payload.user_id, payload.label)
     meta: Dict[str, Any] = {
         "content": payload.content,

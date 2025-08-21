@@ -2,8 +2,6 @@ services:
   redis:
     image: redis:7.2-alpine
     command: ["redis-server", "--save", "", "--appendonly", "yes"]
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -18,8 +16,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-iceos}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iceos}
       POSTGRES_DB: ${POSTGRES_DB:-iceos}
-    ports:
-      - "5432:5432"
     volumes:
       - pg_release:/var/lib/postgresql/data
     healthcheck:
@@ -29,7 +25,11 @@ services:
       retries: 30
 
   api:
-    image: ghcr.io/yourorg/ice-api:${IMAGE_TAG:-v0.1.0}
+    image: iceos-api:release
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
     depends_on:
       redis:
         condition: service_started
@@ -48,6 +48,10 @@ services:
       ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-1}
       ICEOS_REQUIRE_DB: ${ICEOS_REQUIRE_DB:-1}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-iceos}:${POSTGRES_PASSWORD:-iceos}@postgres:5432/${POSTGRES_DB:-iceos}
+      # Security headers
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      ALLOW_CORS_WILDCARD: ${ALLOW_CORS_WILDCARD:-0}
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS:-localhost,127.0.0.1}
       # Optional telemetry (enable only if collector present)
       # OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       # OTEL_SERVICE_NAME: ice-api
