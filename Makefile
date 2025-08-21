@@ -146,13 +146,21 @@ dev-zero:
 # ---------------------------------------------------------------------------
 # One-command RAG demo (compose up → ingest → query) -------------------------
 # ---------------------------------------------------------------------------
-.PHONY: demo-up demo-wait demo-ingest demo-query demo-rag
+.PHONY: demo-reset demo-up demo-wait demo-ingest demo-query demo-rag
 
 # Default demo query (override with: make demo-query Q="...your question...")
 Q ?= Give me a two-sentence professional summary for Stefano.
 
+demo-reset:
+	docker compose down -v || true
+
 demo-up:
-	docker compose up -d --remove-orphans
+	# Start DB and Redis first
+	docker compose up -d postgres redis --remove-orphans
+	# Run one-shot migrations to head
+	docker compose run --rm migrate
+	# Start API after successful migrations
+	docker compose up -d api
 
 demo-wait:
 	@echo "[demo] Waiting for API readiness at http://localhost:8000/readyz ..."; \
