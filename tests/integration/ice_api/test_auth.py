@@ -11,9 +11,9 @@ def test_auth_rejects_without_flag(monkeypatch):
     This asserts the hardened auth default: dev-token is not accepted unless
     ICE_ALLOW_DEV_TOKEN=1.
     """
-    # Ensure the environment disables dev token
+    # Ensure the environment disables dev token and no explicit API token is set
     monkeypatch.setenv("ICE_ALLOW_DEV_TOKEN", "0")
-    # No ICE_API_TOKEN provided in env here
+    monkeypatch.delenv("ICE_API_TOKEN", raising=False)
     client = TestClient(app)
     resp = client.get(
         "/api/v1/meta/version", headers={"Authorization": "Bearer dev-token"}
