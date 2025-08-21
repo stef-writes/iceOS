@@ -77,7 +77,7 @@ jobs:
       - name: Build test image
         run: docker build --target test -t iceos-test .
       - name: Collect all tests
-        run: docker run --rm -t iceos-test pytest -q --collect-only -o addopts="" tests
+        run: docker run --rm -t iceos-test pytest -c config/testing/pytest.ini -q --collect-only -o addopts="" tests
 
   wasm_optional:
     name: WASM Tests (optional)
