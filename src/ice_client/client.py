@@ -406,6 +406,7 @@ class IceClient:
         blueprint_id: str | None = None,
         blueprint: Blueprint | Mapping[str, Any] | None = None,
         inputs: Mapping[str, Any] | None = None,
+        wait_seconds: float | None = None,
     ) -> str:
         """Start an execution. If a blueprint dict/model is provided, it will be created first."""
         bp_id = blueprint_id
@@ -426,6 +427,8 @@ class IceClient:
             "blueprint_id": bp_id,
             "inputs": dict(inputs or {}),
         }
+        if wait_seconds is not None:
+            body["wait_seconds"] = wait_seconds
         resp = await self._client.post(url, json=body)
         _raise_for_status(resp)
         data: Any = resp.json()

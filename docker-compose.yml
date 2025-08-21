@@ -37,6 +37,8 @@ services:
       - "8000:8000"
     volumes:
       - api_data:/app/data
+      - ./examples:/app/examples:ro
+      - ./scripts:/app/scripts:ro
     env_file:
       - config/dev.env.example
     environment:
@@ -52,8 +54,11 @@ services:
       ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
       ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Demo-friendly rate limits (dev only)
+      ICE_RATE_WINDOW_SECONDS: ${ICE_RATE_WINDOW_SECONDS:-1.0}
+      ICE_RATE_MAX_REQUESTS: ${ICE_RATE_MAX_REQUESTS:-1000}
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://iceos:iceos@postgres:5432/iceos}
-      ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-0}
+      ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-1}
       ICEOS_REQUIRE_DB: ${ICEOS_REQUIRE_DB:-1}
       ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/packs/first_party_tools/plugins.v0.yaml}
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}

@@ -136,8 +136,9 @@ async def main() -> None:
                 "style": ns.style,
                 "tone": ns.tone,
             },
+            wait_seconds=30.0,
         )
-        final = await client.poll_until_complete(exec_id, timeout=60)
+        final = await client.poll_until_complete(exec_id, timeout=90)
         out: Mapping[str, Any] = final
 
         if ns.as_json:
