@@ -70,7 +70,7 @@ test:
 			-e ICE_ENABLE_INLINE_CODE=1 \
 			-e ICE_COMPUTE_GRAPH_CENTRALITY=1 \
 			-e ICE_STRICT_SERIALIZATION=1 \
-			iceos-test pytest -c config/testing/pytest.ini tests/unit -q --ignore=tests/unit/ice_builder --ignore=tests/unit/ice_cli
+			iceos-test pytest -c config/testing/pytest.ini -q -m unit
 
 # Coverage gate target (unit tests with coverage)
 test-coverage:
@@ -79,7 +79,7 @@ test-coverage:
 			-e ICE_ENABLE_INLINE_CODE=1 \
 			-e ICE_COMPUTE_GRAPH_CENTRALITY=1 \
 			-e ICE_STRICT_SERIALIZATION=1 \
-			iceos-test pytest -c config/testing/pytest.ini --cov=src --cov-report=term-missing --cov-fail-under=$(COV_MIN) tests/unit -q --ignore=tests/unit/ice_builder --ignore=tests/unit/ice_cli
+			iceos-test pytest -c config/testing/pytest.ini --cov=src --cov-report=term-missing --cov-fail-under=$(COV_MIN) -q -m unit
 
 ci: lint-docker lock-check-docker type-check test
 
