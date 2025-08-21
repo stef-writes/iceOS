@@ -142,3 +142,38 @@ fresh-env: clean-caches precommit-clean
 .PHONY: dev-zero
 dev-zero:
 	USE_FAKE_REDIS=1 PYTHONPATH=src uvicorn ice_api.main:app --port 8000 --reload
+
+# ---------------------------------------------------------------------------
+# One-command RAG demo (compose up → ingest → query) -------------------------
+# ---------------------------------------------------------------------------
+.PHONY: demo-up demo-wait demo-ingest demo-query demo-rag
+
+# Default demo query (override with: make demo-query Q="...your question...")
+Q ?= Give me a two-sentence professional summary for Stefano.
+
+demo-up:
+	docker compose up -d --remove-orphans
+
+demo-wait:
+	@echo "[demo] Waiting for API readiness at http://localhost:8000/readyz ..."; \
+	for i in $$(seq 1 60); do \
+	  if curl -fsS http://localhost:8000/readyz >/dev/null 2>&1; then \
+	    echo "[demo] API ready"; exit 0; \
+	  fi; \
+	  sleep 1; \
+	done; \
+	echo "[demo] API did not become ready in time" >&2; exit 1
+
+demo-ingest:
+	@echo "[demo] Ingesting example assets into scope 'kb'..."; \
+	docker compose exec api python /app/scripts/examples/run_rag_chat.py \
+	  --files /app/examples/user_assets/resume.txt,/app/examples/user_assets/cover_letter.txt,/app/examples/user_assets/website.txt \
+	  --mode ingest
+
+demo-query:
+	@echo "[demo] Running demo query: $(Q)"; \
+	docker compose exec -e OPENAI_API_KEY=$$OPENAI_API_KEY api \
+	  python /app/scripts/examples/run_rag_chat.py \
+	  --query "$(Q)" --mode query
+
+demo-rag: demo-up demo-wait demo-ingest demo-query
