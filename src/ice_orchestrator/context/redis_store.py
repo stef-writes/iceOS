@@ -36,6 +36,7 @@ class _HashClient(Protocol):
 
 
 logger = logging.getLogger(__name__)
+_DISABLE_BG_LOOP = os.getenv("DISABLE_REDIS_BG_LOOP", "0") == "1"
 
 
 class RedisContextStore(BaseContextStore):
@@ -58,7 +59,9 @@ class RedisContextStore(BaseContextStore):
         self._redis: _HashClient = cast(_HashClient, get_redis())
 
         # Ensure background loop exists for resolving awaitables from sync path
-        _ensure_bg_loop()
+        # Allow disabling in constrained test environments
+        if not _DISABLE_BG_LOOP:
+            _ensure_bg_loop()
 
     def get(self, node_id: str) -> Any:  # noqa: D401
         """Retrieve context data for a node."""
@@ -141,6 +144,13 @@ def _ensure_bg_loop() -> asyncio.AbstractEventLoop:
 
 def _resolve(v: Union[T, Awaitable[T]]) -> T:
     if asyncio.iscoroutine(v):
+        if _DISABLE_BG_LOOP:
+            # Fast path for test envs: if not inside a running loop, run synchronously
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                return cast(T, asyncio.run(v))
+            # If a loop is already running in this thread, fall back to bg loop
         loop = _ensure_bg_loop()
         fut = asyncio.run_coroutine_threadsafe(v, loop)
         return cast(T, fut.result())

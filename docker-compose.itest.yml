@@ -56,7 +56,7 @@ services:
       REDIS_DECODE_RESPONSES: ${REDIS_DECODE_RESPONSES:-1}
       REDIS_SOCKET_TIMEOUT: ${REDIS_SOCKET_TIMEOUT:-5.0}
       REDIS_SOCKET_CONNECT_TIMEOUT: ${REDIS_SOCKET_CONNECT_TIMEOUT:-3.0}
-      REDIS_MAX_CONNECTIONS: ${REDIS_MAX_CONNECTIONS:-100}
+      REDIS_MAX_CONNECTIONS: ${REDIS_MAX_CONNECTIONS:-20}
       CHAT_TTL_SECONDS: ${CHAT_TTL_SECONDS:-2592000}
       EXECUTION_TTL_SECONDS: ${EXECUTION_TTL_SECONDS:-604800}
       ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
@@ -72,6 +72,7 @@ services:
       ICEOS_EMBEDDINGS_PROVIDER: ${ICEOS_EMBEDDINGS_PROVIDER:-hash}
       # Disable seccomp-based syscall filtering in integration tests to avoid flakiness under constrained runners
       ICE_SKIP_STRESS: ${ICE_SKIP_STRESS:-"1"}
+      DISABLE_REDIS_BG_LOOP: ${DISABLE_REDIS_BG_LOOP:-"1"}
       ICE_DISABLE_SECCOMP: ${ICE_DISABLE_SECCOMP:-"1"}
     command:
       ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
