@@ -10,7 +10,7 @@ from typing import Any, Mapping
 import httpx
 
 from ice_client.client import IceClient
-from packs.first_party_tools.rag_blueprint_templates import rag_chat_blueprint
+from packs.first_party_agents.rag_agent import rag_chat_blueprint_agent
 
 
 def _args() -> argparse.Namespace:
@@ -117,8 +117,8 @@ async def main() -> None:
             print("Dry run: no query executed.")
             return
 
-        # Build RAG chat blueprint
-        bp = rag_chat_blueprint(
+        # Build RAG chat blueprint via first-party agent
+        bp = rag_chat_blueprint_agent(
             model=ns.model,
             scope=ns.scope,
             top_k=ns.top_k,
