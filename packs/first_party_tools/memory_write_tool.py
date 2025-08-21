@@ -29,7 +29,7 @@ class MemoryWriteTool(ToolBase):
 
         embedder = get_embedder_from_env()
         embedding_vec = await embedder.embed(content)
-        await insert_semantic_entry(
+        row_id = await insert_semantic_entry(
             scope=scope or "default",
             key=key,
             content_hash=self._hash_content(content),
@@ -41,6 +41,7 @@ class MemoryWriteTool(ToolBase):
         )
         return {
             "ok": True,
+            "row_id": row_id,
             "key": key,
             "scope": scope or "default",
             "org_id": org_id,
