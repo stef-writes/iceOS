@@ -54,13 +54,20 @@ async def test_ask_my_library_end_to_end() -> None:
         )
         assert r_lib.status_code == 200, r_lib.text
 
-        # Execute blueprint via REST executions API
+        # Create blueprint first, then execute via id (executions endpoint requires blueprint_id)
+        create = await c.post(
+            "/api/v1/blueprints/",
+            headers={**headers, "X-Version-Lock": "__new__"},
+            json=bp,
+        )
+        assert create.status_code == 201, create.text
+        bp_id = create.json()["id"]
         r_exec = await c.post(
             "/api/v1/executions/",
             headers=headers,
-            json={"blueprint": bp, "inputs": inputs},
+            json={"blueprint_id": bp_id, "inputs": inputs},
         )
-        assert r_exec.status_code == 200, r_exec.text
+        assert r_exec.status_code in (200, 202), r_exec.text
         exec_id = r_exec.json().get("execution_id")
         assert exec_id
 

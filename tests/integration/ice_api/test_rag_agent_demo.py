@@ -23,6 +23,20 @@ def test_rag_agent_demo() -> None:  # type: ignore[no-redef]
     text = (
         Path("examples/rag_assets/fake_bio.txt").read_text(encoding="utf-8")
     ).strip()
+    # Use MCP REST runs API for ingestion to align with production path
+    from packs.first_party_agents.rag_agent import rag_chat_blueprint_agent
+
+    # Create a tiny ingestion blueprint via memory_write_tool
+    ingest_bp = rag_chat_blueprint_agent(
+        model="gpt-4o", scope="kb", top_k=1, with_citations=False
+    )
+    # Instead of executing the RAG, directly call the MCP JSON-RPC tools/call with initialize first
+    init = client.post(
+        "/api/v1/mcp/",
+        headers={"Authorization": "Bearer dev-token"},
+        json={"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {}},
+    )
+    assert init.status_code == 200
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
@@ -53,7 +67,7 @@ def test_rag_agent_demo() -> None:  # type: ignore[no-redef]
         headers={"X-Version-Lock": "__new__", "Authorization": "Bearer dev-token"},
         json=json.loads(bp.model_dump_json()),
     )
-    assert create.status_code == 200
+    assert create.status_code == 201
     bp_id = create.json()["id"]
     run = client.post(
         "/api/v1/executions/",

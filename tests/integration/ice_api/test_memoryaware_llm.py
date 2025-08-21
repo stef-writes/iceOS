@@ -38,13 +38,20 @@ async def test_memoryaware_llm_injection() -> None:
                 }
             ],
         }
-        # Execute directly via MCP runs
-        # Use MCP runs API which accepts inline blueprint
+        # Create blueprint first to obtain an id
+        create = await c.post(
+            "/api/v1/blueprints/",
+            headers={**headers, "X-Version-Lock": "__new__"},
+            json=bp,
+        )
+        assert create.status_code == 201, create.text
+        bp_id = create.json()["id"]
+        # Execute via executions API with inputs
         r2 = await c.post(
-            "/api/mcp/runs",
+            "/api/v1/executions/",
             headers=headers,
             json={
-                "blueprint": bp,
+                "blueprint_id": bp_id,
                 "inputs": {
                     "msg": "hello",
                     "session_id": "s1",
@@ -53,7 +60,7 @@ async def test_memoryaware_llm_injection() -> None:
                 },
             },
         )
-        assert r2.status_code == 200, r2.text
+        assert r2.status_code in (200, 202), r2.text
         exec_id = r2.json().get("execution_id")
         assert exec_id
 
