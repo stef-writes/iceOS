@@ -40,8 +40,11 @@ class WorkflowExecutionService:
         Returns:
             Workflow execution results
         """
+        # Preprocess: inject memory-aware helpers if requested (no duplication)
+        processed_specs = self._apply_memory_aware_policy(node_specs)
+
         # Convert NodeSpec to NodeConfig
-        node_configs = convert_node_specs(node_specs)
+        node_configs = convert_node_specs(processed_specs)
 
         # Ensure first-party generated tools are registered explicitly
         try:
@@ -73,6 +76,92 @@ class WorkflowExecutionService:
         except Exception:
             EXEC_COMPLETED.inc()
             raise
+
+    # ------------------------------------------------------------------
+    # Memory-aware policy (opt-in per node)
+    # ------------------------------------------------------------------
+    def _apply_memory_aware_policy(self, node_specs: List[NodeSpec]) -> List[NodeSpec]:
+        """Inject recent+transcript helpers for LLM nodes that opt-in.
+
+        Opt-in signal: llm node contains a truthy field "memory_aware".
+        Injection:
+          - Add a recent_session_tool node (id=f"recent_{llm_id}") with scope=library and deps=[]
+          - Amend llm node to depend on the recent node and prepend prompt lines to include its output
+          - Add a memory_write_tool node (id=f"write_{llm_id}") depending on llm, writing transcript
+
+        Notes:
+          - Uses existing first-party tools; no runtime duplication.
+          - Key used for transcript: chat:{{ inputs.session_id }}:{llm_id}
+        """
+        try:
+            processed: List[Dict[str, Any]] = [
+                ns.model_dump(mode="json") for ns in node_specs
+            ]
+        except Exception:
+            # Best effort fallback if pydantic export fails
+            processed = [dict(getattr(ns, "__dict__", {})) for ns in node_specs]
+
+        out: List[Dict[str, Any]] = []
+        for ns in processed:
+            out.append(ns)
+            try:
+                if ns.get("type") != "llm":
+                    continue
+                mem_aware = bool(ns.get("memory_aware"))
+                if not mem_aware:
+                    continue
+                llm_id = str(ns.get("id", "llm"))
+                # Inject recent tool node
+                recent_id = f"recent_{llm_id}"
+                recent_node = {
+                    "id": recent_id,
+                    "type": "tool",
+                    "tool_name": "recent_session_tool",
+                    "tool_args": {
+                        "session_id": "{{ inputs.session_id }}",
+                        "scope": "library",
+                        "org_id": "{{ inputs.org_id }}",
+                        "limit": 5,
+                    },
+                    "dependencies": [],
+                }
+                out.append(recent_node)
+                # Ensure llm depends on recent and prompt references it
+                deps = list(ns.get("dependencies", []))
+                if recent_id not in deps:
+                    deps.append(recent_id)
+                ns["dependencies"] = deps
+                prompt = str(ns.get("prompt", ""))
+                prefix = (
+                    "You are memory-aware. Use recent chat turns when helpful.\n"
+                    f"Recent session items: {{{{ {recent_id}['items'] }}}}\n"
+                )
+                ns["prompt"] = prefix + prompt
+                # Inject transcript write node
+                write_id = f"write_{llm_id}"
+                write_node = {
+                    "id": write_id,
+                    "type": "tool",
+                    "tool_name": "memory_write_tool",
+                    "tool_args": {
+                        "key": f"chat:{{{{ inputs.session_id }}}}:{llm_id}",
+                        "content": f"{{{{ {llm_id}.response }}}}",
+                        "scope": "library",
+                        "org_id": "{{ inputs.org_id }}",
+                        "user_id": "{{ inputs.user_id }}",
+                    },
+                    "dependencies": [llm_id],
+                }
+                out.append(write_node)
+            except Exception:
+                # Defensive: never break execution if injection fails
+                continue
+
+        try:
+            return [NodeSpec.model_validate(n) for n in out]
+        except Exception:
+            # Fallback: return original specs on validation error
+            return node_specs
 
     async def execute_workflow(
         self, workflow: Workflow, *, inputs: Optional[Dict[str, Any]] = None
