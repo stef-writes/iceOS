@@ -12,6 +12,44 @@
   ],
   "item": [
     {
+      "name": "Library",
+      "item": [
+        {
+          "name": "Add asset",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/v1/library/assets", "host": ["{{baseUrl}}"], "path": ["api","v1","library","assets"] },
+            "body": { "mode": "raw", "raw": "{\n  \"label\": \"greeting\",\n  \"content\": \"hello world\",\n  \"mime\": \"text/plain\",\n  \"org_id\": \"demo_org\",\n  \"user_id\": \"demo_user\"\n}" }
+          }
+        },
+        {
+          "name": "List assets",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/v1/library/assets?org_id=demo_org&user_id=demo_user&limit=5", "host": ["{{baseUrl}}"], "path": ["api","v1","library","assets"], "query": [ {"key":"org_id","value":"demo_org"},{"key":"user_id","value":"demo_user"},{"key":"limit","value":"5"} ] }
+          }
+        },
+        {
+          "name": "Get asset",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/v1/library/assets/greeting?org_id=demo_org&user_id=demo_user", "host": ["{{baseUrl}}"], "path": ["api","v1","library","assets","greeting"], "query": [ {"key":"org_id","value":"demo_org"},{"key":"user_id","value":"demo_user"} ] }
+          }
+        },
+        {
+          "name": "Delete asset",
+          "request": {
+            "method": "DELETE",
+            "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/v1/library/assets/greeting?org_id=demo_org&user_id=demo_user", "host": ["{{baseUrl}}"], "path": ["api","v1","library","assets","greeting"], "query": [ {"key":"org_id","value":"demo_org"},{"key":"user_id","value":"demo_user"} ] }
+          }
+        }
+      ]
+    },
+    {
       "name": "Discovery & Schemas",
       "item": [
         {
