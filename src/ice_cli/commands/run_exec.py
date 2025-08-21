@@ -79,7 +79,7 @@ def cli_run(
         resp = httpx.post(
             url,
             json=payload,
-            timeout=30.0,
+            timeout=httpx.Timeout(connect=5.0, read=30.0, write=10.0),
             headers={"Authorization": f"Bearer {token}"},
         )
         resp.raise_for_status()
@@ -98,6 +98,7 @@ def cli_run(
         status_resp = httpx.get(
             f"{api_url.rstrip('/')}/api/v1/executions/{execution_id}",
             headers={"Authorization": f"Bearer {token}"},
+            timeout=httpx.Timeout(connect=5.0, read=15.0),
         )
         status_data = status_resp.json()
         click.echo(json.dumps(status_data, indent=2))

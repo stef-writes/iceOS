@@ -94,7 +94,7 @@
             "method": "POST",
             "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" }, { "key": "Content-Type", "value": "application/json" } ],
             "url": { "raw": "{{baseUrl}}/api/v1/executions/", "host": ["{{baseUrl}}"], "path": ["api","v1","executions","" ] },
-            "body": { "mode": "raw", "raw": "{\n  \"payload\": {\n    \"blueprint_id\": \"{{blueprintId}}\",\n    \"inputs\": {\"name\": \"World\"}\n  }\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"blueprint_id\": \"{{blueprintId}}\",\n  \"inputs\": {\"name\": \"World\"}\n}" }
           },
           "event": [
             {

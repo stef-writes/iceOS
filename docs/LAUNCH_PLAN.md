@@ -33,9 +33,12 @@
 - Restore DR drill:
   - Provision a new Postgres instance
   - `createdb iceos`
-  - `pg_restore -d "$DATABASE_URL_PG" /backups/iceos_YYYY-MM-DD.dump`
+  - `pg_restore -d "$DATABASE_URL_PG" /backups/iceOS_YYYY-MM-DD.dump`
   - Start API with `ICEOS_RUN_MIGRATIONS=1` and validate `/readyz` healthy
   - Run integration smoke: `make ci-integration`
+- Compose quick backup/restore:
+  - Backup: `docker exec -t iceos-postgres-1 pg_dump -U ${POSTGRES_USER:-iceos} ${POSTGRES_DB:-iceos} > backup_$(date +%F).sql`
+  - Restore: `cat backup_YYYY-MM-DD.sql | docker exec -i iceos-postgres-1 psql -U ${POSTGRES_USER:-iceos} -d ${POSTGRES_DB:-iceos}`
 
 ### Operational Checks
 - Confirm Alembic `head` recorded (`alembic_version` row present)

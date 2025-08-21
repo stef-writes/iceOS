@@ -25,6 +25,11 @@ jobs:
 
       - name: Lint + Type + Unit Tests
         run: make ci
+      - name: Coverage (unit, non-blocking)
+        run: |
+          docker build --target test -t iceos-test .
+          docker run --rm -t iceos-test pytest -c config/testing/pytest.ini -q -m unit --cov=src --cov-report=term
+        continue-on-error: true
 
   integration:
     name: Integration Tests (docker-compose.itest)

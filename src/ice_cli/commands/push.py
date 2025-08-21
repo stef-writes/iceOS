@@ -38,7 +38,7 @@ def cli_push(blueprint_path: str, api_url: str, token: str) -> None:  # noqa: D4
         response = httpx.post(
             url,
             json=payload,
-            timeout=30.0,
+            timeout=httpx.Timeout(connect=5.0, read=30.0, write=10.0),
             headers={"Authorization": f"Bearer {token}"},
         )
         response.raise_for_status()
