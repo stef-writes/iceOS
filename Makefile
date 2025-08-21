@@ -193,34 +193,16 @@ demo-rag: demo-up demo-wait demo-ingest demo-query
 
 onefile-up:
 	ICE_API_TOKEN=$${ICE_API_TOKEN:-dev-token} docker compose -f docker-compose.onefile.yml up -d --build
-	@echo "API at http://localhost:8000 (token=$${ICE_API_TOKEN:-dev-token})"
+	@echo "[onefile] Waiting for API at http://localhost:8000/readyz ..."; \
+	for i in $$(seq 1 60); do \
+	  if curl -fsS http://localhost:8000/readyz >/dev/null 2>&1; then \
+	    echo "[onefile] API ready"; break; \
+	  fi; \
+	  sleep 1; \
+	done; \
+	echo "API at http://localhost:8000 (token=$${ICE_API_TOKEN:-dev-token})"
 
 onefile-down:
 	docker compose -f docker-compose.onefile.yml down -v || true
 
 onefile-reset: onefile-down onefile-up
-
-# ---------------------------------------------------------------------------
-# Zero-setup stack image (all-in-one) ---------------------------------------
-# ---------------------------------------------------------------------------
-.PHONY: stack-build stack-up stack-down
-
-STACK_IMAGE ?= ghcr.io/stef-writes/iceos-stack:latest
-
-stack-build:
-	# Build all-in-one image using current source tree (reuse API stage for now)
-	docker build -t $(STACK_IMAGE) --target api .
-
-stack-up:
-	# One-liner zero-setup: run API container; bind to 8000
-	docker run --rm -d \
-	  --name iceos-stack \
-	  -p 8000:8000 \
-	  -e ICE_API_TOKEN=$${ICE_API_TOKEN:-dev-token} \
-	  -e OPENAI_API_KEY=$${OPENAI_API_KEY:-} \
-	  -e CORS_ORIGINS=$${CORS_ORIGINS:-*} \
-	  -e ALLOW_CORS_WILDCARD=$${ALLOW_CORS_WILDCARD:-1} \
-	  $(STACK_IMAGE)
-
-stack-down:
-	-docker rm -f iceos-stack || true

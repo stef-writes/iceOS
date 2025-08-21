@@ -36,7 +36,6 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository_owner }}/iceos-api
-            ghcr.io/${{ github.repository_owner }}/iceos-stack
           tags: |
             type=raw,value=${{ github.sha }}
             type=ref,event=branch
