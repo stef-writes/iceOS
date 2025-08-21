@@ -40,6 +40,7 @@ services:
       - ./examples:/app/examples:ro
       - ./scripts:/app/scripts:ro
       - ./src:/app/src:ro
+      - ./packs:/app/packs:ro
     env_file:
       - config/dev.env.example
     environment:
