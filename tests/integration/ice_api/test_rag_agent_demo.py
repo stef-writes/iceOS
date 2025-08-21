@@ -32,7 +32,11 @@ def test_rag_agent_demo() -> None:  # type: ignore[no-redef]
             "arguments": {"inputs": {"key": "bio", "content": text, "scope": "kb"}},
         },
     }
-    resp = client.post("/api/v1/mcp", json=payload)
+    resp = client.post(
+        "/api/v1/mcp/",
+        headers={"Authorization": "Bearer dev-token"},
+        json=payload,
+    )
     assert resp.status_code == 200
 
     # Build RAG blueprint via first-party agent and run through REST client
