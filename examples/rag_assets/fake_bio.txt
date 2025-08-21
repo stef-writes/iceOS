@@ -1,0 +1,4 @@
+Bio
+
+John enjoys building reliable systems, writing clear docs, and mentoring junior engineers.
+He prefers concise communication and structured logs. Outside work, he hikes and reads sci‑fi.

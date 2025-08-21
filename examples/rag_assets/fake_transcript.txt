@@ -1,0 +1,9 @@
+Example University Transcript (Unofficial)
+
+Courses
+- CS101 Intro to Programming (A)
+- CS220 Data Structures (A-)
+- CS330 Databases (A)
+- CS340 Operating Systems (B+)
+
+GPA: 3.78

@@ -1,0 +1,9 @@
+Selected Projects
+
+1) Inventory Tracker (2024)
+- Python, FastAPI, PostgreSQL
+- Implemented background workers and rate-limited external API synchronizations.
+
+2) Chat Summarizer (2023)
+- Python, async HTTPX, OpenAI
+- Summarized long discussions with prompt-chained LLM calls and citations.
