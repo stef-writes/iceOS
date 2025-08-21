@@ -85,11 +85,11 @@ async def _ingest(client: IceClient, ns: argparse.Namespace) -> None:
                     "filename": fp.name,
                 }
             )
-            resp = await client._client.post("/api/v1/mcp", json=payload)
+            resp = await client._client.post("/api/v1/mcp/", json=payload)
             resp.raise_for_status()
         return
     # Fallback: single source from args
-    resp = await client._client.post("/api/v1/mcp", json=payload)
+    resp = await client._client.post("/api/v1/mcp/", json=payload)
     resp.raise_for_status()
 
 
