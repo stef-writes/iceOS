@@ -477,6 +477,7 @@ from ice_api.api.blueprints import router as blueprint_router  # ensure module i
 from ice_api.api.catalog import router as catalog_router
 from ice_api.api.discovery import router as discovery_router
 from ice_api.api.executions import router as execution_router
+from ice_api.api.library import router as library_router
 from ice_api.api.node_details import router as node_details_router
 from ice_api.api.registry_health import router as registry_health_router
 from ice_api.api.storage import router as storage_router
@@ -524,6 +525,11 @@ app.include_router(
     storage_router,
     prefix="",
     tags=["discovery", "health"],
+)
+app.include_router(
+    library_router,
+    prefix="",
+    tags=["library"],
 )
 
 # Secure MCP REST router behind auth

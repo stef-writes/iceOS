@@ -185,3 +185,28 @@ demo-query:
 	  --query "$(Q)" --mode query
 
 demo-rag: demo-up demo-wait demo-ingest demo-query
+
+# ---------------------------------------------------------------------------
+# Zero-setup stack image (all-in-one) ---------------------------------------
+# ---------------------------------------------------------------------------
+.PHONY: stack-build stack-up stack-down
+
+STACK_IMAGE ?= ghcr.io/stef-writes/iceos-stack:latest
+
+stack-build:
+	# Build all-in-one image using current source tree (reuse API stage for now)
+	docker build -t $(STACK_IMAGE) --target api .
+
+stack-up:
+	# One-liner zero-setup: run API container; bind to 8000
+	docker run --rm -d \
+	  --name iceos-stack \
+	  -p 8000:8000 \
+	  -e ICE_API_TOKEN=$${ICE_API_TOKEN:-dev-token} \
+	  -e OPENAI_API_KEY=$${OPENAI_API_KEY:-} \
+	  -e CORS_ORIGINS=$${CORS_ORIGINS:-*} \
+	  -e ALLOW_CORS_WILDCARD=$${ALLOW_CORS_WILDCARD:-1} \
+	  $(STACK_IMAGE)
+
+stack-down:
+	-docker rm -f iceos-stack || true
