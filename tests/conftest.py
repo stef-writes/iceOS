@@ -1,5 +1,19 @@
 from __future__ import annotations
 
+import pytest
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    for item in items:
+        path = str(getattr(item, "fspath", ""))
+        if "/tests/unit/" in path:
+            item.add_marker(pytest.mark.unit)
+        elif "/tests/integration/" in path:
+            item.add_marker(pytest.mark.integration)
+
+
 """Global pytest configuration.
 
 Auto-load the project‐level .env file (if present) so that integration
@@ -11,8 +25,6 @@ runtime where `python-dotenv` is commonly used.
 import os
 import sys
 from pathlib import Path
-
-import pytest
 
 try:
     from dotenv import load_dotenv  # type: ignore

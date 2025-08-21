@@ -478,10 +478,18 @@ class DependencyGraph:
         except Exception:
             # Fallback to simple layout
             for i, node_id in enumerate(self.graph.nodes()):
+                node_data = self.graph.nodes[node_id]
                 layout_hints[node_id] = {
                     "position": {"x": (i % 5) * 150, "y": (i // 5) * 100},
                     "styling": {"color": "#607D8B", "size": 30, "cluster": "default"},
-                    "metadata": {"level": self.node_levels.get(node_id, 0)},
+                    "metadata": {
+                        "level": self.node_levels.get(node_id, 0),
+                        "centrality": node_data.get("centrality_score", 0.0),
+                        "is_bottleneck": node_data.get("is_bottleneck", False),
+                        "is_critical": node_data.get("is_critical_path", False),
+                        "parallel_safe": node_data.get("parallel_safe", True),
+                        "execution_state": node_data.get("execution_state", "pending"),
+                    },
                     "connections": {
                         "inputs": list(self.graph.predecessors(node_id)),
                         "outputs": list(self.graph.successors(node_id)),
