@@ -63,7 +63,7 @@ def rag_chat_blueprint_agent(
             "prompt": (
                 "You are a helpful assistant. Use the search results and recent chat turns to answer.\n"
                 "Query: {{ inputs.query }}\n"
-                "Recent session items: {{ recent.items }}\n"
+                "Recent session items: {{ recent['items'] }}\n"
                 "Search results: {{ search.results }}\n"
             ),
             "llm_config": {
@@ -80,7 +80,7 @@ def rag_chat_blueprint_agent(
             "tool_name": "memory_write_tool",
             "tool_args": {
                 "key": "chat:{{ inputs.session_id }}:{{ inputs.query }}",
-                "content": "{{ llm.text }}",
+                "content": "{{ llm.response }}",
                 "scope": scope,
                 "org_id": "{{ inputs.org_id }}",
                 "user_id": "{{ inputs.user_id }}",

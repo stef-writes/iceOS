@@ -30,33 +30,42 @@ class RecentSessionTool(ToolBase):
         prefix = f"chat:{session_id}:"
         items: list[dict[str, Any]] = []
         async for session in get_session():
-            stmt = text(
-                """
+            where_parts = ["scope = :scope", "key LIKE :prefix"]
+            params: Dict[str, Any] = {
+                "scope": scope,
+                "prefix": prefix + "%",
+                "limit": limit,
+            }
+            if org_id is not None:
+                where_parts.append("org_id = :org_id")
+                params["org_id"] = org_id
+
+            sql = f"""
                 SELECT key, meta_json, created_at
                 FROM semantic_memory
-                WHERE scope = :scope
-                  AND (:org_id IS NULL OR org_id = :org_id)
-                  AND key LIKE :prefix
+                WHERE {' AND '.join(where_parts)}
                 ORDER BY created_at DESC
                 LIMIT :limit
-                """
-            ).bindparams(
+            """
+            stmt = text(sql).bindparams(
                 bindparam("scope", type_=sa.String()),
-                bindparam("org_id", type_=sa.String()),
                 bindparam("prefix", type_=sa.String()),
                 bindparam("limit", type_=sa.Integer()),
             )
-            rows = await session.execute(
-                stmt,
-                {
-                    "scope": scope,
-                    "org_id": org_id,
-                    "prefix": prefix + "%",
-                    "limit": limit,
-                },
-            )
+            if org_id is not None:
+                stmt = stmt.bindparams(bindparam("org_id", type_=sa.String()))
+            rows = await session.execute(stmt, params)
             for r in rows.mappings():
-                items.append(dict(r))
+                rec = dict(r)
+                created = rec.get("created_at")
+                try:
+                    if created is not None:
+                        rec["created_at"] = (
+                            created.isoformat()
+                        )  # ensure JSON-serializable
+                except Exception:
+                    pass
+                items.append(rec)
         return {"items": items}
 
 
