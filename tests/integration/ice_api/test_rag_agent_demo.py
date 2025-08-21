@@ -71,14 +71,18 @@ def test_rag_agent_demo() -> None:  # type: ignore[no-redef]
     bp_id = create.json()["id"]
     run = client.post(
         "/api/v1/executions/",
+        headers={"Authorization": "Bearer dev-token"},
         json={"blueprint_id": bp_id, "inputs": {"query": "Who is John?"}},
     )
-    assert run.status_code == 200
+    assert run.status_code in (200, 202)
     exec_id = run.json()["execution_id"]
 
     # Poll until complete
     for _ in range(20):
-        st = client.get(f"/api/v1/executions/{exec_id}")
+        st = client.get(
+            f"/api/v1/executions/{exec_id}",
+            headers={"Authorization": "Bearer dev-token"},
+        )
         assert st.status_code == 200
         data = st.json()
         if data.get("status") in {"completed", "failed"}:

@@ -11,7 +11,7 @@ if [ -z "$REGISTRY" ] || [ -z "$VERSION" ]; then
   exit 1
 fi
 
-IMAGE_API="$REGISTRY/ice-api"
+IMAGE_API="$REGISTRY/iceos-api"
 
 # Ensure buildx
 if ! docker buildx version >/dev/null 2>&1; then

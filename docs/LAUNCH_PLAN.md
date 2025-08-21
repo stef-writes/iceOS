@@ -7,7 +7,7 @@
 ### Migrations on cold start
 - Deployment pattern (recommended): run migrations as a one-shot job, separate from the API.
   - Compose: `docker compose run --rm migrate`
-  - API service should set `ICEOS_RUN_MIGRATIONS=0` (migrations disabled in API container)
+  - Production API should set `ICEOS_RUN_MIGRATIONS=0` (migrations disabled in API container)
 - Env flags:
   - `ICEOS_REQUIRE_DB=1` (fail startup if DB not reachable)
   - `DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/dbname`
@@ -15,7 +15,7 @@
   - DSN conversion for Alembic
   - `upgrade head`
   - Schema verification (e.g., `semantic_memory` present)
-  - Index verification: Alembic 0002 adds composite indexes for Library performance
+  - Index verification: ensure composite indexes exist for Library performance
     - `(org_id, user_id, key)` and `(scope, org_id, created_at DESC)` on `semantic_memory`
 
 ### Sandbox overrides (resource limits)

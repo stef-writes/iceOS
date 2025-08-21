@@ -86,13 +86,14 @@ services:
       retries: 10
     networks: [backend]
 
-  otel:
-    image: otel/opentelemetry-collector:0.103.1
-    command: ["--config=/etc/otel-config.yaml"]
-    volumes:
-      - ./ops/otel-config.yaml:/etc/otel-config.yaml:ro
-    restart: always
-    networks: [backend]
+  # Optional: enable an OpenTelemetry collector via a separate profile when configured
+  # otel:
+  #   image: otel/opentelemetry-collector:0.103.1
+  #   command: ["--config=/etc/otel-config.yaml"]
+  #   volumes:
+  #     - ./ops/otel-config.yaml:/etc/otel-config.yaml:ro
+  #   restart: always
+  #   networks: [backend]
 
   migrate:
     build:

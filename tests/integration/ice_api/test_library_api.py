@@ -26,9 +26,13 @@ def test_library_add_list_get_delete() -> None:
     data: Dict[str, Any] = r.json()
     assert data.get("ok") is True
 
-    # pagination: create a few
+    # pagination: create a few with unique content to avoid dedup key churn
     for i in range(5):
-        client.post(url, headers=_auth(), json={**payload, "label": f"p{i}"})
+        client.post(
+            url,
+            headers=_auth(),
+            json={**payload, "label": f"p{i}", "content": f"hello {i}"},
+        )
 
     r2 = client.get(
         url,

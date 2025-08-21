@@ -103,6 +103,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: postgresql+asyncpg://iceos:iceos@postgres:5432/iceos
       ICEOS_RUN_MIGRATIONS: 1
+      DISABLE_REDIS_BG_LOOP: 1
     env_file:
       - env.ci
     command: ["bash", "-lc", "chmod +x scripts/itest_runner.sh && ./scripts/itest_runner.sh"]

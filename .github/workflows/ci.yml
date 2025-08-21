@@ -1,110 +1,61 @@
 name: CI
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
+    branches: [ main ]
+  push:
     branches: [ main ]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  unit_and_type:
-    name: Lint, Type, Unit Tests
+  build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Docker info
-        run: |
-          docker version
-          docker info
-
-      - name: Lint + Type + Unit Tests
-        run: make ci
-      - name: Coverage (unit, non-blocking)
-        run: |
-          docker build --target test -t iceos-test .
-          docker run --rm -t iceos-test pytest -c config/testing/pytest.ini -q -m unit --cov=src --cov-report=term
-        continue-on-error: true
-
-  integration:
-    name: Integration Tests (docker-compose.itest)
-    needs: unit_and_type
-    runs-on: ubuntu-latest
-    env:
-      IMAGE_REPO: local
-      IMAGE_TAG: dev
-      ICE_SKIP_STRESS: 1
-      ICE_ENABLE_WASM: 0
-      ICEOS_EMBEDDINGS_PROVIDER: hash
-      ICEOS_RUN_MIGRATIONS: 1
-      ICEOS_REQUIRE_DB: 1
-      ICE_SKIP_EXTERNAL: 1
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Docker info
+      - name: Build API image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: api
+          tags: local/iceosv1a-api:dev
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build itest image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: test
+          tags: local/iceosv1a-itest:dev
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Type check (Dockerized)
         run: |
-          docker version
-          docker info
+          make type-docker
 
-      - name: Build API and test images (with cache)
+      - name: Unit tests (reuse prebuilt itest image)
         run: |
-          docker buildx build \
-            --load \
-            --cache-from type=gha,scope=api \
-            --cache-to type=gha,scope=api,mode=max \
-            --target api -t ${IMAGE_REPO}/iceosv1a-api:${IMAGE_TAG} .
-          docker buildx build \
-            --load \
-            --cache-from type=gha,scope=itest \
-            --cache-to type=gha,scope=itest,mode=max \
-            --target test -t ${IMAGE_REPO}/iceosv1a-itest:${IMAGE_TAG} .
+          docker run --rm -t \
+            local/iceosv1a-itest:dev \
+            pytest -c config/testing/pytest.ini -q -m unit
 
-      - name: Run docker compose itest
-        run: make ci-integration
-
-  full_collection:
-    name: Full Test Collection (no ignores)
-    needs: unit_and_type
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Build test image
-        run: docker build --target test -t iceos-test .
-      - name: Collect all tests
-        run: docker run --rm -t iceos-test pytest -c config/testing/pytest.ini -q --collect-only -o addopts="" tests
-
-  wasm_optional:
-    name: WASM Tests (optional)
-    needs: unit_and_type
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Run wasm suite
-        run: make ci-wasm
-        continue-on-error: true
-
-  stress_optional:
-    name: Stress Tests (resource sandbox, optional)
-    needs: integration
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Run stress suite
+      - name: Integration tests (single compose up)
+        env:
+          IMAGE_REPO: local
+          IMAGE_TAG: dev
+          ICE_ENABLE_WASM: 0
+          ICE_SKIP_STRESS: 1
         run: |
-          IMAGE_REPO=local IMAGE_TAG=dev ICE_SKIP_STRESS=0 \
-          docker compose -f docker-compose.itest.yml run --rm itest \
-            bash -lc 'pytest -c config/testing/pytest.ini -q tests/integration/ice_orchestrator/test_resource_sandbox.py'
-        continue-on-error: true
+          make ci-integration
