@@ -11,6 +11,7 @@ import structlog
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Request, Response, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 try:
     from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
@@ -427,6 +428,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Trusted hosts (optional; recommend enabling in production)
+_trusted_hosts_raw = os.getenv("TRUSTED_HOSTS", "").strip()
+if _trusted_hosts_raw:
+    _trusted_hosts = [h.strip() for h in _trusted_hosts_raw.split(",") if h.strip()]
+    if _trusted_hosts:
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=_trusted_hosts)
 
 # Add exception handlers
 add_exception_handlers(app)
