@@ -54,41 +54,49 @@ def _split_files(raw: str) -> list[Path]:
 
 
 async def _ingest(client: IceClient, ns: argparse.Namespace) -> None:
+    """Write documents directly via memory_write_tool for fast, reliable demo ingest."""
+    files = _split_files(ns.files)
+    if files:
+        for fp in files:
+            text = fp.read_text(encoding="utf-8")
+            payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "tool:memory_write_tool",
+                    "arguments": {
+                        "inputs": {
+                            "key": fp.name,
+                            "content": text,
+                            "scope": ns.scope,
+                            "org_id": ns.org,
+                            "user_id": ns.user,
+                        }
+                    },
+                },
+            }
+            resp = await client._client.post("/api/v1/mcp/", json=payload)
+            resp.raise_for_status()
+        return
+    # Fallback: single text from args
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
         "method": "tools/call",
         "params": {
-            "name": "tool:ingestion_tool",
+            "name": "tool:memory_write_tool",
             "arguments": {
                 "inputs": {
-                    "source_type": ns.source_type,
-                    "source": ns.source,
+                    "key": "input.txt",
+                    "content": ns.source,
                     "scope": ns.scope,
-                    "chunk_size": ns.chunk_size,
-                    "overlap": ns.overlap,
                     "org_id": ns.org,
                     "user_id": ns.user,
                 }
             },
         },
     }
-    # If file list provided, override source_type/source per file
-    files = _split_files(ns.files)
-    if files:
-        for fp in files:
-            text = fp.read_text(encoding="utf-8")
-            payload["params"]["arguments"]["inputs"].update(
-                {
-                    "source_type": "text",
-                    "source": text,
-                    "filename": fp.name,
-                }
-            )
-            resp = await client._client.post("/api/v1/mcp/", json=payload)
-            resp.raise_for_status()
-        return
-    # Fallback: single source from args
     resp = await client._client.post("/api/v1/mcp/", json=payload)
     resp.raise_for_status()
 
