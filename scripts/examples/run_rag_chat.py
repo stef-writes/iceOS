@@ -115,6 +115,14 @@ async def main() -> None:
     transport: httpx.AsyncBaseTransport | None = None
 
     async with IceClient(base_url, auth_token=token, transport=transport) as client:
+        # Initialize MCP session (JSON-RPC requires initialize before tools/call)
+        init_payload = {"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {}}
+        init_resp = await client._client.post("/api/v1/mcp/", json=init_payload)
+        init_resp.raise_for_status()
+        init_body = init_resp.json()
+        if isinstance(init_body, dict) and init_body.get("error"):
+            raise RuntimeError(f"MCP initialize failed: {init_body['error']}")
+
         if ns.mode in ("ingest", "both"):
             await _ingest(client, ns)
             if ns.mode == "ingest":
