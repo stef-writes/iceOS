@@ -1,0 +1,4 @@
+components:
+  - node_type: workflow
+    name: rag_agent
+    import_path: packs.first_party_agents.rag_agent:rag_chat_blueprint_agent

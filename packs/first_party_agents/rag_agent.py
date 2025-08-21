@@ -1,0 +1,64 @@
+from __future__ import annotations
+
+from typing import Any, Mapping
+
+from ice_core.models.mcp import Blueprint, NodeSpec
+
+
+def rag_chat_blueprint_agent(
+    *,
+    model: str,
+    scope: str,
+    top_k: int = 5,
+    with_citations: bool = False,
+) -> Blueprint:
+    """Return a Blueprint that performs RAG chat (search + LLM) using real LLM.
+
+    Parameters
+    ----------
+    model : str
+            LLM model name (e.g., "gpt-4o").
+    scope : str
+            Memory scope key for semantic search.
+    top_k : int
+            Number of retrieved items.
+    with_citations : bool
+            Whether to include citations in the LLM response.
+
+    Returns
+    -------
+    Blueprint
+            Executable blueprint.
+    """
+
+    nodes: list[Mapping[str, Any]] = [
+        {
+            "id": "search",
+            "type": "tool",
+            "tool_name": "memory_search_tool",
+            "tool_args": {"top_k": top_k, "scope": scope},
+        },
+        {
+            "id": "llm",
+            "type": "llm",
+            "model": model,
+            "prompt": (
+                "You are a helpful assistant. Use the search results to answer the user query.\n"
+                "Query: {{ inputs.query }}\n"
+                "Search results: {{ search.results }}\n"
+            ),
+            "llm_config": {
+                "provider": "openai",
+                "model": model,
+                "citations": with_citations,
+            },
+            "dependencies": ["search"],
+            "output_schema": {"text": "string"},
+        },
+    ]
+
+    return Blueprint(
+        schema_version="1.2.0",
+        metadata={"draft_name": "rag_agent"},
+        nodes=[NodeSpec.model_validate(n) for n in nodes],
+    )
