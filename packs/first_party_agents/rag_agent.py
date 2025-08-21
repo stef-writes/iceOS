@@ -36,14 +36,20 @@ def rag_chat_blueprint_agent(
             "id": "search",
             "type": "tool",
             "tool_name": "memory_search_tool",
-            "tool_args": {"top_k": top_k, "scope": scope},
+            "tool_args": {
+                "query": "{{ inputs.query }}",
+                "scope": scope,
+                "limit": top_k,
+                "org_id": "{{ inputs.org_id }}",
+            },
+            "dependencies": [],
         },
         {
             "id": "llm",
             "type": "llm",
             "model": model,
             "prompt": (
-                "You are a helpful assistant. Use the search results to answer the user query.\n"
+                "You are a helpful assistant. Use the search results to answer.\n"
                 "Query: {{ inputs.query }}\n"
                 "Search results: {{ search.results }}\n"
             ),
@@ -59,6 +65,74 @@ def rag_chat_blueprint_agent(
 
     return Blueprint(
         schema_version="1.2.0",
-        metadata={"draft_name": "rag_agent"},
+        metadata={
+            "draft_name": "rag_agent",
+            # Studio UI hints (progressive disclosure)
+            "ui": {
+                "inputs": [
+                    {
+                        "name": "query",
+                        "label": "Ask a question",
+                        "type": "string",
+                        "required": True,
+                        "group": "basic",
+                        "help": "What do you want to know?",
+                    },
+                    {
+                        "name": "session_id",
+                        "label": "Session",
+                        "type": "string",
+                        "required": False,
+                        "group": "basic",
+                        "default": "chat_session",
+                        "help": "Use the same value across turns for conversation memory.",
+                    },
+                    {
+                        "name": "style",
+                        "label": "Style",
+                        "type": "string",
+                        "required": False,
+                        "group": "advanced",
+                        "default": "concise",
+                        "enum": ["concise", "detailed", "bullet"],
+                    },
+                    {
+                        "name": "tone",
+                        "label": "Tone",
+                        "type": "string",
+                        "required": False,
+                        "group": "advanced",
+                        "default": "neutral",
+                        "enum": ["neutral", "friendly", "formal"],
+                    },
+                    {
+                        "name": "org_id",
+                        "label": "Organization",
+                        "type": "string",
+                        "required": False,
+                        "group": "advanced",
+                    },
+                    {
+                        "name": "user_id",
+                        "label": "User",
+                        "type": "string",
+                        "required": False,
+                        "group": "advanced",
+                    },
+                ],
+                # Design-time knobs (applied when composing the workflow; not execution inputs)
+                "design": {
+                    "model": model,
+                    "scope": scope,
+                    "top_k": top_k,
+                    "with_citations": with_citations,
+                    "profiles": {
+                        "quick": {"top_k": 3, "with_citations": False},
+                        "conversational": {"top_k": 5, "with_citations": False},
+                        "research": {"top_k": 8, "with_citations": True},
+                    },
+                },
+            },
+        },
         nodes=[NodeSpec.model_validate(n) for n in nodes],
     )
