@@ -33,6 +33,18 @@ def rag_chat_blueprint_agent(
 
     nodes: list[Mapping[str, Any]] = [
         {
+            "id": "recent",
+            "type": "tool",
+            "tool_name": "recent_session_tool",
+            "tool_args": {
+                "session_id": "{{ inputs.session_id }}",
+                "scope": scope,
+                "org_id": "{{ inputs.org_id }}",
+                "limit": 5,
+            },
+            "dependencies": [],
+        },
+        {
             "id": "search",
             "type": "tool",
             "tool_name": "memory_search_tool",
@@ -49,8 +61,9 @@ def rag_chat_blueprint_agent(
             "type": "llm",
             "model": model,
             "prompt": (
-                "You are a helpful assistant. Use the search results to answer.\n"
+                "You are a helpful assistant. Use the search results and recent chat turns to answer.\n"
                 "Query: {{ inputs.query }}\n"
+                "Recent session items: {{ recent.items }}\n"
                 "Search results: {{ search.results }}\n"
             ),
             "llm_config": {
@@ -58,8 +71,21 @@ def rag_chat_blueprint_agent(
                 "model": model,
                 "citations": with_citations,
             },
-            "dependencies": ["search"],
+            "dependencies": ["recent", "search"],
             "output_schema": {"text": "string"},
+        },
+        {
+            "id": "write",
+            "type": "tool",
+            "tool_name": "memory_write_tool",
+            "tool_args": {
+                "key": "chat:{{ inputs.session_id }}:{{ inputs.query }}",
+                "content": "{{ llm.text }}",
+                "scope": scope,
+                "org_id": "{{ inputs.org_id }}",
+                "user_id": "{{ inputs.user_id }}",
+            },
+            "dependencies": ["llm"],
         },
     ]
 
