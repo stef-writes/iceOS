@@ -53,7 +53,7 @@ services:
       ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://iceos:iceos@postgres:5432/iceos}
-      ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-1}
+      ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-0}
       ICEOS_REQUIRE_DB: ${ICEOS_REQUIRE_DB:-1}
       ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/packs/first_party_tools/plugins.v0.yaml}
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
@@ -63,6 +63,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://iceos:iceos@postgres:5432/iceos}
+    command: ["bash", "-lc", "alembic -c alembic.ini upgrade head"]
+    restart: "no"
 
 volumes:
   redis_data:
