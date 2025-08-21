@@ -45,6 +45,13 @@
 - Confirm `semantic_memory` table exists and accepts writes
 - Monitor startup logs for `Alembic applied_head=`
 
+### Edge Security (reverse proxy)
+- Recommended nginx/ingress directives:
+  - `add_header X-Frame-Options "DENY" always;`
+  - `add_header X-Content-Type-Options "nosniff" always;`
+  - `add_header Referrer-Policy "same-origin" always;`
+  - `client_max_body_size 25m;` (tune uploads)
+
 ## Launch Plan – Step 1 (MVP)
 
 ### What must be finished to launch

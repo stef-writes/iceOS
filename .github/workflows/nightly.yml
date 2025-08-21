@@ -1,0 +1,21 @@
+name: Nightly Optional Lanes
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make ci-wasm
+
+  stress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          IMAGE_REPO=local IMAGE_TAG=dev ICE_SKIP_STRESS=0 \
+          docker compose -f docker-compose.itest.yml run --rm itest \
+            bash -lc 'pytest -c config/testing/pytest.ini -q tests/integration/ice_orchestrator/test_resource_sandbox.py'

@@ -343,10 +343,15 @@ from ice_cli.commands.blueprints import blueprints as _blueprints_group
 
 cli.add_command(_blueprints_group)
 
+from ice_cli.commands.memory import memory as _memory_group
+from ice_cli.commands.registry import registry as _registry_group
+
 # Uploads group
 from ice_cli.commands.uploads import uploads as _uploads_group
 
 cli.add_command(_uploads_group)
+cli.add_command(_memory_group)
+cli.add_command(_registry_group)
 
 # Build command (DSL/YAML → Blueprint JSON)
 from ice_cli.commands.build import cli_build as _build_cmd
