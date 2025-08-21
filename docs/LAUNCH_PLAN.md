@@ -99,3 +99,30 @@
 - Publish `iceos-client` to PyPI; optional `ice` CLI.
 - Lock auth, persistence, and docs.
 - Include 2–3 cookbook notebooks and one “custom tool” tutorial.
+
+---
+
+## Feature Toggles (env-first)
+
+Name | Default | Env | Notes
+--- | --- | --- | ---
+WASM | off | `ICE_ENABLE_WASM=1` | Falls back to non-WASM execution if unsupported
+Stress (heavy tests) | off | `ICE_SKIP_STRESS=0` (and `ICE_DISABLE_SECCOMP=0`) | Run in nightly; validate stability
+Metrics | off | `ICEOS_ENABLE_METRICS=1` | Requires `prometheus_client`; safe no-op when off
+Drafts | off | `ICEOS_ENABLE_DRAFTS=1` | Authoring utility; not runtime-essential
+CORS / Trusted Hosts | required | `CORS_ORIGINS`, `ALLOW_CORS_WILDCARD=0`, `TRUSTED_HOSTS` | Must be set per environment
+
+## Feature Matrix
+
+- Foundational: Sandboxing / Resource limits (always on)
+- Platform: WASM (included; enable per environment)
+- Optional: Metrics, Drafts (off by default; flip when needed)
+- Required Configuration: CORS_ORIGINS / TRUSTED_HOSTS (environment-specific)
+
+## Promote-to-required (WASM/Stress)
+
+- Run optional lanes nightly for N days (e.g., 7–14)
+- Track flake rate ≤ agreed threshold (e.g., 0–1 intermittent failures)
+- If green:
+  - Flip WASM lane to required in PR workflow
+  - Keep Stress required in nightly first, then evaluate in PR after additional soak

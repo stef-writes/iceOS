@@ -27,6 +27,21 @@ def list_tools(api_url: str) -> None:  # noqa: D401
         click.echo(name)
 
 
+@registry.command("agents")
+@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost:8000")
+def list_agents(api_url: str) -> None:  # noqa: D401
+    """List registered agents from /api/v1/meta/registry/health."""
+
+    resp = httpx.get(
+        f"{api_url.rstrip('/')}/api/v1/meta/registry/health", timeout=httpx.Timeout(5.0)
+    )
+    resp.raise_for_status()
+    data: dict[str, Any] = resp.json()
+    agents = data.get("agents", [])
+    for name in agents:
+        click.echo(name)
+
+
 @registry.command("summary")
 @click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost:8000")
 def summary(api_url: str) -> None:  # noqa: D401
