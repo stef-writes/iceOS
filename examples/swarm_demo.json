@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.2.0",
+  "metadata": { "draft_name": "swarm_demo" },
+  "nodes": [
+    {
+      "id": "analyze",
+      "type": "llm",
+      "model": "gpt-4o",
+      "prompt": "Summarize inputs for agents",
+      "llm_config": { "provider": "openai", "model": "gpt-4o" },
+      "output_schema": { "text": "string" }
+    },
+    {
+      "id": "committee",
+      "type": "swarm",
+      "agents": [
+        { "role": "researcher", "package": "agents.researcher", "config_overrides": {} },
+        { "role": "critic", "package": "agents.critic", "config_overrides": {} }
+      ],
+      "coordination_strategy": "consensus",
+      "max_rounds": 3,
+      "consensus_threshold": 0.75,
+      "dependencies": ["analyze"]
+    },
+    {
+      "id": "writer",
+      "type": "tool",
+      "tool_name": "writer_tool",
+      "dependencies": ["committee"]
+    }
+  ]
+}

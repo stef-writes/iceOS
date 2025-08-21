@@ -50,6 +50,25 @@
       ]
     },
     {
+      "name": "Metrics",
+      "item": [
+        { "name": "metrics (gated)", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/metrics", "host": ["{{baseUrl}}"], "path": ["metrics"] } } }
+      ]
+    },
+    {
+      "name": "Drafts (gated)",
+      "item": [
+        {
+          "name": "create or get draft",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{apiToken}}" } ],
+            "url": { "raw": "{{baseUrl}}/api/v1/drafts/session123", "host": ["{{baseUrl}}"], "path": ["api","v1","drafts","session123"] }
+          }
+        }
+      ]
+    },
+    {
       "name": "Blueprints",
       "item": [
         {
