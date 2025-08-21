@@ -164,7 +164,7 @@ demo-up:
 
 demo-wait:
 	@echo "[demo] Waiting for API readiness at http://localhost:8000/readyz ..."; \
-	for i in $$(seq 1 60); do \
+	for i in $$(seq 1 120); do \
 	  if curl -fsS http://localhost:8000/readyz >/dev/null 2>&1; then \
 	    echo "[demo] API ready"; exit 0; \
 	  fi; \
