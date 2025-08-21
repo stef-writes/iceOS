@@ -61,6 +61,7 @@ COPY scripts /app/scripts
 COPY alembic.ini /app/alembic.ini
 COPY alembic /app/alembic
 COPY packs /app/packs
+COPY examples /app/examples
 ENV PYTHONPATH=/app/src:/app
 
 # Expose default FastAPI port

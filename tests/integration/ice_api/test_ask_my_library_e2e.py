@@ -1,0 +1,85 @@
+from __future__ import annotations
+
+import json
+
+import httpx
+import pytest
+
+from ice_api.main import app
+
+pytestmark = pytest.mark.asyncio
+
+
+async def test_ask_my_library_end_to_end() -> None:
+    headers = {"Authorization": "Bearer dev-token"}
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(
+        base_url="http://testserver", transport=transport
+    ) as c:
+        # Initialize MCP
+        r = await c.post(
+            "/api/mcp/",
+            headers=headers,
+            json={"jsonrpc": "2.0", "id": 0, "method": "initialize", "params": {}},
+        )
+        assert r.status_code == 200
+
+        # Load the example blueprint
+        from pathlib import Path
+
+        bp_path = Path("examples/dags/ask_my_library.json")
+        bp = json.loads(bp_path.read_text())
+
+        # Provide inputs including session/org/user
+        inputs = {
+            "query": "What is the greeting?",
+            "session_id": "sess1",
+            "org_id": "o1",
+            "user_id": "u1",
+        }
+
+        # Pre-load a library asset that the search should retrieve
+        lib_url = "/api/v1/library/assets"
+        r_lib = await c.post(
+            lib_url,
+            headers=headers,
+            json={
+                "label": "greeting",
+                "content": "hello world",
+                "mime": "text/plain",
+                "org_id": "o1",
+                "user_id": "u1",
+            },
+        )
+        assert r_lib.status_code == 200, r_lib.text
+
+        # Execute blueprint via REST executions API
+        r_exec = await c.post(
+            "/api/v1/executions/",
+            headers=headers,
+            json={"blueprint": bp, "inputs": inputs},
+        )
+        assert r_exec.status_code == 200, r_exec.text
+        exec_id = r_exec.json().get("execution_id")
+        assert exec_id
+
+        # Poll until completion
+        result = None
+        for _ in range(60):
+            r_status = await c.get(f"/api/v1/executions/{exec_id}", headers=headers)
+            assert r_status.status_code == 200
+            data = r_status.json()
+            if data.get("status") in {"completed", "failed"}:
+                result = data
+                break
+        assert result is not None and result.get("status") == "completed", result
+
+        # Verify transcript write present in library scope
+        r_list = await c.get(
+            lib_url,
+            headers=headers,
+            params={"org_id": "o1", "user_id": "u1", "limit": 20},
+        )
+        assert r_list.status_code == 200
+        items = r_list.json().get("items", [])
+        assert items and any("chat:sess1:" in i.get("key", "") for i in items)

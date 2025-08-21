@@ -27,15 +27,24 @@ def test_library_add_list_get_delete() -> None:
     data: Dict[str, Any] = r.json()
     assert data.get("ok") is True
 
+    # pagination: create a few
+    for i in range(5):
+        httpx.post(
+            url,
+            headers=_auth(),
+            json={**payload, "label": f"p{i}"},
+            timeout=10.0,
+        )
+
     r2 = httpx.get(
         url,
         headers=_auth(),
-        params={"org_id": "demo_org", "user_id": "demo_user", "limit": 5},
+        params={"org_id": "demo_org", "user_id": "demo_user", "limit": 3},
         timeout=10.0,
     )
     assert r2.status_code == 200, r2.text
     items = r2.json().get("items", [])
-    assert any(i.get("key", "").endswith(":it_smoke") for i in items)
+    assert len(items) <= 3
 
     r3 = httpx.get(
         f"{url}/it_smoke",
@@ -46,6 +55,16 @@ def test_library_add_list_get_delete() -> None:
     assert r3.status_code == 200, r3.text
     one = r3.json()
     assert one.get("key", "").endswith(":it_smoke")
+
+    # large content should 413
+    too_big = "x" * (1_000_001)
+    r_big = httpx.post(
+        url,
+        headers=_auth(),
+        json={**payload, "label": "too_big", "content": too_big},
+        timeout=10.0,
+    )
+    assert r_big.status_code in {400, 413}
 
     r4 = httpx.delete(
         f"{url}/it_smoke",

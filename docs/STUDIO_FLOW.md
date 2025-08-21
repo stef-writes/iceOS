@@ -81,3 +81,11 @@ for programmatic integrations; Studio defaults to the MCP + SSE path.
 - Inputs shown in UI: query (text), with_citations (toggle), optional session_id, org_id, user_id.
 - Outputs shown: answer (text), citations (list).
 - Typical wiring: [My Library] → [RAG Answer] → [Save Transcript] → [Notify].
+
+### 8) My Library block and Attach Library toggle
+- My Library: a data block that scopes memory tools to `scope="library"` and passes `org_id`/`user_id`.
+  - Backed by REST `/api/v1/library` under the hood.
+  - Provides simple “Add asset”/“List assets” actions in UI (calls the same API).
+- Attach Library (LLM/RAG blocks): enable a toggle that sets `memory_aware=true` on the node.
+  - The orchestrator injects recent session reads before the LLM and transcript writes after.
+  - Requires inputs to include `session_id`, and optionally `org_id`, `user_id`.
