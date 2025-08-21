@@ -185,24 +185,3 @@ demo-query:
 	  --query "$(Q)" --mode query
 
 demo-rag: demo-up demo-wait demo-ingest demo-query
-
-# ---------------------------------------------------------------------------
-# One-file Compose (zero-setup) ---------------------------------------------
-# ---------------------------------------------------------------------------
-.PHONY: onefile-up onefile-down onefile-reset
-
-onefile-up:
-	ICE_API_TOKEN=$${ICE_API_TOKEN:-dev-token} docker compose -f docker-compose.onefile.yml up -d --build
-	@echo "[onefile] Waiting for API at http://localhost:8000/readyz ..."; \
-	for i in $$(seq 1 60); do \
-	  if curl -fsS http://localhost:8000/readyz >/dev/null 2>&1; then \
-	    echo "[onefile] API ready"; break; \
-	  fi; \
-	  sleep 1; \
-	done; \
-	echo "API at http://localhost:8000 (token=$${ICE_API_TOKEN:-dev-token})"
-
-onefile-down:
-	docker compose -f docker-compose.onefile.yml down -v || true
-
-onefile-reset: onefile-down onefile-up
