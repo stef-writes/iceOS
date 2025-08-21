@@ -25,9 +25,10 @@ async def test_ask_my_library_end_to_end() -> None:
         assert r.status_code == 200
 
         # Load the example blueprint
+        # Use packaged example path inside container image
         from pathlib import Path
 
-        bp_path = Path("examples/dags/ask_my_library.json")
+        bp_path = Path("/app/examples/dags/ask_my_library.json")
         bp = json.loads(bp_path.read_text())
 
         # Provide inputs including session/org/user

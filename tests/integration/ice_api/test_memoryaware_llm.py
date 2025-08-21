@@ -39,8 +39,9 @@ async def test_memoryaware_llm_injection() -> None:
             ],
         }
         # Execute directly via MCP runs
+        # Use MCP runs API which accepts inline blueprint
         r2 = await c.post(
-            "/api/v1/executions/",
+            "/api/mcp/runs",
             headers=headers,
             json={
                 "blueprint": bp,

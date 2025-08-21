@@ -121,6 +121,7 @@ COPY packs /app/packs
 COPY scripts /app/scripts
 COPY config /app/config
 COPY tests /app/tests
+COPY examples /app/examples
 ENV PYTHONPATH=/app/src:/app
 
 # OCI labels

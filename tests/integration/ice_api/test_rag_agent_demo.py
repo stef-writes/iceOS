@@ -7,11 +7,17 @@ import pytest
 
 
 @pytest.mark.integration
-def test_rag_agent_demo(client) -> None:  # type: ignore[no-redef]
+def test_rag_agent_demo() -> None:  # type: ignore[no-redef]
     # Deterministic embeddings in CI
     import os
 
     os.environ["ICEOS_EMBEDDINGS_PROVIDER"] = "hash"
+
+    from starlette.testclient import TestClient
+
+    from ice_api.main import app
+
+    client = TestClient(app)
 
     # Ingest one tiny file via MCP memory_write_tool
     text = (
