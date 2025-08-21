@@ -1,19 +1,20 @@
 ## Launch Plan: Data & Migrations
 
 ### Postgres / pgvector versions
-- Use `ankane/pgvector:0.5.1-pg15` (Postgres 15 + pgvector 0.5.1) in Compose.
-- For managed Postgres, install `pgvector` extension at the same version.
+- Use `pgvector/pgvector:pg15` (Postgres 15 + bundled pgvector) in Compose.
+- For managed Postgres, install the `pgvector` extension at a compatible version.
 
 ### Migrations on cold start
+- Deployment pattern (recommended): run migrations as a one-shot job, separate from the API.
+  - Compose: `docker compose run --rm migrate`
+  - API service should set `ICEOS_RUN_MIGRATIONS=0` (migrations disabled in API container)
 - Env flags:
-  - `ICEOS_RUN_MIGRATIONS=1` (run Alembic upgrade to head at boot)
   - `ICEOS_REQUIRE_DB=1` (fail startup if DB not reachable)
   - `DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/dbname`
-- The app will:
-  - Convert DSN to psycopg2 for Alembic
-  - Run `ensure_version` and `upgrade head`
-  - Verify schema exists (`semantic_memory` table)
-  - Fallback to offline SQL if needed
+- Migration workflow performs:
+  - DSN conversion for Alembic
+  - `upgrade head`
+  - Schema verification (e.g., `semantic_memory` present)
 
 ### Sandbox overrides (resource limits)
 - Defaults:
@@ -25,6 +26,25 @@
 - CI/staging knobs:
   - `ICE_DISABLE_SECCOMP=1` (disable seccomp syscall filter; only for tests)
   - `ICE_SKIP_STRESS=1` (skip heavy stress tests; only for CI)
+
+### API health and readiness
+- Endpoints:
+  - `/readyz` (readiness), `/livez` (liveness), `/healthz` (alias)
+- MCP JSON-RPC mounted at `/api/v1/mcp/` (note trailing slash)
+
+### Security hardening (app layer)
+- Bearer token auth; dev token disabled by default:
+  - `ICE_ALLOW_DEV_TOKEN=0` in production (set to `1` only in dev/tests)
+- CORS and trusted hosts (required per environment):
+  - `CORS_ORIGINS` and `ALLOW_CORS_WILDCARD=0` (set `ALLOW_CORS_WILDCARD=1` only in dev)
+  - `TRUSTED_HOSTS` (comma-separated host patterns)
+- Rate limiting (tune per environment):
+  - `ICE_RATE_WINDOW_SECONDS`, `ICE_RATE_MAX_REQUESTS`
+
+### Runtime connections (CI/test tuning)
+- Redis max connections and background loop knobs for constrained CI:
+  - `REDIS_MAX_CONNECTIONS=20`
+  - `DISABLE_REDIS_BG_LOOP=1`
 
 ### Backup / Restore
 - Backups (daily):
@@ -111,6 +131,8 @@ Stress (heavy tests) | off | `ICE_SKIP_STRESS=0` (and `ICE_DISABLE_SECCOMP=0`) |
 Metrics | off | `ICEOS_ENABLE_METRICS=1` | Requires `prometheus_client`; safe no-op when off
 Drafts | off | `ICEOS_ENABLE_DRAFTS=1` | Authoring utility; not runtime-essential
 CORS / Trusted Hosts | required | `CORS_ORIGINS`, `ALLOW_CORS_WILDCARD=0`, `TRUSTED_HOSTS` | Must be set per environment
+Dev Token | off | `ICE_ALLOW_DEV_TOKEN=1` | Enable only in dev/tests
+Rate Limiting | on | `ICE_RATE_WINDOW_SECONDS`, `ICE_RATE_MAX_REQUESTS` | Tune per environment
 
 ## Feature Matrix
 
@@ -126,3 +148,36 @@ CORS / Trusted Hosts | required | `CORS_ORIGINS`, `ALLOW_CORS_WILDCARD=0`, `TRUS
 - If green:
   - Flip WASM lane to required in PR workflow
   - Keep Stress required in nightly first, then evaluate in PR after additional soak
+
+## RAG Conversational Demo (multi-turn)
+
+Prerequisites:
+- `OPENAI_API_KEY` set (LLM provider defaults to OpenAI when available)
+- Compose environment up for DB/Redis and API
+
+One-command demo (ingest + query):
+
+```bash
+make demo-rag Q="Give me a two-sentence professional summary for Stefano."
+```
+
+Manual sequence:
+
+```bash
+docker compose up -d postgres redis
+docker compose run --rm migrate
+docker compose up -d api
+make demo-wait
+# Ingest example assets and run a query (inside the API container via helper script)
+docker compose exec -e OPENAI_API_KEY="$OPENAI_API_KEY" api \
+  python /app/scripts/examples/run_rag_chat.py --mode ingest \
+  --files /app/examples/user_assets/resume.txt,/app/examples/user_assets/cover_letter.txt,/app/examples/user_assets/website.txt
+docker compose exec -e OPENAI_API_KEY="$OPENAI_API_KEY" api \
+  python /app/scripts/examples/run_rag_chat.py --mode query \
+  --session-id chat1 --query "Give me a two-sentence professional summary for Stefano."
+```
+
+Notes:
+- Multi-turn memory is enabled via `recent_session_tool` + `memory_write_tool` using `session_id`.
+- The MCP router is mounted at `/api/v1/mcp/`; the demo script initializes MCP before `tools/call`.
+- Images are tagged with the Git SHA during publish for traceability.
