@@ -22,25 +22,32 @@ class RecentSessionTool(ToolBase):
         org_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Return recent session keys for inclusion in prompts."""
-        from sqlalchemy import text
+        import sqlalchemy as sa
+        from sqlalchemy import bindparam, text
 
         from ice_api.db.database_session_async import get_session
 
         prefix = f"chat:{session_id}:"
         items: list[dict[str, Any]] = []
         async for session in get_session():
+            stmt = text(
+                """
+                SELECT key, meta_json, created_at
+                FROM semantic_memory
+                WHERE scope = :scope
+                  AND (:org_id IS NULL OR org_id = :org_id)
+                  AND key LIKE :prefix
+                ORDER BY created_at DESC
+                LIMIT :limit
+                """
+            ).bindparams(
+                bindparam("scope", type_=sa.String()),
+                bindparam("org_id", type_=sa.String()),
+                bindparam("prefix", type_=sa.String()),
+                bindparam("limit", type_=sa.Integer()),
+            )
             rows = await session.execute(
-                text(
-                    """
-                    SELECT key, meta_json, created_at
-                    FROM semantic_memory
-                    WHERE scope = :scope
-                      AND (:org_id IS NULL OR org_id = :org_id)
-                      AND key LIKE :prefix
-                    ORDER BY created_at DESC
-                    LIMIT :limit
-                    """
-                ),
+                stmt,
                 {
                     "scope": scope,
                     "org_id": org_id,
