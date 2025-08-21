@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, cast
 
 import click
 import httpx
@@ -28,7 +28,7 @@ def _mcp(
         headers=_auth_headers(token),
     )
     resp.raise_for_status()
-    return resp.json()
+    return cast(dict[str, Any], resp.json())
 
 
 @memory.command("write")
