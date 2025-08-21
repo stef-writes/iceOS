@@ -29,9 +29,9 @@ plugins:
 
 # Navigation ----------------------------------------------------------------
 nav:
-  - Home: index.md
+  - Home: QUICKSTART.md
   - Guides:
       - Studio Flow: STUDIO_FLOW.md
       - Runtime Nodes: runtime_nodes.md
-      - Exercises: EXERCISES.md
       - Vision Happy Path: vision_happy_path.md
+      - Launch Plan: LAUNCH_PLAN.md
