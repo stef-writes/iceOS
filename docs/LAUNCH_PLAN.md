@@ -15,6 +15,8 @@
   - DSN conversion for Alembic
   - `upgrade head`
   - Schema verification (e.g., `semantic_memory` present)
+  - Index verification: Alembic 0002 adds composite indexes for Library performance
+    - `(org_id, user_id, key)` and `(scope, org_id, created_at DESC)` on `semantic_memory`
 
 ### Sandbox overrides (resource limits)
 - Defaults:

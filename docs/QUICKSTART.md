@@ -49,6 +49,28 @@ ice library get --label greeting --org demo_org --user demo_user
 ice library rm --label greeting --org demo_org --user demo_user
 ```
 
+## Memory-aware LLM (opt-in)
+- Enable for an LLM node by adding `"memory_aware": true` and pass `session_id`, `org_id`, `user_id` in inputs.
+- The orchestrator injects a recent-session read (scope=library) before the LLM and writes the transcript after.
+
+Example node in a blueprint:
+```json
+{
+  "id": "llm1",
+  "type": "llm",
+  "model": "gpt-4o",
+  "prompt": "Echo: {{ inputs.msg }}",
+  "llm_config": { "provider": "openai", "model": "gpt-4o" },
+  "memory_aware": true,
+  "output_schema": { "text": "string" }
+}
+```
+
+Inputs must include:
+```json
+{ "msg": "hello", "session_id": "s1", "org_id": "o1", "user_id": "u1" }
+```
+
 ## MCP tools via Postman
 - Import config/postman/iceos.postman_collection.json
 - Set baseUrl and apiToken
