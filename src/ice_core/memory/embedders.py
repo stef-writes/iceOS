@@ -68,7 +68,12 @@ def get_embedder_from_env() -> IEmbedder:
     if os.getenv("ICE_SKIP_EXTERNAL", "0") == "1":
         provider = "hash"
     else:
-        provider = os.getenv("ICEOS_EMBEDDINGS_PROVIDER", "hash").lower()
+        # Default to OpenAI when an API key is present, unless explicitly overridden
+        _env_provider = os.getenv("ICEOS_EMBEDDINGS_PROVIDER")
+        if _env_provider is not None:
+            provider = _env_provider.lower()
+        else:
+            provider = "openai" if os.getenv("OPENAI_API_KEY") else "hash"
     if provider == "openai" and os.getenv("OPENAI_API_KEY"):
         model = os.getenv("ICEOS_EMBEDDINGS_MODEL", "text-embedding-3-small")
         try:

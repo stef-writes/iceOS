@@ -39,6 +39,7 @@ services:
       - api_data:/app/data
       - ./examples:/app/examples:ro
       - ./scripts:/app/scripts:ro
+      - ./src:/app/src:ro
     env_file:
       - config/dev.env.example
     environment:
