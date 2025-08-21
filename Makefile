@@ -187,6 +187,20 @@ demo-query:
 demo-rag: demo-up demo-wait demo-ingest demo-query
 
 # ---------------------------------------------------------------------------
+# One-file Compose (zero-setup) ---------------------------------------------
+# ---------------------------------------------------------------------------
+.PHONY: onefile-up onefile-down onefile-reset
+
+onefile-up:
+	ICE_API_TOKEN=$${ICE_API_TOKEN:-dev-token} docker compose -f docker-compose.onefile.yml up -d --build
+	@echo "API at http://localhost:8000 (token=$${ICE_API_TOKEN:-dev-token})"
+
+onefile-down:
+	docker compose -f docker-compose.onefile.yml down -v || true
+
+onefile-reset: onefile-down onefile-up
+
+# ---------------------------------------------------------------------------
 # Zero-setup stack image (all-in-one) ---------------------------------------
 # ---------------------------------------------------------------------------
 .PHONY: stack-build stack-up stack-down

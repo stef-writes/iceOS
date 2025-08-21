@@ -4,9 +4,16 @@
 - Docker + Docker Compose
 - Set ICE_API_TOKEN (and provider keys if needed)
 
-## Start services (compose)
+## Zero-setup (one-file Compose)
 ```bash
-make ci-integration
+export ICE_API_TOKEN=dev-token
+docker compose -f docker-compose.onefile.yml up -d --build
+curl -s http://localhost:8000/readyz
+```
+
+## Start services (dev compose)
+```bash
+make demo-up && make demo-wait
 ```
 
 ## Push and run a workflow (CLI)
@@ -22,6 +29,24 @@ ice run --last
 ice uploads files --files README.md --scope kb
 ice memory write --key doc1 --content "hello world" --scope kb
 ice memory search --query "hello" --scope kb --top-k 3
+```
+
+## Personal Library (per-user assets)
+```bash
+# Add an asset
+curl -s -H "Authorization: Bearer $ICE_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"label":"greeting","content":"hello world","mime":"text/plain","org_id":"demo_org","user_id":"demo_user"}' \
+  http://localhost:8000/api/v1/library/assets
+
+# List assets
+curl -s -H "Authorization: Bearer $ICE_API_TOKEN" \
+  'http://localhost:8000/api/v1/library/assets?org_id=demo_org&user_id=demo_user&limit=5'
+
+# CLI equivalents
+ice library add --label greeting --file README.md --mime text/plain --org demo_org --user demo_user
+ice library list --org demo_org --user demo_user --limit 5
+ice library get --label greeting --org demo_org --user demo_user
+ice library rm --label greeting --org demo_org --user demo_user
 ```
 
 ## MCP tools via Postman
