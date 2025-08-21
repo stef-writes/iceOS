@@ -46,6 +46,11 @@ if _ENV_PATH.exists() and load_dotenv is not None:
 if "OPENAI_API_KEY" in os.environ:
     os.environ.setdefault("OPENAI_API_KEY", os.environ["OPENAI_API_KEY"])
 
+# Default to allowing the dev token in integration tests unless a test overrides it.
+# This keeps local/CI integration flows simple while auth-hardening tests can
+# explicitly set ICE_ALLOW_DEV_TOKEN=0 as needed.
+os.environ.setdefault("ICE_ALLOW_DEV_TOKEN", "1")
+
 # Ensure project source is importable when root package is not installed -----
 _SRC_PATH = _REPO_ROOT / "src"
 if str(_SRC_PATH) not in sys.path:

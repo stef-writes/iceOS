@@ -1307,8 +1307,8 @@ async def start_run(req: RunRequest) -> RunAck:
 
     return RunAck(
         run_id=run_id,
-        status_endpoint=f"/api/mcp/runs/{run_id}",
-        events_endpoint=f"/api/mcp/runs/{run_id}/events",
+        status_endpoint=f"/api/v1/mcp/runs/{run_id}",
+        events_endpoint=f"/api/v1/mcp/runs/{run_id}/events",
     )
 
 

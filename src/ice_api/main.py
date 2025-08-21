@@ -555,9 +555,15 @@ if os.getenv("ICEOS_ENABLE_METRICS", "0") == "1":
 # ------------------------------------------------------------------
 
 
+@app.get("/livez", tags=["health"], response_model=Dict[str, str])
+async def live_check() -> Dict[str, str]:  # noqa: D401
+    """Liveness probe – returns 200 when process is running."""
+    return {"status": "live"}
+
+
 @app.get("/healthz", tags=["health"], response_model=Dict[str, str])
 async def health_check_legacy() -> Dict[str, str]:  # noqa: D401
-    """Health probe – returns 200 when process is running (legacy alias)."""
+    """Health probe – alias for /livez (kept for compatibility)."""
     return {"status": "live"}
 
 
@@ -580,6 +586,13 @@ app.include_router(
     mcp_jsonrpc_router,
     prefix="/api/v1/mcp",
     tags=["mcp-jsonrpc"],
+    dependencies=[Depends(require_auth)],
+)
+# Temporary dual mount to support existing clients/tests that use the legacy path
+app.include_router(
+    mcp_jsonrpc_router,
+    prefix="/api/mcp",
+    tags=["mcp-jsonrpc-legacy"],
     dependencies=[Depends(require_auth)],
 )
 
