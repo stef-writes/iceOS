@@ -24,10 +24,13 @@ logger = logging.getLogger(__name__)
 def _expected_token() -> str:
     """Return the configured API bearer token (dev default gated by env)."""
     dev_default_allowed = os.getenv("ICE_ALLOW_DEV_TOKEN", "0") == "1"
-    token = os.getenv(
-        "ICE_API_TOKEN", "" if not dev_default_allowed else "dev-token"
-    ).strip()
-    return token
+    raw = os.getenv("ICE_API_TOKEN", "").strip()
+    # Treat explicit "dev-token" as dev-only unless the allow flag is set
+    if raw == "dev-token" and not dev_default_allowed:
+        return ""
+    if raw:
+        return raw
+    return "dev-token" if dev_default_allowed else ""
 
 
 async def require_auth(authorization: str = Header(...)) -> str:  # noqa: D401

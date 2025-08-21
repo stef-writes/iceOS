@@ -578,7 +578,7 @@ from ice_api.api.mcp_jsonrpc import router as mcp_jsonrpc_router
 # Secure MCP JSON-RPC endpoint behind auth as well
 app.include_router(
     mcp_jsonrpc_router,
-    prefix="/api/mcp",
+    prefix="/api/v1/mcp",
     tags=["mcp-jsonrpc"],
     dependencies=[Depends(require_auth)],
 )
