@@ -1,0 +1,35 @@
+name: Release iceos-client
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'client-v*'
+
+jobs:
+  build-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        run: pip install poetry==1.8.3
+
+      - name: Build wheel/sdist
+        working-directory: clients/ice_client
+        run: poetry build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: clients/ice_client/dist
+          attestations: false
