@@ -31,7 +31,7 @@ Testing notes
 - Offline tests should register an echo LLM factory under `gpt-4o`:
   ```python
   from ice_core.unified_registry import register_llm_factory
-  register_llm_factory("gpt-4o", "scripts.verify_runtime:create_echo_llm")
+  register_llm_factory("gpt-4o", "scripts.ops.verify_runtime:create_echo_llm")
   ```
 - If a blueprint omits an explicit LLM output schema, runtime defaults to `{ "text": "string" }` during validation.
 - Tools can be loaded via plugin manifests using `ICEOS_PLUGIN_MANIFESTS`; the registry is idempotent and safe across multiple loaders.

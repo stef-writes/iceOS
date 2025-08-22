@@ -49,8 +49,8 @@ def generate() -> None:
 @click.argument("name", type=str)
 @click.option(
     "--out-dir",
-    default="packs/first_party_tools",
-    help="Output directory for the tool file",
+    default="plugins/kits/tools/search",
+    help="Output directory for the tool file (default CapabilityKit)",
 )
 @click.option("--description", default="Custom tool", help="Tool description")
 def generate_tool(name: str, out_dir: str, description: str) -> None:  # noqa: D401
@@ -60,7 +60,9 @@ def generate_tool(name: str, out_dir: str, description: str) -> None:  # noqa: D
     class_name = "".join([p.capitalize() for p in tool_name.split("_")]) + "Tool"
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
-    module_rel = f"packs.first_party_tools.{tool_name}"
+    module_rel = (
+        f"plugins.kits.tools.search.{tool_name}"  # default kit; adjust per capability
+    )
     file_path = out_path / f"{tool_name}.py"
 
     content = TOOL_TEMPLATE.format(

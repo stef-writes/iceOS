@@ -90,6 +90,22 @@ assert not issues, issues
 ```
 
 ## Python client (submit → wait/stream)
+## Bundles and ChatKit (new)
+Run a ready-made, reusable RAG chat Bundle with overrides:
+```bash
+ice bundle run chatkit \
+  --file examples/user_assets/resume.txt \
+  --note "focus skills" \
+  --query "Summarize my background" \
+  --session s1 \
+  --model gpt-4o \
+  --system "You are a helpful assistant."
+```
+Build a bundle artifact (optional):
+```bash
+ice bundle build plugins/bundles/chatkit
+ls dist/bundles/
+```
 ```python
 import asyncio
 from ice_client import IceClient

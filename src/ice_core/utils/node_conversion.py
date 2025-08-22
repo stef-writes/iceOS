@@ -154,17 +154,24 @@ def discover_tool_schemas(tool_name: str) -> tuple[Dict[str, Any], Dict[str, Any
             import os as _os
             from pathlib import Path as _Path
 
-            manifest = (
-                _Path(__file__).parents[3] / "packs/first_party_tools/plugins.v0.yaml"
+            manifests = [
+                _Path(__file__).parents[3]
+                / "plugins/kits/tools/memory/plugins.v0.yaml",
+                _Path(__file__).parents[3]
+                / "plugins/kits/tools/search/plugins.v0.yaml",
+            ]
+            _os.environ.setdefault(
+                "ICEOS_PLUGIN_MANIFESTS",
+                ",".join(str(m) for m in manifests),
             )
-            _os.environ.setdefault("ICEOS_PLUGIN_MANIFESTS", str(manifest))
-            registry.load_plugins(str(manifest), allow_dynamic=True)
+            for m in manifests:
+                registry.load_plugins(str(m), allow_dynamic=True)
             if not registry.has_tool(tool_name):
                 # Force-import common first-party tool modules that register on import
                 for mod in (
-                    "packs.first_party_tools.ingestion_tool",
-                    "packs.first_party_tools.memory_search_tool",
-                    "packs.first_party_tools.memory_write_tool",
+                    "plugins.kits.tools.memory.ingestion_tool",
+                    "plugins.kits.tools.memory.memory_search_tool",
+                    "plugins.kits.tools.memory.memory_write_tool",
                 ):
                     try:
                         _importlib.import_module(mod)

@@ -33,14 +33,19 @@ async def _register_factories() -> None:
     from ice_core.unified_registry import register_llm_factory
     from ice_orchestrator.config import runtime_config
 
-    pack_manifest = (
-        Path(__file__).parents[3] / "packs/first_party_tools/plugins.v0.yaml"
+    pack_manifest = ",".join(
+        str(p)
+        for p in [
+            Path(__file__).parents[3] / "plugins/kits/tools/memory/plugins.v0.yaml",
+            Path(__file__).parents[3] / "plugins/kits/tools/search/plugins.v0.yaml",
+        ]
     )
     os.environ["ICEOS_PLUGIN_MANIFESTS"] = str(pack_manifest)
-    registry.load_plugins(str(pack_manifest), allow_dynamic=True)
+    for m in str(pack_manifest).split(","):
+        registry.load_plugins(m, allow_dynamic=True)
 
     # Register deterministic LLM factory under gpt-4o to avoid network
-    register_llm_factory("gpt-4o", "scripts.verify_runtime:create_philo_llm")
+    register_llm_factory("gpt-4o", "scripts.ops.verify_runtime:create_philo_llm")
     runtime_config.max_tokens = None
 
 

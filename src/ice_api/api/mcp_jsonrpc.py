@@ -266,24 +266,30 @@ async def mcp_jsonrpc_handler(request: Request) -> Union[MCPResponse, Dict[str, 
                     import importlib as _importlib
                     from pathlib import Path as _Path
 
-                    manifest = (
+                    manifests = [
                         _Path(__file__).parents[3]
-                        / "packs/first_party_tools/plugins.v0.yaml"
+                        / "plugins/kits/tools/memory/plugins.v0.yaml",
+                        _Path(__file__).parents[3]
+                        / "plugins/kits/tools/search/plugins.v0.yaml",
+                    ]
+                    _os.environ.setdefault(
+                        "ICEOS_PLUGIN_MANIFESTS",
+                        ",".join(str(m) for m in manifests),
                     )
-                    _os.environ.setdefault("ICEOS_PLUGIN_MANIFESTS", str(manifest))
-                    registry.load_plugins(str(manifest), allow_dynamic=True)
+                    for m in manifests:
+                        registry.load_plugins(str(m), allow_dynamic=True)
                     # As a last resort, force-import the tool modules which register factories on import
                     if not registry.has_tool("ingestion_tool"):
                         _importlib.import_module(
-                            "packs.first_party_tools.ingestion_tool"
+                            "plugins.kits.tools.memory.ingestion_tool"
                         )
                     if not registry.has_tool("memory_search_tool"):
                         _importlib.import_module(
-                            "packs.first_party_tools.memory_search_tool"
+                            "plugins.kits.tools.memory.memory_search_tool"
                         )
                     if not registry.has_tool("memory_write_tool"):
                         _importlib.import_module(
-                            "packs.first_party_tools.memory_write_tool"
+                            "plugins.kits.tools.memory.memory_write_tool"
                         )
         except Exception:
             pass

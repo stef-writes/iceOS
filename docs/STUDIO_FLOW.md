@@ -77,7 +77,7 @@ for programmatic integrations; Studio defaults to the MCP + SSE path.
 
 ### 7) RAG Answer block (non-technical)
 - UI action: Drag “RAG Answer” onto canvas; connect “My Library” as data source.
-- Backing blueprint: `packs.first_party_agents.rag_agent:rag_chat_blueprint_agent`.
+- Backing workflow (Bundle): `chatkit.rag_chat`.
 - Inputs shown in UI: query (text), with_citations (toggle), optional session_id, org_id, user_id.
 - Outputs shown: answer (text), citations (list).
 - Typical wiring: [My Library] → [RAG Answer] → [Save Transcript] → [Notify].

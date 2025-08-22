@@ -119,7 +119,7 @@ dev: serve
 
 # Live verification (real LLM + SerpAPI if keys present)
 verify-live:
-	OPENAI_API_KEY=$$OPENAI_API_KEY SERPAPI_KEY=$$SERPAPI_KEY poetry run python scripts/verify_runtime.py
+	OPENAI_API_KEY=$$OPENAI_API_KEY SERPAPI_KEY=$$SERPAPI_KEY poetry run python scripts/ops/verify_runtime.py
 
 stop-serve:
 	- lsof -ti tcp:8000 | xargs kill -9 || true
@@ -150,6 +150,8 @@ dev-zero:
 
 # Default demo query (override with: make demo-query Q="...your question...")
 Q ?= Give me a two-sentence professional summary for Stefano.
+WARMUPS ?= 1
+RUNS ?= 3
 
 demo-reset:
 	docker compose down -v || true
@@ -173,15 +175,44 @@ demo-wait:
 	echo "[demo] API did not become ready in time" >&2; exit 1
 
 demo-ingest:
-	@echo "[demo] Ingesting example assets into scope 'kb'..."; \
-	docker compose exec api python /app/scripts/examples/run_rag_chat.py \
-	  --files /app/examples/user_assets/resume.txt,/app/examples/user_assets/cover_letter.txt,/app/examples/user_assets/website.txt \
-	  --mode ingest
+	@echo "[demo] Ingesting example assets into scope 'kb' via MCP tools/call...";
+	docker compose exec api python - <<-'PY'
+	import json, httpx
+	BASE="http://localhost:8000"
+	token="dev-token"
+	files=["/app/examples/user_assets/resume.txt","/app/examples/user_assets/cover_letter.txt","/app/examples/user_assets/website.txt"]
+	with httpx.Client() as c:
+	    c.post(f"{BASE}/api/v1/mcp/", json={"jsonrpc":"2.0","id":0,"method":"initialize","params":{}} , headers={"Authorization": f"Bearer {token}"}).raise_for_status()
+	    for fp in files:
+	        text=open(fp, "r", encoding="utf-8").read()
+	        payload={"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"tool:memory_write_tool","arguments":{"inputs":{"key":fp.split('/')[-1],"content":text,"scope":"kb"}}}}
+	        c.post(f"{BASE}/api/v1/mcp/", json=payload, headers={"Authorization": f"Bearer {token}"}).raise_for_status()
+	print("[demo] Ingestion complete")
+	PY
 
 demo-query:
-	@echo "[demo] Running demo query: $(Q)"; \
-	docker compose exec -e OPENAI_API_KEY=$$OPENAI_API_KEY api \
-	  python /app/scripts/examples/run_rag_chat.py \
-	  --query "$(Q)" --mode query
+	@echo "[demo] Running demo query via ChatKit Bundle: $(Q)";
+	docker compose exec api python - <<-'PY'
+	import json, httpx
+	BASE="http://localhost:8000"; token="dev-token"
+	payload={"blueprint_id":"chatkit.rag_chat","inputs":{"query":"$(Q)","org_id":"demo_org","user_id":"demo_user","session_id":"chat_demo"}}
+	with httpx.Client() as c:
+	    r=c.post(f"{BASE}/api/v1/executions/", json=payload, headers={"Authorization": f"Bearer {token}"}); r.raise_for_status(); exec_id=r.json()["execution_id"]
+	    for _ in range(120):
+	        st=c.get(f"{BASE}/api/v1/executions/{exec_id}", headers={"Authorization": f"Bearer {token}"});
+	        if st.json().get("status") in {"completed","failed"}: print(json.dumps(st.json(), indent=2)); break
+	PY
 
 demo-rag: demo-up demo-wait demo-ingest demo-query
+
+# ---------------------------------------------------------------------------
+# Benchmarks ---------------------------------------------------------------
+# ---------------------------------------------------------------------------
+.PHONY: bench-chatkit
+bench-chatkit:
+	@echo "[bench] Running ChatKit bundle benchmarks..."; \
+	ICE_API_URL=$${ICE_API_URL:-http://localhost:8000} \
+	ICE_API_TOKEN=$${ICE_API_TOKEN:-dev-token} \
+	BENCH_QUERY="$(Q)" \
+	BENCH_WARMUPS=$(WARMUPS) BENCH_RUNS=$(RUNS) \
+	python scripts/ops/run_chatkit_bench.py

@@ -35,3 +35,6 @@ nav:
       - Runtime Nodes: runtime_nodes.md
       - Vision Happy Path: vision_happy_path.md
       - Launch Plan: LAUNCH_PLAN.md
+      - Plugins Manifest Contract: PLUGINS_MANIFEST_CONTRACT.md
+      - Build Your First Tool: BUILD_YOUR_FIRST_TOOL.md
+      - Benchmarks: BENCHMARKS.md

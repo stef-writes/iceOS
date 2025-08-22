@@ -65,15 +65,19 @@ def rag_demo(
                 resp = await client._client.post("/api/v1/mcp", json=payload)
                 resp.raise_for_status()
 
-            # Build rag_agent blueprint and run
-            from importlib import import_module
-
-            rag_mod = import_module("packs.first_party_agents.rag_agent")
-            bp = getattr(rag_mod, "rag_chat_blueprint_agent")(
-                model=model, scope=scope, top_k=top_k, with_citations=with_citations
+            # Recommend using the ChatKit Bundle entrypoint instead of legacy agent
+            click.echo(
+                json.dumps(
+                    {
+                        "message": "Use ChatKit Bundle entrypoint: ice bundle run chatkit --file ... --query ...",
+                        "query": query,
+                        "scope": scope,
+                        "model": model,
+                        "top_k": top_k,
+                        "with_citations": with_citations,
+                    },
+                    indent=2,
+                )
             )
-            exec_id = await client.run(blueprint=bp, inputs={"query": query})
-            final = await client.poll_until_complete(exec_id, timeout=120)
-            click.echo(json.dumps(final, indent=2))
 
     asyncio.run(_run())

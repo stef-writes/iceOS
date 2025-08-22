@@ -22,10 +22,17 @@ def _ensure_plugins_loaded() -> None:
 
     from ice_core.registry import registry
 
-    manifest = Path(__file__).parents[3] / "packs/first_party_tools/plugins.v0.yaml"
-    os.environ["ICEOS_PLUGIN_MANIFESTS"] = str(manifest)
+    manifests = ",".join(
+        str(p)
+        for p in [
+            Path(__file__).parents[3] / "plugins/kits/tools/memory/plugins.v0.yaml",
+            Path(__file__).parents[3] / "plugins/kits/tools/search/plugins.v0.yaml",
+        ]
+    )
+    os.environ["ICEOS_PLUGIN_MANIFESTS"] = manifests
     try:
-        registry.load_plugins(str(manifest), allow_dynamic=True)
+        for m in manifests.split(","):
+            registry.load_plugins(m, allow_dynamic=True)
     except Exception:
         pass
 

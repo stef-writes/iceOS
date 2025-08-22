@@ -82,17 +82,23 @@ async def upload_files(  # noqa: D401
             if _os.getenv("ICEOS_PLUGIN_FORCE_IMPORT", "0") == "1":
                 from pathlib import Path as _Path
 
-                manifest = (
+                manifests = [
                     _Path(__file__).parents[3]
-                    / "packs/first_party_tools/plugins.v0.yaml"
+                    / "plugins/kits/tools/memory/plugins.v0.yaml",
+                    _Path(__file__).parents[3]
+                    / "plugins/kits/tools/search/plugins.v0.yaml",
+                ]
+                _os.environ.setdefault(
+                    "ICEOS_PLUGIN_MANIFESTS",
+                    ",".join(str(m) for m in manifests),
                 )
-                _os.environ.setdefault("ICEOS_PLUGIN_MANIFESTS", str(manifest))
-                registry.load_plugins(str(manifest), allow_dynamic=True)
+                for m in manifests:
+                    registry.load_plugins(str(m), allow_dynamic=True)
                 if not registry.has_tool("ingestion_tool"):
                     # Force-import module to trigger on-import factory registration
                     import importlib as _importlib
 
-                    _importlib.import_module("packs.first_party_tools.ingestion_tool")
+                    _importlib.import_module("plugins.kits.tools.memory.ingestion_tool")
         except Exception:
             pass
 

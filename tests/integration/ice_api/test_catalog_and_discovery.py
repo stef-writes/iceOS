@@ -15,7 +15,7 @@ def test_meta_nodes_catalog_contains_generated_tools_with_hints() -> None:
     from ice_core.registry import registry
 
     pack_manifest = (
-        Path(__file__).parents[3] / "packs/first_party_tools/plugins.v0.yaml"
+        Path(__file__).parents[3] / "plugins/kits/tools/memory/plugins.v0.yaml"
     )
     os.environ["ICEOS_PLUGIN_MANIFESTS"] = str(pack_manifest)
     # Load dynamically if not already loaded

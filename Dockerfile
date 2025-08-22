@@ -55,12 +55,12 @@ RUN python -m pip install --upgrade "pip==24.1.2" \
 
 # Rely solely on Poetry-exported requirements to avoid dependency drift
 
-# Copy application source, migrations, and first-party packs (for plugin manifests)
+# Copy application source, migrations, and capability kits (for plugin manifests)
 COPY src /app/src
 COPY scripts /app/scripts
 COPY alembic.ini /app/alembic.ini
 COPY alembic /app/alembic
-COPY packs /app/packs
+COPY Plugins /app/plugins
 COPY examples /app/examples
 ENV PYTHONPATH=/app/src:/app
 
@@ -117,7 +117,7 @@ RUN python -m pip install --no-cache-dir --timeout 120 --retries 5 -r /tmp/requi
 
 # Copy application source and test config
 COPY src /app/src
-COPY packs /app/packs
+COPY Plugins /app/plugins
 COPY scripts /app/scripts
 COPY config /app/config
 COPY tests /app/tests
@@ -135,7 +135,7 @@ LABEL org.opencontainers.image.title="iceOS Test Runner" \
 # Auto-register demo tools for pytest via sitecustomize in the same interpreter
 RUN printf '%s\n' \
   'from ice_core.unified_registry import register_tool_factory' \
-  'register_tool_factory("writer_tool", "packs.first_party_tools.writer_tool:create_writer_tool")' \
+  'register_tool_factory("writer_tool", "plugins.kits.tools.search.writer_tool:create_writer_tool")' \
   > /usr/local/lib/python3.11/site-packages/sitecustomize.py
 
 # Pre-test bootstrap: ensure required demo tools are registered in this process.
@@ -147,10 +147,10 @@ RUN printf '%s\n' \
   'from ice_core.unified_registry import register_tool_factory' \
   'import importlib' \
   'try:' \
-  '    importlib.import_module("packs.first_party_tools.writer_tool")' \
+  '    importlib.import_module("plugins.kits.tools.search.writer_tool")' \
   'except Exception as e:' \
   '    raise SystemExit(f"bootstrap: failed to import writer_tool: {e}")' \
-  'register_tool_factory("writer_tool", "packs.first_party_tools.writer_tool:create_writer_tool")' \
+  'register_tool_factory("writer_tool", "plugins.kits.tools.search.writer_tool:create_writer_tool")' \
   'print("bootstrap: writer_tool registered")' \
   'PY' \
   > /usr/local/bin/itest-bootstrap && chmod +x /usr/local/bin/itest-bootstrap

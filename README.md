@@ -291,6 +291,29 @@ $ make type
 $ make lint
 ```
 
+### 5.0 CI / Dev Quickstart (Dockerized)
+
+```bash
+make lint-docker
+make lock-check-docker
+make type-check
+make test
+```
+
+### 5.0.1 Integration tests (Docker Compose)
+
+```bash
+make ci-integration
+```
+
+### 5.0.2 Benchmarks (ChatKit)
+
+```bash
+# Start stack and ingest examples, then run benchmark
+make demo-rag
+make bench-chatkit Q="Summarize my resume"
+```
+
 Coverage gate: 60% total (temporary). Raise gradually.
 
 ### 5.1 Integration tests (Docker Compose)
@@ -308,7 +331,7 @@ IMAGE_REPO=local IMAGE_TAG=dev \
 Notes:
 - First‑party tools are loaded via plugin manifests set by `ICEOS_PLUGIN_MANIFESTS`.
 - The unified registry is idempotent; loading the same manifest multiple times is safe.
-- Containers export `PYTHONPATH=/app/src:/app` so imports like `packs.first_party_tools.*` resolve.
+- Containers export `PYTHONPATH=/app/src:/app` so imports like `plugins.*` resolve.
 - Integration runner uses fixed pytest options: `-p no:xdist --timeout=300 -q`.
 - Canonical API routes use trailing slashes for collections (e.g. `/api/v1/executions/`).
 - Execution and blueprint endpoints return typed Pydantic models.
@@ -340,7 +363,7 @@ Tests should avoid real LLM calls. Register the echo LLM and prefer model `gpt-4
 
 ```python
 from ice_core.unified_registry import register_llm_factory
-register_llm_factory("gpt-4o", "scripts.verify_runtime:create_echo_llm")
+register_llm_factory("gpt-4o", "scripts.ops.verify_runtime:create_echo_llm")
 ```
 
 Then set up starter-pack tools in-test as needed:
@@ -348,7 +371,7 @@ Then set up starter-pack tools in-test as needed:
 ```python
 from pathlib import Path
 from ice_core.unified_registry import registry
-mp = Path(__file__).parents[3] / "packs/first_party_tools/plugins.v0.yaml"
+mp = Path(__file__).parents[3] / "plugins/kits/tools/memory/plugins.v0.yaml"
 registry.load_plugins(str(mp), allow_dynamic=True)
 ```
 

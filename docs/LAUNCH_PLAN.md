@@ -152,6 +152,16 @@ Rate Limiting | on | `ICE_RATE_WINDOW_SECONDS`, `ICE_RATE_MAX_REQUESTS` | Tune p
   - Keep Stress required in nightly first, then evaluate in PR after additional soak
 
 ## RAG Conversational Demo (multi-turn)
+## Bundles and Kits (distribution)
+
+- Bundle is the deployable unit. A Bundle can contain one or more workflows and presets.
+- Kits provide reusable Tools (capabilities); Connectors are Kits integrating third-party systems.
+- Example:
+  - Kits: `plugins/kits/tools/memory`, `plugins/kits/tools/search`
+  - Bundle: `plugins/bundles/chatkit` with `bundle.yaml` (entry `chatkit.rag_chat`)
+  - Build: `ice bundle build plugins/bundles/chatkit` → `dist/bundles/chatkit-1.0.0.ice.tgz`
+  - Run: `ice bundle run chatkit --file ... --note ... --query ... --session s1`
+
 
 Prerequisites:
 - `OPENAI_API_KEY` set (LLM provider defaults to OpenAI when available)
@@ -171,12 +181,19 @@ docker compose run --rm migrate
 docker compose up -d api
 make demo-wait
 # Ingest example assets and run a query (inside the API container via helper script)
-docker compose exec -e OPENAI_API_KEY="$OPENAI_API_KEY" api \
-  python /app/scripts/examples/run_rag_chat.py --mode ingest \
-  --files /app/examples/user_assets/resume.txt,/app/examples/user_assets/cover_letter.txt,/app/examples/user_assets/website.txt
-docker compose exec -e OPENAI_API_KEY="$OPENAI_API_KEY" api \
-  python /app/scripts/examples/run_rag_chat.py --mode query \
-  --session-id chat1 --query "Give me a two-sentence professional summary for Stefano."
+python - <<'PY'
+import json, httpx
+BASE="http://localhost:8000"; token="dev-token"
+with httpx.Client() as c:
+    c.post(f"{BASE}/api/v1/mcp/", json={"jsonrpc":"2.0","id":0,"method":"initialize","params":{}} , headers={"Authorization": f"Bearer {token}"}).raise_for_status()
+    for fn in ("resume.txt","cover_letter.txt","website.txt"):
+        text=open(f"examples/user_assets/{fn}","r",encoding="utf-8").read()
+        payload={"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"tool:memory_write_tool","arguments":{"inputs":{"key":fn,"content":text,"scope":"kb"}}}}
+        c.post(f"{BASE}/api/v1/mcp/", json=payload, headers={"Authorization": f"Bearer {token}"}).raise_for_status()
+    payload={"blueprint_id":"chatkit.rag_chat","inputs":{"query":"Give me a two-sentence professional summary for Stefano.","org_id":"demo_org","user_id":"demo_user","session_id":"chat1"}}
+    r=c.post(f"{BASE}/api/v1/executions/", json=payload, headers={"Authorization": f"Bearer {token}"}); r.raise_for_status(); exec_id=r.json()["execution_id"]
+    print(c.get(f"{BASE}/api/v1/executions/{exec_id}", headers={"Authorization": f"Bearer {token}"}).json())
+PY
 ```
 
 Notes:

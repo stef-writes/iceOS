@@ -43,13 +43,11 @@ jobs:
 
       - name: Type check (Dockerized)
         run: |
-          make type-docker
+          make type-check
 
       - name: Unit tests (reuse prebuilt itest image)
         run: |
-          docker run --rm -t \
-            local/iceosv1a-itest:dev \
-            pytest -c config/testing/pytest.ini -q -m unit
+          make test
 
       - name: Integration tests (single compose up)
         env:

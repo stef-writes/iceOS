@@ -601,7 +601,7 @@ async def scaffold_component(
         )
         notes = (
             "Save class code as src/ice_tools/generated/" + req.name + ".py, "
-            "then register a factory path 'packs.first_party_tools."
+            "then register a factory path 'plugins.kits.tools."
             + req.name
             + ":create_"
             + req.name

@@ -96,12 +96,14 @@ def _bootstrap_plugins() -> None:
     except Exception:
         return
 
-    pack_manifest = (
-        Path(__file__).parents[2] / "packs/first_party_tools/plugins.v0.yaml"
-    )
-    os.environ["ICEOS_PLUGIN_MANIFESTS"] = str(pack_manifest)
+    manifests = [
+        Path(__file__).parents[2] / "plugins/kits/tools/memory/plugins.v0.yaml",
+        Path(__file__).parents[2] / "plugins/kits/tools/search/plugins.v0.yaml",
+    ]
+    os.environ["ICEOS_PLUGIN_MANIFESTS"] = ",".join(str(m) for m in manifests)
     try:
-        registry.load_plugins(str(pack_manifest), allow_dynamic=True)
+        for m in manifests:
+            registry.load_plugins(str(m), allow_dynamic=True)
     except Exception:
         # Tests that explicitly manage plugin loading can proceed regardless
         pass

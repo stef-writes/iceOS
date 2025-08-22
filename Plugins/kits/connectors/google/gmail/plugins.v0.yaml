@@ -1,0 +1,4 @@
+components:
+  - node_type: tool
+    name: gmail_search_messages_tool
+    import_path: plugins.kits.connectors.google.gmail.gmail_search_messages_tool:GmailSearchMessagesTool
