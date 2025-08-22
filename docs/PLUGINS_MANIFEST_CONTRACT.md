@@ -14,11 +14,11 @@ This document defines the stable authoring contract for firstâ€‘party and thirdâ
 
 ## Schema (v0)
 ```yaml
-schema: plugins.v0
+schema_version: plugins.v0
 components:
   - node_type: tool        # one of: tool | workflow | agent
     name: memory_search_tool
-    import_path: plugins.kits.tools.memory.memory_search_tool:create_memory_search_tool
+    import: plugins.kits.tools.memory.memory_search_tool:create_memory_search_tool
     version: 1.0.0
     description: Semantic memory search
 ```

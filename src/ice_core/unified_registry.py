@@ -298,6 +298,25 @@ class Registry(BaseModel):
         else:
             data = json.loads(raw)
 
+        # Normalize legacy keys for resiliency:
+        # - allow missing schema_version (default to plugins.v0)
+        # - accept legacy 'import_path' for components when 'import' not present
+        try:
+            if "schema_version" not in data and "schema" in data:
+                data["schema_version"] = data.get("schema") or "plugins.v0"
+            data.setdefault("schema_version", "plugins.v0")
+            comps = data.get("components") or []
+            if isinstance(comps, list):
+                for comp in comps:
+                    if (
+                        isinstance(comp, dict)
+                        and "import" not in comp
+                        and "import_path" in comp
+                    ):
+                        comp["import"] = comp["import_path"]
+        except Exception:
+            pass
+
         manifest = PluginsManifest(**data)
 
         count = 0

@@ -1,10 +1,11 @@
+schema_version: plugins.v0
 components:
   - node_type: tool
     name: writer_tool
-    import_path: plugins.kits.tools.search.writer_tool:WriterTool
+    import: plugins.kits.tools.search.writer_tool:WriterTool
   - node_type: tool
     name: lookup_tool
-    import_path: plugins.kits.tools.search.lookup_tool:LookupTool
+    import: plugins.kits.tools.search.lookup_tool:LookupTool
   - node_type: tool
     name: search_tool
-    import_path: plugins.kits.tools.search.search_tool:SearchTool
+    import: plugins.kits.tools.search.search_tool:SearchTool
