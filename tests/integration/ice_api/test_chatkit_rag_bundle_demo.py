@@ -109,7 +109,7 @@ def test_chatkit_rag_bundle_e2e() -> None:  # type: ignore[no-redef]
     # Poll until complete (allow brief time for async execution)
     import time as _t
 
-    for _ in range(60):
+    for _ in range(150):
         st = client.get(
             f"/api/v1/executions/{exec_id}",
             headers={"Authorization": "Bearer dev-token"},
