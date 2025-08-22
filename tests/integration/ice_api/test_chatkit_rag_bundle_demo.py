@@ -58,8 +58,8 @@ def test_chatkit_rag_bundle_e2e() -> None:  # type: ignore[no-redef]
     manifests = ",".join(
         str(p)
         for p in [
-            _P(__file__).parents[3] / "Plugins/kits/tools/memory/plugins.v0.yaml",
-            _P(__file__).parents[3] / "Plugins/kits/tools/search/plugins.v0.yaml",
+            _P(__file__).parents[3] / "plugins/kits/tools/memory/plugins.v0.yaml",
+            _P(__file__).parents[3] / "plugins/kits/tools/search/plugins.v0.yaml",
         ]
     )
     os.environ["ICEOS_PLUGIN_MANIFESTS"] = manifests
@@ -69,7 +69,7 @@ def test_chatkit_rag_bundle_e2e() -> None:  # type: ignore[no-redef]
 
     # Build a blueprint from the ChatKit Bundle workflow (rag_chat.yaml) and run it
     rag_path = (
-        _P(__file__).parents[3] / "Plugins/bundles/chatkit/workflows/rag_chat.yaml"
+        _P(__file__).parents[3] / "plugins/bundles/chatkit/workflows/rag_chat.yaml"
     )
     rag_yaml = yaml.safe_load(rag_path.read_text(encoding="utf-8"))
     bp = {
