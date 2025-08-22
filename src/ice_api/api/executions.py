@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime as _dt
 import os
 import uuid
 from typing import Any, Dict, List, Optional
@@ -10,6 +11,8 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
+from ice_api.db.database_session_async import get_session
+from ice_api.db.orm_models_core import ExecutionRecord
 from ice_api.redis_client import get_redis
 from ice_core.models.mcp import Blueprint
 
@@ -148,7 +151,17 @@ async def _run_workflow_async(
     try:
         record["status"] = "running"
         record["_event"].set()
-        # Persist running state
+        # Persist running state (DB authoritative)
+        try:
+            async for session in get_session():
+                rec = await session.get(ExecutionRecord, execution_id)
+                if rec is not None:
+                    rec.status = "running"
+                    rec.started_at = _dt.datetime.utcnow()
+                    await session.commit()
+        except Exception:
+            pass
+        # Cache to Redis best-effort
         try:
             redis = get_redis()
             await redis.hset(
@@ -201,6 +214,24 @@ async def _run_workflow_async(
         record["_event"].set()
         # Persist completion
         try:
+            async for session in get_session():
+                rec = await session.get(ExecutionRecord, execution_id)
+                if rec is not None:
+                    rec.status = "completed"
+                    rec.finished_at = _dt.datetime.utcnow()
+                    try:
+                        rec.cost_meta = (
+                            result.model_dump()
+                            if hasattr(result, "model_dump")
+                            else {"result": str(result)}
+                        )  # store output/cost meta
+                    except Exception:
+                        pass
+                    await session.commit()
+        except Exception:
+            pass
+        # Cache to Redis
+        try:
             await redis.hset(
                 _exec_key(execution_id),
                 mapping={
@@ -227,6 +258,15 @@ async def _run_workflow_async(
         record["error"] = str(exc)
         record["_event"].set()
         # Persist failure
+        try:
+            async for session in get_session():
+                rec = await session.get(ExecutionRecord, execution_id)
+                if rec is not None:
+                    rec.status = "failed"
+                    rec.finished_at = _dt.datetime.utcnow()
+                    await session.commit()
+        except Exception:
+            pass
         try:
             redis = get_redis()
             await redis.hset(
@@ -321,7 +361,21 @@ async def start_execution(  # noqa: D401 – API route
             "_event": asyncio.Event(),  # internal notification hook
         },
     )
-    # Persist initial state (fallback to in-memory when Redis unavailable)
+    # Persist initial state to Postgres (authoritative)
+    try:
+        async for session in get_session():
+            rec = ExecutionRecord(
+                id=execution_id,
+                blueprint_id=blueprint_id,
+                status="pending",
+                started_at=None,
+                finished_at=None,
+            )
+            session.add(rec)
+            await session.commit()
+    except Exception:
+        pass
+    # Best-effort cache to Redis
     try:
         redis = get_redis()
         await redis.hset(

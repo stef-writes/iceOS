@@ -8,6 +8,8 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body, HTTPException, Request, status
 from pydantic import BaseModel, ValidationError
 
+from ice_api.db.database_session_async import get_session
+from ice_api.db.orm_models_core import BlueprintRecord
 from ice_api.redis_client import get_redis
 from ice_api.security import is_agent_allowed, is_tool_allowed
 from ice_core.models.mcp import Blueprint, NodeSpec
@@ -26,7 +28,17 @@ def _bp_key(blueprint_id: str) -> str:  # noqa: D401 – helper
 
 
 async def _load_blueprint(blueprint_id: str) -> Blueprint:  # noqa: D401 – helper
-    """Load a blueprint by id from Redis or raise 404 if not found."""
+    """Load a blueprint by id from Postgres (authoritative) or Redis, else 404."""
+    # 1) DB authoritative
+    try:
+        async for session in get_session():
+            rec = await session.get(BlueprintRecord, blueprint_id)
+            if rec is not None:
+                return Blueprint.model_validate(rec.body)
+    except Exception:
+        # If DB temporarily unavailable, fall back to cache
+        pass
+    # 2) Redis cache
     try:
         redis = get_redis()
         raw_json = await redis.hget(_bp_key(blueprint_id), "json")  # type: ignore[arg-type]
@@ -34,10 +46,6 @@ async def _load_blueprint(blueprint_id: str) -> Blueprint:  # noqa: D401 – hel
             return Blueprint.model_validate_json(raw_json)
     except Exception:
         pass
-    # Zero-setup in-memory fallback
-    # Note: We avoid importing Request/Depends here to prevent unused-import warnings.
-    # In FastAPI route context, we can't access request here; use app state via workaround not available.
-    # Instead, signal not found and let caller manage state-based fallback.
     raise HTTPException(status_code=404, detail="Blueprint not found")
 
 
@@ -236,14 +244,30 @@ async def create_blueprint(  # noqa: D401 – API route
     _validate_resolvable_and_allowed(blueprint)
 
     blueprint_id = str(uuid.uuid4())
+    # Persist to Postgres (authoritative)
     try:
-        await _save_blueprint(blueprint_id, blueprint)
+        async for session in get_session():
+            rec = BlueprintRecord(
+                id=blueprint_id,
+                schema_version=str(getattr(blueprint, "schema_version", "1.2.0")),
+                body=blueprint.model_dump(mode="json", exclude_none=True),
+                lock_version=1,
+            )
+            session.merge(rec)
+            await session.commit()
     except Exception:
+        # Best-effort fallback to in-memory store so tests/dev keep working
         store = getattr(request.app.state, "blueprints", None)
         if store is not None:
             store[blueprint_id] = blueprint
         else:
             request.app.state.blueprints = {blueprint_id: blueprint}
+
+    # Cache to Redis best-effort
+    try:
+        await _save_blueprint(blueprint_id, blueprint)
+    except Exception:
+        pass
 
     version_lock = _calculate_version_lock(blueprint)
     return BlueprintCreateResponse(id=blueprint_id, version_lock=version_lock)
@@ -323,10 +347,29 @@ async def patch_blueprint(  # noqa: D401
     # Enforce resolvability and access
     _validate_resolvable_and_allowed(bp)
 
+    # Persist to Postgres and refresh cache
     try:
-        await _save_blueprint(blueprint_id, bp)
+        async for session in get_session():
+            rec = await session.get(BlueprintRecord, blueprint_id)
+            if rec is None:
+                rec = BlueprintRecord(
+                    id=blueprint_id,
+                    schema_version=str(getattr(bp, "schema_version", "1.2.0")),
+                    body=bp.model_dump(mode="json", exclude_none=True),
+                    lock_version=1,
+                )
+                session.add(rec)
+            else:
+                rec.schema_version = str(getattr(bp, "schema_version", "1.2.0"))
+                rec.body = bp.model_dump(mode="json", exclude_none=True)
+                rec.lock_version = rec.lock_version + 1
+            await session.commit()
+        try:
+            await _save_blueprint(blueprint_id, bp)
+        except Exception:
+            pass
     except Exception:
-        # In-memory update
+        # In-memory update fallback
         store = getattr(request.app.state, "blueprints", None)
         if store is not None:
             store[blueprint_id] = bp
@@ -354,9 +397,18 @@ async def delete_blueprint(  # noqa: D401
     server_lock = _calculate_version_lock(bp)
     _assert_version_lock(request, server_lock)
 
-    # Mark as deleted by clearing JSON field
-    redis = get_redis()
-    await redis.hset(_bp_key(blueprint_id), mapping={"json": ""})
+    # Delete from Postgres authoritatively
+    async for session in get_session():
+        rec = await session.get(BlueprintRecord, blueprint_id)
+        if rec is not None:
+            await session.delete(rec)
+            await session.commit()
+    # Best-effort cache invalidation
+    try:
+        redis = get_redis()
+        await redis.hset(_bp_key(blueprint_id), mapping={"json": ""})
+    except Exception:
+        pass
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -396,7 +448,27 @@ async def replace_blueprint(  # noqa: D401
     # Enforce resolvability and access
     _validate_resolvable_and_allowed(bp)
 
-    await _save_blueprint(blueprint_id, bp)
+    # Save to Postgres
+    async for session in get_session():
+        rec = await session.get(BlueprintRecord, blueprint_id)
+        if rec is None:
+            rec = BlueprintRecord(
+                id=blueprint_id,
+                schema_version=str(getattr(bp, "schema_version", "1.2.0")),
+                body=bp.model_dump(mode="json", exclude_none=True),
+                lock_version=1,
+            )
+            session.add(rec)
+        else:
+            rec.schema_version = str(getattr(bp, "schema_version", "1.2.0"))
+            rec.body = bp.model_dump(mode="json", exclude_none=True)
+            rec.lock_version = rec.lock_version + 1
+        await session.commit()
+    # Cache best-effort
+    try:
+        await _save_blueprint(blueprint_id, bp)
+    except Exception:
+        pass
     new_lock = _calculate_version_lock(bp)
     return BlueprintReplaceResponse(id=blueprint_id, version_lock=new_lock)
 
@@ -424,6 +496,20 @@ async def clone_blueprint(  # noqa: D401
     """Create a deep copy of an existing blueprint and return the new id."""
     original = await _load_blueprint(blueprint_id)
     new_id = str(uuid.uuid4())
-    await _save_blueprint(new_id, original.model_copy(deep=True))
+    # Persist to Postgres
+    async for session in get_session():
+        rec = BlueprintRecord(
+            id=new_id,
+            schema_version=str(getattr(original, "schema_version", "1.2.0")),
+            body=original.model_dump(mode="json", exclude_none=True),
+            lock_version=1,
+        )
+        session.add(rec)
+        await session.commit()
+    # Cache best-effort
+    try:
+        await _save_blueprint(new_id, original.model_copy(deep=True))
+    except Exception:
+        pass
     new_lock = _calculate_version_lock(original)
     return BlueprintCloneResponse(id=new_id, version_lock=new_lock)
