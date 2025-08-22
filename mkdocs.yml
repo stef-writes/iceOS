@@ -38,3 +38,5 @@ nav:
       - Plugins Manifest Contract: PLUGINS_MANIFEST_CONTRACT.md
       - Build Your First Tool: BUILD_YOUR_FIRST_TOOL.md
       - Benchmarks: BENCHMARKS.md
+      - Client Quickstart: CLIENT_QUICKSTART.md
+      - Security & Tokens: SECURITY_TOKENS.md
