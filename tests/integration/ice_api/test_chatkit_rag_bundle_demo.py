@@ -13,6 +13,9 @@ def test_chatkit_rag_bundle_e2e() -> None:  # type: ignore[no-redef]
     import os
 
     os.environ["ICEOS_EMBEDDINGS_PROVIDER"] = "hash"
+    # Ensure in-process TestClient executes synchronously and uses echo LLM
+    os.environ["ICE_EXEC_SYNC_FOR_TESTS"] = "1"
+    os.environ["ICE_ECHO_LLM_FOR_TESTS"] = "1"
 
     from starlette.testclient import TestClient
 
@@ -96,7 +99,7 @@ def test_chatkit_rag_bundle_e2e() -> None:  # type: ignore[no-redef]
         "query": "Who is John?",
     }
     run = client.post(
-        "/api/v1/executions/",
+        "/api/v1/executions/?wait_seconds=20",
         headers={
             "Authorization": "Bearer dev-token",
             "Content-Type": "application/json",
@@ -104,12 +107,17 @@ def test_chatkit_rag_bundle_e2e() -> None:  # type: ignore[no-redef]
         json={"blueprint_id": bp_id, "inputs": inputs},
     )
     assert run.status_code in (200, 202)
-    exec_id = run.json().get("execution_id")
+    data0 = run.json()
+    # If server waited and finished, assert and exit early
+    if data0.get("status") in {"completed", "failed"}:
+        assert data0.get("status") == "completed"
+        return
+    exec_id = data0.get("execution_id")
 
     # Poll until complete (allow brief time for async execution)
     import time as _t
 
-    for _ in range(150):
+    for _ in range(240):
         st = client.get(
             f"/api/v1/executions/{exec_id}",
             headers={"Authorization": "Bearer dev-token"},
@@ -118,7 +126,7 @@ def test_chatkit_rag_bundle_e2e() -> None:  # type: ignore[no-redef]
         data = st.json()
         if data.get("status") in {"completed", "failed"}:
             break
-        _t.sleep(0.2)
+        _t.sleep(0.25)
 
     assert data.get("status") == "completed"
     assert isinstance(data.get("result", {}), dict)

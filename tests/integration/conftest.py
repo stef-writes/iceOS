@@ -85,6 +85,19 @@ def redis_url(redis_container) -> str:
 
 
 @pytest.fixture(scope="session", autouse=True)
+def _itest_env_defaults() -> None:
+    """Session-wide sane defaults for integration tests.
+
+    Ensures deterministic providers and in-process-friendly execution when tests
+    run via TestClient or outside Docker.
+    """
+    os.environ.setdefault("ICEOS_EMBEDDINGS_PROVIDER", "hash")
+    os.environ.setdefault("ICE_ECHO_LLM_FOR_TESTS", "1")
+    os.environ.setdefault("ICE_EXEC_SYNC_FOR_TESTS", "1")
+    os.environ.setdefault("ICE_STRICT_SERIALIZATION", "1")
+
+
+@pytest.fixture(scope="session", autouse=True)
 def _bootstrap_plugins() -> None:
     """Load first-party tools via manifest for orchestrator-only tests.
 

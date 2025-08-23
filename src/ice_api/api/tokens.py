@@ -116,6 +116,8 @@ async def list_tokens(
         rows = (await session.execute(stmt)).scalars().all()
         items: List[TokenListItem] = []
         for r in rows:
+            created_at_val = getattr(r, "created_at", None)
+            expires_at_val = getattr(r, "expires_at", None)
             items.append(
                 TokenListItem(
                     token_hash=r.token_hash,
@@ -124,13 +126,13 @@ async def list_tokens(
                     user_id=r.user_id,
                     scopes=list(r.scopes or []),
                     created_at=(
-                        r.created_at.isoformat()
-                        if getattr(r, "created_at", None)
+                        created_at_val.isoformat()
+                        if isinstance(created_at_val, _dt.datetime)
                         else None
                     ),
                     expires_at=(
-                        r.expires_at.isoformat()
-                        if getattr(r, "expires_at", None)
+                        expires_at_val.isoformat()
+                        if isinstance(expires_at_val, _dt.datetime)
                         else None
                     ),
                     revoked=bool(r.revoked),

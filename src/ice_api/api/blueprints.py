@@ -253,7 +253,8 @@ async def create_blueprint(  # noqa: D401 – API route
                 body=blueprint.model_dump(mode="json", exclude_none=True),
                 lock_version=1,
             )
-            session.merge(rec)
+            # Ensure record is persisted; merge returns an instance but we don't reuse it
+            await session.merge(rec)
             await session.commit()
     except Exception:
         # Best-effort fallback to in-memory store so tests/dev keep working

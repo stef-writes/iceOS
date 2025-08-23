@@ -27,6 +27,8 @@ class ComponentRecord(Base):
     definition: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     org_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    tags: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -43,6 +45,8 @@ class BlueprintRecord(Base):
     body: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     lock_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     org_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    tags: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
     created_at: Mapped[Any] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -1373,16 +1373,7 @@ class Workflow(BaseWorkflow):  # type: ignore[misc]  # mypy cannot resolve BaseS
 
         result = await self._executor.execute_node(node_id, input_data)
 
-        # Persist semantic output to shared context (JSON-safe)
-        if getattr(self, "context_manager", None) and result.output is not None:
-            import json as _json
-
-            try:
-                _json.dumps(result.output, default=str)
-                safe_output = result.output
-            except Exception:
-                safe_output = _json.loads(_json.dumps(result.output, default=str))
-            self.context_manager.update_node_context(node_id, safe_output)
+        # Context persistence occurs in the executor after validation/mappings
 
         # Broadcast via in-memory event bus for observers / Canvas UI
         try:

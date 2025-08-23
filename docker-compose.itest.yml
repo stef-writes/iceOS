@@ -70,6 +70,7 @@ services:
       ICEOS_RUN_MIGRATIONS: 1
       ICEOS_REQUIRE_DB: 1
       ICEOS_EMBEDDINGS_PROVIDER: ${ICEOS_EMBEDDINGS_PROVIDER:-hash}
+      ICE_ECHO_LLM_FOR_TESTS: 1
       # Disable seccomp-based syscall filtering in integration tests to avoid flakiness under constrained runners
       ICE_SKIP_STRESS: ${ICE_SKIP_STRESS:-"1"}
       DISABLE_REDIS_BG_LOOP: ${DISABLE_REDIS_BG_LOOP:-"1"}
@@ -98,6 +99,8 @@ services:
       PYTHONPATH: /app/src:/app
       ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
       ICEOS_PLUGIN_MANIFESTS: /app/plugins/kits/tools/memory/plugins.v0.yaml,/app/plugins/kits/tools/search/plugins.v0.yaml
+      ICE_ECHO_LLM_FOR_TESTS: 1
+      ICE_EXEC_SYNC_FOR_TESTS: 1
       ICE_ENABLE_WASM: ${ICE_ENABLE_WASM:-"0"}
       ICE_SKIP_STRESS: ${ICE_SKIP_STRESS:-"1"}
       REDIS_URL: redis://redis:6379/0

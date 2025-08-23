@@ -81,6 +81,27 @@ def validate_registered_components() -> Dict[str, Any]:
     }
 
 
+def maybe_register_echo_llm_for_tests() -> None:
+    """Register an echo LLM for deterministic tests when enabled.
+
+    Enabled if ICE_ECHO_LLM_FOR_TESTS=1 or ICE_API_TOKEN is the dev token.
+    No-ops in production.
+    """
+    try:
+        if (
+            os.getenv("ICE_ECHO_LLM_FOR_TESTS", "0") == "1"
+            or os.getenv("ICE_API_TOKEN") == "dev-token"
+        ):
+            from ice_core.unified_registry import (
+                register_llm_factory as _reg_llm,  # type: ignore
+            )
+
+            _reg_llm("gpt-4o", "scripts.ops.verify_runtime:create_echo_llm")
+            logger.info("Registered echo LLM factory for tests (gpt-4o)")
+    except Exception:  # pragma: no cover – best-effort
+        logger.debug("Echo LLM registration skipped", exc_info=True)
+
+
 # ---------------------------------------------------------------------------
 # Demo loading utilities
 # ---------------------------------------------------------------------------
@@ -104,6 +125,7 @@ def summarise_demo_load(label: str, seconds: float, ok: bool, detail: str = "") 
 __all__ = [
     "print_startup_banner",
     "validate_registered_components",
+    "maybe_register_echo_llm_for_tests",
     "summarise_demo_load",
     "timed_import",
     "READY_FLAG",
@@ -159,11 +181,51 @@ async def run_alembic_migrations_if_enabled() -> None:
             command.ensure_version(cfg)
         except Exception:
             logger.exception("Alembic ensure_version raised")
+
+        # If schema already contains the columns introduced by the latest
+        # migration but the alembic_version table wasn't advanced (e.g., a
+        # manual hotfix added columns), stamp head instead of re-applying.
+        _prechecked_stamp: bool = False
         try:
-            command.upgrade(cfg, "head")
+            from sqlalchemy import text as _sql_text
+
+            sync_url = cfg.get_main_option("sqlalchemy.url")
+            if sync_url:
+                import sqlalchemy as _sa
+
+                eng = _sa.create_engine(sync_url)
+                with eng.connect() as conn:  # type: ignore[misc]
+                    q = _sql_text(
+                        """
+                        SELECT
+                          SUM(CASE WHEN table_name='components' AND column_name='user_id' THEN 1 ELSE 0 END) +
+                          SUM(CASE WHEN table_name='components' AND column_name='tags' THEN 1 ELSE 0 END) +
+                          SUM(CASE WHEN table_name='blueprints' AND column_name='user_id' THEN 1 ELSE 0 END) +
+                          SUM(CASE WHEN table_name='blueprints' AND column_name='tags' THEN 1 ELSE 0 END) AS cnt
+                        FROM information_schema.columns
+                        WHERE table_schema='public' AND table_name IN ('components','blueprints')
+                          AND column_name IN ('user_id','tags')
+                        """
+                    )
+                    cnt = int(conn.execute(q).scalar() or 0)
+                    if cnt >= 4:
+                        try:
+                            command.stamp(cfg, "head")
+                            _prechecked_stamp = True
+                            logger.info(
+                                "Alembic stamped to head based on existing columns"
+                            )
+                        except Exception:
+                            logger.exception("Alembic stamp head failed")
         except Exception:
-            logger.exception("Alembic upgrade head failed")
-            raise
+            logger.debug("Pre-upgrade schema inspection failed", exc_info=True)
+
+        if not _prechecked_stamp:
+            try:
+                command.upgrade(cfg, "head")
+            except Exception:
+                logger.exception("Alembic upgrade head failed")
+                raise
 
         # Hard guard: verify alembic head applied and semantic_memory table exists
         from sqlalchemy import text
@@ -237,6 +299,28 @@ async def run_alembic_migrations_if_enabled() -> None:
                 raise RuntimeError(
                     "Offline SQL fallback did not create required tables"
                 )
+
+        # Post-migration hardening: ensure newly added columns exist even if
+        # the Alembic revision table is stale or the upgrade was partially applied.
+        try:
+            # Use transactional block to ensure DDL is committed
+            async with engine.begin() as conn:  # type: ignore[call-arg]
+                for stmt in (
+                    # Components: user_id, tags
+                    "ALTER TABLE components ADD COLUMN IF NOT EXISTS user_id VARCHAR(64)",
+                    "ALTER TABLE components ADD COLUMN IF NOT EXISTS tags JSON",
+                    # Blueprints: user_id, tags
+                    "ALTER TABLE blueprints ADD COLUMN IF NOT EXISTS user_id VARCHAR(64)",
+                    "ALTER TABLE blueprints ADD COLUMN IF NOT EXISTS tags JSON",
+                ):
+                    try:
+                        await conn.execute(text(stmt))
+                    except Exception:
+                        # Best-effort; continue with next statement
+                        pass
+        except Exception:
+            # Do not fail startup if hardening step encounters issues
+            logger.debug("Column hardening step skipped", exc_info=True)
         # If table exists but head is None, log a warning instead of failing hard.
         if head is None:
             logger.warning(

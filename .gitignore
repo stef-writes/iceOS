@@ -65,6 +65,8 @@ report.html
 # Project specific
 .benchmarks/
 gaffer.egg-info/
+clients/ice_client/ice_client/
+clients/ice_client/ice_client/**
 
 # Runtime data
 data/

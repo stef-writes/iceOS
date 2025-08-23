@@ -34,6 +34,7 @@ from ice_api.services.component_service import ComponentService
 
 # New startup helpers
 from ice_api.startup_utils import (
+    maybe_register_echo_llm_for_tests,
     print_startup_banner,
     run_alembic_migrations_if_enabled,
     summarise_demo_load,
@@ -81,6 +82,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # Optionally run DB migrations
     await run_alembic_migrations_if_enabled()
+
+    # Register echo LLM for tests/demos when enabled
+    maybe_register_echo_llm_for_tests()
 
     # Ensure first-party tools are provided via plugin manifests; avoid implicit imports
 

@@ -157,14 +157,24 @@ async def llm_node_executor(
             except Exception:
                 usage_meta = None
 
+        # Shape output to align with declared output_schema when present
+        out_payload: Dict[str, Any] = {
+            "response": text,
+            "prompt": prompt,
+            "model": cfg.model,
+            "usage": usage or {},
+        }
+        try:
+            if isinstance(getattr(cfg, "output_schema", None), dict):
+                # Common schema expects a single 'text' field; keep 'response' too for BC
+                if "text" in cfg.output_schema:
+                    out_payload.setdefault("text", text)
+        except Exception:
+            pass
+
         return NodeExecutionResult(
             success=True,
-            output={
-                "response": text,
-                "prompt": prompt,
-                "model": cfg.model,
-                "usage": usage or {},
-            },
+            output=out_payload,
             usage=usage_meta,
             metadata=NodeMetadata(
                 node_id=cfg.id,

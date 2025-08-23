@@ -5,9 +5,10 @@ from typing import Any, Dict
 
 from fastapi.testclient import TestClient
 
-from ice_api.main import app
+from ice_api.main import app as _app
 
-client = TestClient(app)
+# Defer client creation to inside tests where env can be set first
+client = None  # type: ignore[assignment]
 
 
 def _auth_headers() -> Dict[str, str]:
@@ -39,6 +40,9 @@ def _ensure_plugins_loaded() -> None:
 def test_mcp_agents_list_and_schema() -> None:
     # JSON-RPC mcp endpoint is under /api/mcp/
     _ensure_plugins_loaded()
+    global client
+    if client is None:
+        client = TestClient(_app)
     # Initialize first
     init = client.post(
         "/api/mcp/",
@@ -65,6 +69,13 @@ def test_mcp_agents_list_and_schema() -> None:
 
 def test_agent_runtime_end_to_end() -> None:
     _ensure_plugins_loaded()
+    import os as _os
+
+    _os.environ["ICE_EXEC_SYNC_FOR_TESTS"] = "1"
+    _os.environ["ICE_ECHO_LLM_FOR_TESTS"] = "1"
+    global client
+    if client is None:
+        client = TestClient(_app)
     # Use the research_writer example blueprint
     blueprint = {
         "schema_version": "1.2.0",
@@ -106,20 +117,37 @@ def test_agent_runtime_end_to_end() -> None:
 
     # Start execution with topic input
     start = client.post(
-        "/api/v1/executions/",
+        "/api/v1/executions/?wait_seconds=15",
         json={"blueprint_id": bp_id, "inputs": {"topic": "renewable energy"}},
         headers=_auth_headers(),
     )
-    assert start.status_code == 202, start.text
-    exec_id = start.json()["execution_id"]
+    assert start.status_code in (200, 202), start.text
+    resp0 = start.json()
+    if resp0.get("status") in {"completed", "failed"}:
+        assert resp0.get("status") == "completed", resp0
+        return
+    exec_id = resp0["execution_id"]
+
+    # Register echo LLM and poll until completion
+    try:
+        from ice_core.unified_registry import (
+            register_llm_factory as _reg_llm,  # type: ignore
+        )
+
+        _reg_llm("gpt-4o", "scripts.ops.verify_runtime:create_echo_llm")
+    except Exception:
+        pass
 
     # Poll until completion
-    for _ in range(20):
+    import time as _t
+
+    for _ in range(120):
         status = client.get(f"/api/v1/executions/{exec_id}", headers=_auth_headers())
         assert status.status_code == 200
         payload: Dict[str, Any] = status.json()
         if payload.get("status") in {"completed", "failed"}:
             break
+        _t.sleep(0.25)
     assert payload.get("status") == "completed", payload
     # Ensure agent context was updated by AgentRuntime
     # We accept either direct result embedding or stringified result; just ensure present

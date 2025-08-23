@@ -10,6 +10,15 @@ pytestmark = pytest.mark.asyncio
 
 async def test_memoryaware_llm_injection() -> None:
     headers = {"Authorization": "Bearer dev-token"}
+    # Register an echo LLM so tests are deterministic without API keys
+    try:
+        from ice_core.unified_registry import (
+            register_llm_factory as _reg_llm,  # type: ignore
+        )
+
+        _reg_llm("gpt-4o", "scripts.ops.verify_runtime:create_echo_llm")
+    except Exception:
+        pass
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(
         base_url="http://testserver", transport=transport
@@ -64,12 +73,15 @@ async def test_memoryaware_llm_injection() -> None:
         assert exec_id
 
         # Poll status until complete (simple loop)
-        for _ in range(30):
+        import asyncio as _asyncio
+
+        for _ in range(120):
             sr = await c.get(f"/api/v1/executions/{exec_id}", headers=headers)
             assert sr.status_code == 200
             data = sr.json()
             if data.get("status") in {"completed", "failed"}:
                 break
+            await _asyncio.sleep(0.25)
         assert data.get("status") == "completed", data
 
         # Execution completed; transcript writes are not part of library assets

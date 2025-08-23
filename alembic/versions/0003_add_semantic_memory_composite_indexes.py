@@ -7,7 +7,8 @@ import sqlalchemy as sa
 from alembic import op  # type: ignore
 
 # revision identifiers, used by Alembic.
-revision: str = "0003_add_semantic_memory_composite_indexes"
+# Keep revision id <= 32 chars to fit default alembic_version column
+revision: str = "0003_semantic_comp_ix"
 down_revision: str | None = "0002_add_semantic_indexes"
 branch_labels: Sequence[str] | None = None
 depends_on: Sequence[str] | None = None
@@ -15,11 +16,23 @@ depends_on: Sequence[str] | None = None
 
 def upgrade() -> None:
     # Composite index to accelerate per-user key lookups in the library flow
-    op.create_index(
-        "ix_semantic_org_user_key",
-        "semantic_memory",
-        ["org_id", "user_id", "key"],
-    )
+    try:
+        op.execute(
+            sa.text(
+                "CREATE INDEX IF NOT EXISTS ix_semantic_org_user_key ON semantic_memory (org_id, user_id, key)"
+            )
+        )
+    except Exception:
+        # Fallback for engines that do not support IF NOT EXISTS
+        try:
+            op.create_index(
+                "ix_semantic_org_user_key",
+                "semantic_memory",
+                ["org_id", "user_id", "key"],
+            )
+        except Exception:
+            # If it already exists, ignore
+            pass
 
     # Composite index to accelerate scoped, recent listings (created_at DESC)
     # Note: Not all databases support DESC index ordering; Postgres does.
@@ -44,4 +57,7 @@ def downgrade() -> None:
     except Exception:
         # If the IF NOT EXISTS path created a different variant, attempt the known name
         pass
-    op.drop_index("ix_semantic_org_user_key", table_name="semantic_memory")
+    try:
+        op.drop_index("ix_semantic_org_user_key", table_name="semantic_memory")
+    except Exception:
+        pass

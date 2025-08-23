@@ -233,12 +233,45 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                                 "node_type": str(getattr(node, "type", "")),
                             },
                         ):
+                            import os as _os
+
                             from ice_orchestrator.execution.sandbox.resource_sandbox import (
                                 ResourceSandbox,
                             )
 
                             timeout = getattr(node, "timeout_seconds", 30) or 30
-                            async with ResourceSandbox(timeout_seconds=timeout) as sbx:
+                            # Generic overrides with per-type fallbacks
+                            _kind = str(getattr(node, "type", ""))
+                            _mem_env = {
+                                "tool": "ICE_SANDBOX_TOOL_MEMORY_MB",
+                                "code": "ICE_SANDBOX_CODE_MEMORY_MB",
+                                "agent": "ICE_SANDBOX_AGENT_MEMORY_MB",
+                                "llm": "ICE_SANDBOX_LLM_MEMORY_MB",
+                            }.get(_kind, "ICE_SANDBOX_DEFAULT_MEMORY_MB")
+                            _cpu_env = {
+                                "tool": "ICE_SANDBOX_TOOL_CPU_SECONDS",
+                                "code": "ICE_SANDBOX_CODE_CPU_SECONDS",
+                                "agent": "ICE_SANDBOX_AGENT_CPU_SECONDS",
+                                "llm": "ICE_SANDBOX_LLM_CPU_SECONDS",
+                            }.get(_kind, "ICE_SANDBOX_DEFAULT_CPU_SECONDS")
+                            _mem_mb = int(
+                                _os.getenv(
+                                    _mem_env,
+                                    _os.getenv("ICE_SANDBOX_DEFAULT_MEMORY_MB", "512"),
+                                )
+                            )
+                            _cpu_s = int(
+                                _os.getenv(
+                                    _cpu_env,
+                                    _os.getenv("ICE_SANDBOX_DEFAULT_CPU_SECONDS", "10"),
+                                )
+                            )
+
+                            async with ResourceSandbox(
+                                timeout_seconds=timeout,
+                                memory_limit_mb=_mem_mb,
+                                cpu_limit_seconds=_cpu_s,
+                            ) as sbx:
                                 result_raw = await sbx.run_with_timeout(
                                     executor(chain, node, input_data)
                                 )
@@ -280,7 +313,51 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                         self.budget.register_workflow_execution()
                     elif node.type == "code":
                         self.budget.register_code_execution()
+                    # Best-effort minimal context persistence to avoid regressions
+                    from ice_core.exceptions import (
+                        SerializationError as _SerErr,  # local import
+                    )
 
+                    _ctx_latest = chain.context_manager.get_context()
+                    latest_exec_id = _ctx_latest.execution_id if _ctx_latest else None
+                    minimal_content: Any = result_raw.output
+                    try:
+                        if node.type == "llm" and isinstance(result_raw.output, dict):
+
+                            def _trim(val: Any, max_chars: int = 1500) -> Any:
+                                if isinstance(val, str) and len(val) > max_chars:
+                                    return val[:max_chars]
+                                return val
+
+                            if "text" in result_raw.output and isinstance(
+                                result_raw.output["text"], str
+                            ):
+                                minimal_content = {
+                                    "text": _trim(result_raw.output["text"])
+                                }
+                            elif "response" in result_raw.output and isinstance(
+                                result_raw.output["response"], str
+                            ):
+                                minimal_content = {
+                                    "text": _trim(result_raw.output["response"])
+                                }
+                            else:
+                                minimal_content = {
+                                    "text": _trim(str(result_raw.output))
+                                }
+                    except Exception:
+                        minimal_content = result_raw.output
+
+                    try:
+                        chain.context_manager.update_node_context(
+                            node_id=node_id,
+                            content=minimal_content,
+                            execution_id=latest_exec_id,
+                        )
+                    except _SerErr:
+                        pass
+                    except Exception:
+                        pass
                     return result_raw
 
                 # --------------------------------------------------
@@ -441,9 +518,41 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                             _ctx_latest.execution_id if _ctx_latest else None
                         )
 
+                        # Trim non-essential large fields for LLM nodes to avoid
+                        # strict serializer oversize errors in context storage.
+                        content_to_persist = processed_output
+                        try:
+                            if node.type == "llm" and isinstance(
+                                processed_output, dict
+                            ):
+                                # Persist a minimal, size-safe view of LLM output
+                                def _trim(val: Any, max_chars: int = 1500) -> Any:
+                                    if isinstance(val, str) and len(val) > max_chars:
+                                        return val[:max_chars]
+                                    return val
+
+                                if "text" in processed_output and isinstance(
+                                    processed_output["text"], str
+                                ):
+                                    content_to_persist = {
+                                        "text": _trim(processed_output["text"])
+                                    }
+                                elif "response" in processed_output and isinstance(
+                                    processed_output["response"], str
+                                ):
+                                    content_to_persist = {
+                                        "text": _trim(processed_output["response"])
+                                    }
+                                else:
+                                    content_to_persist = {
+                                        "text": _trim(str(processed_output))
+                                    }
+                        except Exception:
+                            content_to_persist = processed_output
+
                         chain.context_manager.update_node_context(
                             node_id=node_id,
-                            content=processed_output,
+                            content=content_to_persist,
                             execution_id=latest_exec_id,
                         )
 

@@ -80,7 +80,15 @@ async def tool_node_executor(
         # ------------------------------------------------------------------
         # 5. Execute within the shared resource sandbox ---------------------
         # ------------------------------------------------------------------
-        async with ResourceSandbox(timeout_seconds=cfg.timeout_seconds or 30):  # type: ignore[attr-defined]
+        import os as _os
+
+        _mem_mb = int(_os.getenv("ICE_SANDBOX_TOOL_MEMORY_MB", "512"))
+        _cpu_s = int(_os.getenv("ICE_SANDBOX_TOOL_CPU_SECONDS", "10"))
+        async with ResourceSandbox(  # type: ignore[attr-defined]
+            timeout_seconds=cfg.timeout_seconds or 30,
+            memory_limit_mb=_mem_mb,
+            cpu_limit_seconds=_cpu_s,
+        ):
             tool_output: Any = await tool.execute(**safe_inputs)
 
         # ------------------------------------------------------------------

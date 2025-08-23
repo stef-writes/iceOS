@@ -1,27 +1,34 @@
 # iceos-client
 
-Typed Python client for the iceOS API.
+Typed async Python client for the iceOS Orchestrator API.
 
 ## Install
+
 ```bash
 pip install iceos-client
 ```
 
 ## Quickstart
+
 ```python
 import asyncio
 from ice_client import IceClient
 
 async def main():
-    async with IceClient("http://localhost:8000", auth_token="dev-token") as client:
-        # Start a run from an existing blueprint id
-        ack = await client.start_execution("bp_abc", inputs={"query": "hi"})
-        status = await client.get_execution_status(ack.execution_id)
-        print(status.status, status.result)
+    client = IceClient("http://localhost:8000")
+    exec_id = await client.run_bundle(
+        "chatkit.rag_chat",
+        inputs={
+            "query": "Two-sentence summary for Stefano.",
+            "org_id": "demo_org",
+            "user_id": "demo_user",
+            "session_id": "chat_demo"
+        },
+        # If bundle is not pre-registered on the server, auto-register from YAML:
+        blueprint_yaml_path="Plugins/bundles/chatkit/workflows/rag_chat.yaml",
+        wait_seconds=5,
+    )
+    print("execution_id:", exec_id)
 
 asyncio.run(main())
 ```
-
-## Compatibility
-- Python 3.11
-- See server docs for required environment variables and auth.

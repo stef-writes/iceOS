@@ -132,14 +132,19 @@ async def code_node_executor(  # noqa: D401
         except Exception:
             # Fallback to ResourceSandbox subprocess execution to avoid blocking launches on wasmtime limits
             import json as _json
+            import os as _os
             from subprocess import PIPE, Popen
 
             from ice_orchestrator.execution.sandbox.resource_sandbox import (
                 ResourceSandbox,
             )
 
+            _mem_mb = int(_os.getenv("ICE_SANDBOX_CODE_MEMORY_MB", "512"))
+            _cpu_s = int(_os.getenv("ICE_SANDBOX_CODE_CPU_SECONDS", "10"))
             async with ResourceSandbox(
-                timeout_seconds=getattr(cfg, "timeout_seconds", 30) or 30
+                timeout_seconds=getattr(cfg, "timeout_seconds", 30) or 30,
+                memory_limit_mb=_mem_mb,
+                cpu_limit_seconds=_cpu_s,
             ):
                 # Create a small wrapper script to execute user code safely without network
                 script = f'\nimport json\n\nctx = { _json.dumps(ctx, default=str) }\ntry:\n    exec({code_str!r}, {{}}, ctx)\n    print(json.dumps(ctx.get("output", {{}})))\nexcept Exception as e:\n    print(json.dumps({{"error": str(e)}}))\n'

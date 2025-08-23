@@ -261,15 +261,50 @@ class GraphContextManager:
             from ice_core.models import ModelProvider
             from ice_core.utils.token_counter import TokenCounter
 
-            current_tokens = TokenCounter.estimate_tokens(
-                serialised, model="", provider=ModelProvider.CUSTOM
-            )
-            if self.max_tokens and current_tokens > self.max_tokens:
-                raise SerializationError(node_id, "oversized")
+            def _too_large(text: str) -> bool:
+                tokens = TokenCounter.estimate_tokens(
+                    text, model="", provider=ModelProvider.CUSTOM
+                )
+                return bool(self.max_tokens and tokens > self.max_tokens)
+
+            is_oversized = _too_large(serialised)
+            if is_oversized:
+                # Auto-truncate fallback: attempt a cheap shrink before failing
+                try:
+                    compressed = self.smart_context_compression(
+                        content,
+                        schema=schema,
+                        strategy="truncate",
+                        max_tokens=self.max_tokens,
+                    )
+                    import json as _json
+
+                    try:
+                        serialised_comp = _json.dumps(compressed, ensure_ascii=False)
+                    except Exception:
+                        raise SerializationError(node_id, type(compressed).__name__)
+
+                    if not _too_large(serialised_comp):
+                        content = compressed
+                        serialised = serialised_comp
+                    else:
+                        raise SerializationError(node_id, "oversized")
+                except SerializationError:
+                    raise
+                except Exception:
+                    # If compression fails for any reason, preserve original error semantics
+                    raise SerializationError(node_id, "oversized")
         except Exception:
             # Conservative char-based fallback (≈3 chars per token)
             if self.max_tokens and len(serialised) > (self.max_tokens * 3):
-                raise SerializationError(node_id, "oversized")
+                # Attempt simple char trim before failing
+                char_budget = self.max_tokens * 3
+                serialised_trim = serialised[:char_budget]
+                content = serialised_trim if isinstance(content, str) else content
+                if len(serialised) > char_budget:
+                    serialised = serialised_trim
+                else:
+                    raise SerializationError(node_id, "oversized")
 
         # Persist via underlying store --------------------------------------
         # Store update must not fail on serialization; coerce via default=str
@@ -278,8 +313,17 @@ class GraphContextManager:
                 node_id, content, execution_id=execution_id, schema=schema
             )
         except TypeError:
-            # Treat late serialisation failures as hard errors
-            raise SerializationError(node_id, type(content).__name__)
+            # Retry once with string-coerced payload
+            import json as _json
+
+            try:
+                coerced = _json.loads(_json.dumps(content, default=str))
+                self.store.update(
+                    node_id, coerced, execution_id=execution_id, schema=schema
+                )
+            except Exception:
+                # Treat late serialisation failures as hard errors
+                raise SerializationError(node_id, type(content).__name__)
 
     def get_node_context(self, node_id: str) -> Any:
         """Get context for a specific node."""

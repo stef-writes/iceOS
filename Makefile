@@ -2,7 +2,7 @@
 
 PYTHON := $(shell which python)
 
-.PHONY: install lint lint-docker format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix lock-check lock-check-docker
+.PHONY: install lint lint-docker format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix lock-check lock-check-docker client-build client-clean
 
 install:
 	poetry install --with dev --no-interaction
@@ -84,12 +84,35 @@ test-coverage:
 ci: lint-docker lock-check-docker type-check test
 
 ci-integration:
+	# Rebuild images to avoid stale test/API code in CI/local runs
+	docker build --target api -t local/iceosv1a-api:dev . && \
+	docker build --target test -t local/iceosv1a-itest:dev . && \
 	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=0 ICE_SKIP_STRESS=1 \
 	docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
 
 ci-wasm:
 	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=1 ICE_SKIP_STRESS=1 \
 	docker compose -f docker-compose.itest.yml run --rm itest bash -lc "pytest -c config/testing/pytest.ini -m wasm -q"
+
+# ---------------------------------------------------------------------------
+# Client packaging (Dockerized Poetry build) ---------------------------------
+# ---------------------------------------------------------------------------
+client-clean:
+	rm -rf clients/ice_client/dist clients/ice_client/build || true
+
+client-build: client-clean
+	@if [ ! -f clients/ice_client/pyproject.toml ]; then \
+	  echo "[client] Skipping build: clients/ice_client/pyproject.toml not found (wrapper removed)"; \
+	  exit 0; \
+	fi; \
+	echo "[client] Staging src/ice_client into wrapper and building wheel..."; \
+	rm -rf clients/ice_client/ice_client && mkdir -p clients/ice_client/ice_client && cp -R src/ice_client/* clients/ice_client/ice_client/; \
+	docker run --rm -t \
+	  -v "$$PWD:/repo" -w /repo/clients/ice_client \
+	  python:3.11.9-slim bash -lc '\
+	    python -m pip install --no-cache-dir --timeout 120 --retries 5 poetry==1.8.3 && \
+	    poetry build -f wheel \
+	  '
 
 # ---------------------------------------------------------------------------
 # Dockerized pre-commit (no local Python/Poetry required) --------------------

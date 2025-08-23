@@ -35,7 +35,7 @@ from typing import Any, AsyncIterator, Final, Mapping, MutableMapping, Optional,
 import httpx
 from pydantic import ValidationError
 
-from ice_core.models.mcp import Blueprint, RunAck, RunResult
+from .models import Blueprint, RunAck, RunResult
 
 logger = logging.getLogger(__name__)
 
@@ -146,11 +146,11 @@ class IceClient:
             "options": {"max_parallel": max_parallel},
         }
         if blueprint is not None:
-            payload["blueprint"] = (
-                blueprint.model_dump(mode="json")
-                if isinstance(blueprint, Blueprint)
-                else blueprint
-            )
+            # Accept either our local Blueprint model or the server's Pydantic model
+            if hasattr(blueprint, "model_dump"):
+                payload["blueprint"] = blueprint.model_dump(mode="json")  # type: ignore[call-arg]
+            else:
+                payload["blueprint"] = blueprint
         else:
             payload["blueprint_id"] = blueprint_id  # type: ignore[assignment]
 
@@ -414,8 +414,8 @@ class IceClient:
             from typing import cast as _cast
 
             payload: Mapping[str, Any]
-            if isinstance(blueprint, Blueprint):
-                payload = _cast(Mapping[str, Any], blueprint.model_dump(mode="json"))
+            if hasattr(blueprint, "model_dump"):
+                payload = _cast(Mapping[str, Any], blueprint.model_dump(mode="json"))  # type: ignore[call-arg]
             else:
                 payload = blueprint  # type: ignore[assignment]
             bp_id, _ = await self.create_blueprint(payload)
@@ -623,6 +623,80 @@ class IceClient:
         async for evt in self.stream_events(ack.run_id):
             yield evt
 
+    # -------------------------------------------------------------- bundles
+    async def run_bundle(
+        self,
+        bundle_id: str,
+        *,
+        inputs: Mapping[str, Any] | None = None,
+        wait_seconds: float | None = None,
+        blueprint_yaml_path: str | None = None,
+    ) -> str:
+        """Run a pre-registered bundle by id, with optional auto-register fallback.
+
+        If the server returns 404 (blueprint not found) and ``blueprint_yaml_path``
+        is provided, this helper will load the YAML workflow, register it as a
+        blueprint, then run it.
+
+        Parameters
+        ----------
+        bundle_id : str
+            Expected blueprint id on the server (e.g., "chatkit.rag_chat").
+        inputs : Mapping[str, Any] | None
+            Inputs to pass to the workflow.
+        wait_seconds : float | None
+            Optional server-side wait window for simpler UX.
+        blueprint_yaml_path : str | None
+            Local filesystem path to a YAML workflow definition to register
+            when the provided ``bundle_id`` is missing server-side.
+
+        Returns
+        -------
+        str
+            Execution id of the started run.
+
+        Example
+        -------
+        >>> await client.run_bundle(
+        ...     "chatkit.rag_chat",
+        ...     inputs={"query": "hi"},
+        ...     blueprint_yaml_path="/bundles/chatkit/workflows/rag_chat.yaml",
+        ... )
+        """
+        try:
+            return await self.run(
+                blueprint_id=bundle_id, inputs=inputs or {}, wait_seconds=wait_seconds
+            )
+        except OrchestratorError as exc:
+            # Translate 404 from executions start into optional auto-register path
+            if "404" not in str(exc) or not blueprint_yaml_path:
+                raise
+            # Load YAML and register blueprint, then run
+            try:
+                import yaml  # type: ignore
+            except Exception as import_err:  # pragma: no cover – optional dep
+                raise OrchestratorError(
+                    f"pyyaml not available to register missing bundle: {import_err}"
+                ) from import_err
+            from pathlib import Path as _Path
+
+            text = _Path(blueprint_yaml_path).read_text(encoding="utf-8")
+            data = yaml.safe_load(text) or {}
+            nodes = data.get("nodes")
+            if not isinstance(nodes, list) or not nodes:
+                raise OrchestratorError(
+                    f"Invalid YAML at {blueprint_yaml_path}: missing nodes"
+                )
+            payload: Mapping[str, Any] = {
+                "schema_version": data.get("schema_version", "1.2.0"),
+                "metadata": {"bundle": bundle_id},
+                "nodes": nodes,
+            }
+            new_bp_id, _lock = await self.create_blueprint(payload)
+            return await self.run(
+                blueprint_id=new_bp_id, inputs=inputs or {}, wait_seconds=wait_seconds
+            )
+
     # -------------------------------------------------------------- chat API
     async def chat_turn(
         self,
@@ -648,6 +722,32 @@ class IceClient:
         data: Any = resp.json()
         assert isinstance(data, dict)
         return data
+
+    # ---------------------------------------------------------------- library
+    async def list_library(
+        self, *, query: str | None = None, kind: str | None = None, limit: int = 50
+    ) -> Mapping[str, Any]:
+        """List/search across components and blueprints.
+
+        Parameters
+        ----------
+        query : str | None
+            Substring filter on name/id
+        kind : str | None
+            'component' | 'blueprint' or None for both
+        limit : int
+            Max items to return
+        """
+        params: dict[str, str] = {"limit": str(limit)}
+        if query:
+            params["q"] = query
+        if kind:
+            params["kind"] = kind
+        resp = await self._client.get("/api/v1/library/assets/index", params=params)
+        _raise_for_status(resp)
+        obj: Any = resp.json()
+        assert isinstance(obj, dict)
+        return obj
 
     # ---------------------------------------------------------------- utils
     async def close(self) -> None:

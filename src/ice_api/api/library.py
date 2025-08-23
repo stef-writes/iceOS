@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime as _dt
 from hashlib import sha256
 from typing import Any, Dict, List, Optional
 
@@ -13,6 +14,93 @@ from ice_api.security import require_auth
 from ice_api.services.semantic_memory_repository import insert_semantic_entry
 
 router = APIRouter(prefix="/api/v1/library", dependencies=[Depends(require_auth)])
+# ---------------------------------------------------------------------------
+# Unified list/search across components and blueprints -----------------------
+# ---------------------------------------------------------------------------
+
+
+class LibraryListItem(BaseModel):
+    kind: str = Field(description="component|blueprint")
+    name: str = Field(description="Name or id")
+    type: Optional[str] = Field(default=None, description="For components: type")
+    updated_at: Optional[str] = None
+
+
+@router.get("/assets/index", response_model=Dict[str, Any])
+async def list_library(
+    *,
+    q: Optional[str] = Query(None, description="Name contains filter"),
+    kind: Optional[str] = Query(None, description="component|blueprint"),
+    limit: int = Query(50, ge=1, le=200),
+) -> Dict[str, Any]:
+    """Return a unified listing of components and blueprints.
+
+    Filters:
+    - q: substring match on name/id
+    - kind: filter to 'component' or 'blueprint'
+    """
+    items: list[LibraryListItem] = []
+    async for session in get_session():
+        if kind in (None, "component"):
+            # Components
+            comp_rows = await session.execute(
+                sa.text(
+                    """
+                    SELECT id, definition, updated_at
+                    FROM components
+                    ORDER BY updated_at DESC
+                    LIMIT :limit
+                    """
+                ).bindparams(bindparam("limit", type_=sa.Integer()))
+            )
+            for r in comp_rows.mappings():
+                name = str(r["id"])  # id is the component key (type:name)
+                if q and q.lower() not in name.lower():
+                    continue
+                defn = r.get("definition") or {}
+                upd = r.get("updated_at")
+                comp_updated_str: Optional[str] = (
+                    upd.isoformat() if isinstance(upd, _dt) else None
+                )
+                items.append(
+                    LibraryListItem(
+                        kind="component",
+                        name=name,
+                        type=str(defn.get("type", ""))
+                        if isinstance(defn, dict)
+                        else None,
+                        updated_at=comp_updated_str,
+                    )
+                )
+        if kind in (None, "blueprint"):
+            bp_rows = await session.execute(
+                sa.text(
+                    """
+                    SELECT id, updated_at
+                    FROM blueprints
+                    ORDER BY updated_at DESC
+                    LIMIT :limit
+                    """
+                ).bindparams(bindparam("limit", type_=sa.Integer()))
+            )
+            for r in bp_rows.mappings():
+                name = str(r["id"])
+                if q and q.lower() not in name.lower():
+                    continue
+                upd = r.get("updated_at")
+                bp_updated_str: Optional[str] = (
+                    upd.isoformat() if isinstance(upd, _dt) else None
+                )
+                items.append(
+                    LibraryListItem(
+                        kind="blueprint",
+                        name=name,
+                        updated_at=bp_updated_str,
+                    )
+                )
+        # Truncate in Python to respect combined limit
+        return {"items": items[:limit]}
+    return {"items": items[:limit]}
 
 
 MAX_CONTENT_BYTES = 1_000_000

@@ -51,6 +51,13 @@ async def agent_node_executor(
                     self._llm_cfg = llm_cfg or LLMConfig(
                         provider=ModelProvider.OPENAI, model="gpt-4o"
                     )
+                    # Prefer a registry-provided LLM helper (e.g., echo) when present
+                    try:
+                        self._llm_helper = registry.get_llm_instance(
+                            getattr(self._llm_cfg, "model", "gpt-4o")
+                        )
+                    except Exception:
+                        self._llm_helper = None
                     self._llm = LLMService()
 
                 def allowed_tools(self) -> list[str]:
@@ -58,7 +65,14 @@ async def agent_node_executor(
 
                 async def think(self, context: dict[str, Any]) -> str:  # type: ignore[override]
                     prompt = self._render_prompt(context, mode="think")
-                    text, _usage, err = await self._llm.generate(self._llm_cfg, prompt)
+                    if self._llm_helper is not None:
+                        text, _usage, err = await self._llm_helper.generate(
+                            llm_config=self._llm_cfg, prompt=prompt, context=context
+                        )
+                    else:
+                        text, _usage, err = await self._llm.generate(
+                            self._llm_cfg, prompt
+                        )
                     return text or (err or "")
 
                 def _render_prompt(
@@ -117,7 +131,14 @@ async def agent_node_executor(
                     prompt = (
                         self._render_prompt(context, mode="decide") + "\n" + guidance
                     )
-                    text, _usage, _err = await self._llm.generate(self._llm_cfg, prompt)
+                    if self._llm_helper is not None:
+                        text, _usage, _err = await self._llm_helper.generate(
+                            llm_config=self._llm_cfg, prompt=prompt, context=context
+                        )
+                    else:
+                        text, _usage, _err = await self._llm.generate(
+                            self._llm_cfg, prompt
+                        )
                     parsed: dict[str, Any]
                     try:
                         maybe_obj = _json.loads(text) if text else {}
