@@ -13,6 +13,10 @@ fi
 SKIP_STRESS="${ICE_SKIP_STRESS:-1}"
 echo "[itest] ICE_SKIP_STRESS=${SKIP_STRESS}"
 
-echo "[itest] Running all integration tests in a single invocation..."
-pytest "${PYTEST_COMMON[@]}" tests/integration
+echo "[itest] Pass 1: core integration tests (excluding long-horizon memory)"
+pytest "${PYTEST_COMMON[@]}" -k "not long_horizon_memory" tests/integration
+
+echo "[itest] Pass 2: long-horizon memory tests"
+pytest "${PYTEST_COMMON[@]}" -k "long_horizon_memory" tests/integration
+
 echo "[itest] All integration suites completed."

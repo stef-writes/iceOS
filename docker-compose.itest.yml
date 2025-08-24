@@ -75,8 +75,9 @@ services:
       ICE_SKIP_STRESS: ${ICE_SKIP_STRESS:-"1"}
       DISABLE_REDIS_BG_LOOP: ${DISABLE_REDIS_BG_LOOP:-"1"}
       ICE_DISABLE_SECCOMP: ${ICE_DISABLE_SECCOMP:-"1"}
+      ICE_SKIP_EXTERNAL: 1
     command:
-      ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
+      ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "20"]
     healthcheck:
       test:
         [
@@ -107,6 +108,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://iceos:iceos@postgres:5432/iceos
       ICEOS_RUN_MIGRATIONS: 1
       DISABLE_REDIS_BG_LOOP: 1
+      ICE_SKIP_EXTERNAL: 1
     env_file:
       - env.ci
     command: ["bash", "-lc", "chmod +x scripts/itest_runner.sh && ./scripts/itest_runner.sh"]
