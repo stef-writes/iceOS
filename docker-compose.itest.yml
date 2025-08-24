@@ -76,8 +76,9 @@ services:
       DISABLE_REDIS_BG_LOOP: ${DISABLE_REDIS_BG_LOOP:-"1"}
       ICE_DISABLE_SECCOMP: ${ICE_DISABLE_SECCOMP:-"1"}
       ICE_SKIP_EXTERNAL: 1
+      ICE_THREADPOOL_MAX_WORKERS: 16
     command:
-      ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "20"]
+      ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "8"]
     healthcheck:
       test:
         [
@@ -109,6 +110,7 @@ services:
       ICEOS_RUN_MIGRATIONS: 1
       DISABLE_REDIS_BG_LOOP: 1
       ICE_SKIP_EXTERNAL: 1
+      ICE_THREADPOOL_MAX_WORKERS: 16
     env_file:
       - env.ci
     command: ["bash", "-lc", "chmod +x scripts/itest_runner.sh && ./scripts/itest_runner.sh"]

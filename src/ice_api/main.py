@@ -2,7 +2,9 @@
 FastAPI application entry point
 """
 
+import asyncio
 import os
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, cast
@@ -70,6 +72,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     Sets up services and cleans up resources on shutdown.
     """
+    # Cap asyncio default threadpool to avoid exhausting threads in CI runners
+    try:
+        max_workers = int(os.getenv("ICE_THREADPOOL_MAX_WORKERS", "16"))
+    except Exception:
+        max_workers = 16
+    try:
+        loop = asyncio.get_running_loop()
+        loop.set_default_executor(ThreadPoolExecutor(max_workers=max_workers))
+    except Exception:
+        pass
     # Initialize services through proper layer interfaces
     import importlib
 
