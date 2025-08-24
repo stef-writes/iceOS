@@ -280,20 +280,20 @@ async def run_alembic_migrations_if_enabled() -> None:
                 raise RuntimeError(
                     "DATABASE_URL must be a Postgres DSN for offline SQL fallback"
                 )
-            conn = _pg.connect(dsn)
-            conn.autocommit = True
-            cur = conn.cursor()
+            pg_conn = _pg.connect(dsn)
+            pg_conn.autocommit = True
+            pg_cur = pg_conn.cursor()
             stmts: _List[str] = [
                 s.strip() for s in _re.split(r";\s*\n", sql_text) if s.strip()
             ]
             for stmt in stmts:
                 try:
-                    cur.execute(stmt)
+                    pg_cur.execute(stmt)
                 except Exception:
                     # Continue applying best-effort; extension creation may fail if lacking perms
                     pass
-            cur.close()
-            conn.close()
+            pg_cur.close()
+            pg_conn.close()
 
             if not await _schema_exists():
                 raise RuntimeError(
@@ -304,7 +304,7 @@ async def run_alembic_migrations_if_enabled() -> None:
         # the Alembic revision table is stale or the upgrade was partially applied.
         try:
             # Use transactional block to ensure DDL is committed
-            async with engine.begin() as conn:  # type: ignore[call-arg]
+            async with engine.begin() as async_conn:  # type: ignore[call-arg]
                 for stmt in (
                     # Components: user_id, tags
                     "ALTER TABLE components ADD COLUMN IF NOT EXISTS user_id VARCHAR(64)",
@@ -314,7 +314,7 @@ async def run_alembic_migrations_if_enabled() -> None:
                     "ALTER TABLE blueprints ADD COLUMN IF NOT EXISTS tags JSON",
                 ):
                     try:
-                        await conn.execute(text(stmt))
+                        await async_conn.execute(text(stmt))
                     except Exception:
                         # Best-effort; continue with next statement
                         pass

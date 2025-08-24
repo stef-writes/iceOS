@@ -165,9 +165,10 @@ async def llm_node_executor(
             "usage": usage or {},
         }
         try:
-            if isinstance(getattr(cfg, "output_schema", None), dict):
+            schema_obj = getattr(cfg, "output_schema", None)
+            if isinstance(schema_obj, dict):
                 # Common schema expects a single 'text' field; keep 'response' too for BC
-                if "text" in cfg.output_schema:
+                if "text" in schema_obj:
                     out_payload.setdefault("text", text)
         except Exception:
             pass
