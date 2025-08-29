@@ -1,3 +1,15 @@
+## Testing & CI (single source of truth)
+
+- Canonical unit/lint/type: `make ci`
+- Canonical dockerized integration suite: `make ci-integration`
+- Do not run raw pytest/poetry for CI; Make targets rebuild images and set envs.
+
+## Runtime guarantees
+
+- LLM nodes require explicit `llm_config`; no implicit inference in conversion.
+- Executions reject malformed blueprints with 422 (empty node ids/deps).
+- DB session teardown is cancellation-safe; CancelledError/MemoryError during close is ignored.
+
 # iceOS – Intelligent Orchestration Platform
 
 ## Runtime features (enforced extras)
@@ -29,52 +41,20 @@ CHAT_TTL_SECONDS=2592000
 EXECUTION_TTL_SECONDS=604800
 ```
 
-## Zero-setup install (local)
+## Local dev (compose)
 
-```bash
-bash scripts/zero_setup_install.sh
-```
+See `docs/QUICKSTART.md` for the repeatable Docker Compose flow used in dev. It covers bringing up Postgres/Redis, running one-shot migrations, starting the API, and verifying `/readyz`.
 
-This script:
-- Checks Docker & Compose
-- Writes a `.env` with `ICE_API_TOKEN` and `ORG_BUDGET_USD` defaults
-- Starts the stack (API + Redis)
-- Waits for `/readyz` and opens `/docs`
+### Staging (Supabase)
 
-## Chat Endpoint
+See `docs/STAGING.md` for running the API against Supabase (transaction pooler), smoke steps, and integration targets.
 
-Single-turn chat with a data-first agent definition:
+- Fast subset: memory tools (MCP), library CRUD, ask_my_library
+- Full suite: `make ci-integration-staging DATABASE_URL=postgresql+asyncpg://...:6543/postgres`
 
-POST `/api/mcp/chat/{agent_name}`
+## Chat (note)
 
-Body:
-
-```json
-{
-  "session_id": "sess_123",
-  "user_message": "Hello",
-  "reset": false
-}
-```
-
-Response:
-
-```json
-{
-  "session_id": "sess_123",
-  "agent_name": "your_agent",
-  "assistant_message": "Hi!"
-}
-```
-
-Python client:
-
-```python
-from ice_client import IceClient
-client = IceClient()
-resp = await client.chat_turn("your_agent", "sess_123", "Hello")
-print(resp["assistant_message"])
-```
+The public REST surface is focused on blueprints/executions/MCP. If you need a chat abstraction, prefer registering an agent/workflow and using the executions API. The `IceClient.chat_turn` helper is subject to change and may be removed if no server route is provided.
 
 > *No-fluff, fully-typed, test-driven micro-framework for composable AI/LLM workflows in Python 3.11.9.*
 
@@ -501,8 +481,7 @@ Notes
 | `ice_orchestrator` | DAG execution engine, node executors, retry logic |
 | `ice_builder` | Authoring DSL + fluent `WorkflowBuilder` helper |
 | `ice_cli` | `ice` command-line utility (`ice scaffold`, `ice run`, …) |
-| `ice_client` | Thin HTTP/JSON-RPC client for remote orchestrator clusters |
-| `ice_tools` | Built-in toolkits – e-commerce demo, common utilities |
+| `ice_client` | Thin HTTP client in `src/ice_client` |
 
 Docs for each live in the corresponding `README.md` files.
 

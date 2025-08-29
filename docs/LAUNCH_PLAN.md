@@ -1,4 +1,34 @@
-## Launch Plan: Data & Migrations
+## Launch Plan (No‑Code Hosted)
+
+This plan reflects a no‑code product where end users interact solely via the hosted Studio Lite. Operator guidance is provided as an Appendix; end users do not need any CLI, SDK, or keys.
+
+### Day‑1 Product Surface
+- Hosted Studio Lite (no installation for end users)
+- Auth: magic‑link email
+- Pages: Library (upload/list), RAG Chat (bundle run), Components (discovery), Runs (history)
+- Provider keys stored on API only; frontend calls public REST
+
+### Acceptance Criteria
+- New user can: upload → ask Library → get answer/citations → view run
+- No API keys in the browser; all server‑side
+- CORS/trusted hosts configured for the hosted domain
+
+### Operational Readiness (API)
+- Auth: Bearer tokens (issued by platform)
+- CORS/trusted hosts explicitly set per environment
+- Rate limiting enabled
+- Readiness/liveness endpoints wired
+
+### Supabase Staging Verification
+- Staging override via `docker-compose.staging.yml` (pooler DSN, timeouts/retries defaults)
+- Smoke green: MCP memory write/search, Library CRUD, Ask‑My‑Library
+- Integration parity:
+  - Fast subset against running API
+  - Full suite optional: `make ci-integration-staging DATABASE_URL=postgresql+asyncpg://...:6543/postgres`
+
+---
+
+## Appendix: Data & Migrations (Operators)
 
 ### Postgres / pgvector versions
 - Use `pgvector/pgvector:pg15` (Postgres 15 + bundled pgvector) in Compose.

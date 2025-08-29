@@ -23,6 +23,7 @@ import asyncio
 import contextvars
 import json
 import logging
+import os
 import traceback
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Union
@@ -47,6 +48,23 @@ router = APIRouter(tags=["mcp-jsonrpc"])
 REQUEST_CTX: contextvars.ContextVar[Optional[Request]] = contextvars.ContextVar(
     "mcp_request_ctx", default=None
 )
+# Environment-configurable defaults for MCP/tool execution
+try:
+    _DEFAULT_MCP_TIMEOUT: float = float(os.getenv("ICE_MCP_DEFAULT_TIMEOUT", "60"))
+except Exception:
+    _DEFAULT_MCP_TIMEOUT = 60.0
+
+try:
+    _DEFAULT_TOOL_TIMEOUT_SECONDS: int = int(
+        os.getenv("ICE_TOOL_DEFAULT_TIMEOUT_SECONDS", "30")
+    )
+except Exception:
+    _DEFAULT_TOOL_TIMEOUT_SECONDS = 30
+
+try:
+    _DEFAULT_TOOL_RETRIES: int = int(os.getenv("ICE_TOOL_DEFAULT_RETRIES", "0"))
+except Exception:
+    _DEFAULT_TOOL_RETRIES = 0
 
 
 # MCP Protocol Models with comprehensive validation
@@ -311,14 +329,35 @@ async def mcp_jsonrpc_handler(request: Request) -> Union[MCPResponse, Dict[str, 
             await handle_notification(mcp_request)
             return {}  # No response for notifications
 
-        # Validate initialization state for non-initialize methods
+        # Back-compat: Support legacy method aliases like "tool/<name>" by normalizing
+        # to tools/call and injecting the tool name when missing.
+        if isinstance(mcp_request.method, str) and mcp_request.method.startswith(
+            "tool/"
+        ):
+            try:
+                _legacy_tool_name = mcp_request.method.split("/", 1)[1]
+                body_params = mcp_request.params or {}
+                # Ensure name/type present for tools/call handler
+                body_params.setdefault("name", f"tool:{_legacy_tool_name}")
+                body_params.setdefault("type", "tool")
+                mcp_request.params = body_params
+                mcp_request.method = "tools/call"
+            except Exception:
+                pass
+
+        # Auto-initialize for HTTP transport if client skipped initialize
         if mcp_request.method != "initialize" and not mcp_session.initialized:
-            logger.warning(f"Method {mcp_request.method} called before initialization")
-            return {
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "error": {"code": -32002, "message": "Server not initialized"},
-            }
+            try:
+                logger.warning(
+                    f"Method {mcp_request.method} called before initialization – auto-initializing"
+                )
+                await handle_initialize(mcp_request.params or {})
+            except Exception:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32002, "message": "Server not initialized"},
+                }
 
         # Route to appropriate handler with detailed logging
         logger.info(
@@ -802,6 +841,11 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
 
     try:
         if tool_type == "tool":
+            # Merge node-level options with environment defaults
+            _opts: Dict[str, Any] = dict(arguments.get("options", {}) or {})
+            _opts.setdefault("timeout_seconds", _DEFAULT_TOOL_TIMEOUT_SECONDS)
+            _opts.setdefault("retries", _DEFAULT_TOOL_RETRIES)
+
             node_spec = NodeSpec.model_validate(
                 {
                     "id": node_id,
@@ -810,7 +854,7 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
                     "tool_args": arguments.get("inputs", {}),
                     "input_schema": {"args": "dict"},
                     "output_schema": {"result": "dict"},
-                    **arguments.get("options", {}),
+                    **_opts,
                 }
             )
         elif tool_type == "agent":
@@ -904,9 +948,9 @@ async def handle_tools_call(params: Dict[str, Any]) -> Dict[str, Any]:
         )
 
         # Wait for completion (MCP tools should be synchronous)
-        timeout = arguments.get("timeout", 60.0)  # Default 60 second timeout
+        timeout = arguments.get("timeout", _DEFAULT_MCP_TIMEOUT)
         if not isinstance(timeout, (int, float)) or timeout <= 0:
-            timeout = 60.0
+            timeout = _DEFAULT_MCP_TIMEOUT
 
         result = await wait_for_completion(run_ack.run_id, timeout=timeout)
 

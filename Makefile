@@ -2,7 +2,7 @@
 
 PYTHON := $(shell which python)
 
-.PHONY: install lint lint-docker format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix lock-check lock-check-docker client-build client-clean
+.PHONY: install lint lint-docker format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix lock-check lock-check-docker
 
 install:
 	poetry install --with dev --no-interaction
@@ -24,12 +24,11 @@ lock-check:
 	poetry lock --check || (echo "Lock drift detected. Run 'poetry lock --no-update' locally and commit the lockfile." && exit 1)
 
 lock-check-docker:
+	# Use the builder stage which already has Poetry installed to avoid flaky pip installs
+	docker build --target builder -t iceos-builder . | cat
 	docker run --rm -t \
-		-v "$$PWD:/repo" -w /repo \
-		python:3.11.9-slim bash -lc '\
-		  python -m pip install --no-cache-dir --timeout 120 --retries 5 poetry==1.8.3 && \
-		  poetry lock --check \
-		'
+		-v "$$PWD:/app" -w /app \
+		iceos-builder poetry lock --check | cat
 
 format:
 	poetry run isort src tests
@@ -84,35 +83,32 @@ test-coverage:
 ci: lint-docker lock-check-docker type-check test
 
 ci-integration:
-	# Rebuild images to avoid stale test/API code in CI/local runs
-	docker build --target api -t local/iceosv1a-api:dev . && \
-	docker build --target test -t local/iceosv1a-itest:dev . && \
+	# Rebuild images with buildx + local cache to avoid stale code and speed up warm runs
+	docker buildx create --use --name iceos-builder || true && \
+	docker buildx build --load \
+		--builder iceos-builder \
+		--cache-to=type=local,dest=.cache/buildx,mode=max \
+		--cache-from=type=local,src=.cache/buildx \
+		--target api -t local/iceosv1a-api:dev . && \
+	docker buildx build --load \
+		--builder iceos-builder \
+		--cache-to=type=local,dest=.cache/buildx,mode=max \
+		--cache-from=type=local,src=.cache/buildx \
+		--target test -t local/iceosv1a-itest:dev . && \
 	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=0 ICE_SKIP_STRESS=1 \
 	docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
+
+# Run only wasm-marked tests with strict sandboxing (WASM enabled, seccomp not disabled)
+ci-sandbox:
+	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=1 ICE_DISABLE_SECCOMP=0 \
+	docker compose -f docker-compose.itest.yml run --rm itest bash -lc "pytest -c config/testing/pytest.ini -m wasm -q"
+
+# Release gate: fast CI + strict sandbox subset must both pass
+ci-release: ci ci-integration ci-sandbox
 
 ci-wasm:
 	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=1 ICE_SKIP_STRESS=1 \
 	docker compose -f docker-compose.itest.yml run --rm itest bash -lc "pytest -c config/testing/pytest.ini -m wasm -q"
-
-# ---------------------------------------------------------------------------
-# Client packaging (Dockerized Poetry build) ---------------------------------
-# ---------------------------------------------------------------------------
-client-clean:
-	rm -rf clients/ice_client/dist clients/ice_client/build || true
-
-client-build: client-clean
-	@if [ ! -f clients/ice_client/pyproject.toml ]; then \
-	  echo "[client] Skipping build: clients/ice_client/pyproject.toml not found (wrapper removed)"; \
-	  exit 0; \
-	fi; \
-	echo "[client] Staging src/ice_client into wrapper and building wheel..."; \
-	rm -rf clients/ice_client/ice_client && mkdir -p clients/ice_client/ice_client && cp -R src/ice_client/* clients/ice_client/ice_client/; \
-	docker run --rm -t \
-	  -v "$$PWD:/repo" -w /repo/clients/ice_client \
-	  python:3.11.9-slim bash -lc '\
-	    python -m pip install --no-cache-dir --timeout 120 --retries 5 poetry==1.8.3 && \
-	    poetry build -f wheel \
-	  '
 
 # ---------------------------------------------------------------------------
 # Dockerized pre-commit (no local Python/Poetry required) --------------------
@@ -136,7 +132,7 @@ audit:
 # Dev server helpers --------------------------------------------------------
 # ---------------------------------------------------------------------------
 serve:
-	PYTHONPATH=src uvicorn ice_api.main:app --port 8000 --reload
+	PYTHONPATH=src:. uvicorn ice_api.main:app --port 8000 --reload
 
 dev: serve
 
@@ -164,7 +160,7 @@ fresh-env: clean-caches precommit-clean
 # Zero-setup dev server (no Docker, in-memory Redis stub)
 .PHONY: dev-zero
 dev-zero:
-	USE_FAKE_REDIS=1 PYTHONPATH=src uvicorn ice_api.main:app --port 8000 --reload
+	USE_FAKE_REDIS=1 PYTHONPATH=src:. uvicorn ice_api.main:app --port 8000 --reload
 
 # ---------------------------------------------------------------------------
 # One-command RAG demo (compose up → ingest → query) -------------------------
@@ -239,3 +235,38 @@ bench-chatkit:
 	BENCH_QUERY="$(Q)" \
 	BENCH_WARMUPS=$(WARMUPS) BENCH_RUNS=$(RUNS) \
 	python scripts/ops/run_chatkit_bench.py
+
+# ---------------------------------------------------------------------------
+# Supabase staging helpers ---------------------------------------------------
+# ---------------------------------------------------------------------------
+.PHONY: supabase-migrate supabase-rls-apply
+
+# Run Alembic migrations against Supabase (requires DATABASE_URL env)
+supabase-migrate:
+	@if [ -z "$$DATABASE_URL" ]; then echo "DATABASE_URL is required (Supabase DSN)" >&2; exit 1; fi; \
+	 echo "[supabase] Running migrations on $$DATABASE_URL"; \
+	 docker compose run --rm -e DATABASE_URL migrate
+
+# Apply RLS policies via psql in a disposable container
+# Requires: PGHOST, PGPORT (optional), PGUSER, PGPASSWORD, PGDATABASE
+supabase-rls-apply:
+	@if [ -z "$$PGHOST" ] || [ -z "$$PGUSER" ] || [ -z "$$PGPASSWORD" ] || [ -z "$$PGDATABASE" ]; then \
+	  echo "PGHOST, PGUSER, PGPASSWORD, PGDATABASE are required" >&2; exit 1; fi; \
+	 docker run --rm -t \
+	  -e PGPASSWORD \
+	  -v "$$PWD/scripts/sql:/sql" \
+	  postgres:15 bash -lc "psql -h $$PGHOST -U $$PGUSER -d $$PGDATABASE -f /sql/rls_policies.sql"
+
+# ---------------------------------------------------------------------------
+# Integration tests against Supabase staging --------------------------------
+# ---------------------------------------------------------------------------
+.PHONY: ci-integration-staging
+ci-integration-staging:
+	@if [ -z "$$DATABASE_URL" ]; then echo "DATABASE_URL is required, e.g. export DATABASE_URL=postgresql+asyncpg://user:pass@aws-0-us-east-2.pooler.supabase.com:6543/postgres" >&2; exit 1; fi; \
+	 echo "[itest-staging] Using DATABASE_URL=$$DATABASE_URL"; \
+	docker buildx create --use --name iceos-builder || true && \
+	docker buildx build --load --builder iceos-builder --cache-to=type=local,dest=.cache/buildx,mode=max --cache-from=type=local,src=.cache/buildx --target api -t local/iceosv1a-api:dev . && \
+	docker buildx build --load --builder iceos-builder --cache-to=type=local,dest=.cache/buildx,mode=max --cache-from=type=local,src=.cache/buildx --target test -t local/iceosv1a-itest:dev . && \
+	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=0 ICE_SKIP_STRESS=1 \
+	DATABASE_URL=$$DATABASE_URL \
+	docker compose -f docker-compose.itest.yml -f docker-compose.itest.staging.yml up --abort-on-container-exit --exit-code-from itest

@@ -1,0 +1,19 @@
+services:
+  api:
+    environment:
+      # Point API to Supabase transaction pooler
+      DATABASE_URL: "${DATABASE_URL}"
+      ICEOS_RUN_MIGRATIONS: "0"
+      ICEOS_REQUIRE_DB: "0"
+      ICE_MCP_DEFAULT_TIMEOUT: "90"
+      ICE_TOOL_DEFAULT_TIMEOUT_SECONDS: "90"
+      ICE_TOOL_DEFAULT_RETRIES: "1"
+  itest:
+    environment:
+      # Tests that internally call the API should inherit API behavior
+      DATABASE_URL: "${DATABASE_URL}"
+      ICEOS_RUN_MIGRATIONS: "0"
+      ICEOS_REQUIRE_DB: "0"
+      ICE_MCP_DEFAULT_TIMEOUT: "90"
+      ICE_TOOL_DEFAULT_TIMEOUT_SECONDS: "90"
+      ICE_TOOL_DEFAULT_RETRIES: "1"

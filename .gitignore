@@ -104,3 +104,14 @@ site/
 # Ignore pytest coverage artifacts
 .coverage*
 dump.rdb
+
+# Frontend build/cache
+frontend/studio/node_modules/
+frontend/studio/.next/
+
+# Local build caches
+.cache/
+.cache/**
+
+# Docker buildx cache
+.cache/buildx/
