@@ -1,46 +1,6675 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://iceos.ai/schemas/index.json",
-  "title": "iceOS Schema Index",
-  "description": "Index of all available iceOS schemas",
-  "x-iceos-version": "1.0.0",
-  "categories": {
-    "node_configs": [
-      "node_configs/ToolNodeConfig.json",
-      "node_configs/LLMNodeConfig.json",
-      "node_configs/AgentNodeConfig.json",
-      "node_configs/ConditionNodeConfig.json",
-      "node_configs/WorkflowNodeConfig.json",
-      "node_configs/LoopNodeConfig.json",
-      "node_configs/ParallelNodeConfig.json",
-      "node_configs/RecursiveNodeConfig.json",
-      "node_configs/CodeNodeConfig.json",
-      "node_configs/SwarmNodeConfig.json",
-      "node_configs/HumanNodeConfig.json",
-      "node_configs/MonitorNodeConfig.json"
-    ],
-    "mcp_models": [
-      "mcp_models/Blueprint.json",
-      "mcp_models/BlueprintAck.json",
-      "mcp_models/ComponentDefinition.json",
-      "mcp_models/NodeSpec.json",
-      "mcp_models/PartialBlueprint.json",
-      "mcp_models/PartialNodeSpec.json"
-    ],
-    "supporting_models": [
-      "supporting_models/BaseNodeConfig.json",
-      "supporting_models/LLMConfig.json",
-      "supporting_models/NodeMetadata.json",
-      "supporting_models/RetryPolicy.json",
-      "supporting_models/ContextRule.json",
-      "supporting_models/InputMapping.json",
-      "supporting_models/ToolConfig.json",
-      "supporting_models/AgentSpec.json"
-    ],
-    "execution_results": [
-      "execution_results/NodeExecutionResult.json",
-      "execution_results/ChainExecutionResult.json"
-    ]
+  "components": {
+    "schemas": {
+      "AgentComposeRequest": {
+        "description": "Compose an agent from prompt, tools, and LLM config (without api_key).",
+        "properties": {
+          "llm_config": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Llm Config"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "system_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Prompt"
+          },
+          "tools": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tools",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "AgentComposeRequest",
+        "type": "object"
+      },
+      "ApplyRequest": {
+        "properties": {
+          "blueprint": {
+            "$ref": "#/components/schemas/PartialBlueprint"
+          },
+          "patches": {
+            "items": {
+              "$ref": "#/components/schemas/NodePatch"
+            },
+            "title": "Patches",
+            "type": "array"
+          }
+        },
+        "required": [
+          "blueprint",
+          "patches"
+        ],
+        "title": "ApplyRequest",
+        "type": "object"
+      },
+      "ApplyResponse": {
+        "properties": {
+          "blueprint": {
+            "$ref": "#/components/schemas/PartialBlueprint"
+          }
+        },
+        "required": [
+          "blueprint"
+        ],
+        "title": "ApplyResponse",
+        "type": "object"
+      },
+      "Blueprint": {
+        "description": "A design-time workflow blueprint transferable over the wire.",
+        "properties": {
+          "blueprint_id": {
+            "title": "Blueprint Id",
+            "type": "string"
+          },
+          "metadata": {
+            "description": "Arbitrary metadata for documentation",
+            "title": "Metadata",
+            "type": "object"
+          },
+          "nodes": {
+            "description": "Nodes comprising the workflow",
+            "items": {
+              "$ref": "#/components/schemas/NodeSpec"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": "1.2.0",
+            "description": "Semver blueprint schema version",
+            "example": "1.2.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nodes"
+        ],
+        "title": "Blueprint",
+        "type": "object"
+      },
+      "BlueprintAck": {
+        "description": "Acknowledgement for blueprint registration.",
+        "properties": {
+          "blueprint_id": {
+            "title": "Blueprint Id",
+            "type": "string"
+          },
+          "status": {
+            "default": "accepted",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "blueprint_id"
+        ],
+        "title": "BlueprintAck",
+        "type": "object"
+      },
+      "BlueprintCloneResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "version_lock": {
+            "title": "Version Lock",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version_lock"
+        ],
+        "title": "BlueprintCloneResponse",
+        "type": "object"
+      },
+      "BlueprintCreateResponse": {
+        "description": "Response for blueprint creation.\n\nArgs:\n    id (str): Assigned blueprint identifier.\n    version_lock (str): Version lock for optimistic concurrency.\n\nReturns:\n    BlueprintCreateResponse: Response model containing identifiers.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "version_lock": {
+            "title": "Version Lock",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version_lock"
+        ],
+        "title": "BlueprintCreateResponse",
+        "type": "object"
+      },
+      "BlueprintGetResponse": {
+        "properties": {
+          "data": {
+            "title": "Data",
+            "type": "object"
+          },
+          "version_lock": {
+            "title": "Version Lock",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "version_lock"
+        ],
+        "title": "BlueprintGetResponse",
+        "type": "object"
+      },
+      "BlueprintPatchResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "node_count": {
+            "title": "Node Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "node_count"
+        ],
+        "title": "BlueprintPatchResponse",
+        "type": "object"
+      },
+      "BlueprintReplaceResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "version_lock": {
+            "title": "Version Lock",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version_lock"
+        ],
+        "title": "BlueprintReplaceResponse",
+        "type": "object"
+      },
+      "Body_upload_files_api_v1_uploads_files_post": {
+        "properties": {
+          "chunk_size": {
+            "default": 1000,
+            "title": "Chunk Size",
+            "type": "integer"
+          },
+          "files": {
+            "items": {
+              "format": "binary",
+              "type": "string"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "metadata_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata Json"
+          },
+          "overlap": {
+            "default": 200,
+            "title": "Overlap",
+            "type": "integer"
+          },
+          "scope": {
+            "default": "kb",
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "Body_upload_files_api_v1_uploads_files_post",
+        "type": "object"
+      },
+      "ChatRequest": {
+        "properties": {
+          "reset": {
+            "default": false,
+            "title": "Reset",
+            "type": "boolean"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "user_message": {
+            "title": "User Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "user_message"
+        ],
+        "title": "ChatRequest",
+        "type": "object"
+      },
+      "ChatResponse": {
+        "properties": {
+          "agent_name": {
+            "title": "Agent Name",
+            "type": "string"
+          },
+          "assistant_message": {
+            "title": "Assistant Message",
+            "type": "string"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "agent_name",
+          "assistant_message"
+        ],
+        "title": "ChatResponse",
+        "type": "object"
+      },
+      "ComponentDefinition": {
+        "description": "Definition for a new component to validate and potentially register.\n\nThis enables validating tool/agent/workflow definitions BEFORE registration,\nensuring only valid components enter the registry.",
+        "properties": {
+          "agent_llm_config": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "LLM configuration for the agent",
+            "title": "Agent Llm Config"
+          },
+          "agent_system_prompt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Agent system prompt",
+            "title": "Agent System Prompt"
+          },
+          "agent_tools": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "List of tool names this agent can use",
+            "title": "Agent Tools"
+          },
+          "auto_register": {
+            "default": true,
+            "description": "Automatically register if validation passes",
+            "title": "Auto Register",
+            "type": "boolean"
+          },
+          "code_class_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Python code defining a code-node implementation class with async execute(workflow, cfg, ctx) -> dict",
+            "title": "Code Class Code"
+          },
+          "code_factory_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Python code defining a *factory function* for a code node (returns an implementation or callable)",
+            "title": "Code Factory Code"
+          },
+          "description": {
+            "description": "Component description",
+            "title": "Description",
+            "type": "string"
+          },
+          "metadata": {
+            "title": "Metadata",
+            "type": "object"
+          },
+          "name": {
+            "description": "Unique component name",
+            "title": "Name",
+            "type": "string"
+          },
+          "tool_class_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Python code defining the tool class (must inherit from ToolBase)",
+            "title": "Tool Class Code"
+          },
+          "tool_factory_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Python code defining a *factory function* that returns ToolBase",
+            "title": "Tool Factory Code"
+          },
+          "tool_input_schema": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "JSON schema for tool inputs",
+            "title": "Tool Input Schema"
+          },
+          "tool_output_schema": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "JSON schema for tool outputs",
+            "title": "Tool Output Schema"
+          },
+          "type": {
+            "enum": [
+              "tool",
+              "agent",
+              "workflow",
+              "code"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "validate_only": {
+            "default": false,
+            "description": "Only validate, never register (overrides auto_register)",
+            "title": "Validate Only",
+            "type": "boolean"
+          },
+          "workflow_nodes": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/NodeSpec"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nodes that make up the workflow",
+            "title": "Workflow Nodes"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "description"
+        ],
+        "title": "ComponentDefinition",
+        "type": "object"
+      },
+      "ComponentRegisterResponse": {
+        "description": "Extends validation result with persistence metadata.",
+        "properties": {
+          "component_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Unique ID assigned to the component",
+            "title": "Component Id"
+          },
+          "component_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Component Type"
+          },
+          "errors": {
+            "description": "Validation errors that must be fixed",
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "registered": {
+            "default": false,
+            "description": "Whether the component was registered",
+            "title": "Registered",
+            "type": "boolean"
+          },
+          "registry_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Name used in registry (may differ from definition.name)",
+            "title": "Registry Name"
+          },
+          "suggestions": {
+            "description": "AI suggestions for improvement",
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          },
+          "valid": {
+            "description": "Whether the component is valid",
+            "title": "Valid",
+            "type": "boolean"
+          },
+          "validation_details": {
+            "description": "Detailed validation information",
+            "title": "Validation Details",
+            "type": "object"
+          },
+          "version_lock": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Lock"
+          },
+          "warnings": {
+            "description": "Warnings that should be addressed",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "valid"
+        ],
+        "title": "ComponentRegisterResponse",
+        "type": "object"
+      },
+      "ComponentScaffoldRequest": {
+        "description": "Request to scaffold a new component's starter code.\n\nArgs:\n    type: Component type (\"tool\" | \"agent\" | \"workflow\" | \"code\")\n    name: Desired public name\n    template: Optional template variant hint (e.g., \"basic\", \"llm\")",
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template"
+          },
+          "type": {
+            "enum": [
+              "tool",
+              "agent",
+              "workflow",
+              "code"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name"
+        ],
+        "title": "ComponentScaffoldRequest",
+        "type": "object"
+      },
+      "ComponentScaffoldResponse": {
+        "description": "Response containing scaffolded code and notes.\n\nReturns:\n    tool_factory_code/tool_class_code/agent_factory_code/code_factory_code depending on type\n    notes: Guidance for the caller",
+        "properties": {
+          "agent_factory_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Factory Code"
+          },
+          "code_factory_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Factory Code"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "tool_class_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Class Code"
+          },
+          "tool_factory_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Factory Code"
+          }
+        },
+        "required": [
+          "notes"
+        ],
+        "title": "ComponentScaffoldResponse",
+        "type": "object"
+      },
+      "ComponentValidationResult": {
+        "description": "Result of component definition validation.",
+        "properties": {
+          "component_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Unique ID assigned to the component",
+            "title": "Component Id"
+          },
+          "component_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Component Type"
+          },
+          "errors": {
+            "description": "Validation errors that must be fixed",
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "registered": {
+            "default": false,
+            "description": "Whether the component was registered",
+            "title": "Registered",
+            "type": "boolean"
+          },
+          "registry_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Name used in registry (may differ from definition.name)",
+            "title": "Registry Name"
+          },
+          "suggestions": {
+            "description": "AI suggestions for improvement",
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          },
+          "valid": {
+            "description": "Whether the component is valid",
+            "title": "Valid",
+            "type": "boolean"
+          },
+          "validation_details": {
+            "description": "Detailed validation information",
+            "title": "Validation Details",
+            "type": "object"
+          },
+          "warnings": {
+            "description": "Warnings that should be addressed",
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "valid"
+        ],
+        "title": "ComponentValidationResult",
+        "type": "object"
+      },
+      "DraftAck": {
+        "description": "Acknowledgement of a draft operation.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "version": {
+            "default": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "DraftAck",
+        "type": "object"
+      },
+      "DraftPayload": {
+        "description": "Draft payload model.\n\nAttributes\n----------\ndata : dict[str, Any]\n    Opaque draft data produced by the builder.\nversion : int\n    Optimistic concurrency version number (monotonic, starts at 1).\n\nExample\n-------\n>>> DraftPayload(data={\"nodes\": [], \"metadata\": {\"draft_name\": \"wip\"}}, version=1)",
+        "properties": {
+          "data": {
+            "title": "Data",
+            "type": "object"
+          },
+          "version": {
+            "default": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "title": "DraftPayload",
+        "type": "object"
+      },
+      "ExecutionStartRequest": {
+        "description": "Request body to start a workflow execution.\n\nArgs:\n    blueprint_id (str): Identifier of a previously stored blueprint.\n    inputs (Dict[str, Any] | None): Optional initial inputs passed to the workflow.\n\nReturns:\n    None",
+        "properties": {
+          "blueprint_id": {
+            "description": "Stored blueprint id",
+            "title": "Blueprint Id",
+            "type": "string"
+          },
+          "inputs": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional initial inputs for the workflow",
+            "title": "Inputs"
+          }
+        },
+        "required": [
+          "blueprint_id"
+        ],
+        "title": "ExecutionStartRequest",
+        "type": "object"
+      },
+      "ExecutionStartResponse": {
+        "description": "Response for starting a workflow execution.\n\nArgs:\n    execution_id (str): Identifier for the created execution.\n    status (str): Current status (accepted, running, completed, failed, timeout).\n    result (Dict[str, Any] | None): Final result when completed.\n\nReturns:\n    ExecutionStartResponse: Response model containing execution details.",
+        "properties": {
+          "execution_id": {
+            "title": "Execution Id",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "execution_id",
+          "status"
+        ],
+        "title": "ExecutionStartResponse",
+        "type": "object"
+      },
+      "ExecutionStatusResponse": {
+        "description": "Response model for execution status.",
+        "properties": {
+          "blueprint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blueprint Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "events": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Events"
+          },
+          "execution_id": {
+            "title": "Execution Id",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "execution_id",
+          "status"
+        ],
+        "title": "ExecutionStatusResponse",
+        "type": "object"
+      },
+      "ExecutionsListItem": {
+        "properties": {
+          "blueprint_id": {
+            "title": "Blueprint Id",
+            "type": "string"
+          },
+          "execution_id": {
+            "title": "Execution Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "execution_id",
+          "status",
+          "blueprint_id"
+        ],
+        "title": "ExecutionsListItem",
+        "type": "object"
+      },
+      "ExecutionsListResponse": {
+        "properties": {
+          "executions": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutionsListItem"
+            },
+            "title": "Executions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "executions"
+        ],
+        "title": "ExecutionsListResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "LibraryAssetIn": {
+        "properties": {
+          "content": {
+            "description": "Text content to store",
+            "title": "Content",
+            "type": "string"
+          },
+          "label": {
+            "description": "Human label, unique per user",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "mime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "MIME type, e.g., text/plain",
+            "title": "Mime"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Organization identifier",
+            "title": "Org Id"
+          },
+          "scope": {
+            "default": "library",
+            "description": "Logical scope, defaults to 'library'",
+            "title": "Scope",
+            "type": "string"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "User identifier",
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "label",
+          "content"
+        ],
+        "title": "LibraryAssetIn",
+        "type": "object"
+      },
+      "LibraryAssetOut": {
+        "properties": {
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "meta_json": {
+            "title": "Meta Json",
+            "type": "object"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "key",
+          "org_id",
+          "user_id",
+          "scope",
+          "meta_json",
+          "created_at"
+        ],
+        "title": "LibraryAssetOut",
+        "type": "object"
+      },
+      "MCPError": {
+        "description": "MCP JSON-RPC error response.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "integer"
+          },
+          "data": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "MCPError",
+        "type": "object"
+      },
+      "MCPResponse": {
+        "description": "MCP JSON-RPC response with validation.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MCPError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "jsonrpc": {
+            "const": "2.0",
+            "default": "2.0",
+            "enum": [
+              "2.0"
+            ],
+            "title": "Jsonrpc",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          }
+        },
+        "title": "MCPResponse",
+        "type": "object"
+      },
+      "NodeCatalog": {
+        "description": "High-level node catalog for authoring UIs and copilots.",
+        "properties": {
+          "agents": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Agents",
+            "type": "array"
+          },
+          "chains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Chains",
+            "type": "array"
+          },
+          "tools": {
+            "items": {
+              "$ref": "#/components/schemas/ToolInfo"
+            },
+            "title": "Tools",
+            "type": "array"
+          },
+          "workflows": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Workflows",
+            "type": "array"
+          }
+        },
+        "title": "NodeCatalog",
+        "type": "object"
+      },
+      "NodePatch": {
+        "description": "A minimal, declarative mutation to a partial blueprint.\n\nThis captures add/remove/update operations in a way that can be validated\nwithout executing any code.",
+        "properties": {
+          "action": {
+            "description": "add_node | remove_node | update_node",
+            "title": "Action",
+            "type": "string"
+          },
+          "node": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartialNodeSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Id"
+          },
+          "updates": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updates"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "NodePatch",
+        "type": "object"
+      },
+      "NodeSchema": {
+        "description": "Pydantic JSON Schema for a node configuration class.",
+        "properties": {
+          "json_schema": {
+            "description": "Pydantic JSON Schema",
+            "title": "Json Schema",
+            "type": "object"
+          },
+          "type": {
+            "description": "Canonical node type",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "json_schema"
+        ],
+        "title": "NodeSchema",
+        "type": "object"
+      },
+      "NodeSpec": {
+        "additionalProperties": true,
+        "description": "JSON-friendly node description (same keys as NodeConfig).",
+        "properties": {
+          "dependencies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dependencies",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "NodeSpec",
+        "type": "object"
+      },
+      "PartialBlueprint": {
+        "description": "Blueprint under construction with validation relaxed.",
+        "properties": {
+          "blueprint_id": {
+            "title": "Blueprint Id",
+            "type": "string"
+          },
+          "is_complete": {
+            "default": false,
+            "description": "Whether blueprint is ready for execution",
+            "title": "Is Complete",
+            "type": "boolean"
+          },
+          "metadata": {
+            "title": "Metadata",
+            "type": "object"
+          },
+          "next_suggestions": {
+            "description": "AI suggestions for next nodes",
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Suggestions",
+            "type": "array"
+          },
+          "nodes": {
+            "description": "Nodes added so far (can be empty)",
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/NodeSpec"
+                },
+                {
+                  "$ref": "#/components/schemas/PartialNodeSpec"
+                }
+              ]
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": "1.1.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "validation_errors": {
+            "description": "Current validation issues",
+            "items": {
+              "type": "string"
+            },
+            "title": "Validation Errors",
+            "type": "array"
+          }
+        },
+        "title": "PartialBlueprint",
+        "type": "object"
+      },
+      "PartialBlueprintUpdate": {
+        "description": "Update operation for partial blueprints.",
+        "properties": {
+          "action": {
+            "enum": [
+              "add_node",
+              "remove_node",
+              "update_node",
+              "suggest"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "node": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartialNodeSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Id"
+          },
+          "updates": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updates"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "PartialBlueprintUpdate",
+        "type": "object"
+      },
+      "PartialNodeSpec": {
+        "additionalProperties": true,
+        "description": "Node spec that allows pending connections.",
+        "properties": {
+          "dependencies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dependencies",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "pending_inputs": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Input fields awaiting connection",
+            "title": "Pending Inputs"
+          },
+          "pending_outputs": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Output fields that could connect to other nodes",
+            "title": "Pending Outputs"
+          },
+          "suggestions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Suggested next node types",
+            "title": "Suggestions"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "PartialNodeSpec",
+        "type": "object"
+      },
+      "PreviewToolRequest": {
+        "description": "Request to preview-execute a generated code tool in a sandbox.\n\nParameters\n----------\nlanguage : str\n    Programming language (\"python\" or \"javascript\").\ncode : str\n    Inline code to execute.\ninputs : dict[str, Any]\n    Runtime inputs passed to the code node.\nimports : list[str]\n    Optional allowed imports for the sandbox.\ntimeout_seconds : int | None\n    Optional overall timeout for the execution (seconds).\n\nExample\n-------\n>>> PreviewToolRequest(language=\"python\", code=\"print('hi')\", inputs={})",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "imports": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Imports",
+            "type": "array"
+          },
+          "inputs": {
+            "title": "Inputs",
+            "type": "object"
+          },
+          "language": {
+            "default": "python",
+            "title": "Language",
+            "type": "string"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "maximum": 30.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 5,
+            "title": "Timeout Seconds"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "PreviewToolRequest",
+        "type": "object"
+      },
+      "PreviewToolResponse": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "logs": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logs"
+          },
+          "output": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ],
+        "title": "PreviewToolResponse",
+        "type": "object"
+      },
+      "ProposeRequest": {
+        "properties": {
+          "base": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartialBlueprint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "ProposeRequest",
+        "type": "object"
+      },
+      "ProposeResponse": {
+        "properties": {
+          "blueprint": {
+            "$ref": "#/components/schemas/PartialBlueprint"
+          }
+        },
+        "required": [
+          "blueprint"
+        ],
+        "title": "ProposeResponse",
+        "type": "object"
+      },
+      "RunAck": {
+        "description": "Acknowledgement for run start.",
+        "properties": {
+          "events_endpoint": {
+            "title": "Events Endpoint",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status_endpoint": {
+            "title": "Status Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "status_endpoint",
+          "events_endpoint"
+        ],
+        "title": "RunAck",
+        "type": "object"
+      },
+      "RunOptions": {
+        "description": "Options for workflow execution.",
+        "properties": {
+          "max_parallel": {
+            "default": 5,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Max Parallel",
+            "type": "integer"
+          }
+        },
+        "title": "RunOptions",
+        "type": "object"
+      },
+      "RunRequest": {
+        "additionalProperties": false,
+        "description": "Request to execute a workflow.",
+        "properties": {
+          "blueprint": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Blueprint"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "blueprint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blueprint Id"
+          },
+          "options": {
+            "$ref": "#/components/schemas/RunOptions"
+          }
+        },
+        "title": "RunRequest",
+        "type": "object"
+      },
+      "RunResult": {
+        "description": "Result of workflow execution.",
+        "properties": {
+          "end_time": {
+            "format": "date-time",
+            "title": "End Time",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "output": {
+            "title": "Output",
+            "type": "object"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "start_time": {
+            "format": "date-time",
+            "title": "Start Time",
+            "type": "string"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "run_id",
+          "success",
+          "start_time",
+          "end_time"
+        ],
+        "title": "RunResult",
+        "type": "object"
+      },
+      "SessionAck": {
+        "properties": {
+          "ok": {
+            "default": true,
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id"
+        ],
+        "title": "SessionAck",
+        "type": "object"
+      },
+      "SessionPayload": {
+        "properties": {
+          "data": {
+            "title": "Data",
+            "type": "object"
+          }
+        },
+        "title": "SessionPayload",
+        "type": "object"
+      },
+      "StorageHealth": {
+        "description": "Storage subsystem health response.\n\nReturns\n-------\nStorageHealth\n    The current storage backend and status.\n\nExample\n-------\n>>> StorageHealth(backend=\"redis\", status=\"ready\").model_dump()\n{'backend': 'redis', 'status': 'ready'}",
+        "properties": {
+          "backend": {
+            "enum": [
+              "postgres",
+              "redis",
+              "in-memory"
+            ],
+            "title": "Backend",
+            "type": "string"
+          },
+          "connected": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connected"
+          },
+          "migration_head": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Migration Head"
+          },
+          "status": {
+            "const": "ready",
+            "enum": [
+              "ready"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unscoped_rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unscoped Rows"
+          }
+        },
+        "required": [
+          "backend",
+          "status"
+        ],
+        "title": "StorageHealth",
+        "type": "object"
+      },
+      "Suggestion": {
+        "properties": {
+          "confidence": {
+            "default": 0.6,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "reason"
+        ],
+        "title": "Suggestion",
+        "type": "object"
+      },
+      "TokenIssueRequest": {
+        "properties": {
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
+          },
+          "ttl_days": {
+            "anyOf": [
+              {
+                "maximum": 3650.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttl Days"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "title": "TokenIssueRequest",
+        "type": "object"
+      },
+      "TokenIssueResponse": {
+        "properties": {
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "token_hash": {
+            "title": "Token Hash",
+            "type": "string"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "token",
+          "token_hash",
+          "org_id",
+          "project_id",
+          "user_id",
+          "scopes",
+          "expires_at"
+        ],
+        "title": "TokenIssueResponse",
+        "type": "object"
+      },
+      "TokenListItem": {
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "revoked": {
+            "title": "Revoked",
+            "type": "boolean"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
+          },
+          "token_hash": {
+            "title": "Token Hash",
+            "type": "string"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          }
+        },
+        "required": [
+          "token_hash",
+          "org_id",
+          "project_id",
+          "user_id",
+          "revoked"
+        ],
+        "title": "TokenListItem",
+        "type": "object"
+      },
+      "TokenListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TokenListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TokenListResponse",
+        "type": "object"
+      },
+      "TokenRevokeRequest": {
+        "properties": {
+          "token_hash": {
+            "title": "Token Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token_hash"
+        ],
+        "title": "TokenRevokeRequest",
+        "type": "object"
+      },
+      "ToolInfo": {
+        "description": "Catalog entry for a Tool node.\n\nAttributes\n----------\nname : str\n    Registry name of the tool factory.\ninput_schema : dict[str, Any]\n    JSON Schema describing expected inputs.\noutput_schema : dict[str, Any]\n    JSON Schema describing outputs.\nui_hints : dict[str, UIHints] | None\n    Optional mapping of field name to UI hints.\nexamples : list[dict[str, Any]] | None\n    Example argument objects usable in studio.",
+        "properties": {
+          "examples": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Examples"
+          },
+          "input_schema": {
+            "title": "Input Schema",
+            "type": "object"
+          },
+          "name": {
+            "description": "Registry name of the tool factory",
+            "title": "Name",
+            "type": "string"
+          },
+          "output_schema": {
+            "title": "Output Schema",
+            "type": "object"
+          },
+          "ui_hints": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/UIHints"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ui Hints"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ToolInfo",
+        "type": "object"
+      },
+      "UIHints": {
+        "description": "Optional UI rendering hints for studio forms.",
+        "properties": {
+          "enum": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enum"
+          },
+          "placeholder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeholder"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step"
+          },
+          "widget": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Preferred widget type",
+            "title": "Widget"
+          }
+        },
+        "title": "UIHints",
+        "type": "object"
+      },
+      "UploadResponse": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UploadResponseItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "count",
+          "items"
+        ],
+        "title": "UploadResponse",
+        "type": "object"
+      },
+      "UploadResponseItem": {
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "ingested_keys": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ingested Keys",
+            "type": "array"
+          }
+        },
+        "required": [
+          "filename"
+        ],
+        "title": "UploadResponseItem",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "ice_api__api__builder_mcp__SuggestRequest": {
+        "properties": {
+          "canvas_state": {
+            "title": "Canvas State",
+            "type": "object"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "SuggestRequest",
+        "type": "object"
+      },
+      "ice_api__api__builder_mcp__SuggestResponse": {
+        "properties": {
+          "cost_estimate_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Estimate Usd"
+          },
+          "missing_fields": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Fields"
+          },
+          "patches": {
+            "items": {
+              "$ref": "#/components/schemas/NodePatch"
+            },
+            "title": "Patches",
+            "type": "array"
+          },
+          "questions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Questions"
+          }
+        },
+        "required": [
+          "patches"
+        ],
+        "title": "SuggestResponse",
+        "type": "object"
+      },
+      "ice_api__api__mcp__SuggestRequest": {
+        "description": "Request for suggestions for next nodes.\n\nArgs:\n    top_k: Maximum number of suggestions to return\n    allowed_types: Optional filter of node types to include\n    commit: If true, persist summary suggestions and roll lock (requires X-Version-Lock)",
+        "properties": {
+          "allowed_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Types"
+          },
+          "commit": {
+            "default": false,
+            "title": "Commit",
+            "type": "boolean"
+          },
+          "top_k": {
+            "default": 5,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "type": "integer"
+          }
+        },
+        "title": "SuggestRequest",
+        "type": "object"
+      },
+      "ice_api__api__mcp__SuggestResponse": {
+        "properties": {
+          "context": {
+            "title": "Context",
+            "type": "object"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/Suggestion"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "suggestions"
+        ],
+        "title": "SuggestResponse",
+        "type": "object"
+      }
+    }
   },
-  "total_schemas": 28
+  "info": {
+    "description": "AI Workflow Orchestration System",
+    "title": "iceOS API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Root endpoint returning API info.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Root  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Root"
+      }
+    },
+    "/api/mcp/": {
+      "post": {
+        "description": "Main MCP JSON-RPC 2.0 handler with comprehensive error handling.",
+        "operationId": "mcp_jsonrpc_handler_api_mcp__post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MCPResponse"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Response Mcp Jsonrpc Handler Api Mcp  Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mcp Jsonrpc Handler",
+        "tags": [
+          "mcp-jsonrpc-legacy",
+          "mcp-jsonrpc"
+        ]
+      }
+    },
+    "/api/mcp/agents/compose": {
+      "post": {
+        "description": "Create a simple agent definition and register via component pipeline.\n\nNot BYOK: any `api_key` field in llm_config is ignored.",
+        "operationId": "compose_agent_api_mcp_agents_compose_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentComposeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compose Agent",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints": {
+      "post": {
+        "description": "Register (or upsert) a *Blueprint*.",
+        "operationId": "create_blueprint_api_mcp_blueprints_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Blueprint"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueprintAck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Blueprint",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints/design-session": {
+      "post": {
+        "description": "Create a new design session for incremental blueprint building.\n\nThis supports the Frosty/Canvas workflow where:\n1. User starts a design session\n2. Validates and registers components as needed\n3. Incrementally builds blueprint with PartialBlueprint\n4. Gets real-time validation and suggestions\n5. Finalizes when ready",
+        "operationId": "create_design_session_api_mcp_blueprints_design_session_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Create Design Session Api Mcp Blueprints Design Session Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Design Session",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints/design-session/{session_id}": {
+      "get": {
+        "description": "Get current state of a design session.",
+        "operationId": "get_design_session_api_mcp_blueprints_design_session__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Design Session Api Mcp Blueprints Design Session  Session Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Design Session",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints/design-session/{session_id}/register-component": {
+      "post": {
+        "description": "Track that a component was registered in this design session.",
+        "operationId": "register_session_component_api_mcp_blueprints_design_session__session_id__register_component_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "component_id",
+            "required": true,
+            "schema": {
+              "title": "Component Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Register Session Component Api Mcp Blueprints Design Session  Session Id  Register Component Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Session Component",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints/partial": {
+      "post": {
+        "description": "Create a new partial blueprint for incremental construction.",
+        "operationId": "create_partial_blueprint_api_mcp_blueprints_partial_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PartialNodeSpec"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Initial Node"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartialBlueprint"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Partial Blueprint",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints/partial/{blueprint_id}": {
+      "get": {
+        "description": "Return stored PartialBlueprint JSON and expose current lock in header.",
+        "operationId": "get_partial_blueprint_api_mcp_blueprints_partial__blueprint_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Partial Blueprint Api Mcp Blueprints Partial  Blueprint Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Partial Blueprint",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      },
+      "put": {
+        "description": "Update a partial blueprint - add/remove/modify nodes.",
+        "operationId": "update_partial_blueprint_api_mcp_blueprints_partial__blueprint_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartialBlueprintUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartialBlueprint"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Partial Blueprint",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints/partial/{blueprint_id}/finalize": {
+      "post": {
+        "description": "Convert partial blueprint to executable blueprint.",
+        "operationId": "finalize_partial_blueprint_api_mcp_blueprints_partial__blueprint_id__finalize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueprintAck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Finalize Partial Blueprint",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints/partial/{blueprint_id}/suggest": {
+      "post": {
+        "description": "Return deterministic suggestions for next nodes based on partial blueprint.\n\n- No side effects by default.\n- If body.commit==True, requires X-Version-Lock and persists a summary to partial.next_suggestions.",
+        "operationId": "suggest_next_nodes_api_mcp_blueprints_partial__blueprint_id__suggest_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ice_api__api__mcp__SuggestRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ice_api__api__mcp__SuggestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suggest Next Nodes",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints/{blueprint_id}": {
+      "get": {
+        "description": "Retrieve a registered blueprint by ID.",
+        "operationId": "get_blueprint_api_mcp_blueprints__blueprint_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Blueprint Api Mcp Blueprints  Blueprint Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Blueprint",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/blueprints/{blueprint_id}/visualization": {
+      "get": {
+        "description": "Get visualization data for a blueprint.",
+        "operationId": "get_blueprint_visualization_api_mcp_blueprints__blueprint_id__visualization_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Blueprint Visualization Api Mcp Blueprints  Blueprint Id  Visualization Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Blueprint Visualization",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/chat/{agent_name}": {
+      "post": {
+        "description": "Single chat turn with simple session memory stored in Redis.\n\n- Resolves data-first AgentDefinition if present.\n- Builds an LLM node on-the-fly using the agent's llm_config and system_prompt.\n- Persists message history per (agent_name, session_id) in Redis.",
+        "operationId": "chat_turn_api_mcp_chat__agent_name__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "agent_name",
+            "required": true,
+            "schema": {
+              "title": "Agent Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chat Turn",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/components": {
+      "get": {
+        "description": "List stored components from the Redis index plus current registry view.",
+        "operationId": "list_all_components_api_mcp_components_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List All Components Api Mcp Components Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List All Components",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/components/register": {
+      "post": {
+        "description": "Validate then persist a component definition and register it (via service).",
+        "operationId": "register_component_api_mcp_components_register_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComponentDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentRegisterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Component",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/components/scaffold": {
+      "post": {
+        "description": "Generate starter code for a new component.\n\n- For tools: provide a minimal ToolBase subclass and factory template.\n- For agents: provide an agent factory using `agent_factory` decorator.\n- For workflows: currently out-of-scope; recommend building via blueprint.",
+        "operationId": "scaffold_component_api_mcp_components_scaffold_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComponentScaffoldRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentScaffoldResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Scaffold Component",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/components/validate": {
+      "post": {
+        "description": "Validate a component definition and optionally auto-register if valid.\n\nThis enables the Frosty/Canvas workflow where components are validated\nBEFORE registration, ensuring only valid components enter the registry.\n\nFlow:\n1. Submit component definition (tool/agent/workflow)\n2. Validate structure, dependencies, conflicts\n3. If valid and auto_register=true, register the component\n4. Return validation results with suggestions",
+        "operationId": "validate_component_definition_api_mcp_components_validate_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComponentDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentValidationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Validate Component Definition",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/components/{component_type}": {
+      "get": {
+        "description": "List all registered components of a given type.",
+        "operationId": "list_components_by_type_api_mcp_components__component_type__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "component_type",
+            "required": true,
+            "schema": {
+              "title": "Component Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Components By Type Api Mcp Components  Component Type  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Components By Type",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/components/{component_type}/{name}": {
+      "delete": {
+        "description": "Delete a stored component definition and remove it from the index.",
+        "operationId": "delete_component_api_mcp_components__component_type___name__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "component_type",
+            "required": true,
+            "schema": {
+              "title": "Component Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Component",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      },
+      "get": {
+        "description": "Fetch a stored component definition and expose current version lock.",
+        "operationId": "get_component_api_mcp_components__component_type___name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "component_type",
+            "required": true,
+            "schema": {
+              "title": "Component Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Component Api Mcp Components  Component Type   Name  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Component",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      },
+      "put": {
+        "description": "Update a stored component; requires X-Version-Lock optimistic concurrency.",
+        "operationId": "update_component_api_mcp_components__component_type___name__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "component_type",
+            "required": true,
+            "schema": {
+              "title": "Component Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComponentDefinition"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Update Component Api Mcp Components  Component Type   Name  Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Component",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/runs": {
+      "post": {
+        "description": "Execute a blueprint by *id* or inline definition and return *run_id*.",
+        "operationId": "start_run_api_mcp_runs_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunAck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Run",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/runs/{run_id}": {
+      "get": {
+        "description": "Return the final *RunResult* if available, else 202.",
+        "operationId": "get_result_api_mcp_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Result",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/runs/{run_id}/events": {
+      "get": {
+        "description": "Stream events for *run_id* via Server-Sent Events.",
+        "operationId": "event_stream_api_mcp_runs__run_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Event Stream",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/workflows/{workflow_id}/graph/analysis": {
+      "get": {
+        "description": "Get comprehensive graph analysis including paths, bottlenecks, and optimization suggestions.",
+        "operationId": "get_workflow_graph_analysis_api_mcp_workflows__workflow_id__graph_analysis_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "title": "Workflow Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Workflow Graph Analysis Api Mcp Workflows  Workflow Id  Graph Analysis Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Workflow Graph Analysis",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/workflows/{workflow_id}/graph/layout": {
+      "get": {
+        "description": "Get intelligent layout hints for canvas visualization.",
+        "operationId": "get_workflow_layout_hints_api_mcp_workflows__workflow_id__graph_layout_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "title": "Workflow Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Workflow Layout Hints Api Mcp Workflows  Workflow Id  Graph Layout Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Workflow Layout Hints",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/workflows/{workflow_id}/graph/metrics": {
+      "get": {
+        "description": "Get comprehensive graph analysis metrics for a workflow.",
+        "operationId": "get_workflow_graph_metrics_api_mcp_workflows__workflow_id__graph_metrics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "title": "Workflow Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Workflow Graph Metrics Api Mcp Workflows  Workflow Id  Graph Metrics Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Workflow Graph Metrics",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/workflows/{workflow_id}/graph/patterns": {
+      "post": {
+        "description": "Find similar patterns in the workflow for refactoring opportunities.",
+        "operationId": "find_workflow_patterns_api_mcp_workflows__workflow_id__graph_patterns_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "title": "Workflow Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Pattern Nodes",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Find Workflow Patterns Api Mcp Workflows  Workflow Id  Graph Patterns Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Find Workflow Patterns",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/workflows/{workflow_id}/nodes/{node_id}/impact": {
+      "get": {
+        "description": "Analyze the impact of changes to a specific node.",
+        "operationId": "analyze_node_impact_api_mcp_workflows__workflow_id__nodes__node_id__impact_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "title": "Workflow Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "title": "Node Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Analyze Node Impact Api Mcp Workflows  Workflow Id  Nodes  Node Id  Impact Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Analyze Node Impact",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/mcp/workflows/{workflow_id}/nodes/{node_id}/suggestions": {
+      "get": {
+        "description": "Get AI-powered suggestions for next nodes after the specified node.",
+        "operationId": "get_node_suggestions_api_mcp_workflows__workflow_id__nodes__node_id__suggestions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workflow_id",
+            "required": true,
+            "schema": {
+              "title": "Workflow Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "title": "Node Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Node Suggestions Api Mcp Workflows  Workflow Id  Nodes  Node Id  Suggestions Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Node Suggestions",
+        "tags": [
+          "mcp",
+          "mcp"
+        ]
+      }
+    },
+    "/api/v1/agents": {
+      "get": {
+        "description": "Return all registered agent names.",
+        "operationId": "list_agents_api_v1_agents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response List Agents Api V1 Agents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Agents",
+        "tags": [
+          "discovery",
+          "discovery"
+        ]
+      }
+    },
+    "/api/v1/blueprints/": {
+      "post": {
+        "description": "Create a blueprint using optimistic concurrency.\n\nArgs:\n    request (Request): FastAPI request object (used for headers and app state).\n    blueprint (Blueprint): Fully-typed Blueprint payload.\n\nReturns:\n    BlueprintCreateResponse: Identifier and version lock of the stored blueprint.\n\nExample:\n    POST /api/v1/blueprints/ with header X-Version-Lock: __new__ and a Blueprint body.",
+        "operationId": "create_blueprint_api_v1_blueprints__post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Blueprint"
+                  }
+                ],
+                "description": "Blueprint JSON payload",
+                "title": "Blueprint"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueprintCreateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Blueprint",
+        "tags": [
+          "blueprints",
+          "blueprints"
+        ]
+      }
+    },
+    "/api/v1/blueprints/{blueprint_id}": {
+      "delete": {
+        "description": "Delete a blueprint after optimistic lock validation.",
+        "operationId": "delete_blueprint_api_v1_blueprints__blueprint_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Blueprint",
+        "tags": [
+          "blueprints",
+          "blueprints"
+        ]
+      },
+      "get": {
+        "description": "Return a stored Blueprint by *id* with optimistic version-lock header.",
+        "operationId": "get_blueprint_api_v1_blueprints__blueprint_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueprintGetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Blueprint",
+        "tags": [
+          "blueprints",
+          "blueprints"
+        ]
+      },
+      "patch": {
+        "description": "Incrementally update a stored blueprint.\n\nPayload schema (minimal):\n    {\n      \"nodes\": [ { ...NodeSpec... | {\"id\": \"node_id\", \"type\": \"__delete__\"} ]\n    }",
+        "operationId": "patch_blueprint_api_v1_blueprints__blueprint_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "Partial blueprint patch",
+                "title": "Payload",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueprintPatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Patch Blueprint",
+        "tags": [
+          "blueprints",
+          "blueprints"
+        ]
+      },
+      "put": {
+        "description": "Replace an existing blueprint in one shot (optimistic concurrency).",
+        "operationId": "replace_blueprint_api_v1_blueprints__blueprint_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "description": "Full blueprint JSON payload",
+                "title": "Payload",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueprintReplaceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replace Blueprint",
+        "tags": [
+          "blueprints",
+          "blueprints"
+        ]
+      }
+    },
+    "/api/v1/blueprints/{blueprint_id}/clone": {
+      "post": {
+        "description": "Create a deep copy of an existing blueprint and return the new id.",
+        "operationId": "clone_blueprint_api_v1_blueprints__blueprint_id__clone_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "blueprint_id",
+            "required": true,
+            "schema": {
+              "title": "Blueprint Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueprintCloneResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clone Blueprint",
+        "tags": [
+          "blueprints",
+          "blueprints"
+        ]
+      }
+    },
+    "/api/v1/builder/apply": {
+      "post": {
+        "operationId": "apply_api_v1_builder_apply_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Apply",
+        "tags": [
+          "builder"
+        ]
+      }
+    },
+    "/api/v1/builder/drafts/{key}": {
+      "delete": {
+        "description": "Delete a draft for the current identity (idempotent).",
+        "operationId": "delete_draft_api_v1_builder_drafts__key__delete",
+        "parameters": [
+          {
+            "description": "Draft key identifier",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "description": "Draft key identifier",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftAck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Draft",
+        "tags": [
+          "builder",
+          "drafts"
+        ]
+      },
+      "get": {
+        "description": "Fetch a draft for the current identity.\n\nReturns current version and data. Raises 404 if not found.",
+        "operationId": "get_draft_api_v1_builder_drafts__key__get",
+        "parameters": [
+          {
+            "description": "Draft key identifier",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "description": "Draft key identifier",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftPayload"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Draft",
+        "tags": [
+          "builder",
+          "drafts"
+        ]
+      },
+      "put": {
+        "description": "Create or update a draft for the current identity.\n\nUses optimistic concurrency via versioning:\n- If request has \"If-Match: <version>\", update only if current version matches.\n- Otherwise create-or-replace and bump version.",
+        "operationId": "put_draft_api_v1_builder_drafts__key__put",
+        "parameters": [
+          {
+            "description": "Draft key identifier",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "description": "Draft key identifier",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/DraftPayload"
+                  }
+                ],
+                "default": {
+                  "data": {},
+                  "version": 0
+                },
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftAck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Draft",
+        "tags": [
+          "builder",
+          "drafts"
+        ]
+      }
+    },
+    "/api/v1/builder/preview/tool": {
+      "post": {
+        "description": "Run generated code in a strict sandbox without registering it.\n\nReturns structured logs/results; never persists or registers components.",
+        "operationId": "preview_tool_api_v1_builder_preview_tool_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewToolRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewToolResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Tool",
+        "tags": [
+          "builder",
+          "preview"
+        ]
+      }
+    },
+    "/api/v1/builder/propose": {
+      "post": {
+        "operationId": "propose_api_v1_builder_propose_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Propose",
+        "tags": [
+          "builder"
+        ]
+      }
+    },
+    "/api/v1/builder/sessions/{session_id}": {
+      "delete": {
+        "operationId": "delete_session_api_v1_builder_sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionAck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Session",
+        "tags": [
+          "builder",
+          "sessions"
+        ]
+      },
+      "get": {
+        "operationId": "get_session_api_v1_builder_sessions__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionPayload"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session",
+        "tags": [
+          "builder",
+          "sessions"
+        ]
+      },
+      "put": {
+        "operationId": "put_session_api_v1_builder_sessions__session_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SessionPayload"
+                  }
+                ],
+                "default": {
+                  "data": {}
+                },
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionAck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Session",
+        "tags": [
+          "builder",
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/builder/suggest": {
+      "post": {
+        "operationId": "suggest_api_v1_builder_suggest_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ice_api__api__builder_mcp__SuggestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ice_api__api__builder_mcp__SuggestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suggest",
+        "tags": [
+          "builder"
+        ]
+      }
+    },
+    "/api/v1/chains": {
+      "get": {
+        "description": "Return all registered chain names.",
+        "operationId": "list_chains_api_v1_chains_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response List Chains Api V1 Chains Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Chains",
+        "tags": [
+          "discovery",
+          "discovery"
+        ]
+      }
+    },
+    "/api/v1/diag/llm": {
+      "get": {
+        "operationId": "diag_llm_api_v1_diag_llm_get",
+        "parameters": [
+          {
+            "description": "Provider id (openai|anthropic|google|deepseek)",
+            "in": "query",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "description": "Provider id (openai|anthropic|google|deepseek)",
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Model name (e.g., gpt-4o)",
+            "in": "query",
+            "name": "model",
+            "required": true,
+            "schema": {
+              "description": "Model name (e.g., gpt-4o)",
+              "title": "Model",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Diag Llm Api V1 Diag Llm Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Diag Llm",
+        "tags": [
+          "diag"
+        ]
+      }
+    },
+    "/api/v1/executions/": {
+      "get": {
+        "description": "List known executions from Redis (authoritative) with basic fields.",
+        "operationId": "list_executions_api_v1_executions__get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionsListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Executions",
+        "tags": [
+          "executions",
+          "executions"
+        ]
+      },
+      "post": {
+        "description": "Kick off a workflow execution.\n\nExpected JSON body::\n    {\n        \"blueprint_id\": \"...\",            # required\n        \"inputs\": {...}                     # optional initial inputs\n    }",
+        "operationId": "start_execution_api_v1_executions__post",
+        "parameters": [
+          {
+            "description": "Optional: block up to N seconds and return final status/result instead of an execution_id.",
+            "in": "query",
+            "name": "wait_seconds",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional: block up to N seconds and return final status/result instead of an execution_id.",
+              "title": "Wait Seconds"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionStartResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Execution",
+        "tags": [
+          "executions",
+          "executions"
+        ]
+      }
+    },
+    "/api/v1/executions/{execution_id}": {
+      "get": {
+        "operationId": "get_execution_status_api_v1_executions__execution_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "execution_id",
+            "required": true,
+            "schema": {
+              "title": "Execution Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Execution Status",
+        "tags": [
+          "executions",
+          "executions"
+        ]
+      }
+    },
+    "/api/v1/executions/{execution_id}/cancel": {
+      "post": {
+        "description": "Best-effort cancel of a running execution.\n\nMVP semantics: mark status as failed with reason=\"canceled\" and persist.",
+        "operationId": "cancel_execution_api_v1_executions__execution_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "execution_id",
+            "required": true,
+            "schema": {
+              "title": "Execution Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Cancel Execution Api V1 Executions  Execution Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Execution",
+        "tags": [
+          "executions",
+          "executions"
+        ]
+      }
+    },
+    "/api/v1/executors": {
+      "get": {
+        "description": "Return all registered executors keyed by node_type.",
+        "operationId": "list_executors_api_v1_executors_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response List Executors Api V1 Executors Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Executors",
+        "tags": [
+          "discovery",
+          "discovery"
+        ]
+      }
+    },
+    "/api/v1/library/assets": {
+      "get": {
+        "operationId": "list_assets_api_v1_library_assets_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "org_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Org Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "description": "Filter by label prefix",
+            "in": "query",
+            "name": "prefix",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by label prefix",
+              "title": "Prefix"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Assets Api V1 Library Assets Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Assets",
+        "tags": [
+          "library"
+        ]
+      },
+      "post": {
+        "description": "Create or update a user library asset using semantic memory storage.\n\n- Stores under scope 'library' by default\n- Key format: asset:{user_id}:{label}",
+        "operationId": "add_asset_api_v1_library_assets_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LibraryAssetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Add Asset Api V1 Library Assets Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Asset",
+        "tags": [
+          "library"
+        ]
+      }
+    },
+    "/api/v1/library/assets/index": {
+      "get": {
+        "description": "Return a unified listing of components and blueprints.\n\nFilters:\n- q: substring match on name/id\n- kind: filter to 'component' or 'blueprint'",
+        "operationId": "list_library_api_v1_library_assets_index_get",
+        "parameters": [
+          {
+            "description": "Name contains filter",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Name contains filter",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "component|blueprint",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "component|blueprint",
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response List Library Api V1 Library Assets Index Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Library",
+        "tags": [
+          "library"
+        ]
+      }
+    },
+    "/api/v1/library/assets/{label}": {
+      "delete": {
+        "operationId": "delete_asset_api_v1_library_assets__label__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "label",
+            "required": true,
+            "schema": {
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "org_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Org Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete Asset Api V1 Library Assets  Label  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Asset",
+        "tags": [
+          "library"
+        ]
+      },
+      "get": {
+        "operationId": "get_asset_api_v1_library_assets__label__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "label",
+            "required": true,
+            "schema": {
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "org_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Org Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryAssetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Asset",
+        "tags": [
+          "library"
+        ]
+      }
+    },
+    "/api/v1/mcp/": {
+      "post": {
+        "description": "Main MCP JSON-RPC 2.0 handler with comprehensive error handling.",
+        "operationId": "mcp_jsonrpc_handler_api_v1_mcp__post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MCPResponse"
+                    },
+                    {
+                      "type": "object"
+                    }
+                  ],
+                  "title": "Response Mcp Jsonrpc Handler Api V1 Mcp  Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mcp Jsonrpc Handler",
+        "tags": [
+          "mcp-jsonrpc",
+          "mcp-jsonrpc"
+        ]
+      }
+    },
+    "/api/v1/meta/components": {
+      "get": {
+        "description": "Return component inventories for dashboards (names only).",
+        "operationId": "meta_components_api_v1_meta_components_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Meta Components Api V1 Meta Components Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Meta Components",
+        "tags": [
+          "discovery",
+          "discovery"
+        ]
+      }
+    },
+    "/api/v1/meta/nodes": {
+      "get": {
+        "description": "Return catalog of nodes with schemas for tools.\n\nNotes\n-----\n- Tool schemas are discovered from the registered tool factories.\n- Other node categories are listed by name at this tier (schemas are\n  typically resolved at compile-time or via specialized endpoints).",
+        "operationId": "list_node_catalog_api_v1_meta_nodes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeCatalog"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Node Catalog",
+        "tags": [
+          "catalog",
+          "discovery",
+          "catalog"
+        ]
+      }
+    },
+    "/api/v1/meta/nodes/tool/{tool_name}": {
+      "get": {
+        "description": "Return detailed info for a tool, including discovered schemas.",
+        "operationId": "get_tool_details_api_v1_meta_nodes_tool__tool_name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tool_name",
+            "required": true,
+            "schema": {
+              "title": "Tool Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Tool Details",
+        "tags": [
+          "catalog",
+          "schemas",
+          "catalog",
+          "schemas"
+        ]
+      }
+    },
+    "/api/v1/meta/nodes/types": {
+      "get": {
+        "description": "Return supported node type strings (canonical).",
+        "operationId": "list_node_types_api_v1_meta_nodes_types_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response List Node Types Api V1 Meta Nodes Types Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Node Types",
+        "tags": [
+          "catalog",
+          "schemas",
+          "catalog",
+          "schemas"
+        ]
+      }
+    },
+    "/api/v1/meta/nodes/{node_type}/schema": {
+      "get": {
+        "description": "Return Pydantic JSON Schema for the given node type.",
+        "operationId": "get_node_schema_api_v1_meta_nodes__node_type__schema_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "node_type",
+            "required": true,
+            "schema": {
+              "title": "Node Type",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeSchema"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Node Schema",
+        "tags": [
+          "catalog",
+          "schemas",
+          "catalog",
+          "schemas"
+        ]
+      }
+    },
+    "/api/v1/meta/registry/health": {
+      "get": {
+        "description": "Return counts and missing executor information.\n\nThis endpoint helps ensure the orchestrator registry is fully populated and\nmatches expectations after initialization and policy filtering.",
+        "operationId": "registry_health_api_v1_meta_registry_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Registry Health Api V1 Meta Registry Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Registry Health",
+        "tags": [
+          "discovery",
+          "health",
+          "discovery",
+          "health"
+        ]
+      }
+    },
+    "/api/v1/meta/storage": {
+      "get": {
+        "description": "Return storage mode and basic readiness.\n\nThis is a forward-compatible health endpoint. Today it reports the\neffective storage backend based on environment configuration. Once a\nSQL-backed repository is introduced, this endpoint will also report\ncurrent migration head and connection status.",
+        "operationId": "storage_health_api_v1_meta_storage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageHealth"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Storage Health",
+        "tags": [
+          "discovery",
+          "health",
+          "discovery",
+          "health"
+        ]
+      }
+    },
+    "/api/v1/meta/version": {
+      "get": {
+        "description": "Return app version and build metadata.",
+        "operationId": "version_info_api_v1_meta_version_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Version Info Api V1 Meta Version Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Version Info",
+        "tags": [
+          "discovery",
+          "health"
+        ]
+      }
+    },
+    "/api/v1/tokens/": {
+      "get": {
+        "operationId": "list_tokens_api_v1_tokens__get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "org_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Org Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "User Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Tokens",
+        "tags": [
+          "tokens",
+          "tokens"
+        ]
+      },
+      "post": {
+        "description": "Issue a new bearer token and persist its hash.\n\nThe raw token is returned once; only the hash is stored server-side.",
+        "operationId": "issue_token_api_v1_tokens__post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenIssueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenIssueResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue Token",
+        "tags": [
+          "tokens",
+          "tokens"
+        ]
+      }
+    },
+    "/api/v1/tokens/revoke": {
+      "post": {
+        "operationId": "revoke_token_api_v1_tokens_revoke_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRevokeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Revoke Token Api V1 Tokens Revoke Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Token",
+        "tags": [
+          "tokens",
+          "tokens"
+        ]
+      }
+    },
+    "/api/v1/tokens/{token_hash}": {
+      "delete": {
+        "operationId": "delete_token_api_v1_tokens__token_hash__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token_hash",
+            "required": true,
+            "schema": {
+              "title": "Token Hash",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Delete Token Api V1 Tokens  Token Hash  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Token",
+        "tags": [
+          "tokens",
+          "tokens"
+        ]
+      }
+    },
+    "/api/v1/tools": {
+      "get": {
+        "description": "Return all registered tool names.",
+        "operationId": "list_tools_api_v1_tools_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response List Tools Api V1 Tools Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Tools",
+        "tags": [
+          "discovery",
+          "discovery"
+        ]
+      }
+    },
+    "/api/v1/uploads/files": {
+      "post": {
+        "description": "Upload one or more text files, ingest into semantic memory.\n\nParameters\n----------\nfiles : List[UploadFile]\n        One or more files to ingest as plain text.\nscope : str\n        Semantic memory scope key used for retrieval.\nchunk_size : int\n        Chunk size in characters for splitting.\noverlap : int\n        Overlap size between chunks.\nmetadata_json : str | None\n        Optional JSON string of metadata to attach to each chunk (merged with filename).",
+        "operationId": "upload_files_api_v1_uploads_files_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_files_api_v1_uploads_files_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Files",
+        "tags": [
+          "uploads",
+          "uploads"
+        ]
+      }
+    },
+    "/api/v1/workflows": {
+      "get": {
+        "description": "Return all registered workflow names.",
+        "operationId": "list_workflows_api_v1_workflows_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response List Workflows Api V1 Workflows Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Workflows",
+        "tags": [
+          "discovery",
+          "discovery"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Check Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check"
+      }
+    },
+    "/healthz": {
+      "get": {
+        "description": "Health probe – alias for /livez (kept for compatibility).",
+        "operationId": "health_check_legacy_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Check Legacy Healthz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check Legacy",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/livez": {
+      "get": {
+        "description": "Liveness probe – returns 200 when process is running.",
+        "operationId": "live_check_livez_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Live Check Livez Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Live Check",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "description": "Readiness probe – returns 200 only after full startup.",
+        "operationId": "ready_check_readyz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Ready Check Readyz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready Check",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  }
 }
