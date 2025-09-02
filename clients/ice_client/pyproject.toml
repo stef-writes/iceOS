@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iceos-client"
-version = "0.1.1"
+version = "0.1.2"
 description = "Typed async Python client for the iceOS Orchestrator API"
 license = "MIT"
 readme = "README.md"
