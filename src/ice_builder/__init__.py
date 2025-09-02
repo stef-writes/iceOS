@@ -25,11 +25,14 @@ from .dsl import *  # noqa: F401,F403 – DSL builders
 
 ENABLE_NL_GENERATOR = os.getenv("ENABLE_NL_GENERATOR", "0") == "1"
 
+# Always define a default to avoid NameError if imports are suppressed
+__all_extra: _List[str] = []
+
 with suppress(ImportError):
     if ENABLE_NL_GENERATOR:
         from .nl import append_tool_node, create_partial_blueprint  # noqa: F401
 
-        __all_extra: _List[str] = [
+        __all_extra = [
             "append_tool_node",
             "create_partial_blueprint",
         ]

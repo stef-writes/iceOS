@@ -22,6 +22,27 @@ class APIError(Exception):
         self.extra = extra or {}
 
 
+class BuilderPlanError(APIError):
+    """Planning failure for builder/co-creator endpoints."""
+
+    def __init__(self, detail: str, extra: Dict[str, Any] | None = None):
+        super().__init__(detail=detail, status_code=422, extra=extra)
+
+
+class BuilderPolicyViolation(APIError):
+    """Policy denied override or model selection."""
+
+    def __init__(self, detail: str, extra: Dict[str, Any] | None = None):
+        super().__init__(detail=detail, status_code=403, extra=extra)
+
+
+class PreviewSandboxError(APIError):
+    """Sandbox execution failed (blocked import, timeout, resource)."""
+
+    def __init__(self, detail: str, extra: Dict[str, Any] | None = None):
+        super().__init__(detail=detail, status_code=400, extra=extra)
+
+
 def add_exception_handlers(app: FastAPI) -> None:
     """Register global exception handlers on the app."""
 

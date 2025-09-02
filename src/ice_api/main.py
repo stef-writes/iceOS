@@ -602,6 +602,11 @@ async def ready_check() -> Dict[str, str]:
     return {"status": "ready" if su.READY_FLAG else "starting"}
 
 
+from ice_api.api.builder_mcp import router as builder_router
+from ice_api.api.builder_preview import router as builder_preview_router
+from ice_api.api.builder_sessions import router as builder_sessions_router
+from ice_api.api.diag import router as diag_router
+
 # Add real MCP JSON-RPC 2.0 endpoint
 from ice_api.api.mcp_jsonrpc import router as mcp_jsonrpc_router
 
@@ -619,6 +624,24 @@ app.include_router(
     tags=["mcp-jsonrpc-legacy"],
     dependencies=[Depends(require_auth)],
 )
+
+# Builder MCP endpoints -------------------------------------------------------
+app.include_router(builder_router)
+app.include_router(diag_router)
+
+# Builder drafts (opt-in via env flag) ---------------------------------------
+if os.getenv("ICEOS_ENABLE_DRAFTS", "1") == "1":
+    from ice_api.api.builder_drafts import router as builder_drafts_router
+
+    app.include_router(builder_drafts_router)
+
+# Builder sessions (opt-in via env flag) -------------------------------------
+if os.getenv("ICEOS_ENABLE_BUILDER_SESSIONS", "1") == "1":
+    app.include_router(builder_sessions_router)
+
+# Builder preview sandbox (opt-in via env flag) -------------------------------
+if os.getenv("ICEOS_ENABLE_BUILDER_PREVIEW", "1") == "1":
+    app.include_router(builder_preview_router)
 
 
 # Root endpoint

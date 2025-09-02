@@ -1,0 +1,49 @@
+services:
+  api:
+    environment:
+      # Runtime flags
+      ICEOS_RUN_MIGRATIONS: "1"
+      ICEOS_REQUIRE_DB: "1"
+      ICE_ENABLE_WASM: "1"
+      ICE_BUILDER_USE_PROMPT_PLANNER: "1"
+      ICE_SKIP_EXTERNAL: "0"
+      ICE_DEFAULT_LLM_PROVIDER: "openai"
+      ICE_DEFAULT_LLM_MODEL: "gpt-4o"
+
+      # Provider keys (injected by the host/CI secret store at deploy-time)
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+
+      # Budget/governance (example defaults; tune per org)
+      ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
+
+      # Database (use your managed Postgres/pgvector DSN)
+      DATABASE_URL: ${DATABASE_URL}
+      ALEMBIC_SYNC_URL: ${ALEMBIC_SYNC_URL}
+
+    # Ensure the API depends on database/redis if you deploy them with compose
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    # In production prefer a managed Postgres; this service is optional
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-iceos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iceos}
+      POSTGRES_DB: ${POSTGRES_DB:-iceos}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis_data:/data
+
+volumes:
+  pg_data:
+  redis_data:

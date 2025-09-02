@@ -60,7 +60,7 @@ COPY src /app/src
 COPY scripts /app/scripts
 COPY alembic.ini /app/alembic.ini
 COPY alembic /app/alembic
-COPY Plugins /app/plugins
+COPY plugins /app/plugins
 COPY examples /app/examples
 ENV PYTHONPATH=/app/src:/app
 
@@ -117,7 +117,7 @@ RUN python -m pip install --no-cache-dir --timeout 120 --retries 5 -r /tmp/requi
 
 # Copy application source and test config
 COPY src /app/src
-COPY Plugins /app/plugins
+COPY plugins /app/plugins
 COPY scripts /app/scripts
 COPY config /app/config
 COPY tests /app/tests

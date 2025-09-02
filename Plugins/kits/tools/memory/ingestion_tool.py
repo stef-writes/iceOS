@@ -119,22 +119,31 @@ class IngestionTool(ToolBase):
         tasks: List[asyncio.Task[None]] = []
         results: List[Dict[str, Any]] = []
 
+        # Bound per-document embed concurrency to avoid memory spikes
+        max_concurrency_str = os.getenv("ICE_INGEST_MAX_CONCURRENCY", "8")
+        try:
+            max_concurrency = max(1, int(max_concurrency_str))
+        except ValueError:
+            max_concurrency = 8
+        sem = asyncio.Semaphore(max_concurrency)
+
         async def _process_chunk(idx: int, text: str) -> None:
-            vec = await embedder.embed(text)
-            key = f"_ing:{idx}:{hashlib.sha256(text.encode()).hexdigest()[:12]}"
-            row_id = await insert_semantic_entry(
-                scope=args.scope,
-                key=key,
-                content_hash=hashlib.sha256(text.encode()).hexdigest(),
-                meta_json={**(args.metadata or {}), "content": text},
-                embedding_vec=vec,
-                org_id=args.org_id,
-                user_id=args.user_id,
-                model_version=os.getenv(
-                    "ICEOS_EMBEDDINGS_MODEL", "text-embedding-3-small"
-                ),
-            )
-            results.append({"key": key, "row_id": row_id})
+            async with sem:
+                vec = await embedder.embed(text)
+                key = f"_ing:{idx}:{hashlib.sha256(text.encode()).hexdigest()[:12]}"
+                row_id = await insert_semantic_entry(
+                    scope=args.scope,
+                    key=key,
+                    content_hash=hashlib.sha256(text.encode()).hexdigest(),
+                    meta_json={**(args.metadata or {}), "content": text},
+                    embedding_vec=vec,
+                    org_id=args.org_id,
+                    user_id=args.user_id,
+                    model_version=os.getenv(
+                        "ICEOS_EMBEDDINGS_MODEL", "text-embedding-3-small"
+                    ),
+                )
+                results.append({"key": key, "row_id": row_id})
 
         for i, ch in enumerate(_chunk(content, args.chunk_size, args.overlap)):
             tasks.append(asyncio.create_task(_process_chunk(i, ch)))

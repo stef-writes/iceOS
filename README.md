@@ -52,6 +52,13 @@ See `docs/STAGING.md` for running the API against Supabase (transaction pooler),
 - Fast subset: memory tools (MCP), library CRUD, ask_my_library
 - Full suite: `make ci-integration-staging DATABASE_URL=postgresql+asyncpg://...:6543/postgres`
 
+### Studio/Canvas – AI Builder
+### Production deployment
+
+See `docs/DEPLOY_PROD.md` for compose/Kubernetes secrets injection and prod flags. A ready-to-use override is at `config/deploy/docker-compose.prod.yml`.
+
+See `docs/STUDIO_CANVAS_BUILDER.md` for how to call the Builder MCP endpoints, surface Q/A and cost, save drafts/sessions, and safely preview generated code.
+
 ## Chat (note)
 
 The public REST surface is focused on blueprints/executions/MCP. If you need a chat abstraction, prefer registering an agent/workflow and using the executions API. The `IceClient.chat_turn` helper is subject to change and may be removed if no server route is provided.
@@ -393,16 +400,20 @@ Below are the core stages a user goes through to build a robust system, with the
 
 2) Draft (design-time)
    - Goal: create or open a collaborative draft and mutate it safely.
-   - API:
-     - `POST /api/v1/drafts/{session}` – create-or-get draft
-     - `GET /api/v1/drafts/{session}` – read
-     - `POST /api/v1/drafts/{session}/lock|position|instantiate` – mutate with optimistic versioning
-     - WS: `ws://.../ws/drafts/{session}` – live updates to all clients
+   - API (Builder):
+     - `PUT /api/v1/builder/drafts/{key}` – create/update draft
+     - `GET /api/v1/builder/drafts/{key}` – read draft
+     - `DELETE /api/v1/builder/drafts/{key}` – delete draft (idempotent)
+   - Sessions (preferences/history per user):
+     - `PUT /api/v1/builder/sessions/{session_id}` – create/update session state
+     - `GET /api/v1/builder/sessions/{session_id}` – read session state
+     - `DELETE /api/v1/builder/sessions/{session_id}` – delete session state
 
 3) Validate/Compile (MCP compiler tier)
    - Goal: convert partial blueprints into validated, frozen specs; catch errors early.
-   - API (MCP REST): `POST /api/mcp/components/validate`, partial blueprint routes, `finalize`
-   - API (MCP JSON-RPC): `POST /api/mcp` methods: `initialize`, `components/validate`, `prompts/*`, `tools/*`, `network.execute`
+   - API (MCP JSON-RPC preferred): `POST /api/v1/mcp`
+     - methods: `initialize`, `components/validate`, `prompts/*`, `tools/*`, `network.execute`
+   - API (Legacy MCP REST): `POST /api/mcp/components/validate` (deprecated path maintained for tests)
    - CLI: `ice build` (from DSL/YAML), `ice push` (upload JSON)
 
 4) Execute (runtime)

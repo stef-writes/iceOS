@@ -106,6 +106,13 @@ ci-sandbox:
 # Release gate: fast CI + strict sandbox subset must both pass
 ci-release: ci ci-integration ci-sandbox
 
+ci-live:
+	# Run integration tests with real LLMs (no echo), external calls enabled.
+	# Requires OPENAI_API_KEY/ANTHROPIC_API_KEY/... in the host env.
+	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=0 ICE_SKIP_STRESS=1 \
+	OPENAI_API_KEY=$$OPENAI_API_KEY ANTHROPIC_API_KEY=$$ANTHROPIC_API_KEY GOOGLE_API_KEY=$$GOOGLE_API_KEY DEEPSEEK_API_KEY=$$DEEPSEEK_API_KEY \
+	docker compose -f docker-compose.itest.yml -f docker-compose.livebuilder.yml up --abort-on-container-exit --exit-code-from itest
+
 ci-wasm:
 	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=1 ICE_SKIP_STRESS=1 \
 	docker compose -f docker-compose.itest.yml run --rm itest bash -lc "pytest -c config/testing/pytest.ini -m wasm -q"

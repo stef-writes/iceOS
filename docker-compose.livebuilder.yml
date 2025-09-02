@@ -1,0 +1,14 @@
+services:
+  api:
+    environment:
+      ICE_BUILDER_USE_PROMPT_PLANNER: "1"
+      ICE_SKIP_EXTERNAL: "0"
+      ENABLE_NL_GENERATOR: "1"
+      ICE_DEFAULT_LLM_PROVIDER: "openai"
+      ICE_DEFAULT_LLM_MODEL: "gpt-4o"
+      ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
+      # Pass through your local key if set in the host environment
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
