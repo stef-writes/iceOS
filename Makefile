@@ -267,12 +267,17 @@ demo-wait:
 	echo "[demo] API did not become ready in time" >&2; exit 1
 
 demo-ingest:
-	@echo "[demo] Ingesting example assets into scope 'kb' via MCP tools/call...";
+	@echo "[demo] Ingesting template seed assets into scope 'kb' via MCP tools/call...";
 	docker compose exec api python - <<-'PY'
 	import json, httpx
 	BASE="http://localhost:8000"
 	token="dev-token"
-	files=["/app/examples/user_assets/resume.txt","/app/examples/user_assets/cover_letter.txt","/app/examples/user_assets/website.txt"]
+	files=[
+	    "/app/plugins/bundles/library_assistant/examples/fake_bio.txt",
+	    "/app/plugins/bundles/library_assistant/examples/fake_projects.txt",
+	    "/app/plugins/bundles/library_assistant/examples/fake_resume.txt",
+	    "/app/plugins/bundles/library_assistant/examples/fake_transcript.txt",
+	]
 	with httpx.Client() as c:
 	    c.post(f"{BASE}/api/v1/mcp/", json={"jsonrpc":"2.0","id":0,"method":"initialize","params":{}} , headers={"Authorization": f"Bearer {token}"}).raise_for_status()
 	    for fp in files:

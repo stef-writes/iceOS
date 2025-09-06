@@ -120,7 +120,7 @@ assert not issues, issues
 Run a ready-made, reusable RAG chat Bundle with overrides:
 ```bash
 ice bundle run chatkit \
-  --file examples/user_assets/resume.txt \
+  --file plugins/bundles/library_assistant/examples/fake_resume.txt \
   --note "focus skills" \
   --query "Summarize my background" \
   --session s1 \

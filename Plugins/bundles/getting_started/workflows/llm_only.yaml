@@ -1,0 +1,23 @@
+id: getting_started.llm_only
+schema_version: "1.2.0"
+
+inputs:
+  required: [query]
+  optional: [model]
+
+nodes:
+  - id: llm
+    type: llm
+    model: "gpt-4o"
+    prompt: |
+      Answer the user's question concisely.
+      Question: {{ inputs.query }}
+    llm_config:
+      provider: "openai"
+      model: "{{ inputs.model or 'gpt-4o' }}"
+      temperature: 0.2
+      max_tokens: 256
+    output_schema: { text: "string" }
+
+outputs:
+  response: { text: "{{ llm.response }}" }

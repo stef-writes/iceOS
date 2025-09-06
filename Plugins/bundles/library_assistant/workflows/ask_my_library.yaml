@@ -1,0 +1,53 @@
+id: library_assistant.ask_my_library
+schema_version: "1.2.0"
+
+inputs:
+  required: [query]
+  optional: [with_citations, top_k, system_prompt, model]
+
+nodes:
+  - id: recent
+    type: tool
+    tool_name: recent_session_tool
+    tool_args:
+      session_id: "{{ inputs.session_id or 'chat_session' }}"
+      scope: "library"
+      limit: 5
+    dependencies: []
+
+  - id: search
+    type: tool
+    tool_name: memory_search_tool
+    tool_args:
+      query: "{{ inputs.query }}"
+      scope: "library"
+      limit: 5
+    dependencies: []
+
+  - id: llm
+    type: llm
+    model: "{{ inputs.model or 'gpt-4o' }}"
+    prompt: |
+      You are helpful. Use user library search results and recent turns.
+      Query: {{ inputs.query }}
+      Recent: {{ recent.items }}
+      Results: {{ search.results }}
+    llm_config:
+      provider: "openai"
+      model: "{{ inputs.model or 'gpt-4o' }}"
+      temperature: 0.2
+      max_tokens: 512
+    dependencies: [recent, search]
+    output_schema: { text: "string" }
+
+  - id: write
+    type: tool
+    tool_name: memory_write_tool
+    tool_args:
+      key: "chat:{{ inputs.session_id or 'chat_session' }}:{{ inputs.query }}"
+      content: "{{ llm.response }}"
+      scope: "library"
+    dependencies: [llm]
+
+outputs:
+  response: { text: "{{ llm.response }}" }

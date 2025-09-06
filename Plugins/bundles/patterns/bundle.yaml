@@ -1,0 +1,6 @@
+name: patterns
+version: 1.0.0
+entrypoint: patterns.recursive
+dependencies:
+  toolkits:
+    - search@^1.0.0

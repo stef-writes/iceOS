@@ -24,12 +24,20 @@ async def test_ask_my_library_end_to_end() -> None:
         )
         assert r.status_code == 200
 
-        # Load the example blueprint
-        # Use packaged example path inside container image
+        # Load the bundle workflow YAML and build a blueprint payload
         from pathlib import Path
 
-        bp_path = Path("/app/examples/dags/ask_my_library.json")
-        bp = json.loads(bp_path.read_text())
+        import yaml  # type: ignore
+
+        wf_path = Path(
+            "/app/plugins/bundles/library_assistant/workflows/ask_my_library.yaml"
+        )
+        wf_yaml = yaml.safe_load(wf_path.read_text(encoding="utf-8"))
+        bp = {
+            "schema_version": wf_yaml.get("schema_version", "1.2.0"),
+            "metadata": {"bundle": "library_assistant.ask_my_library"},
+            "nodes": wf_yaml["nodes"],
+        }
 
         # Provide inputs including session/org/user
         inputs = {

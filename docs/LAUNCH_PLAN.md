@@ -217,7 +217,7 @@ BASE="http://localhost:8000"; token="dev-token"
 with httpx.Client() as c:
     c.post(f"{BASE}/api/v1/mcp/", json={"jsonrpc":"2.0","id":0,"method":"initialize","params":{}} , headers={"Authorization": f"Bearer {token}"}).raise_for_status()
     for fn in ("resume.txt","cover_letter.txt","website.txt"):
-        text=open(f"examples/user_assets/{fn}","r",encoding="utf-8").read()
+        text=open(f"plugins/bundles/library_assistant/examples/{fn}","r",encoding="utf-8").read()
         payload={"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"tool:memory_write_tool","arguments":{"inputs":{"key":fn,"content":text,"scope":"kb"}}}}
         c.post(f"{BASE}/api/v1/mcp/", json=payload, headers={"Authorization": f"Bearer {token}"}).raise_for_status()
     payload={"blueprint_id":"chatkit.rag_chat","inputs":{"query":"Give me a two-sentence professional summary for Stefano.","org_id":"demo_org","user_id":"demo_user","session_id":"chat1"}}

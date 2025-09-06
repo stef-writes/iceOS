@@ -1,0 +1,6 @@
+name: library_assistant
+version: 1.0.0
+entrypoint: library_assistant.ask_my_library
+dependencies:
+  toolkits:
+    - memory@^1.0.0
