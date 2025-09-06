@@ -1,0 +1,7 @@
+name: getting_started
+version: 1.0.0
+entrypoint: getting_started.llm_only
+dependencies:
+  toolkits:
+    - search@^1.0.0
+    - memory@^1.0.0

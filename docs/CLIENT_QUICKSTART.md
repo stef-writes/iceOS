@@ -29,8 +29,6 @@ async def main():
 asyncio.run(main())
 ```
 
-## Tools demo
-See `examples/client/tools_memory_demo.py` for writing documents and searching via memory tools.
-
-## Agent chat demo
-See `examples/client/agent_demo.py` for a data-first agent chat turn.
+## Next steps
+- Browse Templates in the Library (Bundles) and "Add to Project" to materialize a Blueprint.
+- Use the API to run by `blueprint_id` or export/import YAML for portability.

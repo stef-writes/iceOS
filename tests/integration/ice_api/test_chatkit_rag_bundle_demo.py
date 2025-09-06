@@ -25,7 +25,9 @@ def test_chatkit_rag_bundle_e2e() -> None:  # type: ignore[no-redef]
 
     # Ingest one tiny file via MCP memory_write_tool
     text = (
-        Path("examples/rag_assets/fake_bio.txt").read_text(encoding="utf-8")
+        Path("plugins/bundles/library_assistant/examples/fake_bio.txt").read_text(
+            encoding="utf-8"
+        )
     ).strip()
     # Use MCP JSON-RPC tools/call to write content (no legacy agent dependency)
     # Instead of executing the RAG, directly call the MCP JSON-RPC tools/call with initialize first

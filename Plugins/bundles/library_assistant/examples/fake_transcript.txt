@@ -1,0 +1,1 @@
+Speaker: Today I want to discuss optimizing the ingestion pipeline.

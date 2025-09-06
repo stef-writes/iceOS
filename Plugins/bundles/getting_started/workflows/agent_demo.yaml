@@ -1,0 +1,30 @@
+id: getting_started.agent_demo
+schema_version: "1.2.0"
+
+inputs:
+  required: [query]
+  optional: [model]
+
+nodes:
+  - id: search
+    type: tool
+    tool_name: search_tool
+    tool_args:
+      query: "{{ inputs.query }}"
+    dependencies: []
+
+  - id: agent
+    type: agent
+    name: "simple_research_agent"
+    tools: ["search_tool", "lookup_tool"]
+    llm_config:
+      provider: "openai"
+      model: "{{ inputs.model or 'gpt-4o' }}"
+    prompt: |
+      Use search results to answer the question.
+      Results: {{ search.results }}
+      Question: {{ inputs.query }}
+    dependencies: [search]
+
+outputs:
+  response: { text: "{{ agent.response }}" }

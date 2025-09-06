@@ -503,6 +503,7 @@ from ice_api.api.library import router as library_router
 from ice_api.api.node_details import router as node_details_router
 from ice_api.api.registry_health import router as registry_health_router
 from ice_api.api.storage import router as storage_router
+from ice_api.api.templates import router as templates_router
 from ice_api.api.tokens import router as tokens_router
 from ice_api.security import require_auth
 
@@ -554,6 +555,13 @@ app.include_router(
     library_router,
     prefix="",
     tags=["library"],
+)
+
+# Templates API (Library → Templates)
+app.include_router(
+    templates_router,
+    prefix="",
+    tags=["templates", "library"],
 )
 
 # Secure MCP REST router behind auth

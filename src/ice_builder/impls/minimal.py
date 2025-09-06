@@ -99,10 +99,12 @@ class _EnvModelPolicy(ModelPolicyProtocol):
         import os
 
         # Baseline defaults
-        self._provider = default_provider or os.getenv(
-            "ICE_DEFAULT_LLM_PROVIDER", "openai"
+        self._provider: str = str(
+            default_provider or os.getenv("ICE_DEFAULT_LLM_PROVIDER", "openai")
         )
-        self._model = default_model or os.getenv("ICE_DEFAULT_LLM_MODEL", "gpt-4o")
+        self._model: str = str(
+            default_model or os.getenv("ICE_DEFAULT_LLM_MODEL", "gpt-4o")
+        )
 
         # Preferred candidates (capability-checked in select). Format:
         #   ICE_PREFERRED_LLM_MODELS="openai:gpt-5,openai:gpt-4o-mini,anthropic:claude-3-5-sonnet"
