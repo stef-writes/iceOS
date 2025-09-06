@@ -26,6 +26,15 @@ List components:
 curl -sS http://localhost:8000/api/v1/mcp/components -H 'Authorization: Bearer dev-token'
 ```
 
+Update component (optimistic concurrency):
+```bash
+LOCK=$(curl -sS -D - http://localhost:8000/api/v1/mcp/components/tool/csv_loader \
+  -H 'Authorization: Bearer dev-token' | awk '/X-Version-Lock/ {print $2}')
+curl -sS -X PUT http://localhost:8000/api/v1/mcp/components/tool/csv_loader \
+  -H 'Authorization: Bearer dev-token' -H "X-Version-Lock: ${LOCK}" \
+  -H 'Content-Type: application/json' -d @updated_definition.json
+```
+
 ### Blueprints
 - Create (optimistic lock):
 ```bash
@@ -46,6 +55,7 @@ List/search components and blueprints together:
 curl -sS 'http://localhost:8000/api/v1/library/assets/index?q=rag&kind=component' \
   -H 'Authorization: Bearer dev-token'
 ```
+Filters (UI): `kind` (component|blueprint), `type` (tool|agent|workflow|code), `q` (substring), `sort` (updated|name).
 
 ### Client helpers
 ```python

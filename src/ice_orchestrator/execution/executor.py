@@ -358,6 +358,28 @@ class NodeExecutor:  # – internal utility extracted from ScriptChain
                         pass
                     except Exception:
                         pass
+                    # Attach context and rendered prompt preview when possible
+                    try:
+                        # Expose keys used (roots) and a safe prompt preview if present
+                        ctx_keys = list(input_data.keys())
+                        if isinstance(result_raw.output, dict):
+                            result_raw.context_used = {
+                                "available_roots": ctx_keys,
+                            }
+                        # Rendered prompt preview is executor-specific; attach best-effort
+                        if node.type == "llm":
+                            # Best-effort: if output contains a 'prompt' echo or 'rendered_prompt', expose preview
+                            preview = None
+                            for key in ("rendered_prompt", "prompt", "input_prompt"):
+                                if key in (result_raw.output or {}):
+                                    preview = str((result_raw.output or {}).get(key))
+                                    break
+                            if preview:
+                                if len(preview) > 1200:
+                                    preview = preview[:1200] + "…"
+                                setattr(result_raw, "rendered_prompt_preview", preview)
+                    except Exception:
+                        pass
                     return result_raw
 
                 # --------------------------------------------------

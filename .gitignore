@@ -108,6 +108,10 @@ dump.rdb
 # Frontend build/cache
 frontend/studio/node_modules/
 frontend/studio/.next/
+frontend/node_modules/
+frontend/apps/web/.next/
+frontend/apps/web/.next/**
+frontend/apps/web/node_modules/
 
 # Local build caches
 .cache/

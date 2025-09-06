@@ -89,3 +89,7 @@ for programmatic integrations; Studio defaults to the MCP + SSE path.
 - Attach Library (LLM/RAG blocks): enable a toggle that sets `memory_aware=true` on the node.
   - The orchestrator injects recent session reads before the LLM and transcript writes after.
   - Requires inputs to include `session_id`, and optionally `org_id`, `user_id`.
+
+---
+
+> See `END_TO_END_STORY.md` for an end‑to‑end narrative grounded strictly in implemented endpoints. This doc remains a mapping between Studio actions and backend APIs.

@@ -426,16 +426,19 @@ if _OTEL_AVAILABLE and OpenTelemetryMiddleware is not None:  # noqa: WPS504
 else:
     logger.warning("OpenTelemetry not installed – tracing disabled")
 
-# Add CORS middleware (env-driven, safe-by-default)
-# In production, wildcard CORS is disabled unless explicitly allowed.
+# Add CORS middleware (env-driven, auto-gated by proxy)
+_behind_proxy = os.getenv("ICE_BEHIND_PROXY", "0") == "1"
 _cors_origins = os.getenv("CORS_ORIGINS", "").strip()
 _allow_wildcard = os.getenv("ALLOW_CORS_WILDCARD", "0") == "1"
-if _cors_origins == "*":
-    _allow_origins = ["*"] if _allow_wildcard else []
-elif _cors_origins:
-    _allow_origins = [o.strip() for o in _cors_origins.split(",") if o.strip()]
+if _behind_proxy:
+    _allow_origins = []  # single-origin via reverse proxy
 else:
-    _allow_origins = []
+    if _cors_origins == "*":
+        _allow_origins = ["*"] if _allow_wildcard else []
+    elif _cors_origins:
+        _allow_origins = [o.strip() for o in _cors_origins.split(",") if o.strip()]
+    else:
+        _allow_origins = []
 
 app.add_middleware(
     CORSMiddleware,
@@ -445,12 +448,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Trusted hosts (optional; recommend enabling in production)
+# Trusted hosts (auto-gated by proxy)
 _trusted_hosts_raw = os.getenv("TRUSTED_HOSTS", "").strip()
-if _trusted_hosts_raw:
-    _trusted_hosts = [h.strip() for h in _trusted_hosts_raw.split(",") if h.strip()]
-    if _trusted_hosts:
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=_trusted_hosts)
+if _behind_proxy:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
+else:
+    if _trusted_hosts_raw:
+        _trusted_hosts = [h.strip() for h in _trusted_hosts_raw.split(",") if h.strip()]
+        if _trusted_hosts:
+            app.add_middleware(TrustedHostMiddleware, allowed_hosts=_trusted_hosts)
 
 # Add exception handlers
 add_exception_handlers(app)

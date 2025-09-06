@@ -173,6 +173,72 @@ dev-zero:
 # One-command RAG demo (compose up → ingest → query) -------------------------
 # ---------------------------------------------------------------------------
 .PHONY: demo-reset demo-up demo-wait demo-ingest demo-query demo-rag
+## ----------------------------- Frontend -------------------------------------
+.PHONY: fe-install fe-dev fe-build fe-start fe-up up down restart run
+
+fe-install:
+	cd frontend && npm install
+
+fe-dev:
+	cd frontend && npm run dev
+
+fe-build:
+	cd frontend && npm run build
+
+fe-start:
+	cd frontend && npm run start
+
+
+# One-command up (API + DB + Redis + Frontend)
+up:
+	docker compose up -d --build --remove-orphans
+	@echo "Waiting for API..."; \
+	for i in $$(seq 1 120); do \
+	  if curl -fsS http://localhost:8000/readyz >/dev/null 2>&1; then echo "API ready"; break; fi; \
+	  sleep 1; \
+	done
+	@echo "Proxy → http://localhost (web) | API health: http://localhost/readyz"
+
+down:
+	docker compose down -v --remove-orphans
+
+restart: down up
+
+run:
+	@echo "[run] Starting API + Web (Next rewrites /api → api:8000) ..."; \
+	docker compose up -d --build --remove-orphans api web; \
+	echo "[run] Waiting for Next dev to expose http://localhost:3000 ..."; \
+	for i in $$(seq 1 120); do \
+	  if curl -fsS http://localhost:3000 >/dev/null 2>&1; then echo "[ok] http://localhost:3000"; break; fi; \
+	  sleep 1; \
+	done; \
+	if command -v open >/dev/null 2>&1; then open http://localhost:3000; fi
+
+.PHONY: run-native
+run-native:
+	bash scripts/dev/run_native.sh
+
+# Single-origin zero-setup (compose: DB+cache+migrate+api+web+proxy)
+.PHONY: run-auto
+run-auto:
+	$(MAKE) run
+
+.PHONY: doctor
+doctor:
+	@echo "[doctor] Docker: $$(docker version --format '{{.Server.Version}}' 2>/dev/null || echo unavailable)"; \
+	echo "[doctor] Ports: 80($$(lsof -ti tcp:80 | wc -l)) 8000($$(lsof -ti tcp:8000 | wc -l)) 3000($$(lsof -ti tcp:3000 | wc -l))"; \
+	echo "[doctor] API readiness:"; (curl -fsS http://localhost:8000/readyz || true); \
+	echo "[doctor] Proxy readiness:"; (curl -fsS http://localhost/readyz || true)
+
+.PHONY: reset
+reset:
+	docker compose down -v --remove-orphans || true
+
+.PHONY: rebuild
+rebuild:
+	docker buildx create --use --name iceos-builder || true && \
+	docker buildx build --load --builder iceos-builder --cache-to=type=local,dest=.cache/buildx,mode=max --cache-from=type=local,src=.cache/buildx --target api -t local/iceosv1a-api:dev . && \
+	docker buildx build --load --builder iceos-builder --cache-to=type=local,dest=.cache/buildx,mode=max --cache-from=type=local,src=.cache/buildx --file frontend/Dockerfile --target runner -t local/iceosv1a-web:dev frontend
 
 # Default demo query (override with: make demo-query Q="...your question...")
 Q ?= Give me a two-sentence professional summary for Stefano.

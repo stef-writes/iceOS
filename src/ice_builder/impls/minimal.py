@@ -98,46 +98,95 @@ class _EnvModelPolicy(ModelPolicyProtocol):
     ):
         import os
 
+        # Baseline defaults
         self._provider = default_provider or os.getenv(
             "ICE_DEFAULT_LLM_PROVIDER", "openai"
         )
         self._model = default_model or os.getenv("ICE_DEFAULT_LLM_MODEL", "gpt-4o")
 
+        # Preferred candidates (capability-checked in select). Format:
+        #   ICE_PREFERRED_LLM_MODELS="openai:gpt-5,openai:gpt-4o-mini,anthropic:claude-3-5-sonnet"
+        preferred_raw = os.getenv("ICE_PREFERRED_LLM_MODELS", "")
+        self._preferred: list[tuple[str, str]] = []
+        if preferred_raw.strip():
+            for item in preferred_raw.split(","):
+                tok = item.strip()
+                if not tok:
+                    continue
+                if ":" in tok:
+                    prov, mod = tok.split(":", 1)
+                    self._preferred.append((prov.strip(), mod.strip()))
+                else:
+                    # Assume provider default if only model supplied
+                    self._preferred.append((self._provider, tok))
+        else:
+            # Sensible built-ins: try cutting-edge first, then stable, then env defaults
+            self._preferred = [
+                ("openai", "gpt-5"),
+                ("openai", "gpt-4o-mini"),
+                ("openai", "gpt-4o"),
+                ("anthropic", "claude-3-5-sonnet"),
+                (self._provider, self._model),
+            ]
+
     def validate(self) -> None:
         return None
 
     def select(self, *, task: str, constraints: Dict[str, Any]) -> LLMConfig:
-        """Choose model with simple env defaults and basic capability checks.
+        """Choose model using preferred list with capability-based fallback.
 
-        Accepts optional overrides in constraints: provider/model/temperature.
-        Denies overrides that are not recognized by the capability registry.
+        Constraints may include provider/model/temperature. We evaluate:
+        1) explicit override (if capability-supported)
+        2) preferred list (env ICE_PREFERRED_LLM_MODELS or sensible defaults)
+        3) final fallback to env defaults
         """
-        provider_override = constraints.get("provider")
-        model_override = constraints.get("model")
+        # 1) Explicit overrides
+        override_provider = constraints.get("provider")
+        override_model = constraints.get("model")
+        if override_provider or override_model:
+            p = str(override_provider or self._provider)
+            m = str(override_model or self._model)
+            if get_capabilities(p.lower(), m.lower()) is not None:
+                try:
+                    prov_enum = p if isinstance(p, ModelProvider) else ModelProvider(p)
+                except Exception:
+                    prov_enum = ModelProvider.OPENAI
+                return LLMConfig(
+                    provider=prov_enum,
+                    model=m,
+                    temperature=constraints.get("temperature"),
+                )
+            # fall through to preferred if override unsupported
 
-        provider_str = str(provider_override or self._provider)
-        model_str = str(model_override or self._model)
+        # 2) Preferred list
+        for prov, mod in self._preferred:
+            if not prov or not mod:
+                continue
+            if get_capabilities(prov.lower(), mod.lower()) is not None:
+                try:
+                    prov_enum = (
+                        prov if isinstance(prov, ModelProvider) else ModelProvider(prov)
+                    )
+                except Exception:
+                    prov_enum = ModelProvider.OPENAI
+                return LLMConfig(
+                    provider=prov_enum,
+                    model=mod,
+                    temperature=constraints.get("temperature"),
+                )
 
-        # Validate against capability registry when overrides provided
-        caps = get_capabilities(provider_str.lower(), model_str.lower())
-        if provider_override or model_override:
-            if caps is None:
-                # Fall back to env defaults if unknown; callers may surface a warning
-                provider_str = str(self._provider)
-                model_str = str(self._model)
-
+        # 3) Final fallback to env defaults (even if capability lookup failed)
         try:
-            provider_enum = (
-                provider_str
-                if isinstance(provider_str, ModelProvider)
-                else ModelProvider(provider_str)
+            env_enum = (
+                self._provider
+                if isinstance(self._provider, ModelProvider)
+                else ModelProvider(self._provider)
             )
         except Exception:
-            provider_enum = ModelProvider.OPENAI
-
+            env_enum = ModelProvider.OPENAI
         return LLMConfig(
-            provider=provider_enum,
-            model=model_str,
+            provider=env_enum,
+            model=self._model,
             temperature=constraints.get("temperature"),
         )
 

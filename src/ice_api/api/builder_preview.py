@@ -114,9 +114,9 @@ async def preview_tool(req: PreviewToolRequest) -> PreviewToolResponse:  # noqa:
                 tree = _ast.parse(req.code)
             except SyntaxError as e:
                 raise PreviewSandboxError(f"Invalid code syntax: {e}")
-            for node in _ast.walk(tree):
-                if isinstance(node, _ast.Import):
-                    for alias in node.names:
+            for ast_node in _ast.walk(tree):
+                if isinstance(ast_node, _ast.Import):
+                    for alias in ast_node.names:
                         base = (alias.name or "").split(".")[0]
                         if base and base not in {
                             m.split(".")[0] for m in allowed_imports
@@ -124,8 +124,8 @@ async def preview_tool(req: PreviewToolRequest) -> PreviewToolResponse:  # noqa:
                             raise PreviewSandboxError(
                                 f"Import '{base}' is not allowed in preview sandbox"
                             )
-                elif isinstance(node, _ast.ImportFrom):
-                    base = (node.module or "").split(".")[0]
+                elif isinstance(ast_node, _ast.ImportFrom):
+                    base = (ast_node.module or "").split(".")[0]
                     if base and base not in {m.split(".")[0] for m in allowed_imports}:
                         raise PreviewSandboxError(
                             f"Import '{base}' is not allowed in preview sandbox"

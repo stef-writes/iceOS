@@ -1,0 +1,22 @@
+{
+  "name": "ice-frontend",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "build": "npm run build -w packages/api-client && npm run build -w apps/web",
+    "dev": "npm run dev -w apps/web",
+    "start": "npm run start -w apps/web",
+    "gen:types": "node scripts/gen-types.mjs"
+  },
+  "engines": {
+    "node": ">=18",
+    "npm": ">=9"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.9.1"
+  }
+}

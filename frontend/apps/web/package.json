@@ -1,0 +1,43 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "e2e": "playwright test",
+    "e2e:dev": "concurrently -k \"next dev\" \"wait-on http://localhost:3000 && playwright test\""
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-toast": "^1.1.5",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@tanstack/react-virtual": "^3.10.9",
+    "@tanstack/react-query": "^5.85.9",
+    "@monaco-editor/react": "^4.6.0",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "monaco-editor": "^0.52.2",
+    "next": "14.2.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-resizable-panels": "^3.0.5",
+    "reactflow": "^11.11.4",
+    "zod": "^4.1.5",
+    "zustand": "^5.0.8",
+    "@ice/api-client": "file:../../packages/api-client"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "10.4.19",
+    "postcss": "8.4.41",
+    "tailwindcss": "3.4.10",
+    "typescript": "5.5.4",
+    "@playwright/test": "^1.47.0",
+    "concurrently": "^9.0.1",
+    "wait-on": "^8.0.2"
+  }
+}

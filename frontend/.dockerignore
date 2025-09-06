@@ -1,0 +1,13 @@
+node_modules
+apps/web/node_modules
+packages/*/node_modules
+.next
+apps/web/.next
+coverage
+apps/web/test-results
+test-results
+.cache
+npm-debug.log*
+.DS_Store
+.vscode
+.idea

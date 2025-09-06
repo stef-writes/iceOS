@@ -78,12 +78,45 @@ services:
       # Observability (optional)
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-iceos-api}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel:4318}
+      # Behind reverse proxy in compose – tighten CORS/hosts automatically
+      ICE_BEHIND_PROXY: ${ICE_BEHIND_PROXY:-1}
+      ICE_BUILDER_USE_PROMPT_PLANNER: ${ICE_BUILDER_USE_PROMPT_PLANNER:-1}
     command: ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8000/readyz"]
       interval: 5s
       timeout: 3s
       retries: 10
+    networks: [backend]
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+      NEXT_PUBLIC_API_TOKEN: ${NEXT_PUBLIC_API_TOKEN:-dev-token}
+      NEXT_TELEMETRY_DISABLED: 1
+    ports:
+      - "3000:3000"
+    restart: always
+    networks: [backend]
+
+  proxy:
+    image: nginx:alpine
+    depends_on:
+      api:
+        condition: service_started
+      web:
+        condition: service_started
+    ports:
+      - "80:80"
+    volumes:
+      - ./config/deploy/nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    restart: always
     networks: [backend]
 
   # Optional: enable an OpenTelemetry collector via a separate profile when configured
