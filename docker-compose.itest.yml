@@ -62,7 +62,7 @@ services:
       ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
       ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/plugins/kits/tools/memory/plugins.v0.yaml,/app/plugins/kits/tools/search/plugins.v0.yaml}
+      ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/plugins/kits/tools/memory/plugins.v0.yaml,/app/plugins/kits/tools/search/plugins.v0.yaml,/app/plugins/bundles/chatkit/bundle.yaml,/app/plugins/bundles/getting_started/bundle.yaml,/app/plugins/bundles/patterns/bundle.yaml,/app/plugins/bundles/library_assistant/bundle.yaml}
       ICE_ENABLE_WASM: ${ICE_ENABLE_WASM:-"0"}
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
       ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
@@ -100,7 +100,7 @@ services:
     environment:
       PYTHONPATH: /app/src:/app
       ICE_STRICT_SERIALIZATION: ${ICE_STRICT_SERIALIZATION:-1}
-      ICEOS_PLUGIN_MANIFESTS: /app/plugins/kits/tools/memory/plugins.v0.yaml,/app/plugins/kits/tools/search/plugins.v0.yaml
+      ICEOS_PLUGIN_MANIFESTS: /app/plugins/kits/tools/memory/plugins.v0.yaml,/app/plugins/kits/tools/search/plugins.v0.yaml,/app/plugins/bundles/chatkit/bundle.yaml,/app/plugins/bundles/getting_started/bundle.yaml,/app/plugins/bundles/patterns/bundle.yaml,/app/plugins/bundles/library_assistant/bundle.yaml
       ICE_ECHO_LLM_FOR_TESTS: 1
       ICE_EXEC_SYNC_FOR_TESTS: 1
       ICE_ENABLE_WASM: ${ICE_ENABLE_WASM:-"0"}

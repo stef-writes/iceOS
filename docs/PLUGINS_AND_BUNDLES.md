@@ -91,7 +91,7 @@ docs/
 - CLI (example):
   ```
   ice bundle run chatkit \
-    --file examples/user_assets/resume.txt \
+    --file plugins/bundles/library_assistant/examples/fake_resume.txt \
     --note "focus skills" \
     --query "Summarize me" \
     --session s1 \

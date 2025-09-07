@@ -4,10 +4,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { AppShell } from "@/modules/shell/AppShell";
 import { ToastProvider } from "@/modules/ui/primitives/Toast";
+import { ProjectProvider } from "@/modules/context/ProjectContext";
 
 export const metadata: Metadata = {
   title: "iceOS Studio",
-  description: "Canvas, Studio, Repo, Library",
+  description: "Canvas and Workspaces",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,7 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="h-full bg-neutral-950 text-neutral-100">
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
-            <AppShell>{children}</AppShell>
+            <ProjectProvider>
+              <AppShell>{children}</AppShell>
+            </ProjectProvider>
           </ToastProvider>
         </QueryClientProvider>
       </body>

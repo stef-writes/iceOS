@@ -28,6 +28,14 @@ export function ExecutionDrawer() {
       const t = query.toLowerCase();
       return JSON.stringify(e.payload).toLowerCase().includes(t) || e.event.toLowerCase().includes(t);
     });
+  // Build per-node latest output snapshot
+  const latestByNode: Record<string, any> = {};
+  (exec.events || []).forEach((e) => {
+    const nid = String(e.payload?.node_id ?? e.payload?.id ?? "");
+    if (!nid) return;
+    if (e.event === "node.completed") latestByNode[nid] = e.payload;
+  });
+
   return (
     <div className="text-sm" data-testid="execution-drawer">
       <div className="font-semibold mb-1">Execution</div>
@@ -51,6 +59,19 @@ export function ExecutionDrawer() {
           <button onClick={() => setNodeFilter("")} className="px-2 py-1 border border-neutral-700 rounded hover:bg-neutral-800">Clear</button>
         )}
       </div>
+      {/* Latest outputs per node */}
+      {Object.keys(latestByNode).length > 0 && (
+        <div className="mb-2 border border-neutral-800 rounded p-2">
+          <div className="text-neutral-300 text-xs mb-1">Latest node outputs</div>
+          <div className="max-h-40 overflow-auto space-y-1">
+            {Object.entries(latestByNode).map(([nid, payload]) => (
+              <div key={nid} className="text-xs font-mono text-neutral-300">
+                {nid}: {JSON.stringify(payload)}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {exec.runId == null && (
         <div className="text-neutral-400 mb-2">No active run.</div>
       )}

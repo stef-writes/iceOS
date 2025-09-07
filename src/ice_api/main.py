@@ -6,7 +6,6 @@ import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any, AsyncIterator, Awaitable, Callable, Dict, cast
 
 import structlog
@@ -39,8 +38,6 @@ from ice_api.startup_utils import (
     maybe_register_echo_llm_for_tests,
     print_startup_banner,
     run_alembic_migrations_if_enabled,
-    summarise_demo_load,
-    timed_import,
     validate_registered_components,
 )
 from ice_api.ws_gateway import router as ws_router
@@ -107,6 +104,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # Load declarative plugins manifests specified via env var. Each entry is a
         # JSON or YAML file containing plugins.v0 components with import paths.
         manifests_env = os.getenv("ICEOS_PLUGIN_MANIFESTS", "").strip()
+        auto_dev = os.getenv("ICE_ALLOW_DEV_TOKEN", "0") == "1"
+        if not manifests_env and auto_dev:
+            # Zero-setup: auto-load first-party starter manifests in dev mode
+            from pathlib import Path as _Path
+
+            root = _Path(__file__).parents[3]
+            defaults = [
+                root / "plugins/kits/tools/memory/plugins.v0.yaml",
+                root / "plugins/kits/tools/search/plugins.v0.yaml",
+            ]
+            manifests_env = ",".join(str(p) for p in defaults if p.exists())
+            if manifests_env:
+                os.environ["ICEOS_PLUGIN_MANIFESTS"] = manifests_env
         if manifests_env:
             import logging as _logging
             import pathlib
@@ -126,43 +136,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.exception("Startup failed during plugin manifest load")
         raise
 
-    # ------------------------------------------------------------------
-    # Progressive demo loader with timing --------------------------------
-    # ------------------------------------------------------------------
-
-    import sys
-
-    project_root = Path(__file__).parent.parent.parent
-    use_cases_path = project_root / "use_cases"
-
-    if str(use_cases_path) not in sys.path:
-        sys.path.insert(0, str(use_cases_path))
-
-    env_packs = os.getenv("ICEOS_OPTIONAL_PACKS")
-    if env_packs:
-        raw_paths = [p.strip() for p in env_packs.split(",") if p.strip()]
-        demo_modules = [
-            (module_path.split(".")[-1], module_path) for module_path in raw_paths
-        ]
-    else:
-        demo_modules = []  # No default demos – avoid noisy import errors
-
-    for label, module_path in demo_modules:
-        seconds, mod, import_exc = timed_import(module_path)
-        if mod is not None:
-            # Call initialize_all if present
-            ok = True
-            if hasattr(mod, "initialize_all"):
-                try:
-                    ok = bool(mod.initialize_all("mcp"))  # type: ignore[attr-defined]
-                except Exception as init_err:
-                    ok = False
-                    error_detail = str(init_err)
-                else:
-                    error_detail = ""
-            summarise_demo_load(label, seconds, ok, error_detail)
-        else:
-            summarise_demo_load(label, seconds, False, str(import_exc))
+    # No demo loader: manifests are the single source of truth for components
 
     # Prefer runtime-wired context manager
     app.state.context_manager = rt.context_manager  # type: ignore[attr-defined]
@@ -467,6 +441,11 @@ add_exception_handlers(app)
 async def add_request_context(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
+    # Bind minimal request context for logs and downstream services
+    project_id = request.headers.get("X-Project-Id")
+    if project_id:
+        setattr(request.state, "project_id", project_id)
+        structlog.contextvars.bind_contextvars(project_id=project_id)
     structlog.contextvars.bind_contextvars(path=request.url.path, method=request.method)
     response = await call_next(request)
     structlog.contextvars.clear_contextvars()
@@ -505,6 +484,7 @@ from ice_api.api.registry_health import router as registry_health_router
 from ice_api.api.storage import router as storage_router
 from ice_api.api.templates import router as templates_router
 from ice_api.api.tokens import router as tokens_router
+from ice_api.api.workspaces import router as workspaces_router
 from ice_api.security import require_auth
 
 app.include_router(
@@ -562,6 +542,12 @@ app.include_router(
     templates_router,
     prefix="",
     tags=["templates", "library"],
+)
+
+app.include_router(
+    workspaces_router,
+    prefix="",
+    tags=["workspaces", "projects", "catalog"],
 )
 
 # Secure MCP REST router behind auth

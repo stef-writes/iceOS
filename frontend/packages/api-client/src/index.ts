@@ -262,6 +262,87 @@ export class IceApiClient {
     if (!r.ok) throw new Error(`execution start failed: ${r.status}`);
     return this._json(r);
   }
+
+  // --------------------------- Templates -----------------------------------
+  async listTemplates(): Promise<{ templates: Array<{ id: string; bundle: string; path: string; description?: string }> }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/templates/`, { method: "GET", headers: this.headers() });
+    if (!r.ok) throw new Error(`templates list failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async createBlueprintFromWorkflowForProject(projectId: string, body: { workflow_id: string; path_hint?: string | null }): Promise<{ id: string; version_lock: string }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/blueprints/from-workflow`, { method: "POST", headers: this.headers(), body: JSON.stringify({ workflow_id: body.workflow_id, path_hint: body.path_hint ?? null }) });
+    if (!r.ok) throw new Error(`from-workflow failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  // Back-compat alias (calls /from-workflow under the hood)
+  async createBlueprintFromBundleForProject(projectId: string, body: { bundle_id: string; path_hint?: string | null }): Promise<{ id: string; version_lock: string }> {
+    return this.createBlueprintFromWorkflowForProject(projectId, { workflow_id: body.bundle_id, path_hint: body.path_hint ?? null });
+  }
+
+  // --------------------------- Workspaces/Projects --------------------------
+  async listWorkspaces(): Promise<Array<{ id: string; name: string }>> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/workspaces`, { method: "GET", headers: this.headers() });
+    if (!r.ok) throw new Error(`workspaces list failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async listProjects(workspaceId: string): Promise<Array<{ id: string; workspace_id: string; name: string }>> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/workspaces/${encodeURIComponent(workspaceId)}/projects`, { method: "GET", headers: this.headers() });
+    if (!r.ok) throw new Error(`projects list failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async createWorkspace(payload: { id: string; name: string }): Promise<{ id: string; name: string }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/workspaces`, { method: "POST", headers: this.headers(), body: JSON.stringify(payload) });
+    if (!r.ok) throw new Error(`workspace create failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async createProject(payload: { id: string; workspace_id: string; name: string }): Promise<{ id: string; workspace_id: string; name: string }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/projects`, { method: "POST", headers: this.headers(), body: JSON.stringify(payload) });
+    if (!r.ok) throw new Error(`project create failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async bootstrap(): Promise<{ workspace_id: string; project_id: string }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/bootstrap`, { method: "POST", headers: this.headers() });
+    if (!r.ok) throw new Error(`bootstrap failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  // --------------------------- Projects: Blueprints/Catalog/Mounts -----------
+  async listProjectBlueprints(projectId: string): Promise<{ blueprint_ids: string[] }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/blueprints`, { method: "GET", headers: this.headers() });
+    if (!r.ok) throw new Error(`project blueprints failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async getProjectCatalog(projectId: string): Promise<{ tools: Array<{ name: string; type: string; enabled: boolean }>; workflows: Array<{ name: string; type: string; enabled: boolean }>; agents: Array<{ name: string; type: string; enabled: boolean }> }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/catalog`, { method: "GET", headers: this.headers() });
+    if (!r.ok) throw new Error(`project catalog failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async updateProjectCatalog(projectId: string, payload: { enabled_tools: string[]; enabled_workflows: string[] }): Promise<{ id: string; workspace_id: string; name: string; enabled_tools: string[]; enabled_workflows: string[] }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/catalog`, { method: "PUT", headers: this.headers(), body: JSON.stringify(payload) });
+    if (!r.ok) throw new Error(`update catalog failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async listMounts(projectId: string): Promise<Array<{ id: string; project_id: string; label: string; uri: string; metadata?: Record<string, unknown> }>> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/mounts`, { method: "GET", headers: this.headers() });
+    if (!r.ok) throw new Error(`mounts list failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async addMount(projectId: string, payload: { id: string; label: string; uri: string; metadata?: Record<string, unknown> }): Promise<{ id: string; project_id: string; label: string; uri: string; metadata?: Record<string, unknown> }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/mounts`, { method: "POST", headers: this.headers(), body: JSON.stringify(payload) });
+    if (!r.ok) throw new Error(`mount add failed: ${r.status}`);
+    return this._json(r);
+  }
+  // Type hints only; actual methods defined below
 }
 
 // Meta APIs (node schemas)

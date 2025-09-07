@@ -26,6 +26,7 @@ export default function InspectorPanel({ bp, nodeId, nodeType, onChange }: Props
   const execStore = useExecutionStore();
   const [toolInfo, setToolInfo] = useState<Record<string, any> | null>(null);
   const [toolErr, setToolErr] = useState<string | null>(null);
+  const [linkHints, setLinkHints] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -144,6 +145,33 @@ export default function InspectorPanel({ bp, nodeId, nodeType, onChange }: Props
     }
   }
 
+  async function fetchLinkHints() {
+    try {
+      setError(null);
+      const base = env.API_URL?.trim() || "/api";
+      const nodeObj = ((bp?.nodes || []) as any[]).find((n) => n.id === nodeId) || {};
+      const deps: string[] = Array.isArray((nodeObj as any)?.dependencies)
+        ? ((nodeObj as any).dependencies as string[])
+        : [];
+      const body = {
+        node_id: nodeId,
+        target_prompt: String((nodeObj as any)?.prompt || (nodeObj as any)?.system_prompt || ""),
+        target_args: (nodeObj as any)?.tool_args || {},
+        upstream_ids: deps,
+      };
+      const r = await fetch(`${base}/v1/meta/nodes/link-hints`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${env.API_TOKEN}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) throw new Error(`link-hints failed: ${r.status}`);
+      const data = await r.json();
+      setLinkHints(Array.isArray((data as any)?.suggestions) ? (data as any).suggestions : []);
+    } catch (e: any) {
+      setError(String(e?.message || e));
+    }
+  }
+
   async function applyNodePatches() {
     try {
       const base = (bp ?? { nodes: [] }) as Record<string, unknown>;
@@ -237,7 +265,11 @@ export default function InspectorPanel({ bp, nodeId, nodeType, onChange }: Props
         <button onClick={suggestNodeEdit} className="text-xs px-2 py-1 border border-neutral-700 rounded hover:bg-neutral-800">Validate</button>
         <button onClick={applyNodePatches} disabled={pendingPatches.length === 0} className="text-xs px-2 py-1 border border-neutral-700 rounded hover:bg-neutral-800">Apply</button>
         <button onClick={runNode} disabled={missingRequired.length > 0 || unresolvedRoots.length > 0} className="text-xs px-2 py-1 border border-neutral-700 rounded hover:bg-neutral-800">Run node</button>
+        <button onClick={fetchLinkHints} className="text-xs px-2 py-1 border border-neutral-700 rounded hover:bg-neutral-800">Link suggestions</button>
       </div>
+      {linkHints.length > 0 && (
+        <div className="text-xs text-neutral-400">Unresolved roots: {linkHints.join(", ")}</div>
+      )}
     </div>
   );
   if (nodeType === "tool") return (

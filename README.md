@@ -164,7 +164,7 @@ ICEOS_REQUIRE_DB=1
 
 ```bash
 # Offline, synthetic LLM responses (fast)
-$ python examples/seller_assistant_fluent.py
+$ python plugins/bundles/chatkit/examples/tiny_docs.md  # See Bundles section below
 
 # Same but declarative builder API
 $ python examples/seller_assistant_direct.py
@@ -231,7 +231,7 @@ assert not issues, f"Found issues: {issues}"
 ### 4.3 Author a minimal YAML blueprint and build it
 
 ```yaml
-# examples/minimal.yaml
+# examples/minimal.yaml (for reference; prefer Bundles/Templates for end users)
 schema_version: "1.2.0"
 metadata:
   draft_name: minimal_yaml

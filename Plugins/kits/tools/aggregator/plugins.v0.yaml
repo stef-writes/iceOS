@@ -1,0 +1,5 @@
+schema_version: plugins.v0
+components:
+  - node_type: tool
+    name: aggregator_concat
+    import: plugins.kits.tools.aggregator.concat_tool:AggregatorConcatTool

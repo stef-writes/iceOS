@@ -1,10 +1,27 @@
 "use client";
-import { IceApiClient } from "@ice/api-client";
+import { IceApiClient, Fetcher } from "@ice/api-client";
+import { getProjectId } from "@/modules/context/projectIdGlobal";
 import { env } from "@/lib/env";
+
+// Inject X-Project-Id automatically from URL (?projectId=...) for all calls
+const fetchWithProject: Fetcher = (input, init) => {
+  try {
+    if (typeof window !== "undefined") {
+      const pid = getProjectId();
+      if (pid) {
+        const headers = new Headers(init?.headers as any);
+        if (!headers.has("X-Project-Id")) headers.set("X-Project-Id", pid);
+        return fetch(input as any, { ...(init || {}), headers });
+      }
+    }
+  } catch {}
+  return fetch(input as any, init);
+};
 
 export const api = new IceApiClient({
   baseUrl: env.API_URL,
   token: env.API_TOKEN,
+  fetch: fetchWithProject,
 });
 
 export const builder = {
@@ -26,6 +43,10 @@ export const builder = {
 
 export const library = {
   index: (p?: { q?: string; kind?: "component" | "blueprint"; limit?: number }) => api.listLibrary(p ?? {}),
+  templates: {
+    list: () => api.listTemplates(),
+    addToProject: (projectId: string, body: { workflow_id: string; path_hint?: string | null }) => api.createBlueprintFromBundleForProject(projectId, { bundle_id: body.workflow_id, path_hint: body.path_hint ?? null }),
+  },
   assets: {
     list: (p?: { org_id?: string; user_id?: string; prefix?: string; limit?: number }) => api.listAssets(p ?? {}),
     create: (payload: { label: string; content: string; mime?: string; scope?: string; org_id?: string; user_id?: string }) => api.addAsset(payload),
@@ -69,4 +90,24 @@ export const executions = {
   list: (limit?: number) => api.listExecutions(limit),
   status: (id: string) => api.getExecutionStatus(id),
   start: (payload: { blueprint_id: string; inputs?: Record<string, unknown> | null; wait_seconds?: number | null }) => api.startExecution(payload),
+};
+
+export const workspaces = {
+  list: () => api.listWorkspaces(),
+  projects: (workspaceId: string) => api.listProjects(workspaceId),
+  bootstrap: () => api.bootstrap(),
+  create: (payload: { id: string; name: string }) => api.createWorkspace(payload),
+  createProject: (payload: { id: string; workspace_id: string; name: string }) => api.createProject(payload),
+};
+
+export const projects = {
+  blueprints: (projectId: string) => (api as any).listProjectBlueprints(projectId),
+  catalog: {
+    get: (projectId: string) => (api as any).getProjectCatalog(projectId),
+    update: (projectId: string, payload: { enabled_tools: string[]; enabled_workflows: string[] }) => (api as any).updateProjectCatalog(projectId, payload),
+  },
+  mounts: {
+    list: (projectId: string) => (api as any).listMounts(projectId),
+    add: (projectId: string, payload: { id: string; label: string; uri: string; metadata?: Record<string, unknown> }) => (api as any).addMount(projectId, payload),
+  },
 };

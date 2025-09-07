@@ -23,6 +23,7 @@ from ice_api.db.orm_models_core import BlueprintRecord
 from ice_api.dependencies import rate_limit
 from ice_api.security import require_auth
 from ice_core.models.mcp import Blueprint
+from ice_core.unified_registry import registry
 
 # Reuse internal helpers from blueprints API for consistency
 from .blueprints import (  # type: ignore[F401]
@@ -63,7 +64,11 @@ class TemplatesList(BaseModel):
     dependencies=[Depends(rate_limit), Depends(require_auth)],
 )
 async def list_templates() -> TemplatesList:  # noqa: D401
-    """Return available built-in template workflows discovered under plugins/bundles.
+    """Return available template workflows.
+
+    Merges two sources for zero-setup UX:
+    - Registry (manifest-based) workflows when available
+    - Filesystem templates under plugins/bundles/**/workflows/*.yaml
 
     Returns:
         TemplatesList: List of available templates with ids and paths.
@@ -73,7 +78,9 @@ async def list_templates() -> TemplatesList:  # noqa: D401
     project_root = Path(__file__).resolve().parents[3]
     bundles_root = project_root / "plugins" / "bundles"
 
-    templates: List[TemplateEntry] = []
+    items: Dict[str, TemplateEntry] = {}
+
+    # 1) Filesystem scan of built-in YAML templates (dev-friendly)
     if bundles_root.exists():
         for bundle_dir in sorted(p for p in bundles_root.iterdir() if p.is_dir()):
             wf_dir = bundle_dir / "workflows"
@@ -86,7 +93,6 @@ async def list_templates() -> TemplatesList:  # noqa: D401
                     if not wf_id:
                         continue
                     desc = None
-                    # Optionally pick description from adjacent bundle.yaml if present
                     bundle_yaml = bundle_dir / "bundle.yaml"
                     if bundle_yaml.exists():
                         try:
@@ -97,42 +103,65 @@ async def list_templates() -> TemplatesList:  # noqa: D401
                             desc = by.get("description")
                         except Exception:
                             pass
-                    templates.append(
+                    items.setdefault(
+                        wf_id,
                         TemplateEntry(
                             id=wf_id,
                             bundle=bundle_dir.name,
                             path=str(wf_file.relative_to(project_root)),
                             description=desc,
-                        )
+                        ),
                     )
                 except Exception:
-                    # Skip invalid YAMLs silently; they are developer-owned assets
                     continue
 
-    return TemplatesList(templates=templates)
+    # 2) Registry workflows from manifests (prod/staging friendly)
+    try:
+        for wf_name, wf_obj in registry.available_chains():
+            if wf_name in items:
+                continue
+            bundle = wf_name.split(".")[0] if "." in wf_name else ""
+            path = ""
+            try:
+                mod = getattr(wf_obj, "__module__", None)
+                if mod:
+                    import importlib
+                    import inspect
+
+                    m = importlib.import_module(mod)
+                    path = str(Path(inspect.getsourcefile(m) or "").resolve())
+            except Exception:
+                path = ""
+            items[wf_name] = TemplateEntry(
+                id=wf_name, bundle=bundle, path=path or "", description=None
+            )
+    except Exception:
+        pass
+
+    return TemplatesList(templates=sorted(items.values(), key=lambda t: t.id))
 
 
-class FromBundleRequest(BaseModel):
-    """Request to materialize a bundle workflow into a stored Blueprint.
+class FromWorkflowRequest(BaseModel):
+    """Request to materialize a workflow template into a stored Blueprint.
 
     Args:
-        bundle_id (str): Workflow id declared in YAML (e.g., "chatkit.rag_chat").
+        workflow_id (str): Workflow id declared in YAML (e.g., "chatkit.rag_chat").
         path_hint (str | None): Optional relative path to speed up lookup.
 
     Example:
-        >>> FromBundleRequest(bundle_id="chatkit.rag_chat")
+        >>> FromWorkflowRequest(workflow_id="chatkit.rag_chat")
     """
 
-    bundle_id: str
+    workflow_id: str
     path_hint: Optional[str] = Field(default=None)
 
 
-class FromBundleResponse(BaseModel):
+class FromWorkflowResponse(BaseModel):
     id: str
     version_lock: str
 
 
-def _find_workflow_yaml(bundle_id: str, path_hint: Optional[str]) -> Path:
+def _find_workflow_yaml(workflow_id: str, path_hint: Optional[str]) -> Path:
     project_root = Path(__file__).resolve().parents[3]
     if path_hint:
         p = (project_root / path_hint).resolve()
@@ -142,11 +171,11 @@ def _find_workflow_yaml(bundle_id: str, path_hint: Optional[str]) -> Path:
     for wf in (project_root / "plugins" / "bundles").rglob("*.yaml"):
         try:
             data = yaml.safe_load(wf.read_text(encoding="utf-8")) or {}
-            if str(data.get("id", "")).strip() == bundle_id:
+            if str(data.get("id", "")).strip() == workflow_id:
                 return wf
         except Exception:
             continue
-    raise FileNotFoundError(f"Template not found for id: {bundle_id}")
+    raise FileNotFoundError(f"Template not found for id: {workflow_id}")
 
 
 async def _persist_blueprint_to_store(blueprint: Blueprint, request: Request) -> str:
@@ -184,30 +213,43 @@ async def _persist_blueprint_to_store(blueprint: Blueprint, request: Request) ->
 
 
 @router.post(
-    "/from-bundle",
-    response_model=FromBundleResponse,
+    "/from-workflow",
+    response_model=FromWorkflowResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(rate_limit), Depends(require_auth)],
 )
-async def create_blueprint_from_bundle(  # noqa: D401
+async def create_blueprint_from_workflow(  # noqa: D401
     request: Request,
-    payload: FromBundleRequest = Body(...),
-) -> FromBundleResponse:
+    payload: FromWorkflowRequest = Body(...),
+) -> FromWorkflowResponse:
     """Materialize a template into a stored Blueprint and return its id.
 
     Reads the workflow YAML by id, validates resolvability, persists the Blueprint,
     and returns the new identifier and version lock.
     """
 
-    wf_path = _find_workflow_yaml(payload.bundle_id, payload.path_hint)
+    wf_path = _find_workflow_yaml(payload.workflow_id, payload.path_hint)
     try:
         data = yaml.safe_load(wf_path.read_text(encoding="utf-8")) or {}
         nodes = data.get("nodes")
         if not isinstance(nodes, list) or not nodes:
             raise ValueError("Invalid template: missing nodes")
+        # Best-effort bundle extraction from path: plugins/bundles/<bundle>/workflows/*.yaml
+        bundle_name: Optional[str] = None
+        try:
+            parts = list(wf_path.parts)
+            if "bundles" in parts:
+                idx = parts.index("bundles")
+                if idx + 1 < len(parts):
+                    bundle_name = parts[idx + 1]
+        except Exception:
+            bundle_name = None
         blueprint_dict: Dict[str, Any] = {
             "schema_version": str(data.get("schema_version", "1.2.0")),
-            "metadata": {"bundle": payload.bundle_id},
+            "metadata": {
+                "workflow": payload.workflow_id,
+                **({"bundle": bundle_name} if bundle_name else {}),
+            },
             "nodes": nodes,
         }
         bp = Blueprint.model_validate(blueprint_dict)
@@ -224,8 +266,8 @@ async def create_blueprint_from_bundle(  # noqa: D401
 
     # Cache best-effort to Redis done inside helper; compute lock
     version_lock = _calculate_version_lock(bp)
-    return FromBundleResponse(id=new_id, version_lock=version_lock)
+    return FromWorkflowResponse(id=new_id, version_lock=version_lock)
 
 
 # Local imports to avoid top-level circulars
-from uuid import uuid4  # noqa: E402
+from uuid import uuid4

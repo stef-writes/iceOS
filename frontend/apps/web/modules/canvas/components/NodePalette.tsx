@@ -7,6 +7,7 @@ const TYPES: Array<{ key: string; label: string }> = [
   { key: "llm", label: "LLM" },
   { key: "tool", label: "Tool" },
   { key: "agent", label: "Agent" },
+  { key: "aggregator", label: "Aggregator (concat)" },
 ];
 
 export default function NodePalette({ onAdd }: Props) {

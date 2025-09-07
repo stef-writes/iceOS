@@ -82,16 +82,12 @@ def validate_registered_components() -> Dict[str, Any]:
 
 
 def maybe_register_echo_llm_for_tests() -> None:
-    """Register an echo LLM for deterministic tests when enabled.
+    """Register an echo LLM for deterministic tests when explicitly enabled.
 
-    Enabled if ICE_ECHO_LLM_FOR_TESTS=1 or ICE_API_TOKEN is the dev token.
-    No-ops in production.
+    Enabled only if ICE_ECHO_LLM_FOR_TESTS=1. No-ops otherwise.
     """
     try:
-        if (
-            os.getenv("ICE_ECHO_LLM_FOR_TESTS", "0") == "1"
-            or os.getenv("ICE_API_TOKEN") == "dev-token"
-        ):
+        if os.getenv("ICE_ECHO_LLM_FOR_TESTS", "0") == "1":
             from ice_core.unified_registry import (
                 register_llm_factory as _reg_llm,  # type: ignore
             )

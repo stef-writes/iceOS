@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   postgres:
-    image: pgvector/pgvector:pg15
+    image: postgres:15
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-iceos}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iceos}
@@ -48,10 +48,8 @@ services:
       - /var/run/ice
     volumes:
       - api_data:/app/data
-      - ./examples:/app/examples:ro
       - ./scripts:/app/scripts:ro
       - ./src:/app/src:ro
-      - ./packs:/app/packs:ro
     env_file:
       - config/dev.env.example
     environment:
@@ -73,7 +71,7 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://iceos:iceos@postgres:5432/iceos}
       ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-1}
       ICEOS_REQUIRE_DB: ${ICEOS_REQUIRE_DB:-1}
-      ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/plugins/kits/tools/memory/plugins.v0.yaml,/app/plugins/kits/tools/search/plugins.v0.yaml}
+      ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/plugins/kits/tools/memory/plugins.v0.yaml,/app/plugins/kits/tools/search/plugins.v0.yaml,/app/plugins/bundles/chatkit/bundle.yaml,/app/plugins/bundles/getting_started/bundle.yaml,/app/plugins/bundles/patterns/bundle.yaml,/app/plugins/bundles/library_assistant/bundle.yaml}
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
       # Observability (optional)
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-iceos-api}
@@ -105,19 +103,7 @@ services:
     restart: always
     networks: [backend]
 
-  proxy:
-    image: nginx:alpine
-    depends_on:
-      api:
-        condition: service_started
-      web:
-        condition: service_started
-    ports:
-      - "80:80"
-    volumes:
-      - ./config/deploy/nginx.dev.conf:/etc/nginx/nginx.conf:ro
-    restart: always
-    networks: [backend]
+  # proxy removed for stability; access web at http://localhost:3000 and api at http://localhost:8000
 
   # Optional: enable an OpenTelemetry collector via a separate profile when configured
   # otel:

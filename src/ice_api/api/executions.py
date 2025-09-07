@@ -339,6 +339,46 @@ async def start_execution(  # noqa: D401 – API route
     blueprint_id = payload.blueprint_id
     inputs = payload.inputs
 
+    # Optional project scoping: if X-Project-Id is provided, enforce that the
+    # blueprint is associated with that project (added via templates panel).
+    try:
+        project_id = request.headers.get("X-Project-Id")
+        if project_id:
+            allowed_ids: list[str] = []
+            # Prefer Redis authoritative list
+            try:
+                redis = get_redis()
+                raw = await redis.lrange(f"pr:{project_id}:blueprints", 0, -1)  # type: ignore[misc]
+                for r in raw:
+                    if isinstance(r, (bytes, bytearray)):
+                        try:
+                            allowed_ids.append(r.decode())
+                        except Exception:
+                            continue
+                    elif isinstance(r, str):
+                        allowed_ids.append(r)
+            except Exception:
+                pass
+            # Fallback to in-memory app state used by workspaces API
+            try:
+                if not allowed_ids:
+                    store = getattr(request.app.state, "_kv", {})
+                    key = f"pr:{project_id}:blueprints"
+                    if isinstance(store.get(key), list):
+                        allowed_ids = [str(x) for x in store.get(key, [])]
+            except Exception:
+                pass
+            if allowed_ids and blueprint_id not in allowed_ids:
+                raise HTTPException(
+                    status_code=403,
+                    detail="blueprint not associated with project",
+                )
+    except HTTPException:
+        raise
+    except Exception:
+        # Do not block execution if scoping check fails unexpectedly
+        pass
+
     blueprint = await _get_blueprint(request, blueprint_id)
 
     # Governance preflight: estimate cost and enforce budget

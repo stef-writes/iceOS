@@ -157,10 +157,9 @@ export default function CanvasView() {
     if (!source || !target || source === target) return false;
     // prevent cycles: if target already reaches source, connecting would create a cycle
     if (hasPath(target, source)) return false;
-    // single-input rule by default: allow only one incoming edge per target
-    const existingIncoming = edges.filter((e) => e.target === target).length;
-    return existingIncoming === 0;
-  }, [edges, bp]);
+    // allow multiple inputs by default; port-specific cardinality can be enforced later via schema
+    return true;
+  }, [bp]);
 
   const onConnect: OnConnect = useCallback((params: Connection) => {
     const source = params.source ?? undefined;

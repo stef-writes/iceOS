@@ -1,0 +1,5 @@
+schema_version: plugins.v0
+components:
+  - node_type: tool
+    name: repo_manifest_loader
+    import: plugins.kits.tools.repo_loader.repo_manifest_loader:RepoManifestLoaderTool
