@@ -61,6 +61,8 @@ async def llm_node_executor(
             pass
 
         # Prefer provider/model/params from nested llm_config; fall back to top-level for BC
+        # Render Jinja in model fields to support blueprints using expressions like
+        # "{{ inputs.model or 'gpt-4o' }}".
         provider: ModelProvider | str = (
             cfg.llm_config.provider
             if cfg.llm_config and getattr(cfg.llm_config, "provider", None)
@@ -74,13 +76,27 @@ async def llm_node_executor(
             except ValueError:
                 provider = ModelProvider.OPENAI
 
+        # Resolve model with Jinja against cleaned context when it's a string
+        def _render_model(value: Any) -> str:
+            try:
+                if isinstance(value, str):
+                    rendered = resolve_jinja_templates(value, ctx_clean)
+                    return rendered if isinstance(rendered, str) else str(rendered)
+            except Exception:
+                # Fall back to original if rendering fails; validation will catch later
+                return str(value)
+            return str(value)
+
+        selected_model: Any = (
+            cfg.llm_config.model
+            if cfg.llm_config and getattr(cfg.llm_config, "model", None) is not None
+            else cfg.model
+        )
+        resolved_model: str = _render_model(selected_model)
+
         llm_cfg = LLMConfig(
             provider=provider,
-            model=(
-                cfg.llm_config.model
-                if cfg.llm_config and getattr(cfg.llm_config, "model", None) is not None
-                else cfg.model
-            ),
+            model=resolved_model,
             max_tokens=(
                 cfg.llm_config.max_tokens
                 if cfg.llm_config
