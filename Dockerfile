@@ -120,7 +120,8 @@ COPY plugins /app/plugins
 COPY scripts /app/scripts
 COPY config /app/config
 COPY tests /app/tests
-COPY examples /app/examples
+# examples are optional and not present in all environments; skip copying to avoid build failures
+# COPY examples /app/examples
 ENV PYTHONPATH=/app/src:/app
 
 # OCI labels
