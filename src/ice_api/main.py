@@ -24,6 +24,7 @@ except ModuleNotFoundError:  # pragma: no cover – OTEL optional
     FastAPIInstrumentor = None  # type: ignore
     _OTEL_AVAILABLE = False
 
+from ice_api.api.ia import router as ia_router
 from ice_api.api.mcp import router as mcp_router
 from ice_api.api.templates import router as templates_router
 from ice_api.api.uploads import router as uploads_router
@@ -572,6 +573,7 @@ app.include_router(exec_ws_router, prefix="/ws", tags=["websocket"])
 app.include_router(uploads_router, prefix="", tags=["uploads"])
 app.include_router(workspaces_router)
 app.include_router(templates_router)
+app.include_router(ia_router)
 
 if os.getenv("ICEOS_ENABLE_METRICS", "0") == "1":
     try:

@@ -1,6 +1,5 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { workspaces } from "@/modules/api/client";
 
 export default function Home() {
   const router = useRouter();
@@ -11,13 +10,8 @@ export default function Home() {
       <div className="flex gap-3 text-sm">
         <button
           className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800"
-          onClick={async () => {
-            try {
-              const { project_id } = await workspaces.bootstrap();
-              router.push(`/canvas?projectId=${encodeURIComponent(project_id)}`);
-            } catch {}
-          }}
-        >Open Canvas</button>
+          onClick={() => router.push("/workspaces")}
+        >Workspaces</button>
         <button
           className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800"
           onClick={() => router.push("/workspaces")}
