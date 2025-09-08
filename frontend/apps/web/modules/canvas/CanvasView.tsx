@@ -6,8 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { mcp } from "@/modules/api/client";
 import NodePalette from "@/modules/canvas/components/NodePalette";
 import { nodeTypes } from "@/modules/canvas/components/nodes";
-import CopilotChat from "@/modules/canvas/components/CopilotChat";
-import { ExecutionDrawer } from "@/modules/shell/ExecutionDrawer";
+// CopilotChat and ExecutionDrawer removed to reduce UI surface area
 import { useExecutionStore } from "@/modules/shell/useExecutionStore";
 import { computeSimpleDagLayout } from "@/modules/canvas/utils/autolayout";
 import InspectorPanel from "@/modules/canvas/components/inspector/InspectorPanel";
@@ -28,7 +27,7 @@ export default function CanvasView() {
   const connectEdgeStore = useCanvasStore((s) => s.connectEdge);
   const removeEdgesStore = useCanvasStore((s) => s.removeEdgesByIds);
   const [err, setErr] = useState<string | null>(null);
-  const [rightTab, setRightTab] = useState<"console" | "step">(((sp.get("tab") as any) || "console") as any);
+  // Right pane removed; keep Canvas + Inspector only
   const [paletteOpen, setPaletteOpen] = useState<boolean>(false);
   const positions = useCanvasStore((s) => s.positions);
   const updatePositions = useCanvasStore((s) => s.updatePositions);
@@ -65,13 +64,7 @@ export default function CanvasView() {
     } catch {}
   }, [bp]);
 
-  // Reflect right panel tab in URL for deep-linking
-  useEffect(() => {
-    const params = new URLSearchParams(sp.toString());
-    params.set("tab", rightTab);
-    router.replace(`/canvas?${params.toString()}`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rightTab]);
+  // Right panel removed: no tab sync required
 
   // Initialize selection from URL param when present
   useEffect(() => {
@@ -85,11 +78,6 @@ export default function CanvasView() {
   // Inspector opens as a modal now; keep right pane for console/step only
 
   const exec = useExecutionStore();
-
-  // Auto-open Execution console when a run starts
-  useEffect(() => {
-    if (exec.runId) setRightTab("console");
-  }, [exec.runId]);
 
   const { nodes, edges } = useMemo(() => {
     const nodes: Node[] = [];
@@ -193,7 +181,6 @@ export default function CanvasView() {
       const blueprint = { nodes: (bp?.nodes || []).map((n: any) => ({ id: n.id, type: n.type, dependencies: n.dependencies || [], ...n })) } as any;
       const ack = await mcp.runs.start({ blueprint });
       useExecutionStore.getState().start(mcp.runs.eventsUrl(ack.run_id));
-      setRightTab("console");
     } catch (e) {
       // no-op UI error surfacing for now
     }
@@ -216,7 +203,6 @@ export default function CanvasView() {
     try {
       const ack = await mcp.runs.start({ blueprint: { nodes } as any });
       useExecutionStore.getState().start(mcp.runs.eventsUrl(ack.run_id));
-      setRightTab("console");
     } catch {}
   }
 
@@ -229,9 +215,8 @@ export default function CanvasView() {
 
   // Draft helpers exist in Studio; Canvas omits draft actions in this view to keep TS build strict.
 
-  // Only show right pane when there is an active run
-  const shouldShowRight = exec.runId != null;
-  const centerSpan = shouldShowRight ? "col-span-3" : "col-span-5";
+  // Always use full center span (no right pane)
+  const centerSpan = "col-span-5";
   const [pendingLink, setPendingLink] = useState<{ sourceId: string; targetId: string } | null>(null);
 
   return (
@@ -285,29 +270,9 @@ export default function CanvasView() {
           <Controls />
           <Background gap={12} />
         </ReactFlow>
-        {/* Chat-like copilot for natural language edits */}
-        <div className="mt-2 p-2 border border-neutral-800 rounded">
-          <CopilotChat bp={bp as any} onApplyBlueprint={(next) => setBp(next as any)} />
-        </div>
+        {/* Copilot removed for now; keep Canvas focused */}
       </div>
-      {shouldShowRight && (
-        <div className="col-span-2 h-[80vh] overflow-auto border border-neutral-800 rounded p-0 text-sm flex flex-col">
-          <div className="flex items-center gap-2 border-b border-neutral-800 px-2 py-1">
-            <button onClick={() => setRightTab("console")} className={`px-2 py-1 text-xs rounded ${rightTab==="console"?"bg-neutral-800 border border-neutral-700":"hover:bg-neutral-900 border border-transparent"}`}>Console</button>
-            <button onClick={() => setRightTab("step")} className={`px-2 py-1 text-xs rounded ${rightTab==="step"?"bg-neutral-800 border border-neutral-700":"hover:bg-neutral-900 border border-transparent"}`}>Step</button>
-          </div>
-          <div className="flex-1 p-2 overflow-auto">
-            {rightTab === "console" && (
-              <div>
-                <ExecutionDrawer />
-              </div>
-            )}
-            {rightTab === "step" && (
-              <div className="text-neutral-500 text-sm">Step details will appear here.</div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Right pane removed (console/step) */}
 
       {/* Modal Node editor */}
       <Dialog

@@ -24,7 +24,7 @@ export default function WorkspacesPage() {
           try {
             const { project_id } = await workspaces.bootstrap();
             setProjectId(project_id);
-            router.push(`/library?projectId=${encodeURIComponent(project_id)}`);
+            router.push(`/canvas?projectId=${encodeURIComponent(project_id)}`);
           } catch {}
         }}>Create Default Project</button>
       </div>
