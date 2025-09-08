@@ -640,6 +640,7 @@ tests that exercise these endpoints against the in-process app instance.
 if (
     os.getenv("ICEOS_ENABLE_LEGACY_BUILDER", "0") == "1"
     or "PYTEST_CURRENT_TEST" in os.environ
+    or os.getenv("ICE_ALLOW_DEV_TOKEN", "0") == "1"
 ):
     # Builder MCP endpoints ---------------------------------------------------
     app.include_router(builder_router)
@@ -649,6 +650,7 @@ if (
     if (
         os.getenv("ICEOS_ENABLE_DRAFTS", "0") == "1"
         or "PYTEST_CURRENT_TEST" in os.environ
+        or os.getenv("ICE_ALLOW_DEV_TOKEN", "0") == "1"
     ):
         from ice_api.api.builder_drafts import router as builder_drafts_router
 
@@ -658,6 +660,7 @@ if (
     if (
         os.getenv("ICEOS_ENABLE_BUILDER_SESSIONS", "0") == "1"
         or "PYTEST_CURRENT_TEST" in os.environ
+        or os.getenv("ICE_ALLOW_DEV_TOKEN", "0") == "1"
     ):
         app.include_router(builder_sessions_router)
 
@@ -665,6 +668,7 @@ if (
     if (
         os.getenv("ICEOS_ENABLE_BUILDER_PREVIEW", "0") == "1"
         or "PYTEST_CURRENT_TEST" in os.environ
+        or os.getenv("ICE_ALLOW_DEV_TOKEN", "0") == "1"
     ):
         app.include_router(builder_preview_router)
 
