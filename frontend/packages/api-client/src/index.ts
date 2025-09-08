@@ -282,6 +282,35 @@ export class IceApiClient {
   }
 
   // --------------------------- Workspaces/Projects --------------------------
+  // --------------------------- Workflows (Blueprints) -----------------------
+  async createBlueprint(payload: { data: Record<string, unknown> }): Promise<{ id: string; version_lock: string }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/blueprints/`, { method: "POST", headers: this.headers({ "X-Version-Lock": "__new__" }), body: JSON.stringify(payload.data) });
+    if (!r.ok) throw new Error(`blueprint create failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async getBlueprint(blueprintId: string): Promise<{ data: Record<string, unknown>; version_lock: string }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/blueprints/${encodeURIComponent(blueprintId)}`, { method: "GET", headers: this.headers() });
+    if (!r.ok) throw new Error(`blueprint get failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async patchBlueprint(blueprintId: string, payload: Record<string, unknown>, versionLock: string): Promise<{ id: string; node_count: number }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/blueprints/${encodeURIComponent(blueprintId)}`, { method: "PATCH", headers: this.headers({ "X-Version-Lock": versionLock }), body: JSON.stringify(payload) });
+    if (!r.ok) throw new Error(`blueprint patch failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async putBlueprint(blueprintId: string, payload: Record<string, unknown>, versionLock: string): Promise<{ id: string; version_lock: string }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/blueprints/${encodeURIComponent(blueprintId)}`, { method: "PUT", headers: this.headers({ "X-Version-Lock": versionLock }), body: JSON.stringify(payload) });
+    if (!r.ok) throw new Error(`blueprint put failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async deleteBlueprint(blueprintId: string, versionLock: string): Promise<void> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/blueprints/${encodeURIComponent(blueprintId)}`, { method: "DELETE", headers: this.headers({ "X-Version-Lock": versionLock }) });
+    if (!r.ok) throw new Error(`blueprint delete failed: ${r.status}`);
+  }
   async listWorkspaces(): Promise<Array<{ id: string; name: string }>> {
     const r = await this._fetch(`${this.baseUrl}/api/v1/workspaces`, { method: "GET", headers: this.headers() });
     if (!r.ok) throw new Error(`workspaces list failed: ${r.status}`);
@@ -316,6 +345,12 @@ export class IceApiClient {
   async listProjectBlueprints(projectId: string): Promise<{ blueprint_ids: string[] }> {
     const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/blueprints`, { method: "GET", headers: this.headers() });
     if (!r.ok) throw new Error(`project blueprints failed: ${r.status}`);
+    return this._json(r);
+  }
+
+  async attachProjectBlueprint(projectId: string, payload: { blueprint_id: string }): Promise<{ id: string; version_lock: string }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/blueprints/attach`, { method: "POST", headers: this.headers(), body: JSON.stringify(payload) });
+    if (!r.ok) throw new Error(`project attach blueprint failed: ${r.status}`);
     return this._json(r);
   }
 

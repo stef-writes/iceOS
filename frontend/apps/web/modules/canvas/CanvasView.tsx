@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactFlow, { Background, Controls, MiniMap, Node, Edge, type Connection, type OnConnect, type EdgeChange, type IsValidConnection, type NodeChange } from "reactflow";
 import "reactflow/dist/style.css";
 import { useSearchParams, useRouter } from "next/navigation";
-import { mcp } from "@/modules/api/client";
+import { mcp, workflows, projects } from "@/modules/api/client";
 import NodePalette from "@/modules/canvas/components/NodePalette";
 import { nodeTypes } from "@/modules/canvas/components/nodes";
 // Frosty chat and ExecutionDrawer removed to reduce UI surface area
@@ -22,6 +22,7 @@ export default function CanvasView() {
   const sp = useSearchParams();
   const router = useRouter();
   const blueprintId = sp.get("blueprintId");
+  const projectId = sp.get("projectId");
   const bp = useCanvasStore((s) => s.blueprint) as any as Blueprint | null;
   const setBp = useCanvasStore((s) => s.setBlueprint) as any as (b: any) => void;
   const selected = useCanvasStore((s) => s.selected) as any as { id: string; type: string } | null;
@@ -35,19 +36,62 @@ export default function CanvasView() {
   const updatePositions = useCanvasStore((s) => s.updatePositions);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
+  const [versionLock, setVersionLock] = useState<string>("");
 
   useEffect(() => {
     (async () => {
       setErr(null);
       try {
+        if (!blueprintId && projectId) {
+          // Auto-create and attach a new workflow, then redirect with its id
+          const initial = { schema_version: "1.2.0", metadata: { name: `Workflow ${new Date().toLocaleString()}`, project_id: projectId }, nodes: [] } as any;
+          const created = await workflows.create(initial);
+          await projects.attach(projectId, created.id);
+          const params = new URLSearchParams(sp.toString());
+          params.set("blueprintId", created.id);
+          // Replace URL to carry workflow id
+          router.replace(`/canvas?${params.toString()}`);
+          setBp({ nodes: [] });
+          return;
+        }
         if (!blueprintId) { setBp({ nodes: [] }); return; }
         const obj = await mcp.blueprints.get(blueprintId);
+        // hydrate version lock for optimistic concurrency
+        try { if (obj && typeof (obj as any).version_lock === "string") setVersionLock((obj as any).version_lock); } catch {}
         setBp(obj as any);
       } catch (e: any) {
         setErr(String(e?.message || e));
       }
     })();
-  }, [blueprintId]);
+  }, [blueprintId, projectId]);
+
+  // Debounced autosave on blueprint changes
+  useEffect(() => {
+    const id = blueprintId;
+    const bpVal = bp as any;
+    if (!id || !bpVal || !Array.isArray(bpVal.nodes)) return;
+    const handle = setTimeout(async () => {
+      try {
+        if (!versionLock) {
+          const obj = await mcp.blueprints.get(id);
+          const lock = String((obj as any).version_lock || "");
+          setVersionLock(lock);
+        }
+        const payload = { nodes: bpVal.nodes } as any;
+        const ack = await (workflows as any).patch(id, payload, versionLock || (String((await mcp.blueprints.get(id) as any).version_lock || "")));
+        // After successful patch, refresh lock
+        const next = await mcp.blueprints.get(id);
+        try { setVersionLock(String((next as any).version_lock || "")); } catch {}
+      } catch (e) {
+        // 409/conflict or validation errors: best-effort refresh lock; in future, merge
+        try {
+          const latest = await mcp.blueprints.get(id);
+          setVersionLock(String((latest as any).version_lock || ""));
+        } catch {}
+      }
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [bp, blueprintId]);
 
   // Handle node dropped from Studio via sessionStorage
   useEffect(() => {

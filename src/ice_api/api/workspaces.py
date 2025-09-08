@@ -26,6 +26,9 @@ from ice_api.redis_client import get_redis
 from ice_api.security import require_auth
 from ice_core.unified_registry import registry
 
+# Import helpers from blueprints API to validate existence and compute version locks
+from .blueprints import _calculate_version_lock as _bp_version_lock
+from .blueprints import _load_blueprint as _load_blueprint_by_id  # type: ignore
 from .templates import FromWorkflowRequest
 
 router = APIRouter(prefix="/api/v1", tags=["workspaces", "projects", "catalog"])
@@ -461,3 +464,58 @@ async def create_project_blueprint_from_workflow(  # noqa: D401
     await _append_project_blueprint(project_id, new_id, request)
     version_lock = _calculate_version_lock(bp)
     return ProjectBlueprintAddResponse(id=new_id, version_lock=version_lock)
+
+
+# ------------------------------- Project attach existing blueprint -----------
+
+
+class ProjectBlueprintAttachRequest(BaseModel):
+    """Request payload to attach an existing workflow (blueprint) to a project.
+
+    Args:
+        blueprint_id (str): Identifier of an existing blueprint.
+
+    Returns:
+        None
+
+    Example:
+        POST /api/v1/projects/{id}/blueprints/attach with body {"blueprint_id": "..."}
+    """
+
+    blueprint_id: str
+
+
+@router.post(
+    "/projects/{project_id}/blueprints/attach",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+    response_model=ProjectBlueprintAddResponse,
+)
+async def attach_project_blueprint(  # noqa: D401
+    request: Request,
+    project_id: str,
+    payload: ProjectBlueprintAttachRequest,
+) -> ProjectBlueprintAddResponse:
+    """Attach an existing workflow to the project's workflow list.
+
+    Validates that the project exists and the blueprint id resolves; then records
+    the blueprint id into the project's blueprint listing (for navigation/UX).
+    """
+    # Ensure project exists
+    try:
+        await _load_json(Project, _project_key(project_id), request)
+    except Exception:
+        raise HTTPException(status_code=404, detail="project not found")
+
+    # Validate blueprint exists and compute its current version lock
+    try:
+        bp = await _load_blueprint_by_id(payload.blueprint_id)
+    except HTTPException:
+        raise HTTPException(status_code=404, detail="blueprint not found")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    await _append_project_blueprint(project_id, payload.blueprint_id, request)
+    return ProjectBlueprintAddResponse(
+        id=payload.blueprint_id, version_lock=_bp_version_lock(bp)
+    )

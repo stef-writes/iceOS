@@ -101,13 +101,22 @@ export const workspaces = {
 };
 
 export const projects = {
-  blueprints: (projectId: string) => (api as any).listProjectBlueprints(projectId),
+  blueprints: (projectId: string) => api.listProjectBlueprints(projectId),
+  attach: (projectId: string, blueprintId: string) => (api as any).attachProjectBlueprint(projectId, { blueprint_id: blueprintId }),
   catalog: {
-    get: (projectId: string) => (api as any).getProjectCatalog(projectId),
-    update: (projectId: string, payload: { enabled_tools: string[]; enabled_workflows: string[] }) => (api as any).updateProjectCatalog(projectId, payload),
+    get: (projectId: string) => api.getProjectCatalog(projectId),
+    update: (projectId: string, payload: { enabled_tools: string[]; enabled_workflows: string[] }) => api.updateProjectCatalog(projectId, payload),
   },
   mounts: {
-    list: (projectId: string) => (api as any).listMounts(projectId),
-    add: (projectId: string, payload: { id: string; label: string; uri: string; metadata?: Record<string, unknown> }) => (api as any).addMount(projectId, payload),
+    list: (projectId: string) => api.listMounts(projectId),
+    add: (projectId: string, payload: { id: string; label: string; uri: string; metadata?: Record<string, unknown> }) => api.addMount(projectId, payload),
   },
+};
+
+export const workflows = {
+  create: (data: Record<string, unknown>) => (api as any).createBlueprint({ data }),
+  get: (id: string) => (api as any).getBlueprint(id),
+  put: (id: string, payload: Record<string, unknown>, versionLock: string) => (api as any).putBlueprint(id, payload, versionLock),
+  patch: (id: string, payload: Record<string, unknown>, versionLock: string) => (api as any).patchBlueprint(id, payload, versionLock),
+  delete: (id: string, versionLock: string) => (api as any).deleteBlueprint(id, versionLock),
 };
