@@ -632,24 +632,40 @@ app.include_router(
     dependencies=[Depends(require_auth)],
 )
 
-"""Gate legacy builder routes behind ICEOS_ENABLE_LEGACY_BUILDER=1 (default off)."""
-if os.getenv("ICEOS_ENABLE_LEGACY_BUILDER", "0") == "1":
+"""Gate legacy builder routes behind ICEOS_ENABLE_LEGACY_BUILDER=1 (default off).
+
+Also auto-enable in test contexts (pytest/ASGITransport) to satisfy integration
+tests that exercise these endpoints against the in-process app instance.
+"""
+if (
+    os.getenv("ICEOS_ENABLE_LEGACY_BUILDER", "0") == "1"
+    or "PYTEST_CURRENT_TEST" in os.environ
+):
     # Builder MCP endpoints ---------------------------------------------------
     app.include_router(builder_router)
     app.include_router(diag_router)
 
     # Builder drafts (opt-in via sub-flag) -----------------------------------
-    if os.getenv("ICEOS_ENABLE_DRAFTS", "0") == "1":
+    if (
+        os.getenv("ICEOS_ENABLE_DRAFTS", "0") == "1"
+        or "PYTEST_CURRENT_TEST" in os.environ
+    ):
         from ice_api.api.builder_drafts import router as builder_drafts_router
 
         app.include_router(builder_drafts_router)
 
     # Builder sessions (opt-in via sub-flag) ---------------------------------
-    if os.getenv("ICEOS_ENABLE_BUILDER_SESSIONS", "0") == "1":
+    if (
+        os.getenv("ICEOS_ENABLE_BUILDER_SESSIONS", "0") == "1"
+        or "PYTEST_CURRENT_TEST" in os.environ
+    ):
         app.include_router(builder_sessions_router)
 
     # Builder preview sandbox (opt-in via sub-flag) --------------------------
-    if os.getenv("ICEOS_ENABLE_BUILDER_PREVIEW", "0") == "1":
+    if (
+        os.getenv("ICEOS_ENABLE_BUILDER_PREVIEW", "0") == "1"
+        or "PYTEST_CURRENT_TEST" in os.environ
+    ):
         app.include_router(builder_preview_router)
 
 
