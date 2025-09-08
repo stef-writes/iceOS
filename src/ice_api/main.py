@@ -25,7 +25,9 @@ except ModuleNotFoundError:  # pragma: no cover – OTEL optional
     _OTEL_AVAILABLE = False
 
 from ice_api.api.mcp import router as mcp_router
+from ice_api.api.templates import router as templates_router
 from ice_api.api.uploads import router as uploads_router
+from ice_api.api.workspaces import router as workspaces_router
 
 # keep import grouping minimal; remove unused service imports
 from ice_api.errors import add_exception_handlers
@@ -483,9 +485,7 @@ from ice_api.api.library import router as library_router
 from ice_api.api.node_details import router as node_details_router
 from ice_api.api.registry_health import router as registry_health_router
 from ice_api.api.storage import router as storage_router
-from ice_api.api.templates import router as templates_router
 from ice_api.api.tokens import router as tokens_router
-from ice_api.api.workspaces import router as workspaces_router
 from ice_api.security import require_auth
 
 app.include_router(
@@ -570,6 +570,8 @@ from ice_api.ws.executions import router as exec_ws_router
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
 app.include_router(exec_ws_router, prefix="/ws", tags=["websocket"])
 app.include_router(uploads_router, prefix="", tags=["uploads"])
+app.include_router(workspaces_router)
+app.include_router(templates_router)
 
 if os.getenv("ICEOS_ENABLE_METRICS", "0") == "1":
     try:
