@@ -354,6 +354,11 @@ export class IceApiClient {
     return this._json(r);
   }
 
+  async detachProjectBlueprint(projectId: string, blueprintId: string): Promise<void> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/blueprints/${encodeURIComponent(blueprintId)}`, { method: "DELETE", headers: this.headers() });
+    if (!r.ok) throw new Error(`project detach blueprint failed: ${r.status}`);
+  }
+
   async getProjectCatalog(projectId: string): Promise<{ tools: Array<{ name: string; type: string; enabled: boolean }>; workflows: Array<{ name: string; type: string; enabled: boolean }>; agents: Array<{ name: string; type: string; enabled: boolean }> }> {
     const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/catalog`, { method: "GET", headers: this.headers() });
     if (!r.ok) throw new Error(`project catalog failed: ${r.status}`);

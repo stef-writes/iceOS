@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { workspaces, projects, workflows } from "@/modules/api/client";
+import { workspaces, workflows, projects as projectsApi } from "@/modules/api/client";
 import { useProjectContext } from "@/modules/context/ProjectContext";
 
 export default function WorkspacesPage() {
@@ -32,13 +32,6 @@ export default function WorkspacesPage() {
     <div className="p-3 text-sm">
       <div className="text-neutral-300 mb-2">Workspaces</div>
       <div className="mb-3">
-        <button className="px-2 py-1 border border-neutral-700 rounded text-xs hover:bg-neutral-800 mr-2" onClick={async () => {
-          try {
-            const { project_id } = await workspaces.bootstrap();
-            setProjectId(project_id);
-            router.push(`/canvas?projectId=${encodeURIComponent(project_id)}`);
-          } catch {}
-        }}>Create Default Project</button>
         <button className="px-2 py-1 border border-neutral-700 rounded text-xs hover:bg-neutral-800" onClick={async () => {
           // Create a new workspace with generated id/name
           try {
@@ -79,7 +72,7 @@ export default function WorkspacesPage() {
                         setProjectId(p.id);
                         const initial = { schema_version: "1.2.0", metadata: { name: `Workflow ${new Date().toLocaleString()}`, project_id: p.id }, nodes: [] } as any;
                         const created = await workflows.create(initial);
-                        await projects.attach(p.id, created.id);
+                        await projectsApi.attach(p.id, created.id);
                         router.push(`/canvas?projectId=${encodeURIComponent(p.id)}&blueprintId=${encodeURIComponent(created.id)}`);
                       } catch {}
                     }}>New Canvas</button>
@@ -92,7 +85,7 @@ export default function WorkspacesPage() {
             </div>
           </div>
         ))}
-        {ws.length === 0 && <div className="text-neutral-500 text-xs">No workspaces yet. Use "Create Default Project" to get started.</div>}
+        {ws.length === 0 && <div className="text-neutral-500 text-xs">No workspaces yet. Click "New Workspace" to get started.</div>}
       </div>
     </div>
   );

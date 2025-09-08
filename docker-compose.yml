@@ -63,6 +63,8 @@ services:
       CHAT_TTL_SECONDS: ${CHAT_TTL_SECONDS:-2592000}
       EXECUTION_TTL_SECONDS: ${EXECUTION_TTL_SECONDS:-604800}
       ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
+      # Allow dev token in local compose so frontend default token works
+      ICE_ALLOW_DEV_TOKEN: ${ICE_ALLOW_DEV_TOKEN:-1}
       ICE_API_TOKEN: ${ICE_API_TOKEN:-dev-token}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       # Demo-friendly rate limits (dev only)

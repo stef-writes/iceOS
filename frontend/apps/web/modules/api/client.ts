@@ -18,8 +18,11 @@ const fetchWithProject: Fetcher = (input, init) => {
   return fetch(input as any, init);
 };
 
+// Normalize baseUrl so package endpoints using "/api/v1" don't become "/api/api/v1"
+const normalizedBaseUrl = (env.API_URL || "").replace(/\/?api$/, "");
+
 export const api = new IceApiClient({
-  baseUrl: env.API_URL,
+  baseUrl: normalizedBaseUrl,
   token: env.API_TOKEN,
   fetch: fetchWithProject,
 });

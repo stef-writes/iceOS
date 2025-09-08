@@ -37,6 +37,7 @@ export default function CanvasView() {
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
   const [versionLock, setVersionLock] = useState<string>("");
+  const [title, setTitle] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -55,10 +56,11 @@ export default function CanvasView() {
           return;
         }
         if (!blueprintId) { setBp({ nodes: [] }); return; }
-        const obj = await mcp.blueprints.get(blueprintId);
-        // hydrate version lock for optimistic concurrency
-        try { if (obj && typeof (obj as any).version_lock === "string") setVersionLock((obj as any).version_lock); } catch {}
-        setBp(obj as any);
+        const res = await workflows.get(blueprintId);
+        try { setVersionLock(String((res as any).version_lock || "")); } catch {}
+        const data = (res as any).data || { nodes: [] };
+        setBp(data as any);
+        try { setTitle(String((data?.metadata?.name) || "Untitled Workflow")); } catch { setTitle("Untitled Workflow"); }
       } catch (e: any) {
         setErr(String(e?.message || e));
       }
@@ -73,25 +75,44 @@ export default function CanvasView() {
     const handle = setTimeout(async () => {
       try {
         if (!versionLock) {
-          const obj = await mcp.blueprints.get(id);
-          const lock = String((obj as any).version_lock || "");
+          const res = await workflows.get(id);
+          const lock = String((res as any).version_lock || "");
           setVersionLock(lock);
         }
-        const payload = { nodes: bpVal.nodes } as any;
-        const ack = await (workflows as any).patch(id, payload, versionLock || (String((await mcp.blueprints.get(id) as any).version_lock || "")));
+        const payload = { nodes: bpVal.nodes, metadata: { name: title } } as any;
+        const currentLock = versionLock || String(((await workflows.get(id)) as any).version_lock || "");
+        await (workflows as any).patch(id, payload, currentLock);
         // After successful patch, refresh lock
-        const next = await mcp.blueprints.get(id);
+        const next = await workflows.get(id);
         try { setVersionLock(String((next as any).version_lock || "")); } catch {}
       } catch (e) {
         // 409/conflict or validation errors: best-effort refresh lock; in future, merge
         try {
-          const latest = await mcp.blueprints.get(id);
+          const latest = await workflows.get(id);
           setVersionLock(String((latest as any).version_lock || ""));
         } catch {}
       }
     }, 600);
     return () => clearTimeout(handle);
   }, [bp, blueprintId]);
+
+  // Debounced title save when changed
+  useEffect(() => {
+    const id = blueprintId;
+    if (!id || !title) return;
+    const handle = setTimeout(async () => {
+      try {
+        const res = await workflows.get(id);
+        const data = (res as any).data || {};
+        const lock = String((res as any).version_lock || "");
+        data.metadata = { ...(data.metadata || {}), name: title };
+        await (workflows as any).put(id, data, lock);
+        const next = await workflows.get(id);
+        setVersionLock(String((next as any).version_lock || ""));
+      } catch {}
+    }, 800);
+    return () => clearTimeout(handle);
+  }, [title, blueprintId]);
 
   // Handle node dropped from Studio via sessionStorage
   useEffect(() => {
@@ -285,6 +306,7 @@ export default function CanvasView() {
       </div>
       <div className={`${centerSpan} h-[80vh]`}>
         <div className="mb-2 flex items-center gap-2">
+          <input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Untitled Workflow" className="px-2 py-1 text-xs border border-neutral-700 rounded bg-neutral-900" />
           <button onClick={onRunGraph} className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Run graph</button>
           <button onClick={onRunSelection} className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Run selection</button>
           <span className="mx-2 h-4 w-px bg-neutral-800" />

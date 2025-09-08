@@ -18,7 +18,7 @@ Notes
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field, ValidationError
 
 from ice_api.dependencies import rate_limit
@@ -378,6 +378,26 @@ async def _list_project_blueprint_ids(project_id: str, request: Request) -> List
     return []
 
 
+async def _remove_project_blueprint(
+    project_id: str, blueprint_id: str, request: Request
+) -> None:
+    """Remove a blueprint id from a project's list (best-effort)."""
+    # Redis first
+    try:
+        redis = get_redis()
+        # Remove all occurrences
+        await redis.lrem(_project_blueprints_key(project_id), 0, blueprint_id)  # type: ignore[misc]
+        return
+    except Exception:
+        pass
+    # In-memory fallback
+    store: Dict[str, Any] = getattr(request.app.state, "_kv", {})
+    key = _project_blueprints_key(project_id)
+    ids: List[str] = store.get(key, []) if isinstance(store.get(key), list) else []
+    store[key] = [i for i in ids if str(i) != str(blueprint_id)]
+    request.app.state._kv = store  # type: ignore[attr-defined]
+
+
 @router.get(
     "/projects/{project_id}/blueprints",
     dependencies=[Depends(rate_limit), Depends(require_auth)],
@@ -519,3 +539,23 @@ async def attach_project_blueprint(  # noqa: D401
     return ProjectBlueprintAddResponse(
         id=payload.blueprint_id, version_lock=_bp_version_lock(bp)
     )
+
+
+@router.delete(
+    "/projects/{project_id}/blueprints/{blueprint_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(rate_limit), Depends(require_auth)],
+)
+async def detach_project_blueprint(  # noqa: D401
+    request: Request,
+    project_id: str,
+    blueprint_id: str,
+) -> Response:
+    """Detach a workflow (blueprint id) from the project’s workflow list."""
+    # Ensure project exists (404 if missing)
+    try:
+        await _load_json(Project, _project_key(project_id), request)
+    except Exception:
+        raise HTTPException(status_code=404, detail="project not found")
+    await _remove_project_blueprint(project_id, blueprint_id, request)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
