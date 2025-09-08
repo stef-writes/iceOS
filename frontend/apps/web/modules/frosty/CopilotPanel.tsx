@@ -4,6 +4,7 @@ import { useCopilotStore } from "@/modules/frosty/store/useCopilotStore";
 import { suggestV2 } from "@/modules/frosty/api/client";
 import { useCanvasStore } from "@/modules/canvas/state/useCanvasStore";
 import { builder, mcp } from "@/modules/api/client";
+import { emit } from "@/modules/core/events";
 
 export default function CopilotPanel() {
   const { open, widthPct, setOpen, loading, setLoading, provider, model, temperature, includeSelection, includeCanvas, setModelControls, setContextToggles, messages, pushMessage } = useCopilotStore();
@@ -30,6 +31,7 @@ export default function CopilotPanel() {
     setLoading(true);
     pushMessage({ id: `m${Date.now()}`, role: "user", text, created_at: Date.now() });
     try {
+      emit("frosty.suggestRequested", { text_length: text.length });
       const canvas_state = includeCanvas ? { blueprint: bp ?? { nodes: [] } } : {};
       const r = await suggestV2({
         text,
@@ -56,10 +58,12 @@ export default function CopilotPanel() {
     if (next) {
       try { setBp(next); (useCanvasStore as any).getState().autoLayout(); } catch {}
     }
+    emit("frosty.actionsApplied", { count: Array.isArray(patches) ? patches.length : 0 });
   }
 
   async function onRun() {
     const blueprint = { nodes: (bp?.nodes || []).map((n: any) => ({ id: n.id, type: n.type, dependencies: n.dependencies || [], ...n })) } as any;
+    emit("frosty.runRequested", { node_count: Array.isArray((bp?.nodes||[])) ? (bp!.nodes as any[]).length : 0 });
     const ack = await mcp.runs.start({ blueprint });
     try { (useCanvasStore as any).getState(); } catch {}
     return ack;

@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { mcp } from "@/modules/api/client";
 import NodePalette from "@/modules/canvas/components/NodePalette";
 import { nodeTypes } from "@/modules/canvas/components/nodes";
-// CopilotChat and ExecutionDrawer removed to reduce UI surface area
+// Frosty chat and ExecutionDrawer removed to reduce UI surface area
 import { useExecutionStore } from "@/modules/shell/useExecutionStore";
 import { computeSimpleDagLayout } from "@/modules/canvas/utils/autolayout";
 import InspectorPanel from "@/modules/canvas/components/inspector/InspectorPanel";

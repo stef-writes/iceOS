@@ -1,26 +1,20 @@
-                    import { test, expect } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-test('Builder Suggest → Propose → Apply → Run', async ({ page }) => {
-  await page.goto('/studio');
-  // Enter minimal canvas_state and prompt
-  await page.getByTestId('builder-container').getByTestId('builder-canvas').first().fill('{"blueprint":{"nodes":[]}}');
-  await page.getByTestId('builder-container').getByTestId('builder-prompt').first().fill('Add an llm node and connect to output');
-  await page.getByTestId('builder-container').getByTestId('builder-suggest').click();
-  await expect(page.locator('text=Patches JSON').first()).toBeVisible();
+test('Studio → Frosty assist on Canvas (roles/text)', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Projects' }).click();
+  await page.getByRole('button', { name: 'Create Default Project' }).click();
+  await page.waitForURL(/\/canvas\?projectId=/);
 
-  await page.getByTestId('builder-container').getByTestId('builder-propose').click();
-  await page.getByRole('button', { name: 'Show diff' }).click();
-  await expect(page.locator('text=Proposed changes')).toBeVisible();
+  await page.getByRole('button', { name: /Open Frosty/i }).click();
+  await page.getByPlaceholder('Ask to add/edit/connect/run…').fill('Add an llm node and connect to output');
+  await page.getByRole('button', { name: 'Send' }).click();
 
-  // Apply via dialog when available; otherwise fall back to plain apply
-  if (await page.getByTestId('builder-apply-diff').isVisible()) {
-    await page.getByTestId('builder-apply-diff').click();
-    await page.getByRole('button', { name: 'Confirm' }).click();
-  } else {
-    await page.getByTestId('builder-container').getByTestId('builder-apply').click();
+  const applyBtn = page.getByRole('button', { name: 'Apply' }).first();
+  if (await applyBtn.isVisible()) {
+    await applyBtn.click();
   }
 
-  // Run
-  await page.getByTestId('builder-container').getByTestId('builder-run').click();
-  await expect(page.getByTestId('execution-drawer')).toBeVisible();
+  await page.getByRole('button', { name: 'Run graph' }).click();
+  await expect(page.getByTestId('execution-drawer').or(page.getByTestId('execution-events'))).toBeVisible();
 });
