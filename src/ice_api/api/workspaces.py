@@ -160,7 +160,8 @@ async def create_workspace(
     response_model=List[Workspace],
 )
 async def list_workspaces(request: Request) -> List[Workspace]:  # noqa: D401
-    return [w for w in await _list_prefix(Workspace, "ws:", request)]
+    rows = await _list_prefix(Workspace, "ws:", request)
+    return [Workspace.model_validate(w.model_dump()) for w in rows]
 
 
 @router.post(
@@ -185,7 +186,10 @@ async def create_project(request: Request, payload: Project = Body(...)) -> Proj
     response_model=List[Project],
 )
 async def list_projects(request: Request, ws_id: str) -> List[Project]:  # noqa: D401
-    projs = [p for p in await _list_prefix(Project, "pr:", request)]
+    projs = [
+        Project.model_validate(p.model_dump())
+        for p in await _list_prefix(Project, "pr:", request)
+    ]
     return [p for p in projs if p.workspace_id == ws_id]
 
 
@@ -231,9 +235,8 @@ async def list_mounts(request: Request, project_id: str) -> List[Mount]:  # noqa
         await _load_json(Project, _project_key(project_id), request)
     except Exception:
         raise HTTPException(status_code=404, detail="project not found")
-    return [
-        m for m in await _list_prefix(Mount, f"{_mounts_key(project_id)}:", request)
-    ]
+    rows = await _list_prefix(Mount, f"{_mounts_key(project_id)}:", request)
+    return [Mount.model_validate(m.model_dump()) for m in rows]
 
 
 class CatalogUpdate(BaseModel):

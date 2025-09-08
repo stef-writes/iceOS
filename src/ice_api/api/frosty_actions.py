@@ -216,8 +216,12 @@ async def suggest_v2(req: SuggestV2Request) -> SuggestV2Response:
     patches = await service.suggest_nodes(text=req.text, canvas_state=req.canvas_state)
 
     # Costs from hints if available
-    hints = service.last_hints if isinstance(service.last_hints, dict) else {}
-    usage = hints.get("usage") if isinstance(hints.get("usage"), dict) else {}
+    hints: Dict[str, Any] = (
+        service.last_hints if isinstance(service.last_hints, dict) else {}
+    )
+    usage: Dict[str, Any] = (
+        hints.get("usage") if isinstance(hints.get("usage"), dict) else {}
+    )
     ce = CostEstimator()
     est = ce.estimate(
         prompt_tokens=int(usage.get("prompt_tokens", 0) or 0),

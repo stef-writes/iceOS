@@ -10,7 +10,36 @@ Usage::
 """
 
 import os
-from typing import Any, Awaitable, Callable, Optional, Union
+from typing import (
+    Any,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Optional,
+    Protocol,
+    cast,
+    runtime_checkable,
+)
+
+
+@runtime_checkable
+class AsyncRedisLike(Protocol):  # pragma: no cover - typing protocol
+    async def ping(self) -> bool: ...
+    async def hset(self, key: str, mapping: dict[str, str]) -> int: ...
+    async def hget(self, key: str, field: str) -> Optional[str]: ...
+    async def hgetall(self, key: str) -> dict[str, str]: ...
+    async def hdel(self, key: str, *fields: str) -> int: ...
+    async def exists(self, key: str) -> bool: ...
+    async def xadd(self, stream: str, data: dict[str, str]) -> str: ...
+    async def xread(
+        self, streams: dict[str, str], block: int = 0, count: int | None = None
+    ) -> list[tuple[str, list[tuple[str, dict[str, str]]]]]: ...
+    async def expire(self, key: str, ttl: int) -> bool: ...
+    async def set(self, key: str, value: str) -> bool: ...
+    async def get(self, key: str) -> Optional[str]: ...
+    async def rpush(self, key: str, value: str) -> int: ...
+    async def lrange(self, key: str, start: int, end: int) -> list[str]: ...
+    def scan_iter(self, pattern: str) -> AsyncIterator[str]: ...
 
 
 class _RedisStub:  # type: ignore
@@ -25,6 +54,8 @@ class _RedisStub:  # type: ignore
     # ------------------------------------------------------------
     _hashes: dict[str, dict[str, str]] = {}
     _streams: dict[str, list[tuple[str, dict[str, str]]]] = {}
+    _strings: dict[str, str] = {}
+    _lists: dict[str, list[str]] = {}
 
     async def ping(self) -> bool:  # noqa: D401 – stub method
         return True
@@ -64,7 +95,58 @@ class _RedisStub:  # type: ignore
         return removed
 
     async def exists(self, key: str) -> bool:  # type: ignore[override]
-        return key in self._hashes or key in self._streams
+        return (
+            key in self._hashes
+            or key in self._streams
+            or key in self._strings
+            or key in self._lists
+        )
+
+    # ------------------------------------------------------------
+    # String helpers --------------------------------------------
+    # ------------------------------------------------------------
+
+    async def set(self, key: str, value: str) -> bool:  # type: ignore[override]
+        self._strings[key] = value
+        return True
+
+    async def get(self, key: str) -> Optional[str]:  # type: ignore[override]
+        return self._strings.get(key)
+
+    # ------------------------------------------------------------
+    # List helpers ----------------------------------------------
+    # ------------------------------------------------------------
+
+    async def rpush(self, key: str, value: str) -> int:  # type: ignore[override]
+        lst = self._lists.setdefault(key, [])
+        lst.append(value)
+        return len(lst)
+
+    async def lrange(self, key: str, start: int, end: int) -> list[str]:  # type: ignore[override]
+        lst = self._lists.get(key, [])
+        # Redis lrange is inclusive of end; -1 means end of list
+        if end == -1:
+            end_idx = len(lst)
+        else:
+            end_idx = end + 1
+        return lst[start:end_idx]
+
+    def scan_iter(self, pattern: str) -> AsyncIterator[str]:  # type: ignore[override]
+        async def _gen() -> AsyncIterator[str]:
+            # Very naive glob: supports suffix '*'
+            prefix = pattern[:-1] if pattern.endswith("*") else pattern
+            for k in (
+                list(self._strings.keys())
+                + list(self._hashes.keys())
+                + list(self._lists.keys())
+            ):
+                if pattern.endswith("*"):
+                    if k.startswith(prefix):
+                        yield k
+                elif k == pattern:
+                    yield k
+
+        return _gen()
 
     # ------------------------------------------------------------
     # Stream helpers (very coarse – good enough for demo) --------
@@ -115,16 +197,16 @@ except ModuleNotFoundError:  # pragma: no cover – optional for unit tests
     redis = None  # type: ignore  # keeps mypy happy when package missing
     Redis = _RedisStub  # type: ignore
 
-__all__: list[str] = ["get_redis"]
+__all__: list[str] = ["get_redis", "AsyncRedisLike"]
 
 # ---------------------------------------------------------------------------
 # Singleton helper ----------------------------------------------------------
 # ---------------------------------------------------------------------------
 
-_redis_client: Optional[Union["Redis", _RedisStub]] = None
+_redis_client: Optional[AsyncRedisLike] = None
 
 
-def get_redis() -> Union["Redis", _RedisStub]:  # – singleton, *sync* accessor
+def get_redis() -> AsyncRedisLike:  # – singleton, *sync* accessor
     """Return the shared :class:`redis.asyncio.Redis` client.
 
     The connection URL is read from the ``REDIS_URL`` environment variable and
@@ -202,8 +284,9 @@ def get_redis() -> Union["Redis", _RedisStub]:  # – singleton, *sync* accessor
                     _redis_client = sentinel.master_for(sentinel_master, **kwargs)  # type: ignore[assignment,no-untyped-call]
                 except Exception:
                     # Fallback to direct URL if sentinel import/config fails
-                    _redis_client = redis.from_url(url, **kwargs)  # type: ignore[no-untyped-call]
+                    _redis_client = cast(AsyncRedisLike, redis.from_url(url, **kwargs))  # type: ignore[no-untyped-call]
             else:
-                _redis_client = redis.from_url(url, **kwargs)  # type: ignore[no-untyped-call]
+                _redis_client = cast(AsyncRedisLike, redis.from_url(url, **kwargs))  # type: ignore[no-untyped-call]
 
+    assert _redis_client is not None
     return _redis_client
