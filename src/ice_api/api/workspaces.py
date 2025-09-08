@@ -211,7 +211,11 @@ async def add_mount(
 ) -> Mount:  # noqa: D401
     # Ensure project exists
     try:
-        pr = await _load_json(Project, _project_key(project_id), request)
+        from typing import cast as _cast
+
+        pr = _cast(
+            Project, await _load_json(Project, _project_key(project_id), request)
+        )
     except Exception:
         raise HTTPException(status_code=404, detail="project not found")
     mount = Mount(

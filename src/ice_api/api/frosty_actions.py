@@ -71,13 +71,7 @@ class CopilotAction(BaseModel):
     """
 
     id: str
-    kind: Literal[
-        ActionKind.ADD_NODE,
-        ActionKind.EDIT_NODE,
-        ActionKind.LINK,
-        ActionKind.RUN,
-        ActionKind.VALIDATE,
-    ]
+    kind: Literal["add_node", "edit_node", "link", "run", "validate"]
     target: Optional[str] = None
     fields_changed: List[str] = Field(default_factory=list)
     patches: List[NodePatch] = Field(default_factory=list)
@@ -216,12 +210,12 @@ async def suggest_v2(req: SuggestV2Request) -> SuggestV2Response:
     patches = await service.suggest_nodes(text=req.text, canvas_state=req.canvas_state)
 
     # Costs from hints if available
-    hints: Dict[str, Any] = (
+    base_hints: Dict[str, Any] = (
         service.last_hints if isinstance(service.last_hints, dict) else {}
     )
-    usage: Dict[str, Any] = (
-        hints.get("usage") if isinstance(hints.get("usage"), dict) else {}
-    )
+    hints: Dict[str, Any] = dict(base_hints)
+    _usage_obj = hints.get("usage")
+    usage: Dict[str, Any] = dict(_usage_obj) if isinstance(_usage_obj, dict) else {}
     ce = CostEstimator()
     est = ce.estimate(
         prompt_tokens=int(usage.get("prompt_tokens", 0) or 0),
