@@ -247,7 +247,7 @@ export default function CanvasView() {
           <button onClick={undo} title="Undo" className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Undo</button>
           <button onClick={redo} title="Redo" className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Redo</button>
           <span className="mx-2 h-4 w-px bg-neutral-800" />
-          <button onClick={()=>{ try{ (useCopilotStore as any).getState().setOpen(!(useCopilotStore as any).getState().open);}catch{} }} className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">{copilotOpen?"Hide Copilot":"Open Copilot"}</button>
+          <button onClick={()=>{ try{ (useCopilotStore as any).getState().setOpen(!(useCopilotStore as any).getState().open);}catch{} }} className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">{copilotOpen?"Hide Frosty":"Open Frosty"}</button>
         </div>
         {err && <div className="p-2 text-red-400 text-sm">{err}</div>}
         <ReactFlow

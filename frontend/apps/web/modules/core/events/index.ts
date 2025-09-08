@@ -2,6 +2,9 @@ export type AppEventName =
   | "ui.commandExecuted"
   | "canvas.nodeSelected"
   | "builder.suggestRequested"
+  | "frosty.suggestRequested"
+  | "frosty.actionsApplied"
+  | "frosty.runRequested"
   | "drafts.conflictDetected"
   | "preview.sandboxError";
 

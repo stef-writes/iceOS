@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useCopilotStore } from "@/modules/copilot/store/useCopilotStore";
-import { suggestV2 } from "@/modules/copilot/api/client";
+import { useCopilotStore } from "@/modules/frosty/store/useCopilotStore";
+import { suggestV2 } from "@/modules/frosty/api/client";
 import { useCanvasStore } from "@/modules/canvas/state/useCanvasStore";
 import { builder, mcp } from "@/modules/api/client";
 
