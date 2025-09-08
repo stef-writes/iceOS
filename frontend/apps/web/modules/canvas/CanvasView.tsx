@@ -307,8 +307,8 @@ export default function CanvasView() {
       <div className={`${centerSpan} h-[80vh]`}>
         <div className="mb-2 flex items-center gap-2">
           <input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Untitled Workflow" className="px-2 py-1 text-xs border border-neutral-700 rounded bg-neutral-900" />
-          <button onClick={onRunGraph} className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Run graph</button>
-          <button onClick={onRunSelection} className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Run selection</button>
+          <button onClick={onRunGraph} className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Run workflow</button>
+          <button onClick={onRunSelection} className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Run selected nodes</button>
           <span className="mx-2 h-4 w-px bg-neutral-800" />
           <button onClick={undo} title="Undo" className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Undo</button>
           <button onClick={redo} title="Redo" className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Redo</button>
