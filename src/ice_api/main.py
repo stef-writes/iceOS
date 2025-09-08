@@ -478,6 +478,7 @@ from ice_api.api.blueprints import router as blueprint_router  # ensure module i
 from ice_api.api.catalog import router as catalog_router
 from ice_api.api.discovery import router as discovery_router
 from ice_api.api.executions import router as execution_router
+from ice_api.api.frosty_actions import router as frosty_actions_router
 from ice_api.api.library import router as library_router
 from ice_api.api.node_details import router as node_details_router
 from ice_api.api.registry_health import router as registry_health_router
@@ -542,6 +543,12 @@ app.include_router(
     templates_router,
     prefix="",
     tags=["templates", "library"],
+)
+
+app.include_router(
+    frosty_actions_router,
+    prefix="",
+    tags=["frosty"],
 )
 
 app.include_router(
@@ -625,23 +632,25 @@ app.include_router(
     dependencies=[Depends(require_auth)],
 )
 
-# Builder MCP endpoints -------------------------------------------------------
-app.include_router(builder_router)
-app.include_router(diag_router)
+"""Gate legacy builder routes behind ICEOS_ENABLE_LEGACY_BUILDER=1 (default off)."""
+if os.getenv("ICEOS_ENABLE_LEGACY_BUILDER", "0") == "1":
+    # Builder MCP endpoints ---------------------------------------------------
+    app.include_router(builder_router)
+    app.include_router(diag_router)
 
-# Builder drafts (opt-in via env flag) ---------------------------------------
-if os.getenv("ICEOS_ENABLE_DRAFTS", "1") == "1":
-    from ice_api.api.builder_drafts import router as builder_drafts_router
+    # Builder drafts (opt-in via sub-flag) -----------------------------------
+    if os.getenv("ICEOS_ENABLE_DRAFTS", "0") == "1":
+        from ice_api.api.builder_drafts import router as builder_drafts_router
 
-    app.include_router(builder_drafts_router)
+        app.include_router(builder_drafts_router)
 
-# Builder sessions (opt-in via env flag) -------------------------------------
-if os.getenv("ICEOS_ENABLE_BUILDER_SESSIONS", "1") == "1":
-    app.include_router(builder_sessions_router)
+    # Builder sessions (opt-in via sub-flag) ---------------------------------
+    if os.getenv("ICEOS_ENABLE_BUILDER_SESSIONS", "0") == "1":
+        app.include_router(builder_sessions_router)
 
-# Builder preview sandbox (opt-in via env flag) -------------------------------
-if os.getenv("ICEOS_ENABLE_BUILDER_PREVIEW", "1") == "1":
-    app.include_router(builder_preview_router)
+    # Builder preview sandbox (opt-in via sub-flag) --------------------------
+    if os.getenv("ICEOS_ENABLE_BUILDER_PREVIEW", "0") == "1":
+        app.include_router(builder_preview_router)
 
 
 # Root endpoint

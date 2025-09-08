@@ -13,6 +13,8 @@ import InspectorPanel from "@/modules/canvas/components/inspector/InspectorPanel
 import { useCanvasStore } from "@/modules/canvas/state/useCanvasStore";
 import { Dialog } from "@/modules/ui/primitives/Dialog";
 import EdgeLinkWizard from "@/modules/canvas/components/EdgeLinkWizard";
+import CopilotPanel from "@/modules/frosty/CopilotPanel";
+import { useCopilotStore } from "@/modules/frosty/store/useCopilotStore";
 
 type Blueprint = { nodes?: Array<{ id: string; type: string; dependencies?: string[] }> };
 
@@ -218,6 +220,7 @@ export default function CanvasView() {
   // Always use full center span (no right pane)
   const centerSpan = "col-span-5";
   const [pendingLink, setPendingLink] = useState<{ sourceId: string; targetId: string } | null>(null);
+  const copilotOpen = (useCopilotStore as any).getState().open as boolean;
 
   return (
     <div className="grid grid-cols-6 gap-3">
@@ -243,6 +246,8 @@ export default function CanvasView() {
           <span className="mx-2 h-4 w-px bg-neutral-800" />
           <button onClick={undo} title="Undo" className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Undo</button>
           <button onClick={redo} title="Redo" className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">Redo</button>
+          <span className="mx-2 h-4 w-px bg-neutral-800" />
+          <button onClick={()=>{ try{ (useCopilotStore as any).getState().setOpen(!(useCopilotStore as any).getState().open);}catch{} }} className="px-2 py-1 text-xs border border-neutral-700 rounded hover:bg-neutral-800">{copilotOpen?"Hide Copilot":"Open Copilot"}</button>
         </div>
         {err && <div className="p-2 text-red-400 text-sm">{err}</div>}
         <ReactFlow
@@ -352,6 +357,7 @@ export default function CanvasView() {
           />
         )}
       </Dialog>
+      <CopilotPanel />
     </div>
   );
 }
