@@ -123,3 +123,7 @@ export const workflows = {
   patch: (id: string, payload: Record<string, unknown>, versionLock: string) => (api as any).patchBlueprint(id, payload, versionLock),
   delete: (id: string, versionLock: string) => (api as any).deleteBlueprint(id, versionLock),
 };
+
+export const meta = {
+  models: () => (api as any).listModelsCatalog(),
+};

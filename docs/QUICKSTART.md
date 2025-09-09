@@ -44,6 +44,12 @@ curl -s http://localhost:8000/readyz
 make demo-up && make demo-wait
 ```
 
+## One-liner: Live demo (API + Web) with real LLM
+```bash
+export OPENAI_API_KEY=sk-... && make demo-live
+```
+Then open `http://localhost:3000` (frontend) and `http://localhost:8000/readyz` (API health). The frontend talks to the API via `/api` with token `dev-token`.
+
 ## Push and run a workflow (CLI)
 ```bash
 export ICE_API_URL=http://localhost:8000

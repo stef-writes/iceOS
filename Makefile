@@ -2,7 +2,7 @@
 
 PYTHON := $(shell which python)
 
-.PHONY: install lint lint-docker format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix lock-check lock-check-docker
+.PHONY: install lint lint-docker format format-check audit type type-nuke type-docker type-check test ci clean clean-caches precommit-clean fresh-env serve stop-serve dev pre-commit-docker pre-commit-docker-fix lock-check lock-check-docker run-min stop-min doctor-min
 
 install:
 	poetry install --with dev --no-interaction
@@ -174,7 +174,7 @@ dev-zero:
 # ---------------------------------------------------------------------------
 .PHONY: demo-reset demo-up demo-wait demo-ingest demo-query demo-rag
 ## ----------------------------- Frontend -------------------------------------
-.PHONY: fe-install fe-dev fe-build fe-start fe-up up down restart run
+.PHONY: fe-install fe-dev fe-build fe-start fe-up up down restart run demo-live
 
 fe-install:
 	cd frontend && npm install
@@ -214,9 +214,59 @@ run:
 	done; \
 	if command -v open >/dev/null 2>&1; then open http://localhost:3000; fi
 
+demo-live:
+	@echo "[demo-live] Running one-time migrations..."; \
+	 docker compose run --rm migrate >/dev/null 2>&1 || true; \
+	 echo "[demo-live] Starting API + Web using existing images (no rebuild)..."; \
+	 docker compose up -d --remove-orphans api web; \
+	 echo "[demo-live] Waiting for API readiness at http://localhost:8000/readyz ..."; \
+	 for i in $$(seq 1 120); do \
+	   if curl -fsS http://localhost:8000/readyz >/dev/null 2>&1; then echo "[ok] API ready"; break; fi; \
+	   sleep 1; \
+	 done; \
+	 echo "[demo-live] Waiting for Web at http://localhost:3000 ..."; \
+	 for i in $$(seq 1 120); do \
+	   if curl -fsS http://localhost:3000 >/dev/null 2>&1; then echo "[ok] Web ready: http://localhost:3000"; break; fi; \
+	   sleep 1; \
+	 done; \
+	 if command -v open >/dev/null 2>&1; then open http://localhost:3000; fi; \
+	 echo "[demo-live] TIP: API at http://localhost:8000 (token: dev-token). Frontend uses /api proxy path.";
+
+.PHONY: demo-rebuild
+demo-rebuild:
+	@echo "[demo-rebuild] Rebuilding API and Web images..."; \
+	 docker compose build api web; \
+	 echo "[demo-rebuild] Done. Use 'make demo-live' to start without rebuilding."
+
 .PHONY: run-native
 run-native:
 	bash scripts/dev/run_native.sh
+## ---------------------------------------------------------------------------
+## Minimal, zero-setup wrappers using a single env file ----------------------
+## ---------------------------------------------------------------------------
+.PHONY: run-min stop-min doctor-min
+
+ENV_FILE ?= .env.dev
+
+run-min:
+	@echo "[run-min] Using env file: $(ENV_FILE)" ; \
+	ENV_FILE=$(ENV_FILE) docker compose --env-file $(ENV_FILE) up -d postgres redis --remove-orphans ; \
+	ENV_FILE=$(ENV_FILE) docker compose --env-file $(ENV_FILE) run --rm migrate ; \
+	ENV_FILE=$(ENV_FILE) docker compose --env-file $(ENV_FILE) up -d api web --remove-orphans ; \
+	printf "[run-min] Waiting for API /readyz ..." ; \
+	for i in $$(seq 1 120); do \
+	  curl -fsS http://localhost:8000/readyz >/dev/null 2>&1 && echo " ready" && break; \
+	  sleep 1; \
+	done ; \
+	if command -v open >/dev/null 2>&1; then open http://localhost:3000; fi ; \
+	echo "[ok] Web: http://localhost:3000  |  API: http://localhost:8000"
+
+stop-min:
+	ENV_FILE=$(ENV_FILE) docker compose --env-file $(ENV_FILE) down -v --remove-orphans || true
+
+doctor-min:
+	@echo "[doctor-min] API readiness:" ; (curl -fsS http://localhost:8000/readyz || true)
+	@echo "[doctor-min] Ports: 8000($$(lsof -ti tcp:8000 | wc -l)) 3000($$(lsof -ti tcp:3000 | wc -l))"
 
 # Single-origin zero-setup (compose: DB+cache+migrate+api+web+proxy)
 .PHONY: run-auto
@@ -348,3 +398,18 @@ ci-integration-staging:
 	IMAGE_REPO=local IMAGE_TAG=dev ICE_ENABLE_WASM=0 ICE_SKIP_STRESS=1 \
 	DATABASE_URL=$$DATABASE_URL \
 	docker compose -f docker-compose.itest.yml -f docker-compose.itest.staging.yml up --abort-on-container-exit --exit-code-from itest
+
+.PHONY: stage-up
+stage-up:
+	@if [ ! -f ./.env.supabase.final ]; then echo "Missing .env.supabase.final with Supabase DSNs" >&2; exit 1; fi; \
+	 set -a; . ./.env.supabase.final; set +a; \
+	 echo "[stage] Running Alembic migrations on Supabase..."; \
+	 docker compose -f docker-compose.yml run --rm --no-deps -e DATABASE_URL -e ALEMBIC_SYNC_URL migrate; \
+	 echo "[stage] Starting API with staging override..."; \
+	 docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --remove-orphans api; \
+	 echo "[stage] Waiting for API readiness at http://localhost:8000/readyz ..."; \
+	 for i in $$(seq 1 90); do \
+	   if curl -fsS http://localhost:8000/readyz >/dev/null 2>&1; then echo "[stage] API ready"; exit 0; fi; \
+	   sleep 1; \
+	 done; \
+	 echo "[stage] API did not become ready in time" >&2; exit 1

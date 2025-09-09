@@ -359,6 +359,13 @@ export class IceApiClient {
     if (!r.ok) throw new Error(`project detach blueprint failed: ${r.status}`);
   }
 
+  // --------------------------- Meta: Models Catalog -----------------------
+  async listModelsCatalog(): Promise<{ providers: Array<{ id: string; label: string }>; models: Array<{ id: string; provider: string; label: string; tags?: string[]; context_window?: number; vision?: boolean; reasoning?: boolean }>; defaults: { [k: string]: string } }> {
+    const r = await this._fetch(`${this.baseUrl}/api/v1/meta/models`, { method: "GET", headers: this.headers() });
+    if (!r.ok) throw new Error(`models catalog failed: ${r.status}`);
+    return this._json(r);
+  }
+
   async getProjectCatalog(projectId: string): Promise<{ tools: Array<{ name: string; type: string; enabled: boolean }>; workflows: Array<{ name: string; type: string; enabled: boolean }>; agents: Array<{ name: string; type: string; enabled: boolean }> }> {
     const r = await this._fetch(`${this.baseUrl}/api/v1/projects/${encodeURIComponent(projectId)}/catalog`, { method: "GET", headers: this.headers() });
     if (!r.ok) throw new Error(`project catalog failed: ${r.status}`);

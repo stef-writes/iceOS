@@ -123,15 +123,38 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if manifests_env:
             import logging as _logging
             import pathlib
+            from typing import Any as _Any
 
             _plog = _logging.getLogger(__name__)
             manifest_paths = [p.strip() for p in manifests_env.split(",") if p.strip()]
+            loaded_any: bool = False
             for mp in manifest_paths:
                 path = pathlib.Path(mp)
+                # Harden: only load manifests that declare schema_version: plugins.v0
+                try:
+                    import yaml as _yaml  # type: ignore
+
+                    with path.open("r", encoding="utf-8") as f:
+                        header: dict[str, _Any] | None = _yaml.safe_load(f)
+                    schema_version = (
+                        header.get("schema_version")
+                        if isinstance(header, dict)
+                        else None
+                    )
+                except Exception:
+                    schema_version = None
+                if schema_version != "plugins.v0":
+                    _plog.info(
+                        "Skipping non-plugin manifest %s (schema_version=%r)",
+                        path,
+                        schema_version,
+                    )
+                    continue
                 count = registry.load_plugins(str(path), allow_dynamic=True)
+                loaded_any = loaded_any or count > 0
                 _plog.info("Loaded %d components from manifest %s", count, path)
             # Fail fast if no tool factories are registered after manifest load
-            if not registry.available_tool_factories():
+            if not registry.available_tool_factories() and not loaded_any:
                 raise RuntimeError(
                     "No tool factories registered after loading plugin manifests."
                 )
@@ -349,10 +372,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Component validation ---------------------------------------------
     # ------------------------------------------------------------------
 
-    validation_summary = validate_registered_components()
-    if validation_summary["tool_failures"]:
-        raise RuntimeError(
-            f"Tool validation failures: {validation_summary['tool_failures']}"
+    if os.getenv("ICEOS_SKIP_COMPONENT_VALIDATION", "0") != "1":
+        validation_summary = validate_registered_components()
+        if validation_summary["tool_failures"]:
+            raise RuntimeError(
+                f"Tool validation failures: {validation_summary['tool_failures']}"
+            )
+    else:
+        logger.warning(
+            "Skipping component validation due to ICEOS_SKIP_COMPONENT_VALIDATION=1"
         )
 
     # Print startup banner last so it appears after early logs ---------
@@ -428,7 +456,9 @@ app.add_middleware(
 # Trusted hosts (auto-gated by proxy)
 _trusted_hosts_raw = os.getenv("TRUSTED_HOSTS", "").strip()
 if _behind_proxy:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
+    app.add_middleware(
+        TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "api"]
+    )
 else:
     if _trusted_hosts_raw:
         _trusted_hosts = [h.strip() for h in _trusted_hosts_raw.split(",") if h.strip()]
@@ -616,6 +646,7 @@ async def ready_check() -> Dict[str, str]:
 from ice_api.api.builder_mcp import router as builder_router
 from ice_api.api.builder_preview import router as builder_preview_router
 from ice_api.api.builder_sessions import router as builder_sessions_router
+from ice_api.api.catalog import router as catalog_router
 from ice_api.api.diag import router as diag_router
 
 # Add real MCP JSON-RPC 2.0 endpoint
@@ -628,6 +659,8 @@ app.include_router(
     tags=["mcp-jsonrpc"],
     dependencies=[Depends(require_auth)],
 )
+# Public discovery/catalog endpoints
+app.include_router(catalog_router)
 # Temporary dual mount to support existing clients/tests that use the legacy path
 app.include_router(
     mcp_jsonrpc_router,

@@ -26,7 +26,7 @@ nodes:
 
   - id: llm
     type: llm
-    model: "{{ inputs.model or 'gpt-4o' }}"
+    model: "gpt-4o"
     prompt: |
       You are helpful. Use user library search results and recent turns.
       Query: {{ inputs.query }}
@@ -34,7 +34,7 @@ nodes:
       Results: {{ search.results }}
     llm_config:
       provider: "openai"
-      model: "{{ inputs.model or 'gpt-4o' }}"
+      model: "gpt-4o"
       temperature: 0.2
       max_tokens: 512
     dependencies: [recent, search]

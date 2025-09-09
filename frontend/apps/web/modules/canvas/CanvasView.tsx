@@ -21,7 +21,8 @@ type Blueprint = { nodes?: Array<{ id: string; type: string; dependencies?: stri
 export default function CanvasView() {
   const sp = useSearchParams();
   const router = useRouter();
-  const blueprintId = sp.get("blueprintId");
+  const pathBpId = typeof window !== "undefined" ? (window.location.pathname.match(/^\/workflows\/([^/?#]+)/)?.[1] || null) : null;
+  const blueprintId = sp.get("blueprintId") || pathBpId;
   const projectId = sp.get("projectId");
   const bp = useCanvasStore((s) => s.blueprint) as any as Blueprint | null;
   const setBp = useCanvasStore((s) => s.setBlueprint) as any as (b: any) => void;

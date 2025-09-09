@@ -12,17 +12,15 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Build workspace packages first, then the web app
+# Build workspace packages first, then Next standalone output
 RUN npm run build -w packages/api-client && npm run build -w apps/web
 
 FROM node:20-alpine AS runner
-# Keep workspace node_modules at /app/node_modules
-WORKDIR /app/apps/web
+WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# Bring built app and deps
-COPY --from=builder /app/node_modules /app/node_modules
-COPY --from=builder /app/apps/web/.next ./.next
-COPY --from=builder /app/apps/web/package.json ./package.json
+# Copy only what Next needs to run standalone
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
 EXPOSE 3000
-CMD ["npm","run","start","--","-p","3000","-H","0.0.0.0"]
+CMD ["node","apps/web/server.js"]

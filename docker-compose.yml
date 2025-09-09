@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:15
@@ -30,6 +28,7 @@ services:
       retries: 30
 
   api:
+    image: iceosv1a-api:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -38,6 +37,8 @@ services:
         condition: service_started
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     # Keep a single healthcheck (detailed) below
     ports:
       - "8000:8000"
@@ -48,8 +49,6 @@ services:
       - /var/run/ice
     volumes:
       - api_data:/app/data
-      - ./scripts:/app/scripts:ro
-      - ./src:/app/src:ro
     env_file:
       - config/dev.env.example
     environment:
@@ -71,11 +70,20 @@ services:
       ICE_RATE_WINDOW_SECONDS: ${ICE_RATE_WINDOW_SECONDS:-1.0}
       ICE_RATE_MAX_REQUESTS: ${ICE_RATE_MAX_REQUESTS:-1000}
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://iceos:iceos@postgres:5432/iceos}
-      # For local dev, run without mandatory DB migrations; API falls back to in-memory store when DB is unavailable
-      ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-0}
-      ICEOS_REQUIRE_DB: ${ICEOS_REQUIRE_DB:-0}
+      # Do not run migrations in API; use migrate service
+      ICEOS_RUN_MIGRATIONS: 0
+      # Do not hard-require DB at API startup; migrations run in separate service
+      ICEOS_REQUIRE_DB: 0
       # Limit manifests to valid plugins.v0 tool kits for local dev; load templates via Templates API on demand
+      # Restrict manifests to plugins.v0 toolkits only; skip bundle files here
       ICEOS_PLUGIN_MANIFESTS: ${ICEOS_PLUGIN_MANIFESTS:-/app/plugins/kits/tools/memory/plugins.v0.yaml,/app/plugins/kits/tools/search/plugins.v0.yaml}
+      # Ensure legacy builder routes are exposed for UI/tests
+      ICEOS_ENABLE_LEGACY_BUILDER: ${ICEOS_ENABLE_LEGACY_BUILDER:-1}
+      # Enable dynamic code rehydration now that API is healthy
+      ICEOS_REHYDRATE_COMPONENTS: ${ICEOS_REHYDRATE_COMPONENTS:-1}
+      ICEOS_SKIP_COMPONENT_VALIDATION: ${ICEOS_SKIP_COMPONENT_VALIDATION:-1}
+      # Richer asyncio traces during startup
+      PYTHONASYNCIODEBUG: ${PYTHONASYNCIODEBUG:-1}
       CONTEXT_STORE_BACKEND: ${CONTEXT_STORE_BACKEND:-redis}
       # Observability (optional)
       OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-iceos-api}
@@ -83,9 +91,13 @@ services:
       # Behind reverse proxy in compose – tighten CORS/hosts automatically
       ICE_BEHIND_PROXY: ${ICE_BEHIND_PROXY:-1}
       ICE_BUILDER_USE_PROMPT_PLANNER: ${ICE_BUILDER_USE_PROMPT_PLANNER:-1}
-    command: ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100"]
+    command: ["uvicorn", "ice_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "5", "--limit-concurrency", "100", "--log-level", "debug"]
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8000/readyz"]
+      test:
+        [
+          "CMD-SHELL",
+          "python - <<'PY'\nimport urllib.request,sys,json\ntry:\n  with urllib.request.urlopen('http://localhost:8000/readyz', timeout=3) as r:\n    data = json.loads(r.read().decode('utf-8'))\n    sys.exit(0 if data.get('status')=='ready' else 1)\nexcept Exception:\n  sys.exit(1)\nPY",
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -97,7 +109,7 @@ services:
       dockerfile: Dockerfile
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
       NEXT_PUBLIC_API_TOKEN: ${NEXT_PUBLIC_API_TOKEN:-dev-token}
@@ -106,6 +118,11 @@ services:
       - "3000:3000"
     restart: always
     networks: [backend]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   # proxy removed for stability; access web at http://localhost:3000 and api at http://localhost:8000
 
@@ -119,9 +136,7 @@ services:
   #   networks: [backend]
 
   migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: iceosv1a-api:latest
     depends_on:
       postgres:
         condition: service_healthy

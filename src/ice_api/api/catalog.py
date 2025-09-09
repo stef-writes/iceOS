@@ -134,3 +134,139 @@ async def list_node_catalog() -> NodeCatalog:  # noqa: D401
     chains = [n for n, _ in global_chain_registry.available_chains()]
 
     return NodeCatalog(tools=tools, agents=agents, workflows=workflows, chains=chains)
+
+
+class ModelInfo(BaseModel):
+    """Approved model definition exposed to the frontend.
+
+    Parameters
+    ----------
+    id : str
+        Provider-specific model identifier (e.g., "gpt-4o").
+    provider : str
+        Provider key (e.g., "openai", "anthropic").
+    label : str
+        Human-friendly name for UI display.
+    tags : list[str] | None
+        Capability tags (e.g., ["vision", "128k"]).
+    context_window : int | None
+        Max context tokens, when known.
+    vision : bool | None
+        Whether the model supports image inputs.
+    reasoning : bool | None
+        Whether the model supports reasoning features.
+
+    Examples
+    --------
+    >>> ModelInfo(id="gpt-4o", provider="openai", label="GPT-4o", tags=["vision"], context_window=128000)
+    """
+
+    id: str
+    provider: str
+    label: str
+    tags: List[str] | None = None
+    context_window: int | None = None
+    vision: bool | None = None
+    reasoning: bool | None = None
+
+
+class ProviderInfo(BaseModel):
+    """Approved provider information for UI grouping.
+
+    Examples
+    --------
+    >>> ProviderInfo(id="openai", label="OpenAI")
+    """
+
+    id: str
+    label: str
+
+
+class ModelsCatalog(BaseModel):
+    """Catalog of approved LLM providers/models and defaults for UI.
+
+    Parameters
+    ----------
+    providers : list[ProviderInfo]
+        Enabled providers with display labels.
+    models : list[ModelInfo]
+        Approved models across providers.
+    defaults : dict[str, str]
+        Suggested defaults, e.g. {"provider": "openai", "model": "gpt-4o"}.
+
+    Examples
+    --------
+    >>> ModelsCatalog(providers=[ProviderInfo(id="openai", label="OpenAI")], models=[], defaults={"provider":"openai","model":"gpt-4o"})
+    """
+
+    providers: List[ProviderInfo] = Field(default_factory=list)
+    models: List[ModelInfo] = Field(default_factory=list)
+    defaults: Dict[str, str] = Field(default_factory=dict)
+
+
+@router.get("/models", response_model=ModelsCatalog)
+async def list_models() -> ModelsCatalog:  # noqa: D401
+    """Return approved providers and models for UI dropdowns.
+
+    Returns
+    -------
+    ModelsCatalog
+        Providers, models, and UI defaults.
+
+    Examples
+    --------
+    Basic usage:
+    >>> # In a browser client
+    >>> # fetch('/api/v1/meta/models').then(r => r.json())
+    """
+
+    providers = [
+        ProviderInfo(id="openai", label="OpenAI"),
+        ProviderInfo(id="anthropic", label="Anthropic"),
+        ProviderInfo(id="google", label="Google"),
+        ProviderInfo(id="deepseek", label="DeepSeek"),
+    ]
+
+    models: List[ModelInfo] = [
+        ModelInfo(
+            id="gpt-4o",
+            provider="openai",
+            label="GPT-4o",
+            tags=["vision", "128k"],
+            context_window=128000,
+            vision=True,
+        ),
+        ModelInfo(
+            id="gpt-4o-mini",
+            provider="openai",
+            label="GPT-4o mini",
+            tags=["cheap", "fast", "128k"],
+            context_window=128000,
+        ),
+        ModelInfo(
+            id="claude-3-5-sonnet",
+            provider="anthropic",
+            label="Claude 3.5 Sonnet",
+            tags=["reasoning", "200k"],
+            context_window=200000,
+            reasoning=True,
+        ),
+        ModelInfo(
+            id="gemini-1.5-pro",
+            provider="google",
+            label="Gemini 1.5 Pro",
+            tags=["vision", "1M"],
+            context_window=1000000,
+            vision=True,
+        ),
+        ModelInfo(
+            id="deepseek-chat",
+            provider="deepseek",
+            label="DeepSeek Chat",
+            tags=["cheap"],
+            context_window=None,
+        ),
+    ]
+
+    defaults = {"provider": "openai", "model": "gpt-4o"}
+    return ModelsCatalog(providers=providers, models=models, defaults=defaults)

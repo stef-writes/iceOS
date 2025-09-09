@@ -284,7 +284,9 @@ async def create_revision(  # noqa: D401
     request: Request, workflow_id: str, payload: CreateRevisionRequest = Body(None)
 ) -> RevisionMeta:
     bp = await _load_blueprint_by_id(workflow_id)
-    rev_id = f"r{abs(hash((workflow_id, bp.model_dump_json(), payload.note or ""))) % (10**12)}"
+    # Create a deterministic short revision id from workflow payload and note
+    rev_basis = (workflow_id, bp.model_dump_json(), (payload.note or ""))
+    rev_id = f"r{abs(hash(rev_basis)) % (10**12)}"
     import time as _time
 
     created = int(_time.time())

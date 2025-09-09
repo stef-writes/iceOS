@@ -1,21 +1,15 @@
 "use client";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Home() {
-  const router = useRouter();
   return (
     <div className="p-8 max-w-5xl">
       <div className="text-2xl font-semibold mb-2">iceOS Studio</div>
-      <div className="text-neutral-400 mb-6">Design and run AI workflows on the Canvas.</div>
+      <div className="text-neutral-400 mb-6">Design and run AI workflows. Start by creating a Project, then add a Workflow.</div>
       <div className="flex gap-3 text-sm">
-        <button
-          className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800"
-          onClick={() => router.push("/workspaces")}
-        >Workspaces</button>
-        <button
-          className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800"
-          onClick={() => router.push("/workspaces")}
-        >Projects</button>
+        <Link href="/workspaces" className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800">Projects</Link>
+        <a href="/workflows" className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800">Workflows</a>
+        <a href="/library" className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800">Library</a>
       </div>
       <div className="mt-8 grid grid-cols-3 gap-4 text-xs">
         <div className="border border-neutral-800 rounded p-3">

@@ -1,20 +1,22 @@
 import { test, expect } from '@playwright/test';
 
-test('Studio → Frosty assist on Canvas (roles/text)', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Projects' }).click();
-  await page.getByRole('button', { name: 'Create Default Project' }).click();
-  await page.waitForURL(/\/canvas\?projectId=/);
+test('Workspaces → New Workflow → Canvas run (roles/text)', async ({ page }) => {
+  await page.goto('/workspaces');
+  // New Workspace
+  await page.getByRole('button', { name: 'New Workspace' }).click();
 
-  await page.getByRole('button', { name: /Open Frosty/i }).click();
-  await page.getByPlaceholder('Ask to add/edit/connect/run…').fill('Add an llm node and connect to output');
-  await page.getByRole('button', { name: 'Send' }).click();
+  // New Project in first workspace row
+  await page.getByRole('button', { name: 'New Project' }).first().click();
 
-  const applyBtn = page.getByRole('button', { name: 'Apply' }).first();
-  if (await applyBtn.isVisible()) {
-    await applyBtn.click();
-  }
+  // New Workflow opens Canvas
+  await page.getByRole('button', { name: 'New Workflow' }).first().click();
+  await expect(page).toHaveURL(/\/canvas\?/);
 
-  await page.getByRole('button', { name: 'Run graph' }).click();
-  await expect(page.getByTestId('execution-drawer').or(page.getByTestId('execution-events'))).toBeVisible();
+  // Add a node via palette
+  await page.getByRole('button', { name: 'Add node' }).click();
+  await page.getByRole('button', { name: /^LLM$/ }).click();
+
+  // Run workflow
+  await page.getByRole('button', { name: 'Run workflow' }).click();
+  await expect(page.locator('text=Execution')).toBeVisible({ timeout: 30000 });
 });

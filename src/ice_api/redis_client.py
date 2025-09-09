@@ -38,7 +38,11 @@ class AsyncRedisLike(Protocol):  # pragma: no cover - typing protocol
     async def set(self, key: str, value: str) -> bool: ...
     async def get(self, key: str) -> Optional[str]: ...
     async def rpush(self, key: str, value: str) -> int: ...
-    async def lrange(self, key: str, start: int, end: int) -> list[str]: ...
+    async def lpush(self, key: str, value: str) -> int: ...
+    async def lrem(self, key: str, count: int, value: str) -> int: ...
+    async def lrange(self, key: str, start: int, end: int) -> list[str | bytes]: ...
+    async def sadd(self, key: str, member: str) -> int: ...
+    async def smembers(self, key: str) -> list[str | bytes]: ...
     def scan_iter(self, pattern: str) -> AsyncIterator[str]: ...
 
 
@@ -56,6 +60,7 @@ class _RedisStub:  # type: ignore
     _streams: dict[str, list[tuple[str, dict[str, str]]]] = {}
     _strings: dict[str, str] = {}
     _lists: dict[str, list[str]] = {}
+    _sets: dict[str, set[str]] = {}
 
     async def ping(self) -> bool:  # noqa: D401 – stub method
         return True
@@ -100,6 +105,7 @@ class _RedisStub:  # type: ignore
             or key in self._streams
             or key in self._strings
             or key in self._lists
+            or key in self._sets
         )
 
     # ------------------------------------------------------------
@@ -122,6 +128,36 @@ class _RedisStub:  # type: ignore
         lst.append(value)
         return len(lst)
 
+    async def lpush(self, key: str, value: str) -> int:  # type: ignore[override]
+        lst = self._lists.setdefault(key, [])
+        lst.insert(0, value)
+        return len(lst)
+
+    async def lrem(self, key: str, count: int, value: str) -> int:  # type: ignore[override]
+        lst = self._lists.get(key, [])
+        removed = 0
+        if count == 0:
+            original_len = len(lst)
+            lst[:] = [v for v in lst if v != value]
+            removed = original_len - len(lst)
+        elif count > 0:
+            i = 0
+            while i < len(lst) and removed < count:
+                if lst[i] == value:
+                    lst.pop(i)
+                    removed += 1
+                else:
+                    i += 1
+        else:  # count < 0
+            i = len(lst) - 1
+            while i >= 0 and removed < (-count):
+                if lst[i] == value:
+                    lst.pop(i)
+                    removed += 1
+                i -= 1
+        self._lists[key] = lst
+        return removed
+
     async def lrange(self, key: str, start: int, end: int) -> list[str]:  # type: ignore[override]
         lst = self._lists.get(key, [])
         # Redis lrange is inclusive of end; -1 means end of list
@@ -131,6 +167,15 @@ class _RedisStub:  # type: ignore
             end_idx = end + 1
         return lst[start:end_idx]
 
+    async def sadd(self, key: str, member: str) -> int:  # type: ignore[override]
+        s = self._sets.setdefault(key, set())
+        pre_size = len(s)
+        s.add(member)
+        return 1 if len(s) > pre_size else 0
+
+    async def smembers(self, key: str) -> list[str]:  # type: ignore[override]
+        return list(self._sets.get(key, set()))
+
     def scan_iter(self, pattern: str) -> AsyncIterator[str]:  # type: ignore[override]
         async def _gen() -> AsyncIterator[str]:
             # Very naive glob: supports suffix '*'
@@ -139,6 +184,7 @@ class _RedisStub:  # type: ignore
                 list(self._strings.keys())
                 + list(self._hashes.keys())
                 + list(self._lists.keys())
+                + list(self._sets.keys())
             ):
                 if pattern.endswith("*"):
                     if k.startswith(prefix):
@@ -231,7 +277,7 @@ def get_redis() -> AsyncRedisLike:  # – singleton, *sync* accessor
     if _redis_client is None:
         if use_fake or redis is None:
             # Always create a new in-memory stub for test isolation
-            _redis_client = _RedisStub()  # type: ignore[call-arg]
+            _redis_client = cast(AsyncRedisLike, _RedisStub())
         else:
             url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
             # Connection settings (optional)

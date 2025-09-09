@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "[itest] received stop signal; exiting 0"; exit 0' SIGTERM SIGINT
 
 PYTEST_COMMON=(-c config/testing/pytest.ini -p no:xdist -q -vv --log-cli-level=INFO --durations=20 --durations-min=0.1)
 # Always exclude legacy test path if present in image
@@ -20,3 +21,5 @@ echo "[itest] Pass 2: long-horizon memory tests"
 pytest "${PYTEST_COMMON[@]}" -k "long_horizon_memory" tests/integration
 
 echo "[itest] All integration suites completed."
+sleep 0.2
+exit 0

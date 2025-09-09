@@ -3,6 +3,8 @@ apps/web/node_modules
 packages/*/node_modules
 .next
 apps/web/.next
+.next/cache
+.next/standalone
 coverage
 apps/web/test-results
 test-results

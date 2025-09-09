@@ -37,9 +37,8 @@ ARG REPOSITORY=""
 
 WORKDIR /app
 
-# Security updates for base OS packages (Debian) to reduce known CVEs
+# Keep base minimal; avoid dist-upgrade to prevent layer bloat
 RUN apt-get update -qq \
-    && apt-get -y dist-upgrade \
     && apt-get -y install --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -99,9 +98,8 @@ ARG REPOSITORY=""
 
 WORKDIR /app
 
-# Security updates for base OS packages (Debian) to reduce known CVEs in test image
+# Keep base minimal in test stage as well
 RUN apt-get update -qq \
-    && apt-get -y dist-upgrade \
     && apt-get -y install --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 

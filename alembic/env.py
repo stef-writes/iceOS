@@ -49,6 +49,8 @@ def _sync_url_from_env() -> str:
     url = url.replace("+asyncpg", "")
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://") :]
+    # Alembic uses ConfigParser; escape '%'
+    url = url.replace("%", "%%")
     # sqlite and other schemes pass through
     return url
 

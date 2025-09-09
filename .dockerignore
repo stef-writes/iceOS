@@ -1,0 +1,68 @@
+# VCS
+.git
+.gitignore
+
+# Python caches and build
+__pycache__/
+*.py[cod]
+*.so
+.venv
+venv/
+.mypy_cache/
+.ruff_cache/
+.import_linter_cache/
+
+# Local caches
+.cache/
+.cache/**
+
+# Generated docs/site
+site/
+docs/
+screenshots/
+
+# Test artifacts
+tests/
+pytest_cache/
+.pytest_cache/
+htmlcov/
+.coverage*
+
+# Data and runtime
+data/
+dump.rdb
+
+# Frontend heavy dirs
+frontend/node_modules/
+frontend/apps/web/node_modules/
+frontend/apps/web/.next/
+frontend/apps/web/test-results/
+frontend/packages/**/node_modules/
+frontend/**/.next/
+frontend/**/dist/
+frontend/**/coverage/
+
+# Clients (not needed in API image context)
+clients/
+
+# Editor/OS
+.DS_Store
+.vscode/
+.idea/
+
+# Docker buildx cache
+.cache/buildx/
+
+# Misc
+*.log
+
+# Keep only what API image needs
+!src/
+!alembic/
+!alembic.ini
+!plugins/
+!scripts/
+!pyproject.toml
+!poetry.lock
+!Dockerfile
+!config/
