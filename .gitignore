@@ -112,6 +112,10 @@ frontend/node_modules/
 frontend/apps/web/.next/
 frontend/apps/web/.next/**
 frontend/apps/web/node_modules/
+frontend/apps/web/test-results/
+
+# Temp tokens or local scratch files
+.tmp_api_token
 
 # Local build caches
 .cache/
