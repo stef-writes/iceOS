@@ -8,7 +8,7 @@ This document defines the stable authoring contract for firstâ€‘party and thirdâ
 - Clear, minimal shape to register Tools, Workflows, Agents
 
 ## Location and loading
-- Manifests live under `Plugins/kits/**/plugins.v0.yaml` and are loaded via the environment variable:
+- Manifests live under `plugins/kits/**/plugins.v0.yaml` and are loaded via the environment variable:
   - `ICEOS_PLUGIN_MANIFESTS=/app/plugins/kits/tools/memory/plugins.v0.yaml,/app/plugins/kits/tools/search/plugins.v0.yaml`
 - The API and tests rely on this env var; no bootstrap scripts.
 

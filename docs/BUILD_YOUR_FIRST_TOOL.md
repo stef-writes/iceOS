@@ -23,14 +23,14 @@ def create_hello_tool(**kwargs: Any) -> HelloTool:
 ```
 
 ## 2) Add to a Plugins manifest
-Create/edit `Plugins/kits/tools/hello/plugins.v0.yaml`:
+Create/edit `plugins/kits/tools/hello/plugins.v0.yaml`:
 
 ```yaml
-schema: plugins.v0
+schema_version: plugins.v0
 components:
   - node_type: tool
     name: hello_tool
-    import_path: plugins.kits.tools.hello.hello_tool:create_hello_tool
+    import: plugins.kits.tools.hello.hello_tool:create_hello_tool
     version: 1.0.0
     description: Simple greeting tool
 ```

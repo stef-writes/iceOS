@@ -30,13 +30,14 @@ The following section is for operators and developers. It is not required for no
 - Docker + Docker Compose
 - Set ICE_API_TOKEN (and provider keys if needed)
 
-## Zero-setup (compose)
+## Zero-setup (single command)
 ```bash
-export ICE_API_TOKEN=dev-token
-docker compose up -d postgres redis
-docker compose run --rm migrate
-docker compose up -d api
-curl -s http://localhost:8000/readyz
+make run-min ENV_FILE=config/dev.env.example
+```
+Then open:
+```bash
+curl -fsS http://localhost:8000/readyz
+curl -fsS http://localhost:3000/readyz
 ```
 
 ## Start services (dev compose)
@@ -44,7 +45,7 @@ curl -s http://localhost:8000/readyz
 make demo-up && make demo-wait
 ```
 
-## One-liner: Live demo (API + Web) with real LLM
+## Live demo (API + Web) with real LLM
 ```bash
 export OPENAI_API_KEY=sk-... && make demo-live
 ```
