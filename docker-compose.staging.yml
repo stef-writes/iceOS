@@ -1,19 +1,19 @@
 services:
   api:
-    # Use staging env; explicitly override critical vars and override dev defaults
+    # Use staging env; reference values from host environment or secret store
     env_file: []
     environment:
-      ICE_API_TOKEN: "staging-admin-token"
-      ICEOS_RUN_MIGRATIONS: "0"
-      ICEOS_REQUIRE_DB: "0"
-      DATABASE_URL: "postgresql+asyncpg://postgres.vffpscwywcbbagarqfes:1234ThumbWar%21@aws-0-us-east-2.pooler.supabase.com:6543/postgres"
-      ALEMBIC_SYNC_URL: "postgresql://postgres.vffpscwywcbbagarqfes:1234ThumbWar%21@aws-0-us-east-2.pooler.supabase.com:6543/postgres?sslmode=require"
-      SUPABASE_JWKS_URL: "https://vffpscwywcbbagarqfes.supabase.co/auth/v1/keys"
-      SUPABASE_JWT_ISSUER: "https://vffpscwywcbbagarqfes.supabase.co/"
-      SUPABASE_JWT_AUDIENCE: "authenticated"
-      ICEOS_EMBEDDINGS_PROVIDER: "hash"
-      ICE_SKIP_EXTERNAL: "1"
+      ICE_API_TOKEN: ${ICE_API_TOKEN}
+      ICEOS_RUN_MIGRATIONS: ${ICEOS_RUN_MIGRATIONS:-0}
+      ICEOS_REQUIRE_DB: ${ICEOS_REQUIRE_DB:-0}
+      DATABASE_URL: ${DATABASE_URL}
+      ALEMBIC_SYNC_URL: ${ALEMBIC_SYNC_URL}
+      SUPABASE_JWKS_URL: ${SUPABASE_JWKS_URL}
+      SUPABASE_JWT_ISSUER: ${SUPABASE_JWT_ISSUER}
+      SUPABASE_JWT_AUDIENCE: ${SUPABASE_JWT_AUDIENCE:-authenticated}
+      ICEOS_EMBEDDINGS_PROVIDER: ${ICEOS_EMBEDDINGS_PROVIDER:-hash}
+      ICE_SKIP_EXTERNAL: ${ICE_SKIP_EXTERNAL:-1}
       # Staging defaults for MCP/tool execution
-      ICE_MCP_DEFAULT_TIMEOUT: "90"
-      ICE_TOOL_DEFAULT_TIMEOUT_SECONDS: "90"
-      ICE_TOOL_DEFAULT_RETRIES: "1"
+      ICE_MCP_DEFAULT_TIMEOUT: ${ICE_MCP_DEFAULT_TIMEOUT:-90}
+      ICE_TOOL_DEFAULT_TIMEOUT_SECONDS: ${ICE_TOOL_DEFAULT_TIMEOUT_SECONDS:-90}
+      ICE_TOOL_DEFAULT_RETRIES: ${ICE_TOOL_DEFAULT_RETRIES:-1}

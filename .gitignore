@@ -119,3 +119,15 @@ frontend/apps/web/node_modules/
 
 # Docker buildx cache
 .cache/buildx/
+
+# Environment files (repo root)
+.env
+.env.*
+!.env.example
+
+# Supabase env files (never commit)
+.env.supabase
+.env.supabase.*
+
+# macOS keychain/keys cache (path reference only)
+# ~/.config/iceos/keys.env is not in repo; listed here for clarity
