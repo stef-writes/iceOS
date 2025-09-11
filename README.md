@@ -553,3 +553,9 @@ Full guidelines in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 ## 10. License
 
 `Apache-2.0`.  See [`LICENSE`](LICENSE).
+
+### Verification
+
+See the Verification Playbook for a concise checklist of current state and how to run and verify end‑to‑end:
+
+- docs/VERIFICATION_PLAYBOOK.md
