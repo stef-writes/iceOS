@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from ice_api.db.database_session_async import get_session
+from ice_api.db.database_session_async import session_scope
 from ice_api.db.orm_models_core import TokenRecord
 from ice_api.security import require_auth
 
@@ -55,7 +55,7 @@ async def issue_token(req: TokenIssueRequest) -> TokenIssueResponse:  # noqa: D4
             tzinfo=_dt.timezone.utc
         ) + _dt.timedelta(days=int(req.ttl_days))
 
-    async for session in get_session():
+    async with session_scope() as session:
         rec = TokenRecord(
             token_hash=th,
             org_id=req.org_id,
@@ -103,7 +103,7 @@ async def list_tokens(
     user_id: Optional[str] = Query(default=None),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> TokenListResponse:  # noqa: D401
-    async for session in get_session():
+    async with session_scope() as session:
         from sqlalchemy import select
 
         stmt = select(TokenRecord).limit(limit)
@@ -149,7 +149,7 @@ class TokenRevokeRequest(BaseModel):
 
 @router.post("/revoke", response_model=Dict[str, Any])
 async def revoke_token(req: TokenRevokeRequest) -> Dict[str, Any]:  # noqa: D401
-    async for session in get_session():
+    async with session_scope() as session:
         rec = await session.get(TokenRecord, req.token_hash)
         if rec is None:
             raise HTTPException(status_code=404, detail="Token not found")
@@ -161,7 +161,7 @@ async def revoke_token(req: TokenRevokeRequest) -> Dict[str, Any]:  # noqa: D401
 
 @router.delete("/{token_hash}", response_model=Dict[str, Any])
 async def delete_token(token_hash: str) -> Dict[str, Any]:  # noqa: D401
-    async for session in get_session():
+    async with session_scope() as session:
         rec = await session.get(TokenRecord, token_hash)
         if rec is None:
             raise HTTPException(status_code=404, detail="Token not found")

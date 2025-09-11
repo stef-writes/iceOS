@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
-from ice_api.db.database_session_async import get_session
+from ice_api.db.database_session_async import session_scope
 from ice_api.db.database_session_async import get_session as _get_db_session
 from ice_api.db.orm_models_core import BlueprintRecord as _BPRec
 from ice_api.db.orm_models_core import ExecutionRecord, ExecutionEventRecord
@@ -168,7 +168,7 @@ async def _run_workflow_async(
         record["_event"].set()
         # Persist running state (DB authoritative)
         try:
-            async for session in get_session():
+            async with session_scope() as session:
                 rec = await session.get(ExecutionRecord, execution_id)
                 if rec is not None:
                     rec.status = "running"
@@ -229,7 +229,7 @@ async def _run_workflow_async(
         record["_event"].set()
         # Persist completion
         try:
-            async for session in get_session():
+            async with session_scope() as session:
                 rec = await session.get(ExecutionRecord, execution_id)
                 if rec is not None:
                     rec.status = "completed"
@@ -282,7 +282,7 @@ async def _run_workflow_async(
         record["_event"].set()
         # Persist failure
         try:
-            async for session in get_session():
+            async with session_scope() as session:
                 rec = await session.get(ExecutionRecord, execution_id)
                 if rec is not None:
                     rec.status = "failed"
@@ -427,7 +427,7 @@ async def start_execution(  # noqa: D401 – API route
     )
     # Persist initial state to Postgres (authoritative)
     try:
-        async for session in get_session():
+        async with session_scope() as session:
             db_rec = ExecutionRecord(
                 id=execution_id,
                 blueprint_id=blueprint_id,
@@ -536,7 +536,7 @@ async def get_execution_status(
             )
 
     # DB authoritative: read status/result/events from Postgres
-    async for session in get_session():
+    async with session_scope() as session:
         row = await session.get(ExecutionRecord, execution_id)
         if row is None:
             raise HTTPException(status_code=404, detail="Execution not found")
@@ -573,7 +573,7 @@ async def get_execution_status(
 @router.get("/", dependencies=[Depends(rate_limit), Depends(require_auth)])
 async def list_executions(request: Request) -> ExecutionsListResponse:  # noqa: D401
     """List executions from Postgres (authoritative)."""
-    async for session in get_session():
+    async with session_scope() as session:
         rows = (
             await session.execute(sa.select(ExecutionRecord))
         ).scalars().all()
@@ -600,7 +600,7 @@ async def cancel_execution(request: Request, execution_id: str) -> Dict[str, Any
     store = _get_exec_store(request)
     if execution_id not in store:
         # Update DB authoritative
-        async for session in get_session():
+        async with session_scope() as session:
             row = await session.get(ExecutionRecord, execution_id)
             if row is None:
                 raise HTTPException(status_code=404, detail="Execution not found")

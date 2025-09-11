@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, ValidationError
 from ice_api.dependencies import rate_limit
 from ice_api.security import require_auth
 from ice_core.unified_registry import registry
-from ice_api.db.database_session_async import get_session
+from ice_api.db.database_session_async import session_scope
 from ice_api.db.orm_models_core import (
     WorkspaceRecord,
     ProjectRecord,
@@ -102,7 +102,7 @@ def _project_blueprints_key(pr_id: str) -> str:
 async def create_workspace(
     request: Request, payload: Workspace = Body(...)
 ) -> Workspace:  # noqa: D401
-    async for session in get_session():
+    async with session_scope() as session:
         rec = await session.get(WorkspaceRecord, payload.id)
         if rec is None:
             rec = WorkspaceRecord(id=payload.id, name=payload.name)
@@ -120,7 +120,7 @@ async def create_workspace(
 )
 async def list_workspaces(request: Request) -> List[Workspace]:  # noqa: D401
     items: List[Workspace] = []
-    async for session in get_session():
+    async with session_scope() as session:
         rows = (await session.execute(
             sa.select(WorkspaceRecord)  # type: ignore[name-defined]
         )).scalars().all()
@@ -136,7 +136,7 @@ async def list_workspaces(request: Request) -> List[Workspace]:  # noqa: D401
     response_model=Project,
 )
 async def create_project(request: Request, payload: Project = Body(...)) -> Project:  # noqa: D401
-    async for session in get_session():
+    async with session_scope() as session:
         ws = await session.get(WorkspaceRecord, payload.workspace_id)
         if ws is None:
             raise HTTPException(status_code=404, detail="workspace not found")
@@ -165,7 +165,7 @@ async def create_project(request: Request, payload: Project = Body(...)) -> Proj
 )
 async def list_projects(request: Request, ws_id: str) -> List[Project]:  # noqa: D401
     items: List[Project] = []
-    async for session in get_session():
+    async with session_scope() as session:
         rows = (await session.execute(
             sa.select(ProjectRecord).where(ProjectRecord.workspace_id == ws_id)  # type: ignore[name-defined]
         )).scalars().all()
@@ -198,7 +198,7 @@ class MountCreate(BaseModel):
 async def add_mount(
     request: Request, project_id: str, payload: MountCreate = Body(...)
 ) -> Mount:  # noqa: D401
-    async for session in get_session():
+    async with session_scope() as session:
         pr = await session.get(ProjectRecord, project_id)
         if pr is None:
             raise HTTPException(status_code=404, detail="project not found")
@@ -227,7 +227,7 @@ async def add_mount(
 )
 async def list_mounts(request: Request, project_id: str) -> List[Mount]:  # noqa: D401
     items: List[Mount] = []
-    async for session in get_session():
+    async with session_scope() as session:
         pr = await session.get(ProjectRecord, project_id)
         if pr is None:
             raise HTTPException(status_code=404, detail="project not found")
@@ -260,7 +260,7 @@ class CatalogUpdate(BaseModel):
 async def update_catalog(
     request: Request, project_id: str, payload: CatalogUpdate = Body(...)
 ) -> Project:  # noqa: D401
-    async for session in get_session():
+    async with session_scope() as session:
         rec = await session.get(ProjectRecord, project_id)
         if rec is None:
             raise HTTPException(status_code=404, detail="project not found")
@@ -284,7 +284,7 @@ async def update_catalog(
     response_model=CatalogResponse,
 )
 async def get_catalog(request: Request, project_id: str) -> CatalogResponse:  # noqa: D401
-    async for session in get_session():
+    async with session_scope() as session:
         rec = await session.get(ProjectRecord, project_id)
         if rec is None:
             raise HTTPException(status_code=404, detail="project not found")
@@ -320,7 +320,7 @@ async def bootstrap_defaults(request: Request) -> BootstrapResponse:  # noqa: D4
     """
     ws = Workspace(id="default", name="Default Workspace")
     pr = Project(id="default", workspace_id=ws.id, name="Default Project")
-    async for session in get_session():
+    async with session_scope() as session:
         w = await session.get(WorkspaceRecord, ws.id)
         if w is None:
             session.add(WorkspaceRecord(id=ws.id, name=ws.name))
@@ -422,7 +422,7 @@ async def list_project_blueprints(
 ) -> ProjectBlueprintsList:  # noqa: D401
     """List blueprint identifiers associated with the project."""
     # Ensure project exists in DB
-    async for session in get_session():
+    async with session_scope() as session:
         pr = await session.get(ProjectRecord, project_id)
         if pr is None:
             raise HTTPException(status_code=404, detail="project not found")
@@ -448,7 +448,7 @@ async def create_project_blueprint_from_workflow(  # noqa: D401
     blueprint listing for sidebar/navigation UX.
     """
     # Ensure project exists in DB
-    async for session in get_session():
+    async with session_scope() as session:
         pr = await session.get(ProjectRecord, project_id)
         if pr is None:
             raise HTTPException(status_code=404, detail="project not found")

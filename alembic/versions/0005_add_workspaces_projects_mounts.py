@@ -44,7 +44,7 @@ def upgrade() -> None:  # noqa: D401
         sa.Column("project_id", sa.String(length=64), sa.ForeignKey("projects.id"), nullable=False),
         sa.Column("label", sa.String(length=255), nullable=False),
         sa.Column("uri", sa.String(length=1024), nullable=False),
-        sa.Column("metadata", sa.JSON(), nullable=True),
+        sa.Column("meta_json", sa.JSON(), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
     )
     op.create_index("ix_mounts_project_id", "mounts", ["project_id"])

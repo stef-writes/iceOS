@@ -15,7 +15,7 @@ from typing import Optional, cast
 
 from fastapi import Header, HTTPException, Request
 
-from ice_api.db.database_session_async import get_session
+from ice_api.db.database_session_async import session_scope
 from ice_api.db.orm_models_core import TokenRecord
 
 logger = logging.getLogger(__name__)
@@ -170,7 +170,7 @@ async def resolve_token_identity(token: str) -> Optional[dict[str, Optional[str]
             True
     """
     token_hash = hashlib.sha256(token.encode()).hexdigest()
-    async for session in get_session():
+    async with session_scope() as session:
         row = await session.get(TokenRecord, token_hash)
         if row is None:
             return None

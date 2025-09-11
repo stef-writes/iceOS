@@ -118,6 +118,9 @@ COPY plugins /app/plugins
 COPY scripts /app/scripts
 COPY config /app/config
 COPY tests /app/tests
+# Add alembic migration assets for DB-SSOT integration tests
+COPY alembic /app/alembic
+COPY alembic.ini /app/alembic.ini
 # examples are optional and not present in all environments; skip copying to avoid build failures
 # COPY examples /app/examples
 ENV PYTHONPATH=/app/src:/app

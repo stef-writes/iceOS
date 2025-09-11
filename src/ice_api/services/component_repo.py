@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import Request
 
-from ice_api.db.database_session_async import get_session
+from ice_api.db.database_session_async import session_scope
 from ice_api.db.orm_models_core import ComponentRecord
 from ice_api.redis_client import get_redis
 
@@ -157,7 +157,7 @@ class SQLComponentRepository(ComponentRepository):
         self, component_type: str, name: str
     ) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         comp_id = f"{component_type}:{name}"
-        async for session in get_session():
+        async with session_scope() as session:
             row = await session.get(ComponentRecord, comp_id)
             if row is None:
                 return None, None
@@ -169,7 +169,7 @@ class SQLComponentRepository(ComponentRepository):
         self, component_type: str, name: str, payload: Dict[str, Any], lock: str
     ) -> None:
         comp_id = f"{component_type}:{name}"
-        async for session in get_session():
+        async with session_scope() as session:
             row = await session.get(ComponentRecord, comp_id)
             if row is None:
                 row = ComponentRecord(
@@ -190,7 +190,7 @@ class SQLComponentRepository(ComponentRepository):
 
     async def get_index(self) -> Dict[str, str]:
         mapping: Dict[str, str] = {}
-        async for session in get_session():
+        async with session_scope() as session:
             result = await session.execute(
                 # Select minimal columns to reconstruct lock deterministically
                 ComponentRecord.__table__.select()  # type: ignore[attr-defined]

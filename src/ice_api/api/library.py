@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import bindparam, text
 
-from ice_api.db.database_session_async import get_session
+from ice_api.db.database_session_async import session_scope
 from ice_api.security import require_auth
 from ice_api.services.semantic_memory_repository import insert_semantic_entry
 
@@ -40,7 +40,7 @@ async def list_library(
     - kind: filter to 'component' or 'blueprint'
     """
     items: list[LibraryListItem] = []
-    async for session in get_session():
+    async with session_scope() as session:
         if kind in (None, "component"):
             # Components
             comp_rows = await session.execute(
@@ -182,7 +182,7 @@ async def list_assets(
     limit: int = Query(20, ge=1, le=200),
 ) -> Dict[str, Any]:
     prefix_key = _asset_key(user_id, (prefix or ""))
-    async for session in get_session():
+    async with session_scope() as session:
         where_parts = ["scope = :scope", "key LIKE :prefix"]
         params: Dict[str, Any] = {
             "scope": "library",
@@ -229,7 +229,7 @@ async def get_asset(
     user_id: Optional[str] = Query(None),
 ) -> LibraryAssetOut:
     key = _asset_key(user_id, label)
-    async for session in get_session():
+    async with session_scope() as session:
         where_parts = ["scope = :scope", "key = :key"]
         params: Dict[str, Any] = {"scope": "library", "key": key}
         if org_id is not None:

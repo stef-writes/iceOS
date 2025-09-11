@@ -736,32 +736,58 @@ async def chat_turn(agent_name: str, req: ChatRequest, request: Request) -> Chat
         prompt_lines.append(f"{role.capitalize()}: {content}")
     prompt = "\n".join(prompt_lines)
 
-    # Create a minimal LLM node spec and execute via workflow service
+    # Create a minimal agent-first node spec when available; fallback to LLM node.
     model_name = llm_cfg.model if llm_cfg and llm_cfg.model else "gpt-4o"
     provider = llm_cfg.provider if llm_cfg else ModelProvider.OPENAI
-    node: Dict[str, Any] = {
-        "id": "chat_llm",
-        "type": "llm",
-        "model": model_name,
-        "provider": provider,
-        "prompt": prompt,
-        "llm_config": (llm_cfg.model_dump() if llm_cfg else {}),
-    }
-
     svc = _get_workflow_service()
-    # Use the generic execute(nodes, name, max_parallel=...) to match IWorkflowService protocol
-    from ice_core.utils.node_conversion import (
-        convert_node_specs,  # local import for compatibility
-    )
+    from ice_core.utils.node_conversion import convert_node_specs  # local import
 
-    result = await svc.execute(
-        convert_node_specs([NodeSpec(**node)]),
-        name=f"chat_{agent_name}",
-        max_parallel=1,
-    )
-
+    exec_result: Dict[str, Any] | Any
+    try:
+        # Prefer data-first agent path using AgentNodeConfig semantics
+        agent_node: Dict[str, Any] = {
+            "id": "chat_agent",
+            "type": "agent",
+            "package": agent_name,
+            "llm_config": (llm_cfg.model_dump() if llm_cfg else {"model": model_name, "provider": provider}),
+            # Pass prompt/messages via agent_config so the agent can use them
+            "agent_config": {"prompt": prompt, "messages": messages[-5:]},
+            "tools": [],
+            "memory": {"backend": "redis"},
+            "max_iterations": 1,
+        }
+        exec_result = await svc.execute(
+            convert_node_specs([NodeSpec(**agent_node)]),
+            name=f"chat_{agent_name}",
+            max_parallel=1,
+        )
+    except Exception:
+        # Fallback: LLM node path (keeps chat functional even if agent not registered)
+        llm_dict: Dict[str, Any] = {}
+        if llm_cfg is not None:
+            try:
+                llm_dict = llm_cfg.model_dump()
+            except Exception:
+                llm_dict = {}
+        if not llm_dict.get("model"):
+            llm_dict["model"] = model_name
+        if not llm_dict.get("provider"):
+            llm_dict["provider"] = provider
+        node: Dict[str, Any] = {
+            "id": "chat_llm",
+            "type": "llm",
+            "model": model_name,
+            "provider": provider,
+            "prompt": prompt,
+            "llm_config": llm_dict,
+        }
+        exec_result = await svc.execute(
+            convert_node_specs([NodeSpec(**node)]),
+            name=f"chat_{agent_name}",
+            max_parallel=1,
+        )
     # Extract assistant text
-    output = result.output if hasattr(result, "output") else {}
+    output = exec_result.output if hasattr(exec_result, "output") else {}
     assistant = ""
     if isinstance(output, dict):
         # Common convention: LLMNode returns {"text": ...} or flattened dict

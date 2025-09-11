@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Body, HTTPException, Request, status
 from pydantic import BaseModel, ValidationError
 
-from ice_api.db.database_session_async import get_session
+from ice_api.db.database_session_async import session_scope
 from ice_api.db.orm_models_core import BlueprintRecord
 from ice_api.redis_client import get_redis
 from ice_api.security import is_agent_allowed, is_tool_allowed
@@ -31,7 +31,7 @@ async def _load_blueprint(blueprint_id: str) -> Blueprint:  # noqa: D401 – hel
     """Load a blueprint by id from Postgres (authoritative) or Redis, else 404."""
     # 1) DB authoritative
     try:
-        async for session in get_session():
+        async with session_scope() as session:
             rec = await session.get(BlueprintRecord, blueprint_id)
             if rec is not None:
                 return Blueprint.model_validate(rec.body)
@@ -246,7 +246,7 @@ async def create_blueprint(  # noqa: D401 – API route
     blueprint_id = str(uuid.uuid4())
     # Persist to Postgres (authoritative)
     try:
-        async for session in get_session():
+        async with session_scope() as session:
             rec = BlueprintRecord(
                 id=blueprint_id,
                 schema_version=str(getattr(blueprint, "schema_version", "1.2.0")),
@@ -340,7 +340,7 @@ async def patch_blueprint(  # noqa: D401
 
     # Persist to Postgres and refresh cache
     try:
-        async for session in get_session():
+        async with session_scope() as session:
             rec = await session.get(BlueprintRecord, blueprint_id)
             if rec is None:
                 rec = BlueprintRecord(
@@ -386,7 +386,7 @@ async def delete_blueprint(  # noqa: D401
     _assert_version_lock(request, server_lock)
 
     # Delete from Postgres authoritatively
-    async for session in get_session():
+    async with session_scope() as session:
         rec = await session.get(BlueprintRecord, blueprint_id)
         if rec is not None:
             await session.delete(rec)
@@ -437,7 +437,7 @@ async def replace_blueprint(  # noqa: D401
     _validate_resolvable_and_allowed(bp)
 
     # Save to Postgres
-    async for session in get_session():
+    async with session_scope() as session:
         rec = await session.get(BlueprintRecord, blueprint_id)
         if rec is None:
             rec = BlueprintRecord(
@@ -485,7 +485,7 @@ async def clone_blueprint(  # noqa: D401
     original = await _load_blueprint(blueprint_id)
     new_id = str(uuid.uuid4())
     # Persist to Postgres
-    async for session in get_session():
+    async with session_scope() as session:
         rec = BlueprintRecord(
             id=new_id,
             schema_version=str(getattr(original, "schema_version", "1.2.0")),

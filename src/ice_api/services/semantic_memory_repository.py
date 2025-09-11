@@ -8,7 +8,7 @@ from sqlalchemy import bindparam, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ice_api.db.database_session_async import get_session
+from ice_api.db.database_session_async import session_scope
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ async def insert_semantic_entry(
 
     Returns the new row id or None if it already existed.
     """
-    async for session in get_session():
+    async with session_scope() as session:
         logger.info(
             "semantic_memory.insert",
             extra={
@@ -139,7 +139,7 @@ async def search_semantic(
 ) -> List[Dict[str, Any]]:
     qvec_literal = "[" + ",".join(f"{x:.6f}" for x in query_vec) + "]"
     rows_out: List[Dict[str, Any]] = []
-    async for session in get_session():
+    async with session_scope() as session:
         logger.info(
             "semantic_memory.search",
             extra={"scope": scope, "org_id": org_id, "limit": limit},

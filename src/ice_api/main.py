@@ -35,6 +35,7 @@ from ice_api.errors import add_exception_handlers
 from ice_api.redis_client import get_redis
 from ice_api.services.component_repo import choose_component_repo
 from ice_api.services.component_service import ComponentService
+from ice_api.db.database_session_async import dispose_all_engines
 
 # New startup helpers
 from ice_api.startup_utils import (
@@ -337,6 +338,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             await redis.close()  # type: ignore[attr-defined]
     except Exception as exc:
         logger.warning("Error while closing Redis connection: %s", exc)
+    # Ensure DB engines are disposed to avoid GC warnings on event loop teardown
+    try:
+        await dispose_all_engines()
+    except Exception:
+        pass
 
 
 # Create FastAPI app with env-driven docs gating

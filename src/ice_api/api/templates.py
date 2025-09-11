@@ -18,7 +18,7 @@ import yaml
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, ValidationError
 
-from ice_api.db.database_session_async import get_session
+from ice_api.db.database_session_async import session_scope
 from ice_api.db.orm_models_core import BlueprintRecord
 from ice_api.dependencies import rate_limit
 from ice_api.security import require_auth
@@ -184,7 +184,7 @@ async def _persist_blueprint_to_store(blueprint: Blueprint, request: Request) ->
     new_id: Optional[str] = None
     # DB authoritative
     try:
-        async for session in get_session():
+        async with session_scope() as session:
             rec = BlueprintRecord(
                 id=str(uuid4()),  # type: ignore[name-defined]
                 schema_version=str(getattr(blueprint, "schema_version", "1.2.0")),

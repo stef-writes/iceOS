@@ -11,7 +11,9 @@ from pathlib import Path
 from typing import AsyncGenerator
 
 import pytest
+import sqlalchemy as sa
 import pytest_asyncio
+import logging
 
 try:
     import redis.asyncio as redis  # type: ignore
@@ -31,6 +33,101 @@ except ImportError:
 
 # Removed custom event_loop fixture to let pytest-asyncio handle it automatically
 # when using asyncio_mode = auto
+# Tone down noisy SQLAlchemy pool logs that can fire after event loop shutdown
+try:
+    _pool_logger = logging.getLogger("sqlalchemy.pool")
+    _pool_logger.setLevel(logging.ERROR)
+    _pool_logger.propagate = False
+    _np_logger = logging.getLogger("sqlalchemy.pool.impl.NullPool")
+    _np_logger.setLevel(logging.ERROR)
+    _np_logger.propagate = False
+except Exception:
+    pass
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _ensure_db_schema() -> None:
+    """Ensure Alembic schema is upgraded to head for the configured DB.
+
+    - Derives a sync DSN from DATABASE_URL when ALEMBIC_SYNC_URL is not set
+    - Runs `alembic upgrade head` programmatically
+    """
+    # Only run if a DB is configured
+    db_url = os.getenv("DATABASE_URL") or os.getenv("ICEOS_DB_URL")
+    sync_url = os.getenv("ALEMBIC_SYNC_URL")
+    if not sync_url and db_url:
+        # Convert to psycopg2 driver for Alembic
+        if db_url.startswith("postgresql+asyncpg://"):
+            sync_url = db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+        elif db_url.startswith("postgresql://"):
+            sync_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        else:
+            sync_url = db_url
+    if not sync_url:
+        return
+    try:
+        from alembic import command  # type: ignore
+        from alembic.config import Config  # type: ignore
+
+        ini_path = Path(__file__).parents[2] / "alembic.ini"
+        cfg = Config(str(ini_path))
+        # Force URL to target the same DB the tests will use
+        cfg.set_main_option("sqlalchemy.url", sync_url)
+        command.upgrade(cfg, "head")
+        # Verify critical tables exist after upgrade
+        try:
+            engine = sa.create_engine(sync_url)
+            with engine.connect() as conn:
+                # to_regclass returns NULL if relation does not exist
+                exists = conn.execute(sa.text("SELECT to_regclass('semantic_memory') IS NOT NULL")).scalar()
+                if not bool(exists):
+                    raise RuntimeError("semantic_memory table not present after alembic upgrade")
+        except Exception as ver_exc:
+            raise RuntimeError(f"alembic upgrade verification failed: {ver_exc}")
+    except Exception as exc:
+        raise RuntimeError(f"[itest] alembic upgrade failed for DSN: {sync_url} – {exc}")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _dispose_engines_on_session_end(request: pytest.FixtureRequest) -> None:
+    """Dispose async engines at session end to avoid GC warnings/logging errors."""
+    try:
+        import anyio
+
+        async def _dispose() -> None:
+            try:
+                from ice_api.db.database_session_async import dispose_all_engines
+
+                await dispose_all_engines()
+            except Exception:
+                pass
+
+        def _finalizer() -> None:
+            try:
+                anyio.run(_dispose)
+            except Exception:
+                pass
+
+        request.addfinalizer(_finalizer)
+    except Exception:
+        # Best-effort; tests still pass without this
+        pass
+
+
+@pytest.fixture(autouse=True)
+async def _dispose_engines_after_each_test():
+    """Ensure no checked-out connections remain between tests.
+
+    This aggressively disposes async engines after each test to eliminate
+    teardown GC warnings when event loops switch (asyncio/trio).
+    """
+    yield
+    try:
+        from ice_api.db.database_session_async import dispose_all_engines
+
+        await dispose_all_engines()
+    except Exception:
+        pass
 
 
 @pytest_asyncio.fixture(scope="session")
