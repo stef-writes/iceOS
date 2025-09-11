@@ -96,8 +96,7 @@ export function NavSidebar() {
       </div>
       <div className="pt-2 border-t border-neutral-900" />
       <nav className="grid gap-1">
-        <Link href="/workspaces" className="hover:text-white text-neutral-300" onClick={() => emit("ui.commandExecuted", { command: "nav.projects" })}>Projects</Link>
-        <Link href="/workflows" className="hover:text-white text-neutral-300" onClick={() => emit("ui.commandExecuted", { command: "nav.workflows" })}>Workflows</Link>
+        <Link href="/workspaces" className="hover:text-white text-neutral-300" onClick={() => emit("ui.commandExecuted", { command: "nav.workspaces" })}>Workspaces</Link>
         <Link href="/library" className="hover:text-white text-neutral-300" onClick={() => emit("ui.commandExecuted", { command: "nav.library" })}>Library</Link>
       </nav>
     </div>

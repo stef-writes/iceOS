@@ -10,7 +10,7 @@ import click
 import httpx
 
 API_ENV_VAR = "ICEOS_API_URL"
-DEFAULT_API = "http://localhost:8000"
+DEFAULT_API = "http://localhost"
 
 
 @click.command("push")

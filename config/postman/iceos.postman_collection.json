@@ -5,7 +5,7 @@
     "description": "Postman collection for core iceOS endpoints"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "baseUrl", "value": "http://localhost" },
     { "key": "apiToken", "value": "dev-token" },
     { "key": "blueprintId", "value": "" },
     { "key": "executionId", "value": "" }

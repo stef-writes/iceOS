@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # Simple RPS smoke test against /api/v1/executions/health path equivalents
-# Usage: scripts/itest_smoke_load.sh http://localhost:8000 50
+# Usage: scripts/itest_smoke_load.sh http://localhost 50
 
-BASE_URL=${1:-http://localhost:8000}
+BASE_URL=${1:-http://localhost}
 CONCURRENCY=${2:-50}
 
 echo "[smoke] Hitting ${BASE_URL}/readyz with concurrency=${CONCURRENCY} for 5 seconds"

@@ -66,3 +66,5 @@ async def registry_health() -> Dict[str, Any]:  # noqa: D401
             }
         },
     }
+
+

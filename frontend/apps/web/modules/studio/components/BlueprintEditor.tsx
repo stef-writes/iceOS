@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { mcp } from "@/modules/api/client";
 import { useExecutionStore } from "@/modules/shell/useExecutionStore";
-import { LLMFieldsForm, type LLMFields } from "@/modules/studio/components/LLMFieldsForm";
+// Removed local LLMFieldsForm; Studio should rely on node inspectors or JSON editing
 import MonacoEditor from "@/modules/studio/editor/MonacoEditor";
 import { Button } from "@/modules/ui/primitives/Button";
 
@@ -15,7 +15,7 @@ export default function BlueprintEditor({ blueprintId }: { blueprintId: string }
   );
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [llmFields, setLlmFields] = useState<Partial<LLMFields>>({});
+  // Simplify: remove bespoke LLMFieldsForm state – use JSON editor and Inspector elsewhere
 
   useEffect(() => {
     (async () => {
@@ -103,33 +103,7 @@ export default function BlueprintEditor({ blueprintId }: { blueprintId: string }
     <div className="space-y-2 text-sm">
       <div className="text-neutral-300">Blueprint: {blueprintId}</div>
       <div className="text-neutral-500 text-xs">partial: {partialId || "-"} lock: {lock || "-"} {status}</div>
-      <div className="border border-neutral-800 rounded p-2">
-        <div className="text-neutral-300 mb-1">LLM fields</div>
-        <LLMFieldsForm
-          value={llmFields}
-          onChange={(v) => {
-            setLlmFields(v);
-            // Opportunistically merge into JSON if it's an LLM node blueprint
-            try {
-              const obj = JSON.parse(fullJson || "{}");
-              if (obj && obj.nodes && Array.isArray(obj.nodes)) {
-                const idx = obj.nodes.findIndex((n: any) => n?.type === "llm");
-                if (idx >= 0) {
-                  obj.nodes[idx] = {
-                    ...obj.nodes[idx],
-                    model: v.model,
-                    prompt: v.prompt,
-                    temperature: v.temperature,
-                    max_tokens: v.max_tokens,
-                    llm_config: { ...(obj.nodes[idx].llm_config || {}), model: v.model, top_p: v.top_p, stop_sequences: v.stop_sequences },
-                  };
-                  setFullJson(JSON.stringify(obj, null, 2));
-                }
-              }
-            } catch {}
-          }}
-        />
-      </div>
+      {/* LLM field helper removed to avoid drift; edit JSON or use Canvas Inspector */}
       <MonacoEditor
         language="json"
         value={fullJson}

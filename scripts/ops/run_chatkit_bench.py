@@ -51,7 +51,7 @@ def run_once(base_url: str, token: str, query: str, session_id: str) -> Dict[str
 
 
 def main() -> None:
-    base_url = os.getenv("ICE_API_URL", "http://localhost:8000")
+    base_url = os.getenv("ICE_API_URL", "http://localhost")
     token = os.getenv("ICE_API_TOKEN", "dev-token")
     query = os.getenv("BENCH_QUERY", "Summarize me")
     warmups = int(os.getenv("BENCH_WARMUPS", "1"))

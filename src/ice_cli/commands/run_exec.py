@@ -11,7 +11,7 @@ import click
 import httpx
 
 API_ENV_VAR = "ICEOS_API_URL"
-DEFAULT_API = "http://localhost:8000"
+DEFAULT_API = "http://localhost"
 
 
 def _load_last_blueprint() -> Optional[str]:

@@ -19,7 +19,7 @@ Required env (compose sets reasonable defaults):
 Start an execution and return the final result in a single call using `wait_seconds`.
 
 ```bash
-curl -sS -X POST "http://localhost:8000/api/v1/executions/?wait_seconds=10" \
+curl -sS -X POST "http://localhost/api/v1/executions/?wait_seconds=10" \
   -H 'Authorization: Bearer dev-token' -H 'Content-Type: application/json' \
   -d '{"payload": {"blueprint_id":"<bp_id>","inputs":{}}}'
 ```
@@ -43,7 +43,7 @@ async def start_execution(
 1) Validate/register a tool factory
 
 ```bash
-curl -sS -X POST http://localhost:8000/api/mcp/components/validate \
+curl -sS -X POST http://localhost/api/mcp/components/validate \
   -H 'Authorization: Bearer dev-token' -H 'Content-Type: application/json' \
   -d '{"type":"tool","name":"demo_text_upper","description":"Uppercases input text.","tool_factory_code":"from typing import Any, Dict\nfrom ice_core.base_tool import ToolBase\n\nclass UppercaseTool(ToolBase):\n    name: str = \"demo_text_upper\"\n    description: str = \"Uppercases input text.\"\n\n    async def _execute_impl(self, text: str) -> Dict[str, Any]:\n        return {\"result\": text.upper()}\n\n\ndef create_demo_text_upper() -> UppercaseTool:\n    return UppercaseTool()\n","auto_register": true,"validate_only": false}'
 ```
@@ -51,23 +51,23 @@ curl -sS -X POST http://localhost:8000/api/mcp/components/validate \
 2) Create a partial blueprint, add nodes, finalize
 
 ```bash
-PB_ID=$(curl -sS -X POST http://localhost:8000/api/mcp/blueprints/partial -H 'Authorization: Bearer dev-token' -H 'Content-Type: application/json' -d 'null' | sed -n 's/.*"blueprint_id":"\([^"]\+\)".*/\1/p')
-LOCK=$(curl -sS -X GET http://localhost:8000/api/mcp/blueprints/partial/$PB_ID -H 'Authorization: Bearer dev-token' -i | tr -d '\r' | awk '/^x-version-lock:/ {print $2}')
-curl -sS -X PUT http://localhost:8000/api/mcp/blueprints/partial/$PB_ID \
+PB_ID=$(curl -sS -X POST http://localhost/api/mcp/blueprints/partial -H 'Authorization: Bearer dev-token' -H 'Content-Type: application/json' -d 'null' | sed -n 's/.*"blueprint_id":"\([^"]\+\)".*/\1/p')
+LOCK=$(curl -sS -X GET http://localhost/api/mcp/blueprints/partial/$PB_ID -H 'Authorization: Bearer dev-token' -i | tr -d '\r' | awk '/^x-version-lock:/ {print $2}')
+curl -sS -X PUT http://localhost/api/mcp/blueprints/partial/$PB_ID \
   -H 'Authorization: Bearer dev-token' -H 'Content-Type: application/json' -H "X-Version-Lock: $LOCK" \
   -d '{"action":"add_node","node":{"id":"to_upper","type":"tool","dependencies":[],"tool_name":"demo_text_upper","tool_args":{"text":"hello world"}}}'
-LOCK=$(curl -sS -X GET http://localhost:8000/api/mcp/blueprints/partial/$PB_ID -H 'Authorization: Bearer dev-token' -i | tr -d '\r' | awk '/^x-version-lock:/ {print $2}')
-curl -sS -X PUT http://localhost:8000/api/mcp/blueprints/partial/$PB_ID \
+LOCK=$(curl -sS -X GET http://localhost/api/mcp/blueprints/partial/$PB_ID -H 'Authorization: Bearer dev-token' -i | tr -d '\r' | awk '/^x-version-lock:/ {print $2}')
+curl -sS -X PUT http://localhost/api/mcp/blueprints/partial/$PB_ID \
   -H 'Authorization: Bearer dev-token' -H 'Content-Type: application/json' -H "X-Version-Lock: $LOCK" \
   -d '{"action":"add_node","node":{"id":"llm1","type":"llm","dependencies":["to_upper"],"model":"gpt-4o","llm_config":{"provider":"openai","model":"gpt-4o","max_tokens":64,"temperature":0.2},"prompt":"Uppercased: {{ to_upper.result }}"}}'
-LOCK=$(curl -sS -X GET http://localhost:8000/api/mcp/blueprints/partial/$PB_ID -H 'Authorization: Bearer dev-token' -i | tr -d '\r' | awk '/^x-version-lock:/ {print $2}')
-BP_ID=$(curl -sS -X POST http://localhost:8000/api/mcp/blueprints/partial/$PB_ID/finalize -H 'Authorization: Bearer dev-token' -H "X-Version-Lock: $LOCK" | sed -n 's/.*"blueprint_id":"\([^"]\+\)".*/\1/p')
+LOCK=$(curl -sS -X GET http://localhost/api/mcp/blueprints/partial/$PB_ID -H 'Authorization: Bearer dev-token' -i | tr -d '\r' | awk '/^x-version-lock:/ {print $2}')
+BP_ID=$(curl -sS -X POST http://localhost/api/mcp/blueprints/partial/$PB_ID/finalize -H 'Authorization: Bearer dev-token' -H "X-Version-Lock: $LOCK" | sed -n 's/.*"blueprint_id":"\([^"]\+\)".*/\1/p')
 ```
 
 3) Execute and wait for the result
 
 ```bash
-curl -sS -X POST "http://localhost:8000/api/v1/executions/?wait_seconds=10" \
+curl -sS -X POST "http://localhost/api/v1/executions/?wait_seconds=10" \
   -H 'Authorization: Bearer dev-token' -H 'Content-Type: application/json' \
   -d '{"payload": {"blueprint_id":"'"$BP_ID"'","inputs":{}}}'
 ```

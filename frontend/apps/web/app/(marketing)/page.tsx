@@ -6,9 +6,9 @@ export default function Landing() {
   return (
     <div className="p-10 mx-auto max-w-5xl text-sm">
       <div className="text-3xl font-semibold mb-3">Welcome to iceOS</div>
-      <div className="text-neutral-400 mb-6">An AI-native workflow studio. Sign up with your maker kit, then jump into Projects.</div>
+      <div className="text-neutral-400 mb-6">An AI-native workflow studio. Sign up with your maker kit, then jump into Workspaces.</div>
       <div className="flex gap-3">
-        <Link href="/workspaces" className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800">Open Projects</Link>
+        <Link href="/workspaces" className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800">Open Workspaces</Link>
       </div>
       <div className="mt-10 grid grid-cols-3 gap-4">
         <div className="border border-neutral-800 rounded p-3">

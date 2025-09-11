@@ -137,3 +137,48 @@ class SemanticMemoryRecord(Base):
         Index("ix_semantic_org_scope", "org_id", "scope"),
         UniqueConstraint("org_id", "content_hash", name="uq_semantic_org_content_hash"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Workspaces / Projects / Mounts (DB as SSOT) --------------------------------
+# ---------------------------------------------------------------------------
+
+
+class WorkspaceRecord(Base):
+    __tablename__ = "workspaces"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[Any] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class ProjectRecord(Base):
+    __tablename__ = "projects"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    workspace_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("workspaces.id"), nullable=False, index=True
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    enabled_tools: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)
+    enabled_workflows: Mapped[Optional[list[str]]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[Any] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class MountRecord(Base):
+    __tablename__ = "mounts"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("projects.id"), nullable=False, index=True
+    )
+    label: Mapped[str] = mapped_column(String(255), nullable=False)
+    uri: Mapped[str] = mapped_column(String(1024), nullable=False)
+    meta_json: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[Any] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

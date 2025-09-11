@@ -3,7 +3,7 @@ import path from "node:path";
 import openapiTS from "openapi-typescript";
 
 async function main() {
-  const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+  const apiUrl = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost").replace(/\/$/, "");
   const outPath = path.resolve(process.cwd(), "apps/web/modules/api/types.ts");
   const specUrl = `${apiUrl}/openapi.json`;
 

@@ -21,6 +21,7 @@ Design
 """
 
 from typing import Any, Dict, List, Literal, Optional
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -182,7 +183,7 @@ def _patches_to_actions(patches: List[NodePatch]) -> List[CopilotAction]:
 @router.post(
     "/suggest_v2", response_model=SuggestV2Response, dependencies=[Depends(rate_limit)]
 )
-async def suggest_v2(req: SuggestV2Request) -> SuggestV2Response:
+async def suggest_v2(req: SuggestV2Request, request: Request) -> SuggestV2Response:
     """Return structured actions for the Frosty panel.
 
     Parameters
@@ -249,15 +250,61 @@ async def suggest_v2(req: SuggestV2Request) -> SuggestV2Response:
         "tokens_out": est.completion_tokens,
     }
     risks: Dict[str, Any] = {"stale_lock": False}
-    return SuggestV2Response(
-        actions=actions, ui_hints=ui_hints, costs=costs, risks=risks
-    )
+    resp = SuggestV2Response(actions=actions, ui_hints=ui_hints, costs=costs, risks=risks)
+
+    # Durable telemetry: store summary of suggestion in semantic_memory (scope=frosty)
+    try:
+        from ice_api.security import get_request_identity as _get_identity  # type: ignore
+        from ice_api.services.semantic_memory_repository import (
+            insert_semantic_entry as _insert_semantic,  # type: ignore
+        )
+        import hashlib as _hashlib  # type: ignore
+        import time as _time  # type: ignore
+
+        org_id, user_id = _get_identity(request)
+        key = f"frosty:{(user_id or '_')}:suggest:{int(_time.time())}"
+        # Summarize patches minimally for storage size and privacy
+        patches_summary = [
+            {
+                "op": getattr(a.patches[0], "op", None) if a.patches else None,
+                "path": getattr(a.patches[0], "path", None) if a.patches else None,
+                "kind": a.kind,
+                "fields": a.fields_changed,
+            }
+            for a in resp.actions
+        ][:10]
+        payload = {
+            "action": "suggest",
+            "input_text": req.text,
+            "project_id": req.project_id,
+            "blueprint_lock": req.blueprint_lock,
+            "costs": resp.costs,
+            "ui_hints": resp.ui_hints.model_dump(),
+            "patches": patches_summary,
+        }
+        chash = _hashlib.sha256(
+            json.dumps(payload, sort_keys=True).encode()
+        ).hexdigest()
+        await _insert_semantic(
+            scope="frosty",
+            key=key,
+            content_hash=chash,
+            meta_json=payload,
+            embedding_vec=None,
+            org_id=org_id,
+            user_id=user_id,
+            model_version=None,
+        )
+    except Exception:
+        pass
+
+    return resp
 
 
 @router.post(
     "/validate", response_model=ValidateResponse, dependencies=[Depends(rate_limit)]
 )
-async def validate(req: ValidateRequest) -> ValidateResponse:  # noqa: D401
+async def validate(req: ValidateRequest, request: Request) -> ValidateResponse:  # noqa: D401
     """Validate actions against a blueprint.
 
     Simple checks for now:
@@ -337,9 +384,40 @@ async def validate(req: ValidateRequest) -> ValidateResponse:  # noqa: D401
     except Exception:
         pass
 
-    return ValidateResponse(
-        ok=len(violations) == 0, violations=violations, autofixes=[]
-    )
+    resp = ValidateResponse(ok=len(violations) == 0, violations=violations, autofixes=[])
+    # Durable telemetry for validation step
+    try:
+        from ice_api.security import get_request_identity as _get_identity  # type: ignore
+        from ice_api.services.semantic_memory_repository import (
+            insert_semantic_entry as _insert_semantic,  # type: ignore
+        )
+        import hashlib as _hashlib  # type: ignore
+        import time as _time  # type: ignore
+
+        org_id, user_id = _get_identity(request)
+        key = f"frosty:{(user_id or '_')}:validate:{int(_time.time())}"
+        payload = {
+            "action": "validate",
+            "ok": resp.ok,
+            "violations": [v.model_dump() for v in resp.violations][:20],
+            "autofixes": [p.model_dump() for p in resp.autofixes][:20],
+        }
+        chash = _hashlib.sha256(
+            json.dumps(payload, sort_keys=True).encode()
+        ).hexdigest()
+        await _insert_semantic(
+            scope="frosty",
+            key=key,
+            content_hash=chash,
+            meta_json=payload,
+            embedding_vec=None,
+            org_id=org_id,
+            user_id=user_id,
+            model_version=None,
+        )
+    except Exception:
+        pass
+    return resp
 
 
 @router.post(
@@ -368,7 +446,38 @@ async def simulate(req: SimulateRequest, request: Request) -> SimulateResponse: 
 
     service = _svc()
     out = await service.apply_patch(blueprint=req.blueprint, patches=req.patches)
-    return SimulateResponse(blueprint=out)
+    resp = SimulateResponse(blueprint=out)
+    # Durable telemetry for simulate step
+    try:
+        from ice_api.security import get_request_identity as _get_identity  # type: ignore
+        from ice_api.services.semantic_memory_repository import (
+            insert_semantic_entry as _insert_semantic,  # type: ignore
+        )
+        import hashlib as _hashlib  # type: ignore
+        import time as _time  # type: ignore
+
+        org_id, user_id = _get_identity(request)
+        key = f"frosty:{(user_id or '_')}:simulate:{int(_time.time())}"
+        payload = {
+            "action": "simulate",
+            "patch_count": len(req.patches),
+        }
+        chash = _hashlib.sha256(
+            json.dumps(payload, sort_keys=True).encode()
+        ).hexdigest()
+        await _insert_semantic(
+            scope="frosty",
+            key=key,
+            content_hash=chash,
+            meta_json=payload,
+            embedding_vec=None,
+            org_id=org_id,
+            user_id=user_id,
+            model_version=None,
+        )
+    except Exception:
+        pass
+    return resp
 
 
 @router.post(

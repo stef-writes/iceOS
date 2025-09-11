@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactFlow, { Background, Controls, MiniMap, Node, Edge, type Connection, type OnConnect, type EdgeChange, type IsValidConnection, type NodeChange } from "reactflow";
 import "reactflow/dist/style.css";
 import { useSearchParams, useRouter } from "next/navigation";
-import { mcp, workflows, projects } from "@/modules/api/client";
+import { mcp, workflows } from "@/modules/api/client";
 import NodePalette from "@/modules/canvas/components/NodePalette";
 import { nodeTypes } from "@/modules/canvas/components/nodes";
 // Frosty chat and ExecutionDrawer removed to reduce UI surface area
@@ -13,7 +13,7 @@ import InspectorPanel from "@/modules/canvas/components/inspector/InspectorPanel
 import { useCanvasStore } from "@/modules/canvas/state/useCanvasStore";
 import { Dialog } from "@/modules/ui/primitives/Dialog";
 import EdgeLinkWizard from "@/modules/canvas/components/EdgeLinkWizard";
-import CopilotPanel from "@/modules/frosty/CopilotPanel";
+import FrostyPanel from "@/modules/frosty/FrostyPanel";
 import { useCopilotStore } from "@/modules/frosty/store/useCopilotStore";
 
 type Blueprint = { nodes?: Array<{ id: string; type: string; dependencies?: string[] }> };
@@ -44,18 +44,7 @@ export default function CanvasView() {
     (async () => {
       setErr(null);
       try {
-        if (!blueprintId && projectId) {
-          // Auto-create and attach a new workflow, then redirect with its id
-          const initial = { schema_version: "1.2.0", metadata: { name: `Workflow ${new Date().toLocaleString()}`, project_id: projectId }, nodes: [] } as any;
-          const created = await workflows.create(initial);
-          await projects.attach(projectId, created.id);
-          const params = new URLSearchParams(sp.toString());
-          params.set("blueprintId", created.id);
-          // Replace URL to carry workflow id
-          router.replace(`/canvas?${params.toString()}`);
-          setBp({ nodes: [] });
-          return;
-        }
+        // Canvas no longer auto-creates workflows; open with an explicit blueprintId
         if (!blueprintId) { setBp({ nodes: [] }); return; }
         const res = await workflows.get(blueprintId);
         try { setVersionLock(String((res as any).version_lock || "")); } catch {}
@@ -424,7 +413,7 @@ export default function CanvasView() {
           />
         )}
       </Dialog>
-      <CopilotPanel />
+      <FrostyPanel />
     </div>
   );
 }

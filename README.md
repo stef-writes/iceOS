@@ -1,7 +1,6 @@
 ## Testing & CI (single source of truth)
 
-- Canonical unit/lint/type: `make ci`
-- Canonical dockerized integration suite: `make ci-integration`
+- Canonical CI: `make ci` (dockerized lint, lock check, type-check, unit tests, dev smoke)
 - Do not run raw pytest/poetry for CI; Make targets rebuild images and set envs.
 
 ## Runtime guarantees
@@ -12,83 +11,96 @@
 
 # iceOS – Intelligent Orchestration Platform
 
-## Runtime features (enforced extras)
+## Developer Quickstart (two commands)
 
-- **WASM sandbox (wasmtime)**: `ICE_ENABLE_WASM=1` (default) to run code nodes in a sandbox. Disabled or missing wasmtime → runtime error.
-- **LLM providers**: OpenAI (required), Anthropic, DeepSeek supported. API keys via `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`.
-- Database/pgvector (production‑ready): Postgres with `pgvector` backs components, blueprints, executions/events, tokens, and semantic memory (vector search). Redis is used only for ephemeral caches.
+- Backend (DB + Redis + API, out-of-band migrations):
 
-See Dockerfile for enforced extras export.
+```bash
+make dev-db      # starts Postgres and Redis (compose profile db)
+make dev-up      # runs Alembic (one-off) then starts API and waits /readyz
+```
+
+- Frontend (Next.js dev):
+
+```bash
+make fe-dev      # opens http://localhost:3000
+```
+
+Notes:
+- API base URL: `http://localhost:8000` (no proxy). Readiness: `http://localhost:8000/readyz`.
+- Auth: Bearer `dev-token` if `ICE_ALLOW_DEV_TOKEN=1` is set in `.env`.
+- Migrations never run in-app. Always execute via `make dev-migrate` (included in `dev-up`).
+
+## Environment: Single Source of Truth (SSOT)
+
+- Only two files are loaded anywhere: `.env` and `.env.prod`.
+- Compose loads them via `env_file` in `config/deploy/docker-compose.prod.yml`.
+- Key variables:
+  - `DATABASE_URL`, `ALEMBIC_SYNC_URL` (local dev DSNs use `?sslmode=disable`)
+  - `REDIS_URL` (e.g., `redis://redis:6379/0` in compose; `redis://localhost:6379/0` for local tools)
+  - `ICE_API_TOKEN`, `ICE_ALLOW_DEV_TOKEN=1` (dev), provider keys
+  - `CORS_ORIGINS=http://localhost:3000`, `TRUSTED_HOSTS=localhost,127.0.0.1`
+- Removed legacy `.env.*` files. Do not reintroduce per‑env variants.
+
+## Runbook (troubleshooting)
+
+- API not ready after `make dev-up`:
+  - Check logs: `make logs-api` (the dev targets already tail last 200 lines on failure).
+  - Ensure migrations ran: `make dev-migrate` and re-run `make dev-api`.
+  - Verify DSNs in `.env`/`.env.prod` match local compose (Postgres service) and include `?sslmode=disable`.
+  - Redis must be reachable (no fake Redis). Confirm `REDIS_URL` points to `redis` service in compose.
+- 401 Unauthorized:
+  - Use `Authorization: Bearer dev-token` with `ICE_ALLOW_DEV_TOKEN=1` in `.env`.
+- Frontend can’t reach API:
+  - Use `http://localhost:8000` directly from the web app. Ensure CORS allows `http://localhost:3000`.
+- Database inspection:
+  - Connect to Postgres and inspect: `SELECT * FROM blueprints LIMIT 5;`, `executions`, `semantic_memory`, etc.
 
 ## Production Deployment (Docker Compose)
 
-Quick start with the full stack (API + Postgres/pgvector + Redis cache):
+Minimal TLS stack (Caddy proxy → Web → API). Steps:
 
+1) Create a local env file and fill secrets (untracked):
 ```bash
-docker compose up --build
+cp .env .env.prod  # or edit existing files
+vi .env.prod       # set ICE_API_TOKEN, DATABASE_URL, CORS_ORIGINS, TRUSTED_HOSTS, provider keys
 ```
 
-Environment variables are sourced from `config/dev.env.example` and can be overridden in the compose file. The API container sets `ICEOS_RUN_MIGRATIONS=1` and `ICEOS_REQUIRE_DB=1` so Alembic upgrades run and readiness requires a healthy DB and applied head. For Redis hardening and retention:
-
-```env
-REDIS_URL=rediss://user:pass@host:6379/0
-REDIS_CLIENT_NAME=ice_api
-REDIS_DECODE_RESPONSES=1
-REDIS_SOCKET_TIMEOUT=5.0
-REDIS_SOCKET_CONNECT_TIMEOUT=3.0
-REDIS_MAX_CONNECTIONS=100
-CHAT_TTL_SECONDS=2592000
-EXECUTION_TTL_SECONDS=604800
+2) Bring up with TLS (requires DNS for DOMAIN → host):
+```bash
+DOMAIN=your.domain ENV_FILE=.env.prod make prod-up-tls
 ```
 
-## Local dev (compose)
+Health:
+- Proxy: http://localhost/readyz (200)
+- API: https://your.domain/api/v1/meta/version (Bearer auth required)
 
-See `docs/QUICKSTART.md` for the repeatable Docker Compose flow used in dev. It covers bringing up Postgres/Redis, running one-shot migrations, starting the API, and verifying `/readyz`.
-
-### Staging (Supabase)
-
-See `docs/STAGING.md` for running the API against Supabase (transaction pooler), smoke steps, and integration targets.
-
-- Fast subset: memory tools (MCP), library CRUD, ask_my_library
-- Full suite: `make ci-integration-staging DATABASE_URL=postgresql+asyncpg://...:6543/postgres`
-
-### Studio/Canvas – AI Builder
-### Production deployment
-
-See `docs/DEPLOY_PROD.md` for compose/Kubernetes secrets injection and prod flags. A ready-to-use override is at `config/deploy/docker-compose.prod.yml`.
-
-See `docs/STUDIO_CANVAS_BUILDER.md` for how to call the Builder MCP endpoints, surface Q/A and cost, save drafts/sessions, and safely preview generated code.
-
-## Chat (note)
-
-The public REST surface is focused on blueprints/executions/MCP. If you need a chat abstraction, prefer registering an agent/workflow and using the executions API. The `IceClient.chat_turn` helper is subject to change and may be removed if no server route is provided.
-
-> *No-fluff, fully-typed, test-driven micro-framework for composable AI/LLM workflows in Python 3.11.9.*
+Notes:
+- `config/deploy/docker-compose.prod.yml` defines `proxy` (Caddy), `web` (Next standalone), and `api` (FastAPI/uvicorn) with healthchecks.
+- DB/Redis services are optional via profile `db`. In production prefer managed Postgres/Redis.
 
 ---
 
-## 1. What is iceOS?
+## Concepts
 
-iceOS is an **experimental DAG orchestrator** and supporting toolkit that lets you describe multi-step workflows – CSV ingestion → pricing → copywriting → HTTP POST – entirely in Python **or** YAML blueprints.  Nodes are executed asynchronously, inputs/outputs are validated with Pydantic, and every public-facing API is covered by strict typing & tests.
+- **Assets (Library data)**: `/api/v1/library/assets*` – user content for RAG/tools; scoped by org/user.
+- **Templates/Bundles**: `/api/v1/templates*` – install into a Project to create **Workflows**.
+- **Components**: `/api/v1/mcp/components/*` – reusable nodes with deterministic version locks.
+- **Workflows (Blueprints)**: `/api/v1/blueprints/*` – runnable graphs; executions under `/api/v1/executions`.
 
-Think of it as the narrow slice of Airflow you actually need for LLM apps, minus heavyweight scheduling cruft – plus first-class support for:
-
-* ✨ **LLM nodes** (OpenAI, Anthropic, DeepSeek)
-* 🔄 **Loop / recursive** execution with automatic context propagation
-* 🧰 **Toolkits** – pluggable bundles of ready-made tools (`csv_loader`, `pricing_strategy`, …)
-* 📦 **Single-process dev mode** – run everything locally before you deploy anything
-* 🏭 **Factory Pattern** – fresh instances for every execution, no singleton state
-
-> Status: **Beta (0.5.0)** – APIs stabilizing. mypy strict, tests and lint pass; demos run end-to-end.
+Verification (SQL snippets):
+```sql
+SELECT id, user_id, tags FROM blueprints ORDER BY created_at DESC LIMIT 20;
+SELECT execution_id, status FROM executions ORDER BY created_at DESC LIMIT 20;
+SELECT scope, key, jsonb_pretty(data) FROM semantic_memory ORDER BY created_at DESC LIMIT 20;
+```
 
 ---
 
 ## Deterministic one‑shot run (verified)
 
-Start an execution and return the final result in a single call using `wait_seconds`.
-
 ```bash
-curl -sS -X POST "http://localhost:8000/api/v1/executions/?wait_seconds=10" \
+curl -sS -X POST "http://localhost/api/v1/executions/?wait_seconds=10" \
   -H 'Authorization: Bearer dev-token' -H 'Content-Type: application/json' \
   -d '{"payload": {"blueprint_id":"<bp_id>","inputs":{}}}'
 ```
@@ -186,11 +198,11 @@ $ ice new llm-operator my_llm
 $ ice blueprints new --name hello_world
 
 # Push to the API (requires token)
-$ ICE_API_TOKEN=dev-token ice push Blueprint.min.json --api http://localhost:8000 --token $ICE_API_TOKEN
+$ ICE_API_TOKEN=dev-token ice push Blueprint.min.json --api http://localhost --token $ICE_API_TOKEN
 Blueprint ID: bp_...
 
 # Run and stream status (polling)
-$ ice run bp_... --api http://localhost:8000 --token $ICE_API_TOKEN --input text="hi"
+$ ice run bp_... --api http://localhost --token $ICE_API_TOKEN --input text="hi"
 ```
 
 #### Generate a new tool from the CLI
@@ -213,8 +225,8 @@ def build():
 PY
 
 $ ice build examples/dsl_demo.py --output examples/dsl_demo.json
-$ ICE_API_TOKEN=dev-token ice push examples/dsl_demo.json --api http://localhost:8000 --token $ICE_API_TOKEN
-$ ice run <blueprint_id> --api http://localhost:8000 --token $ICE_API_TOKEN
+$ ICE_API_TOKEN=dev-token ice push examples/dsl_demo.json --api http://localhost --token $ICE_API_TOKEN
+$ ice run <blueprint_id> --api http://localhost --token $ICE_API_TOKEN
 ```
 
 #### Author-time preflight validation
@@ -245,8 +257,8 @@ nodes:
 
 ```bash
 $ ice build examples/minimal.yaml --output examples/minimal.json
-$ ICE_API_TOKEN=dev-token ice push examples/minimal.json --api http://localhost:8000 --token $ICE_API_TOKEN
-$ ice run <blueprint_id> --api http://localhost:8000 --token $ICE_API_TOKEN
+$ ICE_API_TOKEN=dev-token ice push examples/minimal.json --api http://localhost --token $ICE_API_TOKEN
+$ ice run <blueprint_id> --api http://localhost --token $ICE_API_TOKEN
 ```
 
 Expected output (truncated):
@@ -270,12 +282,9 @@ The live run additionally starts a local FastAPI *mock HTTP bin*; browse the sto
 ## 5. Running the Test-Suite + linters
 
 ```bash
-# Unit + integration tests (with coverage gate)
-$ make test
-
-# Type-check (strict) & style
-$ make type
-$ make lint
+make ci            # lint, lock-check, type-check, unit tests, dev smoke
+make type-check    # mypy --strict (dockerized)
+make test          # unit tests (dockerized)
 ```
 
 ### 5.0 CI / Dev Quickstart (Dockerized)
@@ -312,7 +321,7 @@ Offline integration tests run entirely in Docker and do not require provider key
 docker build --no-cache --target api -t local/iceosv1a-api:dev .
 docker build --no-cache --target test -t local/iceosv1a-itest:dev .
 IMAGE_REPO=local IMAGE_TAG=dev \
-  docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
+  # itest compose removed in this repo; keep CI-only usage elsewhere if needed
 ```
 
 Notes:
@@ -333,14 +342,14 @@ Example (local, with stress skipped):
 ```bash
 ICE_SKIP_STRESS=1 \
 IMAGE_REPO=local IMAGE_TAG=dev \
-docker compose -f docker-compose.itest.yml up --abort-on-container-exit --exit-code-from itest
+make ci
 ```
 
 ### 5.1.1 Echo LLM for offline tests
 ### 5.1.2 Postman collection
 
 Import `config/postman/iceos.postman_collection.json` into Postman. Set collection variables:
-- `baseUrl` (default `http://localhost:8000`)
+- `baseUrl` (default `http://localhost`)
 - `apiToken` (default `dev-token`)
 
 Then run: Health → Blueprints (Create) → Executions (Start/Status).

@@ -22,7 +22,7 @@ def library_cmd() -> None:
 
 
 @library_cmd.command("add")
-@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost:8000")
+@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost")
 @click.option("--token", envvar="ICE_API_TOKEN", required=True)
 @click.option("--label", required=True, help="Asset label (unique per user)")
 @click.option("--file", "file_path", type=click.Path(exists=True), required=True)
@@ -53,7 +53,7 @@ def add_asset(
 
 
 @library_cmd.command("list")
-@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost:8000")
+@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost")
 @click.option("--token", envvar="ICE_API_TOKEN", required=True)
 @click.option("--org", "org_id", default=None)
 @click.option("--user", "user_id", default=None)
@@ -81,7 +81,7 @@ def list_assets(
 
 
 @library_cmd.command("get")
-@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost:8000")
+@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost")
 @click.option("--token", envvar="ICE_API_TOKEN", required=True)
 @click.option("--label", required=True)
 @click.option("--org", "org_id", default=None)
@@ -101,7 +101,7 @@ def get_asset(
 
 
 @library_cmd.command("rm")
-@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost:8000")
+@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost")
 @click.option("--token", envvar="ICE_API_TOKEN", required=True)
 @click.option("--label", required=True)
 @click.option("--org", "org_id", default=None)

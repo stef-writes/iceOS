@@ -15,7 +15,7 @@ import asyncio
 from ice_client import IceClient
 
 async def main():
-    client = IceClient("http://localhost:8000")
+    client = IceClient("http://localhost")
     exec_id = await client.run_bundle(
         "chatkit.rag_chat",
         inputs={

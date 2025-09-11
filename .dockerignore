@@ -22,7 +22,6 @@ docs/
 screenshots/
 
 # Test artifacts
-tests/
 pytest_cache/
 .pytest_cache/
 htmlcov/

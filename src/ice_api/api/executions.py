@@ -7,6 +7,7 @@ import datetime as _dt
 import os
 import uuid
 from typing import Any, Dict, List, Optional
+import sqlalchemy as sa
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
@@ -14,7 +15,7 @@ from pydantic import BaseModel, Field
 from ice_api.db.database_session_async import get_session
 from ice_api.db.database_session_async import get_session as _get_db_session
 from ice_api.db.orm_models_core import BlueprintRecord as _BPRec
-from ice_api.db.orm_models_core import ExecutionRecord
+from ice_api.db.orm_models_core import ExecutionRecord, ExecutionEventRecord
 from ice_api.redis_client import get_redis
 from ice_core.models.mcp import Blueprint
 
@@ -534,115 +535,58 @@ async def get_execution_status(
                 events=events_val,
             )
 
-    # Prefer Redis as the source of truth; on error, fall back to in-memory
-    try:
-        redis = get_redis()
-        from typing import Any as _Any  # local alias for type annotation clarity
-
-        data: Dict[_Any, _Any] = await redis.hgetall(_exec_key(execution_id))  # type: ignore[misc]
-        if data:
-            decoded: Dict[str, Any] = {}
-            for k, v in data.items():
-                key = (
-                    k
-                    if isinstance(k, str)
-                    else (k.decode() if isinstance(k, (bytes, bytearray)) else str(k))
-                )
-                if isinstance(v, (bytes, bytearray)):
-                    try:
-                        val_decoded = v.decode()
-                    except Exception:
-                        val_decoded = None
-                    decoded[key] = val_decoded if val_decoded is not None else str(v)
-                else:
-                    decoded[key] = v
-            # Normalize JSON fields
-            try:
-                import json as _json
-
-                if isinstance(decoded.get("result"), str):
-                    val = decoded.get("result")
-                    if isinstance(val, str) and val and val[0] in "[{":
-                        decoded["result"] = _json.loads(val)
-            except Exception:
-                pass
-            return ExecutionStatusResponse(
-                execution_id=execution_id,
-                status=str(decoded.get("status", "unknown")),
-                blueprint_id=(
-                    str(decoded.get("blueprint_id"))
-                    if decoded.get("blueprint_id")
-                    else None
-                ),
-                result=(
-                    decoded["result"]
-                    if ("result" in decoded and isinstance(decoded.get("result"), dict))
-                    else None
-                ),
-                error=str(decoded.get("error")) if decoded.get("error") else None,
-                events=(
-                    decoded["events"]
-                    if ("events" in decoded and isinstance(decoded.get("events"), list))
-                    else None
-                ),
+    # DB authoritative: read status/result/events from Postgres
+    async for session in get_session():
+        row = await session.get(ExecutionRecord, execution_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Execution not found")
+        events_rows = (
+            await session.execute(
+                sa.select(ExecutionEventRecord)
+                .where(ExecutionEventRecord.execution_id == execution_id)
+                .order_by(ExecutionEventRecord.ts.asc())
             )
-    except Exception:
-        # Ignore Redis connectivity issues
-        pass
-    # Fallback to in-memory
-    store = _get_exec_store(request)
-    if execution_id not in store:
-        raise HTTPException(status_code=404, detail="Execution not found")
-    record = store[execution_id]
-    public = {k: v for k, v in record.items() if not k.startswith("_")}
-    result_val2: Optional[Dict[str, Any]] = None
-    _rv2 = public.get("result")
-    if isinstance(_rv2, dict):
-        from typing import cast as _cast
+        ).scalars().all()
+        events_list: List[Dict[str, Any]] = []
+        for er in events_rows:
+            events_list.append(
+                {
+                    "event": er.event_type,
+                    "payload": er.payload,
+                    "node_id": er.node_id,
+                    "ts": er.ts.isoformat() if getattr(er, "ts", None) else None,
+                }
+            )
+        return ExecutionStatusResponse(
+            execution_id=execution_id,
+            status=row.status,
+            blueprint_id=row.blueprint_id,
+            result=(row.cost_meta if isinstance(row.cost_meta, dict) else None),
+            error=None,
+            events=(events_list if events_list else None),
+        )
 
-        result_val2 = _cast(Dict[str, Any], _rv2)
-    events_val2: Optional[List[Dict[str, Any]]] = None
-    _ev2 = public.get("events")
-    if isinstance(_ev2, list) and all(isinstance(e, dict) for e in _ev2):
-        from typing import cast as _cast
-
-        events_val2 = _cast(List[Dict[str, Any]], _ev2)
-    return ExecutionStatusResponse(
-        execution_id=execution_id,
-        status=str(public.get("status", "unknown")),
-        blueprint_id=str(public.get("blueprint_id"))
-        if public.get("blueprint_id")
-        else None,
-        result=result_val2,
-        error=str(public.get("error")) if public.get("error") else None,
-        events=events_val2,
-    )
+    # Defensive default to satisfy type checker; should be unreachable
+    raise HTTPException(status_code=500, detail="unreachable")
 
 
 @router.get("/", dependencies=[Depends(rate_limit), Depends(require_auth)])
 async def list_executions(request: Request) -> ExecutionsListResponse:  # noqa: D401
-    """List known executions from Redis (authoritative) with basic fields."""
-    # We don't have a native Redis scan in stub; rely on in-memory store if present
-    store = _get_exec_store(request)
-    results = []
-    for exec_id, rec in store.items():
-        results.append(
-            {
-                "execution_id": exec_id,
-                "status": rec.get("status", "unknown"),
-                "blueprint_id": rec.get("blueprint_id", ""),
-            }
-        )
-    return ExecutionsListResponse(
-        executions=[
+    """List executions from Postgres (authoritative)."""
+    async for session in get_session():
+        rows = (
+            await session.execute(sa.select(ExecutionRecord))
+        ).scalars().all()
+        items = [
             ExecutionsListItem(
-                execution_id=rec["execution_id"],
-                status=rec["status"],
-                blueprint_id=rec["blueprint_id"],
+                execution_id=r.id, status=r.status, blueprint_id=r.blueprint_id
             )
-            for rec in results
+            for r in rows
         ]
-    )
+        return ExecutionsListResponse(executions=items)
+
+    # If no session yielded, return empty list (defensive)
+    return ExecutionsListResponse(executions=[])
 
 
 @router.post(
@@ -655,23 +599,23 @@ async def cancel_execution(request: Request, execution_id: str) -> Dict[str, Any
     """
     store = _get_exec_store(request)
     if execution_id not in store:
-        # Also check Redis if needed
+        # Update DB authoritative
+        async for session in get_session():
+            row = await session.get(ExecutionRecord, execution_id)
+            if row is None:
+                raise HTTPException(status_code=404, detail="Execution not found")
+            row.status = "failed"
+            row.finished_at = _dt.datetime.utcnow()
+            await session.commit()
+        # Best-effort Redis update
         try:
             redis = get_redis()
-            data = await redis.hgetall(_exec_key(execution_id))  # type: ignore[misc]
-            if not data:
-                raise HTTPException(status_code=404, detail="Execution not found")
-            # Update Redis state only (no in-memory record)
             await redis.hset(
-                _exec_key(execution_id),
-                mapping={"status": "failed", "error": "canceled"},
+                _exec_key(execution_id), mapping={"status": "failed", "error": "canceled"}
             )
-            return {"status": "canceled"}
-        except HTTPException:
-            raise
         except Exception:
-            # Redis unavailable and no in-memory record
-            raise HTTPException(status_code=404, detail="Execution not found")
+            pass
+        return {"status": "canceled"}
 
     # Update in-memory and notify WS clients
     rec = store[execution_id]

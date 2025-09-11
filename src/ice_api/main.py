@@ -41,14 +41,13 @@ from ice_api.startup_utils import (
     maybe_register_echo_llm_for_tests,
     print_startup_banner,
     run_alembic_migrations_if_enabled,
-    validate_registered_components,
 )
 from ice_api.ws_gateway import router as ws_router
 
 # Use runtime-wired services (set by orchestrator at startup)
 from ice_core import runtime as rt
-from ice_core.registry import registry
 from ice_core.utils.logging import setup_logger
+import ice_api.startup_utils as su
 
 # Setup logging
 logger = setup_logger()
@@ -89,6 +88,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         "ice_orchestrator"
     ).initialize_orchestrator
 
+    # Warn if someone tries to re-enable in-app migrations (we keep them out-of-band)
+    try:
+        if os.getenv("ICEOS_RUN_MIGRATIONS", "0") == "1":
+            logger.warning(
+                "In-app migrations are disabled; ignoring ICEOS_RUN_MIGRATIONS=1 (run make dev-migrate instead)"
+            )
+    except Exception:
+        pass
+
     # Initialize runtime orchestrator services
     initialize_orchestrator()
 
@@ -101,66 +109,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Ensure first-party tools are provided via plugin manifests; avoid implicit imports
 
     # ------------------------------------------------------------------
-    # Plugin manifests (opt-in starter packs and org components) --------
-    # ------------------------------------------------------------------
-    try:
-        # Load declarative plugins manifests specified via env var. Each entry is a
-        # JSON or YAML file containing plugins.v0 components with import paths.
-        manifests_env = os.getenv("ICEOS_PLUGIN_MANIFESTS", "").strip()
-        auto_dev = os.getenv("ICE_ALLOW_DEV_TOKEN", "0") == "1"
-        if not manifests_env and auto_dev:
-            # Zero-setup: auto-load first-party starter manifests in dev mode
-            from pathlib import Path as _Path
-
-            root = _Path(__file__).parents[3]
-            defaults = [
-                root / "plugins/kits/tools/memory/plugins.v0.yaml",
-                root / "plugins/kits/tools/search/plugins.v0.yaml",
-            ]
-            manifests_env = ",".join(str(p) for p in defaults if p.exists())
-            if manifests_env:
-                os.environ["ICEOS_PLUGIN_MANIFESTS"] = manifests_env
-        if manifests_env:
-            import logging as _logging
-            import pathlib
-            from typing import Any as _Any
-
-            _plog = _logging.getLogger(__name__)
-            manifest_paths = [p.strip() for p in manifests_env.split(",") if p.strip()]
-            loaded_any: bool = False
-            for mp in manifest_paths:
-                path = pathlib.Path(mp)
-                # Harden: only load manifests that declare schema_version: plugins.v0
-                try:
-                    import yaml as _yaml  # type: ignore
-
-                    with path.open("r", encoding="utf-8") as f:
-                        header: dict[str, _Any] | None = _yaml.safe_load(f)
-                    schema_version = (
-                        header.get("schema_version")
-                        if isinstance(header, dict)
-                        else None
-                    )
-                except Exception:
-                    schema_version = None
-                if schema_version != "plugins.v0":
-                    _plog.info(
-                        "Skipping non-plugin manifest %s (schema_version=%r)",
-                        path,
-                        schema_version,
-                    )
-                    continue
-                count = registry.load_plugins(str(path), allow_dynamic=True)
-                loaded_any = loaded_any or count > 0
-                _plog.info("Loaded %d components from manifest %s", count, path)
-            # Fail fast if no tool factories are registered after manifest load
-            if not registry.available_tool_factories() and not loaded_any:
-                raise RuntimeError(
-                    "No tool factories registered after loading plugin manifests."
-                )
-    except Exception:  # Log full context for startup diagnostics
-        logger.exception("Startup failed during plugin manifest load")
-        raise
+    # Plugin manifests: do not auto-load during startup. Load explicitly via CLI/API when needed.
 
     # No demo loader: manifests are the single source of truth for components
 
@@ -210,23 +159,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         else:
             logger.debug(f"{key_name} not found in environment")
 
-    # Initialize Redis connection, with zero-setup fallback to in-memory stub
-    try:
-        redis = get_redis()
-        await redis.ping()  # type: ignore[misc]
-        logger.info("Redis connection established")
-    except Exception as exc:  # pragma: no cover – fallback path
-        logger.warning("Redis unavailable (%s) – falling back to in-memory stub", exc)
-        import os as _os
-
-        _os.environ["USE_FAKE_REDIS"] = "1"
-        # Recreate client as stub
-        redis = get_redis()
-        try:
-            await redis.ping()  # type: ignore[misc]
-        except Exception:
-            # Stub ping always succeeds; ignore
-            pass
+    # Initialize Redis connection (required). No in-memory fallback.
+    redis = get_redis()
+    await redis.ping()  # type: ignore[misc]
+    logger.info("Redis connection established")
 
     # ------------------------------------------------------------------
     # Repo-driven component rehydration (tools + code) ------------------
@@ -372,16 +308,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Component validation ---------------------------------------------
     # ------------------------------------------------------------------
 
-    if os.getenv("ICEOS_SKIP_COMPONENT_VALIDATION", "0") != "1":
-        validation_summary = validate_registered_components()
-        if validation_summary["tool_failures"]:
-            raise RuntimeError(
-                f"Tool validation failures: {validation_summary['tool_failures']}"
-            )
-    else:
-        logger.warning(
-            "Skipping component validation due to ICEOS_SKIP_COMPONENT_VALIDATION=1"
-        )
+    # Skip component validation at startup to keep boot fast; run explicitly in CI or admin path.
 
     # Print startup banner last so it appears after early logs ---------
     git_sha = os.getenv("GIT_COMMIT_SHA")
@@ -452,6 +379,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Minimal readiness probe at root for Compose/Makefile health checks
+@app.get("/readyz")
+async def readyz(request: Request) -> Dict[str, Any]:  # noqa: D401
+    """Return ok once startup completed and Redis reachable."""
+    if not su.READY_FLAG:
+        return {"ok": False, "reason": "startup not complete"}
+    try:
+        r = get_redis()
+        await r.ping()  # type: ignore[misc]
+    except Exception:
+        return {"ok": False, "reason": "redis not reachable"}
+    return {"ok": True}
 
 # Trusted hosts (auto-gated by proxy)
 _trusted_hosts_raw = os.getenv("TRUSTED_HOSTS", "").strip()

@@ -5,7 +5,7 @@ import httpx
 
 
 def _base() -> str:
-    return os.environ.get("ICE_API_URL", "http://localhost:8000")
+    return os.environ.get("ICE_API_URL", "http://localhost")
 
 
 def _headers() -> dict[str, str]:

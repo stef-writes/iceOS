@@ -683,7 +683,7 @@ class ChatResponse(BaseModel):
     response_model=ChatResponse,
     dependencies=[Depends(rate_limit), Depends(require_auth)],
 )
-async def chat_turn(agent_name: str, req: ChatRequest) -> ChatResponse:  # noqa: D401
+async def chat_turn(agent_name: str, req: ChatRequest, request: Request) -> ChatResponse:  # noqa: D401
     """Single chat turn with simple session memory stored in Redis.
 
     - Resolves data-first AgentDefinition if present.
@@ -767,7 +767,7 @@ async def chat_turn(agent_name: str, req: ChatRequest) -> ChatResponse:  # noqa:
         # Common convention: LLMNode returns {"text": ...} or flattened dict
         assistant = str(output.get("text", "") or output.get("result", ""))
 
-    # Update history and persist
+    # Update history and persist (Redis for fast session access)
     messages.append({"role": "assistant", "content": assistant})
     await redis.hset(chat_key, mapping={"messages": json.dumps(messages)})
     # Apply TTL for chat sessions if configured
@@ -778,6 +778,44 @@ async def chat_turn(agent_name: str, req: ChatRequest) -> ChatResponse:  # noqa:
             if hasattr(redis, "expire"):
                 await redis.expire(chat_key, ttl)  # type: ignore[misc]
     except Exception:
+        pass
+
+    # Also write a durable transcript entry to Postgres semantic_memory (DB as SSOT)
+    try:
+        # Local imports to avoid altering module-level deps in minimal contexts
+        from ice_api.security import get_request_identity as _get_identity  # type: ignore
+        from ice_api.services.semantic_memory_repository import (
+            insert_semantic_entry as _insert_semantic,  # type: ignore
+        )
+        import hashlib as _hashlib  # type: ignore
+        import time as _time  # type: ignore
+
+        org_id, user_id = _get_identity(request)
+        key = f"chat:{agent_name}:{req.session_id}:{int(_time.time())}"
+        chash = _hashlib.sha256(
+            f"{agent_name}|{req.session_id}|{req.user_message}|{assistant}".encode()
+        ).hexdigest()
+        model_version = f"{provider}:{model_name}" if provider else None
+        # Keep payload concise but useful for RAG and audit
+        meta_json = {
+            "agent_name": agent_name,
+            "session_id": req.session_id,
+            "user_msg": req.user_message,
+            "assistant_msg": assistant,
+            "messages_tail": messages[-5:],
+        }
+        await _insert_semantic(
+            scope="chat",
+            key=key,
+            content_hash=chash,
+            meta_json=meta_json,
+            embedding_vec=None,
+            org_id=org_id,
+            user_id=user_id,
+            model_version=model_version,
+        )
+    except Exception:
+        # Chat must not fail if durable logging has issues
         pass
 
     return ChatResponse(

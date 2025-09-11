@@ -12,7 +12,7 @@ Example
 >>> from ice_client import IceClient
 >>>
 >>> bp = Blueprint(nodes=[NodeSpec(id="n1", type="noop")])
->>> client = IceClient("http://localhost:8000")
+>>> client = IceClient("http://localhost")
 >>> async def _run():
 ...     ack = await client.submit_blueprint(bp)
 ...     async for event in client.stream_events(ack.run_id):
@@ -78,13 +78,13 @@ class IceClient:
     ) -> None:
         """Create a client for the orchestrator API.
 
-        If base_url is not provided, falls back to ICE_API_URL or http://localhost:8000.
+        If base_url is not provided, falls back to ICE_API_URL or http://localhost.
         If auth_token is not provided, falls back to ICE_API_TOKEN.
         """
         resolved_base_url: str = (
             base_url
             if base_url is not None
-            else os.getenv("ICE_API_URL", "http://localhost:8000")
+            else os.getenv("ICE_API_URL", "http://localhost")
         )
         token_env: str = os.getenv("ICE_API_TOKEN", "dev-token")
         token = (auth_token if auth_token is not None else token_env).strip()

@@ -1,34 +1,58 @@
 services:
-  api:
+  web:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    env_file:
+      - ../../.env
+      - ../../.env.prod
     environment:
-      # Runtime flags
-      ICEOS_RUN_MIGRATIONS: "1"
+      NEXT_TELEMETRY_DISABLED: 1
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+  api:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ../../.env
+      - ../../.env.prod
+    environment:
+      ICE_BEHIND_PROXY: "0"
+      REDIS_URL: "redis://redis:6379/0"
+      # DEV DB override (use local Postgres service when profile "db" is enabled)
+      # Comment these two lines to use managed Supabase from .env files
+      DATABASE_URL: "postgresql+asyncpg://iceos:iceos@postgres:5432/iceos?sslmode=disable"
+      ALEMBIC_SYNC_URL: "postgresql+psycopg2://iceos:iceos@postgres:5432/iceos?sslmode=disable"
+      # Runtime flags (literals kept here; secrets/urls via env_file)
+      ICEOS_RUN_MIGRATIONS: "0"
       ICEOS_REQUIRE_DB: "1"
+      ICEOS_MIGRATION_VERIFY: "0"
       ICE_ENABLE_WASM: "1"
       ICE_BUILDER_USE_PROMPT_PLANNER: "1"
       ICE_SKIP_EXTERNAL: "0"
       ICE_DEFAULT_LLM_PROVIDER: "openai"
       ICE_DEFAULT_LLM_MODEL: "gpt-4o"
+      ICE_ALLOW_DEV_TOKEN: "1"
+      ICEOS_SKIP_COMPONENT_VALIDATION: "1"
+    ports:
+      - "8000:8000"
 
-      # Provider keys (injected by the host/CI secret store at deploy-time)
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
-
-      # Budget/governance (example defaults; tune per org)
-      ORG_BUDGET_USD: ${ORG_BUDGET_USD:-5.00}
-
-      # Database (use your managed Postgres/pgvector DSN)
-      DATABASE_URL: ${DATABASE_URL}
-      ALEMBIC_SYNC_URL: ${ALEMBIC_SYNC_URL}
-
-    # Ensure the API depends on database/redis if you deploy them with compose
-    depends_on:
-      - postgres
-      - redis
+    # Optionally start local DB/Redis via profile "db"; no hard depends for managed services
+    healthcheck:
+      test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request,sys\ntry:\n  with urllib.request.urlopen('http://localhost:8000/readyz', timeout=3) as r:\n    sys.exit(0 if r.status==200 else 1)\nexcept Exception:\n  sys.exit(1)\nPY"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   postgres:
+    profiles: ["db"]
     # In production prefer a managed Postgres; this service is optional
     image: pgvector/pgvector:pg15
     environment:
@@ -37,10 +61,22 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-iceos}
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-iceos} -d ${POSTGRES_DB:-iceos} -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--save", "", "--appendonly", "no"]
+    profiles: ["db"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
     volumes:
       - redis_data:/data
 

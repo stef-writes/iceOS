@@ -17,14 +17,21 @@ Notes
 """
 
 from typing import Any, Dict, List, Optional
+import sqlalchemy as sa
+from ice_api.redis_client import get_redis
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field, ValidationError
 
 from ice_api.dependencies import rate_limit
-from ice_api.redis_client import get_redis
 from ice_api.security import require_auth
 from ice_core.unified_registry import registry
+from ice_api.db.database_session_async import get_session
+from ice_api.db.orm_models_core import (
+    WorkspaceRecord,
+    ProjectRecord,
+    MountRecord,
+)
 
 # Import helpers from blueprints API to validate existence and compute version locks
 from .blueprints import _calculate_version_lock as _bp_version_lock
@@ -75,70 +82,12 @@ class BootstrapResponse(BaseModel):
     project_id: str
 
 
-# ------------------------------- Storage helpers ----------------------------
-
-
-def _workspace_key(ws_id: str) -> str:
-    return f"ws:{ws_id}"
-
-
-def _project_key(pr_id: str) -> str:
-    return f"pr:{pr_id}"
-
-
-def _mounts_key(pr_id: str) -> str:
-    return f"pr:{pr_id}:mounts"
+# ------------------------------- Assoc helpers (transient) -------------------
 
 
 def _project_blueprints_key(pr_id: str) -> str:
+    # Kept in Redis for sidebar ordering/history only (non-authoritative)
     return f"pr:{pr_id}:blueprints"
-
-
-async def _save_json(key: str, value: BaseModel, request: Request) -> None:
-    try:
-        redis = get_redis()
-        await redis.set(key, value.model_dump_json())  # type: ignore[misc]
-        return
-    except Exception:
-        pass
-    store: Dict[str, Any] = getattr(request.app.state, "_kv", {})
-    store[key] = value.model_dump(mode="json")
-    request.app.state._kv = store  # type: ignore[attr-defined]
-
-
-async def _load_json(model: type[BaseModel], key: str, request: Request) -> BaseModel:
-    try:
-        redis = get_redis()
-        raw = await redis.get(key)  # type: ignore[misc]
-        if raw:
-            return model.model_validate_json(raw)
-    except Exception:
-        pass
-    store: Dict[str, Any] = getattr(request.app.state, "_kv", {})
-    if key not in store:
-        raise KeyError(key)
-    return model.model_validate(store[key])
-
-
-async def _list_prefix(
-    model: type[BaseModel], prefix: str, request: Request
-) -> List[BaseModel]:
-    items: List[BaseModel] = []
-    try:
-        redis = get_redis()
-        keys = [k async for k in redis.scan_iter(f"{prefix}*")]  # type: ignore[misc]
-        for k in keys:
-            raw = await redis.get(k)  # type: ignore[misc]
-            if raw:
-                items.append(model.model_validate_json(raw))
-        return items
-    except Exception:
-        pass
-    store: Dict[str, Any] = getattr(request.app.state, "_kv", {})
-    for k, v in store.items():
-        if isinstance(k, str) and k.startswith(prefix):
-            items.append(model.model_validate(v))
-    return items
 
 
 # ------------------------------- Routes -------------------------------------
@@ -153,7 +102,14 @@ async def _list_prefix(
 async def create_workspace(
     request: Request, payload: Workspace = Body(...)
 ) -> Workspace:  # noqa: D401
-    await _save_json(_workspace_key(payload.id), payload, request)
+    async for session in get_session():
+        rec = await session.get(WorkspaceRecord, payload.id)
+        if rec is None:
+            rec = WorkspaceRecord(id=payload.id, name=payload.name)
+            session.add(rec)
+        else:
+            rec.name = payload.name
+        await session.commit()
     return payload
 
 
@@ -163,8 +119,14 @@ async def create_workspace(
     response_model=List[Workspace],
 )
 async def list_workspaces(request: Request) -> List[Workspace]:  # noqa: D401
-    rows = await _list_prefix(Workspace, "ws:", request)
-    return [Workspace.model_validate(w.model_dump()) for w in rows]
+    items: List[Workspace] = []
+    async for session in get_session():
+        rows = (await session.execute(
+            sa.select(WorkspaceRecord)  # type: ignore[name-defined]
+        )).scalars().all()
+        for r in rows:
+            items.append(Workspace(id=r.id, name=r.name))
+    return items
 
 
 @router.post(
@@ -174,12 +136,25 @@ async def list_workspaces(request: Request) -> List[Workspace]:  # noqa: D401
     response_model=Project,
 )
 async def create_project(request: Request, payload: Project = Body(...)) -> Project:  # noqa: D401
-    # Ensure workspace exists
-    try:
-        await _load_json(Workspace, _workspace_key(payload.workspace_id), request)
-    except Exception:
-        raise HTTPException(status_code=404, detail="workspace not found")
-    await _save_json(_project_key(payload.id), payload, request)
+    async for session in get_session():
+        ws = await session.get(WorkspaceRecord, payload.workspace_id)
+        if ws is None:
+            raise HTTPException(status_code=404, detail="workspace not found")
+        rec = await session.get(ProjectRecord, payload.id)
+        if rec is None:
+            rec = ProjectRecord(
+                id=payload.id,
+                workspace_id=payload.workspace_id,
+                name=payload.name,
+                enabled_tools=payload.enabled_tools,
+                enabled_workflows=payload.enabled_workflows,
+            )
+            session.add(rec)
+        else:
+            rec.name = payload.name
+            rec.enabled_tools = payload.enabled_tools
+            rec.enabled_workflows = payload.enabled_workflows
+        await session.commit()
     return payload
 
 
@@ -189,11 +164,22 @@ async def create_project(request: Request, payload: Project = Body(...)) -> Proj
     response_model=List[Project],
 )
 async def list_projects(request: Request, ws_id: str) -> List[Project]:  # noqa: D401
-    projs = [
-        Project.model_validate(p.model_dump())
-        for p in await _list_prefix(Project, "pr:", request)
-    ]
-    return [p for p in projs if p.workspace_id == ws_id]
+    items: List[Project] = []
+    async for session in get_session():
+        rows = (await session.execute(
+            sa.select(ProjectRecord).where(ProjectRecord.workspace_id == ws_id)  # type: ignore[name-defined]
+        )).scalars().all()
+        for r in rows:
+            items.append(
+                Project(
+                    id=r.id,
+                    workspace_id=r.workspace_id,
+                    name=r.name,
+                    enabled_tools=r.enabled_tools or [],
+                    enabled_workflows=r.enabled_workflows or [],
+                )
+            )
+    return items
 
 
 class MountCreate(BaseModel):
@@ -212,24 +198,26 @@ class MountCreate(BaseModel):
 async def add_mount(
     request: Request, project_id: str, payload: MountCreate = Body(...)
 ) -> Mount:  # noqa: D401
-    # Ensure project exists
-    try:
-        from typing import cast as _cast
-
-        pr = _cast(
-            Project, await _load_json(Project, _project_key(project_id), request)
-        )
-    except Exception:
-        raise HTTPException(status_code=404, detail="project not found")
-    mount = Mount(
-        id=payload.id,
-        project_id=pr.id,
-        label=payload.label,
-        uri=payload.uri,
-        metadata=payload.metadata,
-    )
-    await _save_json(f"{_mounts_key(project_id)}:{mount.id}", mount, request)
-    return mount
+    async for session in get_session():
+        pr = await session.get(ProjectRecord, project_id)
+        if pr is None:
+            raise HTTPException(status_code=404, detail="project not found")
+        rec = await session.get(MountRecord, payload.id)
+        if rec is None:
+            rec = MountRecord(
+                id=payload.id,
+                project_id=project_id,
+                label=payload.label,
+                uri=payload.uri,
+                meta_json=payload.metadata,
+            )
+            session.add(rec)
+        else:
+            rec.label = payload.label
+            rec.uri = payload.uri
+            rec.meta_json = payload.metadata
+        await session.commit()
+    return Mount(id=payload.id, project_id=project_id, label=payload.label, uri=payload.uri, metadata=payload.metadata)
 
 
 @router.get(
@@ -238,12 +226,25 @@ async def add_mount(
     response_model=List[Mount],
 )
 async def list_mounts(request: Request, project_id: str) -> List[Mount]:  # noqa: D401
-    try:
-        await _load_json(Project, _project_key(project_id), request)
-    except Exception:
-        raise HTTPException(status_code=404, detail="project not found")
-    rows = await _list_prefix(Mount, f"{_mounts_key(project_id)}:", request)
-    return [Mount.model_validate(m.model_dump()) for m in rows]
+    items: List[Mount] = []
+    async for session in get_session():
+        pr = await session.get(ProjectRecord, project_id)
+        if pr is None:
+            raise HTTPException(status_code=404, detail="project not found")
+        rows = (await session.execute(
+            sa.select(MountRecord).where(MountRecord.project_id == project_id)
+        )).scalars().all()
+        for r in rows:
+            items.append(
+                Mount(
+                    id=r.id,
+                    project_id=r.project_id,
+                    label=r.label,
+                    uri=r.uri,
+                    metadata=r.meta_json or {},
+                )
+            )
+    return items
 
 
 class CatalogUpdate(BaseModel):
@@ -259,14 +260,22 @@ class CatalogUpdate(BaseModel):
 async def update_catalog(
     request: Request, project_id: str, payload: CatalogUpdate = Body(...)
 ) -> Project:  # noqa: D401
-    try:
-        pr: Project = await _load_json(Project, _project_key(project_id), request)  # type: ignore[assignment]
-    except Exception:
-        raise HTTPException(status_code=404, detail="project not found")
-    pr.enabled_tools = list(sorted(set(payload.enabled_tools)))
-    pr.enabled_workflows = list(sorted(set(payload.enabled_workflows)))
-    await _save_json(_project_key(project_id), pr, request)
-    return pr
+    async for session in get_session():
+        rec = await session.get(ProjectRecord, project_id)
+        if rec is None:
+            raise HTTPException(status_code=404, detail="project not found")
+        rec.enabled_tools = list(sorted(set(payload.enabled_tools)))
+        rec.enabled_workflows = list(sorted(set(payload.enabled_workflows)))
+        await session.commit()
+        return Project(
+            id=rec.id,
+            workspace_id=rec.workspace_id,
+            name=rec.name,
+            enabled_tools=rec.enabled_tools or [],
+            enabled_workflows=rec.enabled_workflows or [],
+        )
+    # Defensive fallback if session generator yielded nothing
+    raise HTTPException(status_code=500, detail="database session unavailable")
 
 
 @router.get(
@@ -275,26 +284,28 @@ async def update_catalog(
     response_model=CatalogResponse,
 )
 async def get_catalog(request: Request, project_id: str) -> CatalogResponse:  # noqa: D401
-    try:
-        pr: Project = await _load_json(Project, _project_key(project_id), request)  # type: ignore[assignment]
-    except Exception:
-        raise HTTPException(status_code=404, detail="project not found")
+    async for session in get_session():
+        rec = await session.get(ProjectRecord, project_id)
+        if rec is None:
+            raise HTTPException(status_code=404, detail="project not found")
 
-    # Source global availability from the unified registry
-    tools_all = sorted(registry.list_tools())
-    workflows_all = [name for name, _ in registry.available_chains()]
-    agents_all = [name for name in registry.list_agents()]
+        # Source global availability from the unified registry
+        tools_all = sorted(registry.list_tools())
+        workflows_all = [name for name, _ in registry.available_chains()]
+        agents_all = [name for name in registry.list_agents()]
 
-    tools = [
-        CatalogEntry(name=n, type="tool", enabled=n in pr.enabled_tools)
-        for n in tools_all
-    ]
-    workflows = [
-        CatalogEntry(name=n, type="workflow", enabled=n in pr.enabled_workflows)
-        for n in workflows_all
-    ]
-    agents = [CatalogEntry(name=n, type="agent", enabled=True) for n in agents_all]
-    return CatalogResponse(tools=tools, workflows=workflows, agents=agents)
+        tools = [
+            CatalogEntry(name=n, type="tool", enabled=n in (rec.enabled_tools or []))
+            for n in tools_all
+        ]
+        workflows = [
+            CatalogEntry(name=n, type="workflow", enabled=n in (rec.enabled_workflows or []))
+            for n in workflows_all
+        ]
+        agents = [CatalogEntry(name=n, type="agent", enabled=True) for n in agents_all]
+        return CatalogResponse(tools=tools, workflows=workflows, agents=agents)
+    # Defensive fallback if session generator yielded nothing
+    return CatalogResponse(tools=[], workflows=[], agents=[])
 
 
 @router.post(
@@ -309,19 +320,22 @@ async def bootstrap_defaults(request: Request) -> BootstrapResponse:  # noqa: D4
     """
     ws = Workspace(id="default", name="Default Workspace")
     pr = Project(id="default", workspace_id=ws.id, name="Default Project")
-    try:
-        await _save_json(_workspace_key(ws.id), ws, request)
-    except Exception:
-        pass
-    try:
-        # Ensure workspace exists prior to project
-        await _load_json(Workspace, _workspace_key(ws.id), request)
-    except Exception:
-        await _save_json(_workspace_key(ws.id), ws, request)
-    try:
-        await _save_json(_project_key(pr.id), pr, request)
-    except Exception:
-        pass
+    async for session in get_session():
+        w = await session.get(WorkspaceRecord, ws.id)
+        if w is None:
+            session.add(WorkspaceRecord(id=ws.id, name=ws.name))
+        p = await session.get(ProjectRecord, pr.id)
+        if p is None:
+            session.add(
+                ProjectRecord(
+                    id=pr.id,
+                    workspace_id=pr.workspace_id,
+                    name=pr.name,
+                    enabled_tools=[],
+                    enabled_workflows=[],
+                )
+            )
+        await session.commit()
     return BootstrapResponse(workspace_id=ws.id, project_id=pr.id)
 
 
@@ -407,10 +421,11 @@ async def list_project_blueprints(
     request: Request, project_id: str
 ) -> ProjectBlueprintsList:  # noqa: D401
     """List blueprint identifiers associated with the project."""
-    try:
-        await _load_json(Project, _project_key(project_id), request)
-    except Exception:
-        raise HTTPException(status_code=404, detail="project not found")
+    # Ensure project exists in DB
+    async for session in get_session():
+        pr = await session.get(ProjectRecord, project_id)
+        if pr is None:
+            raise HTTPException(status_code=404, detail="project not found")
     return ProjectBlueprintsList(
         blueprint_ids=await _list_project_blueprint_ids(project_id, request)
     )
@@ -432,11 +447,11 @@ async def create_project_blueprint_from_workflow(  # noqa: D401
     This aliases the Templates API, then records the blueprint id into the project's
     blueprint listing for sidebar/navigation UX.
     """
-    # Ensure project exists
-    try:
-        await _load_json(Project, _project_key(project_id), request)
-    except Exception:
-        raise HTTPException(status_code=404, detail="project not found")
+    # Ensure project exists in DB
+    async for session in get_session():
+        pr = await session.get(ProjectRecord, project_id)
+        if pr is None:
+            raise HTTPException(status_code=404, detail="project not found")
 
     # Delegate to Templates logic for YAML → Blueprint → persistence
     import yaml as _yaml  # lazy import
@@ -521,11 +536,11 @@ async def attach_project_blueprint(  # noqa: D401
     Validates that the project exists and the blueprint id resolves; then records
     the blueprint id into the project's blueprint listing (for navigation/UX).
     """
-    # Ensure project exists
-    try:
-        await _load_json(Project, _project_key(project_id), request)
-    except Exception:
-        raise HTTPException(status_code=404, detail="project not found")
+    # Ensure project exists in DB
+    async for session in get_session():
+        pr = await session.get(ProjectRecord, project_id)
+        if pr is None:
+            raise HTTPException(status_code=404, detail="project not found")
 
     # Validate blueprint exists and compute its current version lock
     try:
@@ -552,10 +567,10 @@ async def detach_project_blueprint(  # noqa: D401
     blueprint_id: str,
 ) -> Response:
     """Detach a workflow (blueprint id) from the project’s workflow list."""
-    # Ensure project exists (404 if missing)
-    try:
-        await _load_json(Project, _project_key(project_id), request)
-    except Exception:
-        raise HTTPException(status_code=404, detail="project not found")
+    # Ensure project exists in DB (404 if missing)
+    async for session in get_session():
+        pr = await session.get(ProjectRecord, project_id)
+        if pr is None:
+            raise HTTPException(status_code=404, detail="project not found")
     await _remove_project_blueprint(project_id, blueprint_id, request)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -1,7 +1,7 @@
 import type { FullConfig } from '@playwright/test';
 
 export default async function globalSetup(_config: FullConfig) {
-  const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
   const token = process.env.NEXT_PUBLIC_API_TOKEN || 'dev-token';
   const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } as const;
 

@@ -5,10 +5,10 @@ export default function Home() {
   return (
     <div className="p-8 max-w-5xl">
       <div className="text-2xl font-semibold mb-2">iceOS Studio</div>
-      <div className="text-neutral-400 mb-6">Design and run AI workflows. Start by creating a Project, then add a Workflow.</div>
+      <div className="text-neutral-400 mb-6">Design and run AI workflows. Start in a Workspace, then add a Workflow.</div>
       <div className="flex gap-3 text-sm">
-        <Link href="/workspaces" className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800">Projects</Link>
-        <a href="/workflows" className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800">Workflows</a>
+        <Link href="/workspaces" className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800">Workspaces</Link>
+        {/* Workflows index removed; deep links only */}
         <a href="/library" className="px-3 py-2 border border-neutral-700 rounded hover:bg-neutral-800">Library</a>
       </div>
       <div className="mt-8 grid grid-cols-3 gap-4 text-xs">

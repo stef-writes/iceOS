@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import Request
 
-from ice_api.db.database_session_async import check_connection, get_session
+from ice_api.db.database_session_async import get_session
 from ice_api.db.orm_models_core import ComponentRecord
 from ice_api.redis_client import get_redis
 
@@ -207,33 +207,8 @@ class SQLComponentRepository(ComponentRepository):
 
 def choose_component_repo(app: Any) -> ComponentRepository:
     import os
-
-    if os.getenv("USE_FAKE_REDIS") == "1":
-        return InMemoryComponentRepository(app)
-    # Prefer SQL when DATABASE_URL is configured and reachable
+    # Prefer SQL when DB URL is configured; avoid blocking event loop checks here.
     if os.getenv("DATABASE_URL") or os.getenv("ICEOS_DB_URL"):
-        try:
-            import anyio
-
-            async def _db_ok() -> bool:
-                return await check_connection()
-
-            if anyio.run(_db_ok):  # type: ignore[arg-type]
-                return SQLComponentRepository()
-        except Exception:
-            pass
-    try:
-        # verify connectivity
-        redis = get_redis()
-        # ping may not exist on stub
-        if hasattr(redis, "ping"):
-            # type: ignore[misc]
-            import anyio
-
-            async def _ping() -> None:
-                await redis.ping()
-
-            anyio.run(_ping)
-        return RedisComponentRepository()
-    except Exception:
-        return InMemoryComponentRepository(app)
+        return SQLComponentRepository()
+    # Otherwise fall back to Redis-backed repo; readiness will verify connectivity.
+    return RedisComponentRepository()

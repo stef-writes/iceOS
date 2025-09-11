@@ -1,5 +1,15 @@
 "use client";
+import { useEffect, useMemo, useState } from "react";
+import { meta } from "@/modules/api/client";
+
 export default function AgentInspector({ node, setField }: { node: any; setField: (path: string, value: unknown) => void }) {
+  const [providers, setProviders] = useState<Array<{ id: string; label: string }>>([]);
+  const [models, setModels] = useState<Array<{ id: string; provider: string; label: string }>>([]);
+  const lc = (node?.llm_config && typeof node.llm_config === "object") ? node.llm_config : {};
+  const provider = String(lc.provider || "");
+  const model = String(lc.model || "");
+  const providerModels = useMemo(() => models.filter((m)=>m.provider === provider), [models, provider]);
+  useEffect(() => { meta.models().then((cat:any)=>{ setProviders(cat.providers||[]); setModels((cat.models||[]).map((m:any)=>({id:m.id, provider:m.provider, label:m.label}))); if(!provider && cat.defaults?.provider){ setField("llm_config", { ...(lc as any), provider: cat.defaults.provider }); } if(!model && cat.defaults?.model){ setField("llm_config", { ...(lc as any), provider: provider || cat.defaults?.provider || "", model: cat.defaults.model }); } }).catch(()=>{}); }, []);
   return (
     <div className="space-y-2">
       <div className="text-neutral-300">Agent</div>
@@ -22,18 +32,19 @@ export default function AgentInspector({ node, setField }: { node: any; setField
         }
       }} />
       <div className="flex items-center gap-2">
-        <select defaultValue={node.llm_config?.provider || ""} onChange={(e) => setField("llm_config", { ...(node.llm_config||{}), provider: e.target.value })} className="bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm">
+        <select value={provider} onChange={(e) => setField("llm_config", { ...(lc as any), provider: e.target.value })} className="bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm">
           <option value="">provider</option>
-          <option value="openai">OpenAI</option>
-          <option value="anthropic">Anthropic</option>
-          <option value="google">Google</option>
+          {providers.map((p)=>(<option key={p.id} value={p.id}>{p.label}</option>))}
         </select>
-        <input className="flex-1 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm" placeholder="model" defaultValue={node.llm_config?.model || ""} onChange={(e) => setField("llm_config", { ...(node.llm_config||{}), model: e.target.value })} />
+        <select value={model} onChange={(e)=> setField("llm_config", { ...(lc as any), provider, model: e.target.value })} disabled={!provider} className="flex-1 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm">
+          <option value="">{provider?"model":"select provider first"}</option>
+          {providerModels.map((m)=>(<option key={m.id} value={m.id}>{m.label}</option>))}
+        </select>
       </div>
       <div className="flex items-center gap-2">
-        <input type="number" step="0.01" className="w-28 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm" placeholder="temperature" defaultValue={node.llm_config?.temperature ?? ""} onChange={(e) => setField("llm_config", { ...(node.llm_config||{}), temperature: parseFloat(e.target.value) })} />
-        <input type="number" className="w-28 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm" placeholder="max_tokens" defaultValue={node.llm_config?.max_tokens ?? ""} onChange={(e) => setField("llm_config", { ...(node.llm_config||{}), max_tokens: parseInt(e.target.value||"0",10) || undefined })} />
-        <input type="number" className="w-28 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm" placeholder="timeout_s" defaultValue={node.llm_config?.timeout_seconds ?? ""} onChange={(e) => setField("llm_config", { ...(node.llm_config||{}), timeout_seconds: parseInt(e.target.value||"0",10) || undefined })} />
+        <input type="number" step="0.01" className="w-28 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm" placeholder="temperature" defaultValue={lc?.temperature ?? ""} onChange={(e) => setField("llm_config", { ...(lc as any), temperature: parseFloat(e.target.value) })} />
+        <input type="number" className="w-28 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm" placeholder="max_tokens" defaultValue={lc?.max_tokens ?? ""} onChange={(e) => setField("llm_config", { ...(lc as any), max_tokens: parseInt(e.target.value||"0",10) || undefined })} />
+        <input type="number" className="w-28 bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-sm" placeholder="timeout_s" defaultValue={lc?.timeout_seconds ?? ""} onChange={(e) => setField("llm_config", { ...(lc as any), timeout_seconds: parseInt(e.target.value||"0",10) || undefined })} />
       </div>
       <div className="text-[11px] text-neutral-400">Provider and model are required.</div>
     </div>

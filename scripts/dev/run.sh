@@ -20,7 +20,7 @@ docker version >/dev/null 2>&1 || {
   done
 }
 
-export NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+export NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost}
 export NEXT_PUBLIC_API_TOKEN=${NEXT_PUBLIC_API_TOKEN:-dev-token}
 
 # Secret sourcing (non-interactive): ~/.config/iceos/keys.env → macOS Keychain → env

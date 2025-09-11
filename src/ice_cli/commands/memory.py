@@ -32,7 +32,7 @@ def _mcp(
 
 
 @memory.command("write")
-@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost:8000")
+@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost")
 @click.option("--token", envvar="ICE_API_TOKEN", default=None)
 @click.option("--scope", default="kb")
 @click.option("--key", required=True)
@@ -56,7 +56,7 @@ def write(
 
 
 @memory.command("search")
-@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost:8000")
+@click.option("--api", "api_url", envvar="ICE_API_URL", default="http://localhost")
 @click.option("--token", envvar="ICE_API_TOKEN", default=None)
 @click.option("--scope", default="kb")
 @click.option("--query", required=True)

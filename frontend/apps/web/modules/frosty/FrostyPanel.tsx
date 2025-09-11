@@ -3,12 +3,30 @@ import { useEffect, useRef, useState } from "react";
 import { useCopilotStore } from "@/modules/frosty/store/useCopilotStore";
 import { suggestV2 } from "@/modules/frosty/api/client";
 import { useCanvasStore } from "@/modules/canvas/state/useCanvasStore";
-import { builder, mcp } from "@/modules/api/client";
+import { builder, mcp, meta } from "@/modules/api/client";
 import { emit } from "@/modules/core/events";
 
-export default function CopilotPanel() {
-  const { open, widthPct, setOpen, loading, setLoading, provider, model, temperature, includeSelection, includeCanvas, setModelControls, setContextToggles, messages, pushMessage } = useCopilotStore();
+export default function FrostyPanel() {
+  const {
+    open,
+    widthPct,
+    setOpen,
+    loading,
+    setLoading,
+    provider,
+    model,
+    temperature,
+    includeSelection,
+    includeCanvas,
+    setModelControls,
+    setContextToggles,
+    messages,
+    pushMessage,
+  } = useCopilotStore();
   const [text, setText] = useState("");
+  const [providers, setProviders] = useState<Array<{ id: string; label: string }>>([]);
+  const [models, setModels] = useState<Array<{ id: string; provider: string; label: string }>>([]);
+  const providerModels = models.filter((m) => m.provider === (provider || ""));
   const selected = useCanvasStore((s) => s.selected) as any as { id: string; type: string } | null;
   const bp = useCanvasStore((s) => s.blueprint) as any;
   const setBp = useCanvasStore((s) => s.setBlueprint) as any;
@@ -22,6 +40,16 @@ export default function CopilotPanel() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, setOpen]);
+
+  useEffect(() => {
+    meta.models().then((cat: any) => {
+      setProviders(cat.providers || []);
+      setModels((cat.models || []).map((m: any) => ({ id: m.id, provider: m.provider, label: m.label })));
+      if (!provider && cat.defaults?.provider) setModelControls(cat.defaults.provider, model, temperature);
+      if (!model && cat.defaults?.model) setModelControls(provider ?? cat.defaults?.provider ?? null, cat.defaults.model, temperature);
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const w = `${widthPct}%`;
   if (!open) return null;
@@ -76,11 +104,12 @@ export default function CopilotPanel() {
           <span className="text-neutral-300">Frosty</span>
           <select className="bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5" value={provider||""} onChange={(e)=>setModelControls(e.target.value||null, model, temperature)} aria-label="Provider">
             <option value="">provider</option>
-            <option value="openai">openai</option>
-            <option value="anthropic">anthropic</option>
-            <option value="deepseek">deepseek</option>
+            {providers.map((p) => (<option key={p.id} value={p.id}>{p.label}</option>))}
           </select>
-          <input placeholder="model" value={model||""} onChange={(e)=>setModelControls(provider, e.target.value||null, temperature)} className="w-28 bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5" />
+          <select className="bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5 w-40" value={model||""} onChange={(e)=>setModelControls(provider, e.target.value||null, temperature)} aria-label="Model" disabled={!provider}>
+            <option value="">{provider ? "model" : "select provider"}</option>
+            {providerModels.map((m) => (<option key={m.id} value={m.id}>{m.label}</option>))}
+          </select>
           <input placeholder="temp" value={temperature??""} onChange={(e)=>setModelControls(provider, model, e.target.value?Number(e.target.value):null)} className="w-14 bg-neutral-900 border border-neutral-800 rounded px-1 py-0.5" />
         </div>
         <div className="flex items-center gap-2">
@@ -131,3 +160,5 @@ export default function CopilotPanel() {
     </div>
   );
 }
+
+

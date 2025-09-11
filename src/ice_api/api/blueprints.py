@@ -36,9 +36,9 @@ async def _load_blueprint(blueprint_id: str) -> Blueprint:  # noqa: D401 – hel
             if rec is not None:
                 return Blueprint.model_validate(rec.body)
     except Exception:
-        # If DB temporarily unavailable, fall back to cache
+        # If DB temporarily unavailable, fall back to cache for read-only resilience
         pass
-    # 2) Redis cache
+    # 2) Redis cache (non-authoritative)
     try:
         redis = get_redis()
         raw_json = await redis.hget(_bp_key(blueprint_id), "json")  # type: ignore[arg-type]
@@ -257,12 +257,8 @@ async def create_blueprint(  # noqa: D401 – API route
             await session.merge(rec)
             await session.commit()
     except Exception:
-        # Best-effort fallback to in-memory store so tests/dev keep working
-        store = getattr(request.app.state, "blueprints", None)
-        if store is not None:
-            store[blueprint_id] = blueprint
-        else:
-            request.app.state.blueprints = {blueprint_id: blueprint}
+        # Strict SSOT: fail instead of writing to in-memory fallback
+        raise HTTPException(status_code=503, detail="Database unavailable for blueprint create")
 
     # Cache to Redis best-effort
     try:
@@ -288,13 +284,7 @@ async def get_blueprint(
     response: Response,
 ) -> BlueprintGetResponse:  # noqa: D401 – API route
     """Return a stored Blueprint by *id* with optimistic version-lock header."""
-    try:
-        bp = await _load_blueprint(blueprint_id)
-    except HTTPException:
-        store = getattr(request.app.state, "blueprints", {})
-        if blueprint_id not in store:
-            raise
-        bp = store[blueprint_id]
+    bp = await _load_blueprint(blueprint_id)
 
     # Compute version lock and expose as header
     version_lock = _calculate_version_lock(bp)
@@ -370,10 +360,7 @@ async def patch_blueprint(  # noqa: D401
         except Exception:
             pass
     except Exception:
-        # In-memory update fallback
-        store = getattr(request.app.state, "blueprints", None)
-        if store is not None:
-            store[blueprint_id] = bp
+        raise HTTPException(status_code=503, detail="Database unavailable for blueprint update")
     return BlueprintPatchResponse(id=blueprint_id, node_count=len(bp.nodes))
 
 

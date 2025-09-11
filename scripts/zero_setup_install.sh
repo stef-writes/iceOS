@@ -60,7 +60,7 @@ echo "[iceOS] Starting stack with ${COMPOSE}"
 ${COMPOSE} up -d --build
 
 # Wait for readiness
-API_URL="http://localhost:8000"
+API_URL="http://localhost"
 echo "[iceOS] Waiting for API readiness at ${API_URL}/readyz ..."
 ATTEMPTS=60
 until curl -fsS "${API_URL}/readyz" >/dev/null 2>&1; do

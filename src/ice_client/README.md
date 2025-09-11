@@ -21,7 +21,7 @@ When you develop inside the monorepo the package is already on `PYTHONPATH`.
 ```python
 from ice_client import IceClient
 
-client = IceClient("http://localhost:8000")
+client = IceClient("http://localhost")
 
 # Preferred helpers (MCP + SSE under the hood)
 
