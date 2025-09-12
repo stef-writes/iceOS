@@ -1,64 +1,39 @@
-id: chatkit.rag_chat
 schema_version: "1.2.0"
-
-# Bundle workflow inputs – validated at author time by MCP; runtime passes via /executions
-inputs:
-  required: [org_id, user_id, session_id, query]
-  optional: [with_citations, top_k, system_prompt, model, temperature, max_tokens]
-
-# Minimal, production-ready RAG chat:
-# - Fetch recent session context
-# - Search semantic memory for top results
-# - Compose LLM response
-# - Persist transcript entry
+metadata:
+  draft_name: "RAG Chat (Agent)"
 nodes:
-  - id: recent
-    type: tool
-    tool_name: recent_session_tool
-    tool_args:
-      session_id: "{{ inputs.session_id }}"
-      scope: "kb"
-      org_id: "{{ inputs.org_id }}"
-      limit: 5
-    dependencies: []
-
-  - id: search
-    type: tool
-    tool_name: memory_search_tool
-    tool_args:
-      query: "{{ inputs.query }}"
-      scope: "kb"
-      org_id: "{{ inputs.org_id }}"
-      limit: 5
-    dependencies: []
-
-  - id: llm
-    type: llm
-    model: "gpt-4o"
-    prompt: |
-      You are helpful. Use the user's query, recent turns, and search results.
-      Answer concisely.
-      Query: {{ inputs.query }}
-      Recent: {{ recent.items }}
-      Results: {{ search.results }}
+  - id: chat_agent
+    type: agent
+    package: chat_agent
+    model: gpt-4o
+    provider: openai
+    max_iterations: 2
+    agent_config:
+      prompt: |
+        You are a helpful RAG chat agent. Answer succinctly.
     llm_config:
-      provider: "openai"
-      model: "gpt-4o"
-      temperature: 0.2
-      max_tokens: 512
-    dependencies: [recent, search]
-    output_schema: { text: "string" }
-
-  - id: write
-    type: tool
-    tool_name: memory_write_tool
-    tool_args:
-      key: "chat:{{ inputs.session_id }}:{{ inputs.query }}"
-      content: "{{ llm.response }}"
-      scope: "kb"
-      org_id: "{{ inputs.org_id }}"
-      user_id: "{{ inputs.user_id }}"
-    dependencies: [llm]
-
-outputs:
-  response: { text: "{{ llm.response }}" }
+      provider: openai
+      model: gpt-4o
+    input_schema:
+      type: object
+      properties:
+        query:
+          type: string
+        session_id:
+          type: string
+        org_id:
+          type: string
+        user_id:
+          type: string
+      required: [query]
+    output_schema:
+      type: object
+      properties:
+        message:
+          type: string
+        reasoning:
+          type: array
+          items:
+            type: string
+    memory:
+      backend: redis

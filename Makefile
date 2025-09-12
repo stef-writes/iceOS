@@ -1,6 +1,6 @@
 # Makefile for iceOS – minimal developer and CI tasks
 
-.PHONY: lint-docker lock-check-docker type-check test ci fe-dev dev-db dev-migrate dev-api dev-up dev-down logs-api ci-guard-startup ci-dev-smoke docker-prune builder-prune prune-all
+.PHONY: lint-docker lock-check-docker type-check test ci fe-dev dev-db dev-migrate dev-api dev-up dev-down logs-api ci-guard-startup ci-dev-smoke docker-prune builder-prune prune-all env-lint dev api web dbcheck migrate
 
 # Lint inside Docker (no local Python/Poetry needed)
 lint-docker:
@@ -47,6 +47,23 @@ fe-dev:
 	cd frontend && npm run dev
 
 # ---------------------------------------------------------------------------
+# Dev-local (single-command) -------------------------------------------------
+# ---------------------------------------------------------------------------
+dev: dbcheck migrate api web
+
+api:
+	uvicorn src.ice_api.main:app --host 0.0.0.0 --port 8000 --reload
+
+web:
+	cd frontend/apps/web && npm run dev
+
+dbcheck:
+	python scripts/netcheck.py
+
+migrate:
+	alembic upgrade head
+
+# ---------------------------------------------------------------------------
 # Dev flow (Docker Compose) --------------------------------------------------
 # ---------------------------------------------------------------------------
 # Bring up Postgres and Redis only
@@ -84,6 +101,10 @@ dev-down:
 # Tail API logs
 logs-api:
 	docker compose -f config/deploy/docker-compose.prod.yml logs -f api | cat
+
+# Env lint (SSOT .env.prod)
+env-lint:
+	python3 scripts/dev/env_lint.py .env.prod | cat
 
 # ---------------------------------------------------------------------------
 # CI helpers: startup guard and dev smoke -----------------------------------

@@ -270,7 +270,8 @@ async def delete_asset(
     user_id: Optional[str] = Query(None),
 ) -> Dict[str, Any]:
     key = _asset_key(user_id, label)
-    async for session in get_session():
+    from ice_api.db.database_session_async import session_scope
+    async with session_scope() as session:
         where_parts = ["key = :key", "scope = :scope"]
         params: Dict[str, Any] = {"key": key, "scope": "library"}
         if org_id is not None:

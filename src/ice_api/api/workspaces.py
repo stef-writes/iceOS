@@ -537,7 +537,7 @@ async def attach_project_blueprint(  # noqa: D401
     the blueprint id into the project's blueprint listing (for navigation/UX).
     """
     # Ensure project exists in DB
-    async for session in get_session():
+    async with session_scope() as session:
         pr = await session.get(ProjectRecord, project_id)
         if pr is None:
             raise HTTPException(status_code=404, detail="project not found")
@@ -568,7 +568,7 @@ async def detach_project_blueprint(  # noqa: D401
 ) -> Response:
     """Detach a workflow (blueprint id) from the project’s workflow list."""
     # Ensure project exists in DB (404 if missing)
-    async for session in get_session():
+    async with session_scope() as session:
         pr = await session.get(ProjectRecord, project_id)
         if pr is None:
             raise HTTPException(status_code=404, detail="project not found")

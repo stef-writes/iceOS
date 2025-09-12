@@ -134,3 +134,27 @@ async def run_alembic_migrations_if_enabled() -> None:
     This keeps app startup fast and deterministic.
     """
     return
+
+
+def log_startup() -> None:
+    """Log key environment toggles once at startup.
+
+    The intent is to make it obvious which profile is active in dev-local
+    without dumping all env vars. Only a curated subset is shown.
+
+    Example:
+        >>> log_startup()
+    """
+    try:
+        keys = [
+            "MODE",
+            "REAL_CALLS",
+            "MOCK_LLM",
+            "MOCK_TOOLS",
+            "API_PREFIX",
+            "CORS_ORIGINS",
+        ]
+        snapshot = {k: os.getenv(k) for k in keys}
+        logger.info("[startup] %s", snapshot)
+    except Exception:  # pragma: no cover – best-effort logging only
+        logger.debug("Failed to log startup env snapshot", exc_info=True)

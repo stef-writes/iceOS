@@ -4,11 +4,13 @@ services:
       context: ../../frontend
       dockerfile: Dockerfile
     env_file:
-      - ../../.env
       - ../../.env.prod
     environment:
       NEXT_TELEMETRY_DISABLED: 1
     restart: always
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null || exit 1"]
       interval: 10s
@@ -21,15 +23,9 @@ services:
       dockerfile: Dockerfile
     restart: always
     env_file:
-      - ../../.env
       - ../../.env.prod
     environment:
       ICE_BEHIND_PROXY: "0"
-      REDIS_URL: "redis://redis:6379/0"
-      # DEV DB override (use local Postgres service when profile "db" is enabled)
-      # Comment these two lines to use managed Supabase from .env files
-      DATABASE_URL: "postgresql+asyncpg://iceos:iceos@postgres:5432/iceos?sslmode=disable"
-      ALEMBIC_SYNC_URL: "postgresql+psycopg2://iceos:iceos@postgres:5432/iceos?sslmode=disable"
       # Runtime flags (literals kept here; secrets/urls via env_file)
       ICEOS_RUN_MIGRATIONS: "0"
       ICEOS_REQUIRE_DB: "1"
@@ -39,14 +35,19 @@ services:
       ICE_SKIP_EXTERNAL: "0"
       ICE_DEFAULT_LLM_PROVIDER: "openai"
       ICE_DEFAULT_LLM_MODEL: "gpt-4o"
-      ICE_ALLOW_DEV_TOKEN: "1"
       ICEOS_SKIP_COMPONENT_VALIDATION: "1"
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+      - 9.9.9.9
+    command: >
+      sh -lc "python scripts/netcheck.py && uvicorn ice_api.main:app --host 0.0.0.0 --port 8000"
     ports:
       - "8000:8000"
 
     # Optionally start local DB/Redis via profile "db"; no hard depends for managed services
     healthcheck:
-      test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request,sys\ntry:\n  with urllib.request.urlopen('http://localhost:8000/readyz', timeout=3) as r:\n    sys.exit(0 if r.status==200 else 1)\nexcept Exception:\n  sys.exit(1)\nPY"]
+      test: ["CMD-SHELL", "python scripts/netcheck.py && wget -qO- http://localhost:8000/readyz >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12

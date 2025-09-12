@@ -135,3 +135,4 @@ frontend/apps/web/test-results/
 
 # macOS keychain/keys cache (path reference only)
 # ~/.config/iceos/keys.env is not in repo; listed here for clarity
+.env.dev.local

@@ -299,7 +299,7 @@ class BaseNodeConfig(BaseModel):
             "workflow",
             "loop",
             "parallel",
-            "code",
+            # NOTE: 'code' removed – CodeNodeConfig must declare schemas in prod
             "human",
             "monitor",
             "swarm",
@@ -529,6 +529,32 @@ class AgentNodeConfig(BaseNodeConfig):
                 self.agent_attr = package_parts[-1]
         return self
 
+    @model_validator(mode="after")
+    def _synchronize_llm_config(self) -> "AgentNodeConfig":
+        """Normalize and require LLM configuration for agents.
+
+        - Ensure ``llm_config`` exists
+        - Copy top-level ``model``/``provider`` into nested ``llm_config`` if provided
+        - Require non-empty ``llm_config.model``
+        """
+        # Ensure nested config exists
+        if self.llm_config is None:  # type: ignore[truthy-bool]
+            from ice_core.models.llm import LLMConfig as _LLMConfig
+
+            self.llm_config = _LLMConfig()  # type: ignore[assignment]
+
+        # Synchronize top-level hints into nested config
+        if getattr(self.llm_config, "model", None) in (None, "") and getattr(self, "model", None):
+            self.llm_config.model = self.model  # type: ignore[assignment]
+        if getattr(self.llm_config, "provider", None) in (None, "") and getattr(self, "provider", None):
+            self.llm_config.provider = self.provider  # type: ignore[assignment]
+
+        # Strong requirement: model must be set
+        if getattr(self.llm_config, "model", None) in (None, ""):
+            raise ValueError("AgentNodeConfig requires llm_config.model to be set")
+
+        return self
+
 
 class ConditionNodeConfig(BaseNodeConfig):
     """Branching node that decides execution path based on *expression*."""
@@ -730,6 +756,32 @@ class CodeNodeConfig(BaseNodeConfig):
             raise ValueError(
                 "CodeNodeConfig requires either 'code' or a non-empty 'name' referencing a registered code factory"
             )
+        return self
+
+    @model_validator(mode="after")
+    def _require_schemas(self) -> "CodeNodeConfig":
+        """Require non-empty input/output schemas for code nodes.
+
+        LLM nodes are lenient, but code nodes must be explicit for safety.
+        """
+        from ice_core.utils.schema import is_valid_schema_dict as _is_valid
+        # Accept pydantic model classes or non-empty dicts
+        def _missing(s: Any) -> bool:
+            if s is None:
+                return True
+            if isinstance(s, dict):
+                return len(s) == 0
+            return False
+
+        if _missing(self.input_schema) or _missing(self.output_schema):
+            raise ValueError(
+                "CodeNodeConfig must declare non-empty input_schema and output_schema"
+            )
+        for name, sch in (("input_schema", self.input_schema), ("output_schema", self.output_schema)):
+            if isinstance(sch, dict):
+                ok, errs = _is_valid(sch)
+                if not ok:
+                    raise ValueError(f"CodeNodeConfig has invalid {name}: {'; '.join(errs)}")
         return self
 
 

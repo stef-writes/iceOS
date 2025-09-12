@@ -5,3 +5,5 @@ dependencies:
   toolkits:
     - memory@^1.0.0
     - search@^1.0.0
+workflows:
+  rag_chat: ./workflows/rag_chat.yaml

@@ -107,6 +107,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Register echo LLM for tests/demos when enabled
     maybe_register_echo_llm_for_tests()
 
+    # Log key startup flags for dev-local sanity
+    try:
+        su.log_startup()
+    except Exception:
+        logger.debug("startup env snapshot failed", exc_info=True)
+
     # Ensure first-party tools are provided via plugin manifests; avoid implicit imports
 
     # ------------------------------------------------------------------
@@ -364,23 +370,12 @@ if _OTEL_AVAILABLE and OpenTelemetryMiddleware is not None:  # noqa: WPS504
 else:
     logger.warning("OpenTelemetry not installed – tracing disabled")
 
-# Add CORS middleware (env-driven, auto-gated by proxy)
+# Strict CORS for dev-local; default to localhost:3000
 _behind_proxy = os.getenv("ICE_BEHIND_PROXY", "0") == "1"
-_cors_origins = os.getenv("CORS_ORIGINS", "").strip()
-_allow_wildcard = os.getenv("ALLOW_CORS_WILDCARD", "0") == "1"
-if _behind_proxy:
-    _allow_origins = []  # single-origin via reverse proxy
-else:
-    if _cors_origins == "*":
-        _allow_origins = ["*"] if _allow_wildcard else []
-    elif _cors_origins:
-        _allow_origins = [o.strip() for o in _cors_origins.split(",") if o.strip()]
-    else:
-        _allow_origins = []
-
+_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allow_origins,
+    allow_origins=_origins or ["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -667,17 +662,10 @@ async def root() -> Dict[str, str]:
     }
 
 
-# Health check
-@app.get("/health", response_model=Dict[str, str])
-async def health_check() -> Dict[str, str]:
-    """Health check endpoint."""
-    try:
-        redis = get_redis()
-        await redis.ping()  # type: ignore[misc]
-        return {"status": "healthy", "redis": "connected"}
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return {"status": "unhealthy", "error": str(e)}
+# Simple health route for dev-local
+@app.get("/health")
+def health() -> Dict[str, bool]:
+    return {"ok": True}
 
 
 # Version endpoint

@@ -1,3 +1,193 @@
+"""Executor for code nodes (server-side sandbox boundary)."""
+
+from __future__ import annotations
+
+import asyncio
+from datetime import datetime
+from typing import Any, Dict
+
+from ice_core.models import CodeNodeConfig, NodeExecutionResult
+from ice_core.models.node_metadata import NodeMetadata
+from ice_core.protocols.workflow import WorkflowLike  # noqa: F401
+import logging
+from ice_core.unified_registry import get_code_instance, has_code_factory, register_node
+from ice_core.validation.schema_validator import SchemaValidator
+
+
+@register_node("code")
+async def code_node_executor(  # noqa: D401, ANN401
+    workflow: "WorkflowLike",
+    cfg: CodeNodeConfig,
+    ctx: Dict[str, Any],
+) -> NodeExecutionResult:
+    """Execute CodeNode in a constrained server-side context.
+
+    Notes
+    -----
+    - This executor resolves a registered code factory via the unified registry
+      using ``cfg.name``. Inline code is not executed here; it must be registered
+      via MCP (dev-only) before use.
+    - Sandbox policy (baseline):
+      * Timeouts enforced via asyncio.wait_for
+      * No shell usage within this executor
+      * Network/file access policies are enforced by the factory implementation
+        and deployment environment (future: WASM/subprocess isolation).
+    - Runtime validation ensures outputs conform to ``cfg.output_schema``.
+    """
+
+    logger = logging.getLogger(__name__)
+    start_time = datetime.utcnow()
+    try:
+        # Resolve the server-side factory instance with org scoping
+        if not cfg.name:
+            raise ValueError("CodeNodeConfig.name is required to resolve factory")
+        org_id = None
+        try:
+            # Context may carry identity injected at API layer
+            org_id = (ctx.get("identity") or {}).get("org_id") or ctx.get("org_id")
+        except Exception:
+            org_id = None
+        # Prefer org-scoped factory name if present
+        scoped_name = f"{org_id}:{cfg.name}" if org_id else cfg.name
+        name_to_use = scoped_name if has_code_factory(scoped_name) else cfg.name
+        factory = get_code_instance(name_to_use)
+
+        # Enforce an execution timeout (default 30s; can be tuned later)
+        async def _run() -> Dict[str, Any]:
+            # Factories may be sync or async; normalize
+            result = factory(workflow=workflow, cfg=cfg, ctx=ctx)  # type: ignore[call-arg]
+            if asyncio.iscoroutine(result):
+                from typing import cast as _cast
+                awaited = await result
+                if isinstance(awaited, dict):
+                    return _cast(Dict[str, Any], awaited)
+                return {"result": awaited}
+            if isinstance(result, dict):
+                return result
+            return {"result": result}
+
+        timeout_s = getattr(cfg, "timeout_seconds", None) or 30
+
+        # Deny-by-default networking: block socket creation unless explicitly allowed
+        import socket as _socket
+        _orig_sock = _socket.socket
+        _orig_create_conn = _socket.create_connection
+        net_allowed = bool(getattr(cfg, "metadata", None) and getattr(cfg.metadata, "tags", None) and ("net-allow" in getattr(cfg.metadata, "tags", []))) or bool(getattr(cfg, "network_allowed", False))
+        if not net_allowed:
+            def _blocked_socket(*args, **kwargs):  # type: ignore[no-redef]
+                raise RuntimeError("Network disabled by policy for code node")
+
+            def _blocked_create_connection(*args, **kwargs):  # type: ignore[no-redef]
+                raise RuntimeError("Network disabled by policy for code node")
+
+            from typing import cast as _cast
+            _mod = _cast(Any, _socket)
+            _mod.socket = _blocked_socket  # type: ignore[assignment]
+            _mod.create_connection = _blocked_create_connection  # type: ignore[assignment]
+
+        logger.info(
+            "node.code.execute.start",
+            extra={
+                "node_id": cfg.id,
+                "name": name_to_use,
+                "org_id": org_id,
+                "timeout": timeout_s,
+                "network_allowed": net_allowed,
+            },
+        )
+        out: Dict[str, Any] = await asyncio.wait_for(_run(), timeout=timeout_s)
+
+        # Validate against declared output_schema (dict or pydantic model)
+        assert SchemaValidator.is_output_valid(cfg, out) is True
+
+        end_time = datetime.utcnow()
+        logger.info(
+            "node.code.execute.finish",
+            extra={
+                "node_id": cfg.id,
+                "name": name_to_use,
+                "org_id": org_id,
+                "duration_s": (end_time - start_time).total_seconds(),
+                "success": True,
+            },
+        )
+        return NodeExecutionResult(
+            success=True,
+            output=out,
+            metadata=NodeMetadata(
+                node_id=cfg.id,
+                node_type=cfg.type,
+                name=cfg.name,
+                version="1.0.0",
+                owner="system",
+                provider=getattr(cfg, "provider", None),
+                error_type=None,
+                start_time=start_time,
+                end_time=end_time,
+                duration=(end_time - start_time).total_seconds(),
+                description=f"Code execution: {cfg.name}",
+            ),
+        )
+    except Exception as exc:  # pragma: no cover – defensive path
+        end_time = datetime.utcnow()
+        try:
+            # Best-effort restore networking hooks
+            import socket as _socket
+
+            if '_orig_sock' in locals():
+                from typing import cast as _cast
+                _mod = _cast(Any, _socket)
+                _mod.socket = _orig_sock  # type: ignore[assignment]
+            if '_orig_create_conn' in locals():
+                from typing import cast as _cast
+                _mod = _cast(Any, _socket)
+                _mod.create_connection = _orig_create_conn  # type: ignore[assignment]
+        except Exception:
+            pass
+        logger.warning(
+            "node.code.execute.finish",
+            extra={
+                "node_id": getattr(cfg, 'id', None),
+                "name": getattr(cfg, 'name', None),
+                "duration_s": (end_time - start_time).total_seconds(),
+                "success": False,
+                "error_type": type(exc).__name__,
+            },
+        )
+        return NodeExecutionResult(
+            success=False,
+            error=str(exc),
+            output={},
+            metadata=NodeMetadata(
+                node_id=cfg.id,
+                node_type=cfg.type,
+                name=cfg.name,
+                version="1.0.0",
+                owner="system",
+                error_type=type(exc).__name__,
+                provider=getattr(cfg, "provider", None),
+                start_time=start_time,
+                end_time=end_time,
+                duration=(end_time - start_time).total_seconds(),
+                description=f"Code execution failed: {cfg.name}",
+            ),
+        )
+    finally:
+        # Ensure original socket functions are restored if we blocked them
+        try:
+            import socket as _socket
+
+            if '_orig_sock' in locals():
+                from typing import cast as _cast
+                _mod = _cast(Any, _socket)
+                _mod.socket = _orig_sock  # type: ignore[assignment]
+            if '_orig_create_conn' in locals():
+                from typing import cast as _cast
+                _mod = _cast(Any, _socket)
+                _mod.create_connection = _orig_create_conn  # type: ignore[assignment]
+        except Exception:
+            pass
+
 """Executor for code nodes."""
 
 import ast
@@ -19,8 +209,8 @@ except Exception:  # pragma: no cover – optional WASM
 __all__ = ["code_node_executor"]
 
 
-@register_node("code")
-async def code_node_executor(  # noqa: D401
+# @register_node("code")  # disabled legacy implementation to avoid duplicate registration
+async def code_node_executor_legacy(  # noqa: D401
     workflow: "WorkflowLike",  # type: ignore[name-defined]
     cfg: Any,
     ctx: Dict[str, Any],

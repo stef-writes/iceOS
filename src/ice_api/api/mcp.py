@@ -725,6 +725,54 @@ async def chat_turn(agent_name: str, req: ChatRequest, request: Request) -> Chat
         # Fallback to defaults if no agent definition present
         llm_cfg = LLMConfig()
 
+    # Enforce existence at MCP layer; allow explicit fallback to LLM when enabled
+    from fastapi import HTTPException as _HTTPException  # local alias
+    def _is_missing_model(val: object) -> bool:
+        if val is None:
+            return True
+        if isinstance(val, str):
+            return val.strip() == "" or val.strip().lower() in {"none", "null"}
+        return False
+
+    fallback_allowed = os.getenv("ICE_CHAT_FALLBACK", "1") == "1"
+    if llm_cfg is None or _is_missing_model(getattr(llm_cfg, "model", None)):
+        if not fallback_allowed:
+            raise _HTTPException(
+                status_code=400, detail="Agent configuration missing llm_config.model"
+            )
+        # Go straight to LLM fallback path below
+        llm_cfg = None  # sentinel for fallback
+    else:
+        if getattr(llm_cfg, "provider", None) in (None, ""):
+            llm_cfg.provider = ModelProvider.OPENAI
+        # Validate LLMConfig early to surface precise 400s instead of runtime 500s
+        try:
+            from ice_core.models.llm import LLMConfig as _LLMC
+
+            _ = _LLMC(provider=llm_cfg.provider, model=str(llm_cfg.model))
+        except Exception as _exc:
+            raise _HTTPException(status_code=400, detail=f"Invalid LLM configuration: {_exc}")
+
+    # Compute safe, reusable LLM fields exactly once to avoid None dereferences
+    # These are used for both agent and LLM fallback paths.
+    if llm_cfg is not None and not _is_missing_model(getattr(llm_cfg, "model", None)):
+        _provider_enum = llm_cfg.provider or ModelProvider.OPENAI
+        _model_name = str(llm_cfg.model)
+        _provider_str = str(getattr(_provider_enum, "value", _provider_enum))
+        try:
+            _llm_config_dict = {
+                **llm_cfg.model_dump(),
+                "provider": _provider_str,
+                "model": _model_name,
+            }
+        except Exception:
+            _llm_config_dict = {"provider": _provider_str, "model": _model_name}
+    else:
+        _provider_enum = ModelProvider.OPENAI
+        _provider_str = str(getattr(_provider_enum, "value", _provider_enum))
+        _model_name = os.getenv("DEFAULT_MODEL", "gpt-4o")
+        _llm_config_dict = {"provider": _provider_str, "model": _model_name}
+
     # Build prompt by concatenating messages (simple MVP)
     messages = prev + [{"role": "user", "content": req.user_message}]
     prompt_lines: list[str] = []
@@ -737,8 +785,9 @@ async def chat_turn(agent_name: str, req: ChatRequest, request: Request) -> Chat
     prompt = "\n".join(prompt_lines)
 
     # Create a minimal agent-first node spec when available; fallback to LLM node.
-    model_name = llm_cfg.model if llm_cfg and llm_cfg.model else "gpt-4o"
-    provider = llm_cfg.provider if llm_cfg else ModelProvider.OPENAI
+    # Reuse precomputed values to avoid any llm_cfg dereferences.
+    model_name = _model_name
+    provider = _provider_enum
     svc = _get_workflow_service()
     from ice_core.utils.node_conversion import convert_node_specs  # local import
 
@@ -749,49 +798,122 @@ async def chat_turn(agent_name: str, req: ChatRequest, request: Request) -> Chat
             "id": "chat_agent",
             "type": "agent",
             "package": agent_name,
-            "llm_config": (llm_cfg.model_dump() if llm_cfg else {"model": model_name, "provider": provider}),
+            "model": model_name,
+            "provider": _provider_str,
+            # Normalize provider to string for JSON schema compatibility
+            "llm_config": (_llm_config_dict if llm_cfg else None),
             # Pass prompt/messages via agent_config so the agent can use them
             "agent_config": {"prompt": prompt, "messages": messages[-5:]},
             "tools": [],
             "memory": {"backend": "redis"},
             "max_iterations": 1,
         }
+        current_node_id = agent_node["id"]
+        if agent_node["llm_config"] is None and fallback_allowed:
+            raise ValueError("fallback_to_llm")
         exec_result = await svc.execute(
             convert_node_specs([NodeSpec(**agent_node)]),
             name=f"chat_{agent_name}",
             max_parallel=1,
         )
-    except Exception:
-        # Fallback: LLM node path (keeps chat functional even if agent not registered)
-        llm_dict: Dict[str, Any] = {}
-        if llm_cfg is not None:
-            try:
-                llm_dict = llm_cfg.model_dump()
-            except Exception:
-                llm_dict = {}
-        if not llm_dict.get("model"):
-            llm_dict["model"] = model_name
-        if not llm_dict.get("provider"):
-            llm_dict["provider"] = provider
-        node: Dict[str, Any] = {
-            "id": "chat_llm",
-            "type": "llm",
-            "model": model_name,
-            "provider": provider,
-            "prompt": prompt,
-            "llm_config": llm_dict,
-        }
-        exec_result = await svc.execute(
-            convert_node_specs([NodeSpec(**node)]),
-            name=f"chat_{agent_name}",
-            max_parallel=1,
-        )
-    # Extract assistant text
-    output = exec_result.output if hasattr(exec_result, "output") else {}
+    except Exception as _conv_exc:
+        # Allow fallback to LLM when enabled or when sentinel is raised
+        if fallback_allowed:
+            _llm_node: Dict[str, Any] = {
+                "id": "chat_llm_fallback",
+                "type": "llm",
+                "model": model_name,
+                "provider": _provider_str,
+                "prompt": prompt,
+                "llm_config": _llm_config_dict,
+            }
+            exec_result = await svc.execute(
+                convert_node_specs([NodeSpec(**_llm_node)]),
+                name=f"chat_llm_{agent_name}",
+                max_parallel=1,
+            )
+            current_node_id = _llm_node["id"]
+        else:
+            raise _HTTPException(status_code=400, detail=str(_conv_exc))
+    # Extract assistant text deterministically (serialize Pydantic as needed)
     assistant = ""
-    if isinstance(output, dict):
-        # Common convention: LLMNode returns {"text": ...} or flattened dict
-        assistant = str(output.get("text", "") or output.get("result", ""))
+    from pydantic import BaseModel as _BM  # local import
+
+    def _serialize(obj: Any) -> Any:
+        if isinstance(obj, _BM):
+            return obj.model_dump()
+        if isinstance(obj, dict):
+            return {k: _serialize(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [_serialize(x) for x in obj]
+        return obj
+
+    result_obj: Dict[str, Any] = _serialize(exec_result)  # type: ignore[assignment]
+
+    def _find_text(obj: Any) -> str:
+        # Depth-first search for common text keys
+        try_keys = ("message", "response", "text", "result")
+        if isinstance(obj, dict):
+            for k in try_keys:
+                v = obj.get(k)
+                if isinstance(v, str) and v.strip():
+                    return v
+            # Check node-scoped bucket first
+            if isinstance(current_node_id, str) and current_node_id in obj:
+                v = _find_text(obj[current_node_id])
+                if v:
+                    return v
+            for v in obj.values():
+                t = _find_text(v)
+                if t:
+                    return t
+        elif isinstance(obj, list):
+            for v in obj:
+                t = _find_text(v)
+                if t:
+                    return t
+        elif isinstance(obj, str):
+            return obj
+        return ""
+
+    out: Dict[str, Any] = {}
+    if isinstance(result_obj, dict):
+        out = result_obj.get("output", {}) or {}
+        if not out and isinstance(current_node_id, str) and current_node_id in result_obj:
+            node_bucket = result_obj.get(current_node_id) or {}
+            if isinstance(node_bucket, dict):
+                out = node_bucket.get("output", node_bucket) or {}
+    assistant = _find_text(out)
+
+    # Fallback: if agent produced empty text, try a one-shot LLM node with the same prompt
+    if not assistant.strip():
+        try:
+            _llm_node2: Dict[str, Any] = {
+                "id": "chat_llm_fallback",
+                "type": "llm",
+                "model": model_name,
+                "provider": _provider_str,
+                "prompt": prompt,
+                "llm_config": _llm_config_dict,
+            }
+            llm_res = await svc.execute(
+                convert_node_specs([NodeSpec(**_llm_node2)]),
+                name=f"chat_llm_{agent_name}",
+                max_parallel=1,
+            )
+            llm_res_ser = _serialize(llm_res)
+            if isinstance(llm_res_ser, dict):
+                lout = llm_res_ser.get("output", {}) or {}
+                if not lout and "chat_llm_fallback" in llm_res_ser:
+                    bucket = llm_res_ser.get("chat_llm_fallback") or {}
+                    if isinstance(bucket, dict):
+                        lout = bucket.get("output", bucket) or {}
+                msg = _find_text(lout)
+                if msg:
+                    assistant = msg
+        except Exception:
+            # keep assistant as-is
+            pass
 
     # Update history and persist (Redis for fast session access)
     messages.append({"role": "assistant", "content": assistant})
@@ -1650,23 +1772,38 @@ async def validate_component_definition(
                     )
 
             elif definition.type == "code":
-                # Dynamically load a code factory and register it (idempotent)
+                # Enforce prod policy: inline code only when explicitly allowed.
+                import os as _os
+                from fastapi import HTTPException as _HTTPException
+                from ice_core.unified_registry import (
+                    has_code_factory,
+                    register_code_factory,
+                )
+
+                reg_name = definition.name  # validate() endpoint lacks Request; org-scope added at register step
+                inline_allowed = _os.getenv("ICE_ALLOW_INLINE_CODE", "0") == "1"
+
+                # Path A: inline factory code (dev-only)
                 if definition.code_factory_code:
+                    if not inline_allowed:
+                        raise _HTTPException(
+                            status_code=400,
+                            detail=(
+                                "Inline code is disabled in this environment. "
+                                "Provide metadata.factory_ref import path for code factory."
+                            ),
+                        )
+
                     import hashlib
                     import sys
                     import types
-
-                    from ice_core.unified_registry import (
-                        has_code_factory,
-                        register_code_factory,
-                    )
 
                     # Content-addressable module naming for idempotency
                     sha = hashlib.sha256(
                         definition.code_factory_code.encode()
                     ).hexdigest()[:12]
-                    mod_name = f"dynamic_code_{definition.name}_{sha}"
-                    if not has_code_factory(definition.name):
+                    mod_name = f"dynamic_code_{reg_name}_{sha}"
+                    if not has_code_factory(reg_name):
                         module = types.ModuleType(mod_name)
                         exec(definition.code_factory_code, module.__dict__)
                         sys.modules[mod_name] = module
@@ -1680,13 +1817,29 @@ async def validate_component_definition(
                                 "No callable factory found in code_factory_code"
                             )
                         import_path = f"{mod_name}:{factory_obj.__name__}"
-                        register_code_factory(definition.name, import_path)
+                        register_code_factory(reg_name, import_path)
                     result.registered = True
-                    result.registry_name = definition.name
+                    result.registry_name = reg_name
+
+                # Path B: packaged import path provided via metadata.factory_ref (prod)
                 else:
-                    result.warnings.append(
-                        "Code registration without factory not yet implemented"
-                    )
+                    factory_ref = None
+                    try:
+                        factory_ref = (definition.metadata or {}).get("factory_ref")
+                    except Exception:
+                        factory_ref = None
+                    if not factory_ref:
+                        raise _HTTPException(
+                            status_code=400,
+                            detail=(
+                                "Code registration requires metadata.factory_ref (module:create_fn) "
+                                "when inline code is disabled."
+                            ),
+                        )
+                    if not has_code_factory(reg_name):
+                        register_code_factory(reg_name, str(factory_ref))
+                    result.registered = True
+                    result.registry_name = reg_name
 
             elif definition.type == "agent":
                 # Data-first agent definition persisted in registry
